@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 
 extern void draw_point(float xf, float yf,  char c);
