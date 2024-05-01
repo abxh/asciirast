@@ -7,10 +7,6 @@
 #include "screen.h"
 #include "transform.h"
 
-#define CSI_ESC "\033["
-#define CSI_UP "A"
-#define CSI_MOVTOFRONT "\r"
-
 void sleep_portable(size_t millisec) {
 #ifdef _WIN32
 #include <windows.h>
