@@ -36,8 +36,8 @@ int main(void) {
     while (true) {
         for (size_t o = 0; o < 6; o++) {
             for (size_t i = 0; i <= 6; i++) {
-                float x1f = rotate_y_around_origo(0.6 - 0.1 * i, 0.6 - 0.1 * i, to_angle_rad(-angle_deg - 20. * i - 60 * o));
-                float y1f = rotate_x_around_origo(0.6 - 0.1 * i, 0.6 - 0.1 * i, to_angle_rad(-angle_deg - 20. * i - 60 * o));
+                float x1f = rotate_x_around_origo(0.6 - 0.1 * i, 0.6 - 0.1 * i, to_angle_rad(-angle_deg - 20. * i - 60 * o));
+                float y1f = rotate_y_around_origo(0.6 - 0.1 * i, 0.6 - 0.1 * i, to_angle_rad(-angle_deg - 20. * i - 60 * o));
                 draw_point(x1f, y1f, '*');
             }
         }
