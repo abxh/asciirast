@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdlib.h>
 
 float flip_sign(float x);
