@@ -7,10 +7,10 @@
 
 extern char screen_buf[SCREEN_HEIGHT][SCREEN_WIDTH];
 
-extern void screen_init(void);
+void screen_init(void);
 
-extern void screen_deinit(void);
+void screen_deinit(void);
 
-extern void screen_clear(void);
+void screen_clear(void);
 
-extern void screen_refresh(void);
+void screen_refresh(void);

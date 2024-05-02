@@ -1,5 +1,6 @@
 #include <math.h>
-#include <stdlib.h>
+
+#include "transform.h"
 
 float flip_sign(float x) {
     return -x;
@@ -15,14 +16,10 @@ float clamp(float x, float min, float max) {
     return x;
 }
 
-float to_angle_rad(float angle_deg) {
+float conv_to_angle_rad(float angle_deg) {
     return angle_deg * M_PI / 180;
 }
 
-float rotate_x_around_origo(float x, float y, float angle_rad) {
-    return x * cosf(angle_rad) - y * sinf(angle_rad);
-}
-
-float rotate_y_around_origo(float x, float y, float angle_rad) {
-    return x * sinf(angle_rad) + y * cosf(angle_rad);
+vec2 rotate_around_origo_2d(vec2 vec, float angle_rad) {
+    return (vec2){.x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad)};
 }

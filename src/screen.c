@@ -2,22 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "misc.h"
 #include "screen.h"
 
 char screen_buf[SCREEN_HEIGHT][SCREEN_WIDTH];
 
-#define STR(s) #s
-#define XSTR(s) STR(s)
-
-#define CSI_ESC "\033["
-#define CSI_UP "A"
-#define CSI_SHOWCURSOR "?25h"
-#define CSI_HIDECURSOR "?25l"
-#define CSI_CLEARLINE "2K"
-
 void clear_lines(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
-        printf(CSI_ESC CSI_CLEARLINE "\n");
+        CLEAR_LINE();
+        putchar('\n');
     }
 }
 
@@ -36,7 +29,7 @@ void screen_deinit(void) {
 }
 
 void screen_refresh(void) {
-    printf(CSI_ESC XSTR(SCREEN_HEIGHT) CSI_UP);
+    MOVE_UP_LINES(SCREEN_HEIGHT);
     putchar('\r');
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
         for (size_t x = 0; x < SCREEN_WIDTH; x++) {

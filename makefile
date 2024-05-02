@@ -1,11 +1,16 @@
-name := ascii-3d
+name := ascii-engine
 
 CC         = gcc
-CFLAGS     = -Wall -lm
 SRC_PATH   = src
-_SRCS      = transform.c draw.c screen.c main.c
+CFLAGS     = -Wall -lm -I$(SRC_PATH)
+_SRCS      = main.c screen.c transform.c draw.c misc.c
+_SRCS     += objects/star.c
+_SRCS     += objects/spiral.c 
+
 SRCS       = $(patsubst %,$(SRC_PATH)/%, $(_SRCS))
 OBJS       = $(patsubst %.c, %.o, $(SRCS))
+
+# CFLAGS += -DDEBUG
 
 .PHONY: all clean test
 
@@ -16,7 +21,7 @@ $(name): $(OBJS)
 
 $(OBJS): $(SRCS)
 
-$(SRCS):
+@(SRCS):
 	$(CC) -c $(CFLAGS) $@
 
 clean:
