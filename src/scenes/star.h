@@ -1,6 +1,6 @@
 #pragma once
 
-#include "object.h"
+#include "scene.h"
 
 void** star_create(void);
 
@@ -10,4 +10,4 @@ void star_update(void** context_ptr);
 
 void star_on_key(void** context_ptr, char c);
 
-extern object_ops_type star_ops;
+extern scene_type star_scene;

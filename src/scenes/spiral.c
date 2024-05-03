@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include "draw.h"
-#include "objects/object.h"
+#include "scenes/scene.h"
 #include "spiral.h"
 #include "transform.h"
 
@@ -15,13 +15,14 @@ typedef struct {
     int64_t angle_deg;
 } spiral;
 
-object_ops_type spiral_ops = {.flags = OBJ_OPS_NOP, .create = spiral_create, .destroy = spiral_destroy, .update = spiral_update};
+scene_type spiral_scene = {.flags = SCENE_OPS_NOP, .create = spiral_create, .destroy = spiral_destroy, .update = spiral_update};
 
 #define SPIRAL_OBJ 0
 
 void** spiral_create(void) {
     void** context_ptr = calloc(1, sizeof(void*));
     context_ptr[SPIRAL_OBJ] = malloc(sizeof(spiral));
+    ((spiral*)context_ptr[SPIRAL_OBJ])->angle_deg = 0;
     return context_ptr;
 }
 

@@ -1,9 +1,12 @@
 #pragma once
 
-#include <stdlib.h>
-
+#ifndef SCREEN_HEIGHT
 #define SCREEN_HEIGHT 20
+#endif
+
+#ifndef SCREEN_WIDTH
 #define SCREEN_WIDTH 40
+#endif
 
 extern char screen_buf[SCREEN_HEIGHT][SCREEN_WIDTH];
 

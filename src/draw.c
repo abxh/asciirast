@@ -1,80 +1,99 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "draw.h"
 #include "misc.h"
 #include "screen.h"
 #include "transform.h"
 
-void plot(size_t screen_x, size_t screen_y, char c) {
+typedef struct {
+    int x;
+    int y;
+} screen_indicies;
+
+void plot(int screen_x, int screen_y, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
     assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
 
     screen_buf[screen_y][screen_x] = c;
 }
 
-int conv_to_index(float x, size_t length) {
+void plot_at_indicies(screen_indicies sv, char c) {
+    plot(sv.x, sv.y, c);
+}
+
+int conv_to_screen_index(float x, int length) {
+    return (x + 1.) / 2 * (length - 1);
+}
+
+int conv_to_screen_index_clamped(float x, int length) {
     return (clamp(x, -1., 1.) + 1.) / 2 * (length - 1);
 }
 
-void draw_point_2d(vec2 vec, char c) {
-    size_t screen_x = conv_to_index(vec.x, SCREEN_WIDTH);
-    size_t screen_y = conv_to_index(vec.y, SCREEN_HEIGHT);
-
-    plot(screen_x, screen_y, c);
+screen_indicies conv_to_screen_indicies(vec2 vec) {
+    return (screen_indicies){conv_to_screen_index(vec.x, SCREEN_WIDTH), conv_to_screen_index(-vec.y, SCREEN_HEIGHT)};
 }
 
-void draw_line_vert_2d_internal(size_t screen_x, size_t screen_y, int64_t steps, char c) {
+screen_indicies conv_to_screen_indicies_clamped(vec2 vec) {
+    return (screen_indicies){conv_to_screen_index_clamped(vec.x, SCREEN_WIDTH), conv_to_screen_index_clamped(-vec.y, SCREEN_HEIGHT)};
+}
+
+void draw_point_2d(vec2 vec, char c) {
+    plot_at_indicies(conv_to_screen_indicies_clamped(vec), c);
+}
+
+void draw_line_vert_2d_internal(int screen_x, int screen_y, int steps, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
     assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
 
     assert(IMPLIES(steps >= 0, screen_y + steps < SCREEN_HEIGHT));
-    assert(IMPLIES(steps < 0, (int64_t)screen_y + steps >= 0));
+    assert(IMPLIES(steps < 0, screen_y + steps >= 0));
 
     if (steps >= 0) {
-        for (size_t var = screen_y; var <= screen_y + steps; var += 1) {
+        for (int var = screen_y; var <= screen_y + steps; var += 1) {
             plot(screen_x, var, c);
         }
     } else {
-        for (size_t var = screen_y; var + 1 > screen_y + steps; var -= 1) {
+        for (int var = screen_y; var + 1 > screen_y + steps; var -= 1) {
             plot(screen_x, var, c);
         }
     }
 }
 
-void draw_line_hort_2d_internal(size_t screen_x, size_t screen_y, int64_t steps, char c) {
+void draw_line_hort_2d_internal(int screen_x, int screen_y, int steps, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
     assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
 
     assert(IMPLIES(steps >= 0, screen_x + steps < SCREEN_WIDTH));
-    assert(IMPLIES(steps < 0, (int64_t)screen_x + steps >= 0));
+    assert(IMPLIES(steps < 0, (int)screen_x + steps >= 0));
 
     if (steps >= 0) {
-        for (size_t var = screen_x; var <= screen_x + steps; var += 1) {
+        for (int var = screen_x; var <= screen_x + steps; var += 1) {
             plot(var, screen_y, c);
         }
     } else {
-        for (size_t var = screen_x; var + 1 > screen_x + steps; var -= 1) {
+        for (int var = screen_x; var + 1 > screen_x + steps; var -= 1) {
             plot(var, screen_y, c);
         }
     }
 }
 
-void plotLineLow(int64_t x0, int64_t y0, int64_t x1, int64_t y1, char c) {
+void plotLineLow(int x0, int y0, int x1, int y1, char c) {
+    // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-    int64_t dx = x1 - x0;
-    int64_t dy = y1 - y0;
-    int64_t yi = 1;
+
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int yi = 1;
     if (dy < 0) {
         yi = -1;
         dy = -dy;
     }
-    int64_t D = (2 * dy) - dx;
-    int64_t y = y0;
+    int D = (2 * dy) - dx;
+    int y = y0;
 
-    for (int64_t x = x0; x <= x1; x++) {
+    for (int x = x0; x <= x1; x++) {
         plot(x, y, c);
         if (D > 0) {
             y = y + yi;
@@ -85,19 +104,21 @@ void plotLineLow(int64_t x0, int64_t y0, int64_t x1, int64_t y1, char c) {
     }
 }
 
-void plotLineHigh(int64_t x0, int64_t y0, int64_t x1, int64_t y1, char c) {
+void plotLineHigh(int x0, int y0, int x1, int y1, char c) {
+    // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-    int64_t dx = x1 - x0;
-    int64_t dy = y1 - y0;
-    int64_t xi = 1;
+
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int xi = 1;
     if (dx < 0) {
         xi = -1;
         dx = -dx;
     }
-    int64_t D = (2 * dx) - dy;
-    int64_t x = x0;
+    int D = (2 * dx) - dy;
+    int x = x0;
 
-    for (int64_t y = y0; y <= y1; y++) {
+    for (int y = y0; y <= y1; y++) {
         plot(x, y, c);
         if (D > 0) {
             x = x + xi;
@@ -108,41 +129,67 @@ void plotLineHigh(int64_t x0, int64_t y0, int64_t x1, int64_t y1, char c) {
     }
 }
 
-int64_t diff_int64(int64_t x, int64_t y) {
+int diff_int(int x, int y) {
     return x - y;
 }
 
-int64_t abs_int64(int64_t x, int64_t y) {
-    int64_t res = x - y;
+int abs_int(int x, int y) {
+    int res = x - y;
     return (res >= 0) ? res : -res;
 }
 
-void draw_line_2d(vec2 p1, vec2 p2, char c) {
-    size_t screen_x_1 = conv_to_index(p1.x, SCREEN_WIDTH);
-    size_t screen_y_1 = conv_to_index(p1.y, SCREEN_HEIGHT);
-
-    size_t screen_x_2 = conv_to_index(p2.x, SCREEN_WIDTH);
-    size_t screen_y_2 = conv_to_index(p2.y, SCREEN_HEIGHT);
-
-    // These two cases are not strictly neccesary. I implemented them for learning reasons.
-    if (screen_x_1 == screen_x_2) {
-        draw_line_vert_2d_internal(screen_x_1, screen_y_1, diff_int64(screen_y_2, screen_y_1), c);
-    } else if (screen_y_1 == screen_y_2) {
-        draw_line_hort_2d_internal(screen_x_1, screen_y_1, diff_int64(screen_x_2, screen_x_1), c);
+void draw_line_2d_internal(screen_indicies sp1, screen_indicies sp2, char c) {
+    // These two cases are not strictly neccesary. I implemented them for learning / optimization reasons.
+    if (sp1.x == sp2.x) {
+        draw_line_vert_2d_internal(sp1.x, sp1.y, diff_int(sp2.y, sp1.y), c);
+    } else if (sp1.y == sp2.y) {
+        draw_line_hort_2d_internal(sp1.x, sp1.y, diff_int(sp2.x, sp1.x), c);
     }
 
+    // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-    if (abs_int64(screen_y_2, screen_y_1) < abs_int64(screen_x_2, screen_x_1)) {
-        if (screen_x_1 > screen_x_2) {
-            plotLineLow(screen_x_2, screen_y_2, screen_x_1, screen_y_1, c);
+    if (abs_int(sp2.y, sp1.y) < abs_int(sp2.x, sp1.x)) {
+        if (sp1.x > sp2.x) {
+            plotLineLow(sp2.x, sp2.y, sp1.x, sp1.y, c);
         } else {
-            plotLineLow(screen_x_1, screen_y_1, screen_x_2, screen_y_2, c);
+            plotLineLow(sp1.x, sp1.y, sp2.x, sp2.y, c);
         }
     } else {
-        if (screen_y_1 > screen_y_2) {
-            plotLineHigh(screen_x_2, screen_y_2, screen_x_1, screen_y_1, c);
+        if (sp1.y > sp2.y) {
+            plotLineHigh(sp2.x, sp2.y, sp1.x, sp1.y, c);
         } else {
-            plotLineHigh(screen_x_1, screen_y_1, screen_x_2, screen_y_2, c);
+            plotLineHigh(sp1.x, sp1.y, sp2.x, sp2.y, c);
         }
     }
+}
+
+void draw_line_2d(vec2 p1, vec2 p2, char c) {
+    screen_indicies sp1 = conv_to_screen_indicies_clamped(p1);
+    screen_indicies sp2 = conv_to_screen_indicies_clamped(p2);
+
+    draw_line_2d_internal(sp1, sp2, c);
+}
+
+float get_slope_int(float x1, float y1, float x2, float y2) {
+    return y2 - y1 / x2 - x1;
+}
+
+void swap_vec(vec2* vec1ptr, vec2* vec2ptr) {
+    vec2 temp = *vec1ptr;
+    *vec1ptr = *vec2ptr;
+    *vec2ptr = temp;
+}
+
+void draw_triangle_2d(vec2 p1, vec2 p2, vec2 p3, char c) {
+    // Triangle filling:
+    // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+
+    // Swap so p1.y <= p2.y <= p3.y.
+    // TODO: proper float comparision
+    if (p2.y < p1.y)
+        swap_vec(&p2, &p1);
+    if (p3.y < p1.y)
+        swap_vec(&p3, &p1);
+    if (p3.y < p2.y)
+        swap_vec(&p3, &p2);
 }
