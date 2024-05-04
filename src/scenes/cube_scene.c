@@ -92,11 +92,13 @@ void cube_scene_update(void** context_ptr) {
     size_t front = 0;
     size_t back = 0;
     size_t count = 0;
-    memset(queue, -1, sizeof queue);
+    for (size_t i = 0; i < sizeof queue / sizeof *queue; i++) {
+        queue[i] = -1;
+    }
     memset(visited, false, sizeof visited);
 
     queue[back] = 0;
-    back = (back + 1) % sizeof queue;
+    back = (back + 1) % (sizeof queue / sizeof *queue);
     count++;
 
 #ifdef DEBUG
@@ -105,7 +107,7 @@ void cube_scene_update(void** context_ptr) {
 
     while (count > 0) {
         int current = queue[front];
-        front = (front + 1) % sizeof queue;
+        front = (front + 1) % (sizeof queue / sizeof *queue);
         count--;
 
         visited[current] = true;
@@ -119,7 +121,7 @@ void cube_scene_update(void** context_ptr) {
             vec2 v2 = vec3_projected_as_vec2(moved(verticies[i], angle_rad), fov_const);
             draw_line_vec2(v1, v2, '.');
             queue[back] = i;
-            back = (back + 1) % sizeof queue;
+            back = (back + 1) % (sizeof queue / sizeof *queue);
             count++;
 
 #ifdef DEBUG
