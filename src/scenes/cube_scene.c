@@ -81,7 +81,7 @@ vec3 moved(vec3 vec, float angle_rad) {
 
 // clang-format on
 
-static int queue[8];
+static int queue[16];
 static bool visited[8];
 
 void cube_scene_update(void** context_ptr) {
@@ -89,19 +89,27 @@ void cube_scene_update(void** context_ptr) {
     int64_t angle_deg = cube_ptr->angle_deg;
     float fov_const = to_fov_constant_from_degrees(60.);
 
+    size_t front = 0;
+    size_t back = 0;
     size_t count = 0;
     memset(queue, -1, sizeof queue);
     memset(visited, false, sizeof visited);
 
-    queue[count++] = 0;
+    queue[back] = 0;
+    back = (back + 1) % sizeof queue;
+    count++;
 
 #ifdef DEBUG
     printf("edges:\n");
 #endif
 
     while (count > 0) {
-        int current = queue[--count];
+        int current = queue[front];
+        front = (front + 1) % sizeof queue;
+        count--;
+
         visited[current] = true;
+
         for (size_t i = 0; i < 8; i++) {
             if (!adjacency_list[current][i] || visited[i]) {
                 continue;
@@ -110,7 +118,9 @@ void cube_scene_update(void** context_ptr) {
             vec2 v1 = vec3_projected_as_vec2(moved(verticies[current], angle_rad), fov_const);
             vec2 v2 = vec3_projected_as_vec2(moved(verticies[i], angle_rad), fov_const);
             draw_line_vec2(v1, v2, '.');
-            queue[count++] = i;
+            queue[back] = i;
+            back = (back + 1) % sizeof queue;
+            count++;
 
 #ifdef DEBUG
             CLEAR_LINE();
