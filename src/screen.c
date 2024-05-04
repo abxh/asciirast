@@ -6,7 +6,6 @@
 #include "screen.h"
 
 char screen_buf[SCREEN_HEIGHT][SCREEN_WIDTH];
-float depth_buf[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 void clear_lines(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
