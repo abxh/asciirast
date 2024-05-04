@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #define STR(s) #s
 #define XSTR(s) STR(s)
@@ -15,5 +16,12 @@
 #define MOVE_UP_LINES(num_lines) printf(CSI_ESC XSTR(num_lines) CSI_UP)
 
 #define IMPLIES(a, b) (!(a) || (b))
+
+#define SWAP_UNSAFE(T, a, b) \
+    do {                     \
+        T t = (a);           \
+        (b) = t;             \
+        (a) = t;             \
+    } while (false)
 
 void sleep_portable(size_t millisec);

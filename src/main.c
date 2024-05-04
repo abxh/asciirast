@@ -7,19 +7,25 @@
 #include "screen.h"
 
 #include "scenes/scene.h"
-#include "scenes/star.h"
-#include "scenes/spiral.h"
+#include "scenes/star_scene.h"
+#include "scenes/spiral_scene.h"
+#include "scenes/cube_scene.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void on_sigint(int sig) {
     screen_deinit();
     exit(0);
 }
 
+#pragma GCC diagnostic pop
+
 int main(void) {
     signal(SIGINT, on_sigint);
     screen_init();
 
-    scene_type scene = star_scene;
+    scene_type scene = cube_scene;
     void** context_ptr = scene.create();
 
     bool on_running = true;

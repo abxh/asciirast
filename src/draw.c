@@ -3,83 +3,78 @@
 #include <stdint.h>
 
 #include "draw.h"
-#include "misc.h"
 #include "screen.h"
 #include "transform.h"
 
 typedef struct {
     int x;
     int y;
-} screen_indicies;
+} vec2int;
 
-void plot(int screen_x, int screen_y, char c) {
+void plot_int2(int screen_x, int screen_y, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
-    assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
 
-    screen_buf[screen_y][screen_x] = c;
+    int inv_screen_y = SCREEN_HEIGHT - 1 - screen_y;
+    assert(0 <= inv_screen_y && inv_screen_y < SCREEN_HEIGHT);
+
+    screen_buf[inv_screen_y][screen_x] = c;
 }
 
-void plot_at_indicies(screen_indicies sv, char c) {
-    plot(sv.x, sv.y, c);
+void plot_vec2int(vec2int sv, char c) {
+    plot_int2(sv.x, sv.y, c);
 }
 
-int conv_to_screen_index(float x, int length) {
-    return (x + 1.) / 2 * (length - 1);
+int conv_to_screen_index_unclamped_float(float x, int length) {
+    return ((x + 1) / 2) * (length - 1);
 }
 
-int conv_to_screen_index_clamped(float x, int length) {
-    return (clamp(x, -1., 1.) + 1.) / 2 * (length - 1);
+int conv_to_screen_index_clamped_float(float x, int length) {
+    return conv_to_screen_index_unclamped_float(clamp_float(x, -1., 1.), length);
 }
 
-screen_indicies conv_to_screen_indicies(vec2 vec) {
-    return (screen_indicies){conv_to_screen_index(vec.x, SCREEN_WIDTH), conv_to_screen_index(-vec.y, SCREEN_HEIGHT)};
+vec2int conv_to_screen_indicies_unclamped_vec2(vec2 vec) {
+    return (vec2int){conv_to_screen_index_unclamped_float(vec.x, SCREEN_WIDTH),
+                     conv_to_screen_index_unclamped_float(vec.y, SCREEN_HEIGHT)};
 }
 
-screen_indicies conv_to_screen_indicies_clamped(vec2 vec) {
-    return (screen_indicies){conv_to_screen_index_clamped(vec.x, SCREEN_WIDTH), conv_to_screen_index_clamped(-vec.y, SCREEN_HEIGHT)};
+vec2int conv_to_screen_indicies_clamped_vec2(vec2 vec) {
+    return (vec2int){conv_to_screen_index_clamped_float(vec.x, SCREEN_WIDTH),
+                     conv_to_screen_index_clamped_float(vec.y, SCREEN_HEIGHT)};
 }
 
-void draw_point_2d(vec2 vec, char c) {
-    plot_at_indicies(conv_to_screen_indicies_clamped(vec), c);
+void draw_point_vec2(vec2 vec, char c) {
+    vec2int screen_indicies = conv_to_screen_indicies_unclamped_vec2(vec);
+
+    bool inside_x_bounds = 0 <= screen_indicies.x && screen_indicies.x < SCREEN_WIDTH;
+    bool inside_y_bounds = 0 <= screen_indicies.y && screen_indicies.y < SCREEN_HEIGHT;
+
+    if (!(inside_x_bounds || inside_y_bounds)) {
+        return;
+    }
+    plot_vec2int(screen_indicies, c);
 }
 
-void draw_line_vert_2d_internal(int screen_x, int screen_y, int steps, char c) {
+void draw_line_vertical_int2(int screen_x, int screen_y, unsigned int steps, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
-    assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
+    assert(0 <= screen_y && screen_y < SCREEN_HEIGHT);
+    assert(screen_y + steps < SCREEN_HEIGHT);
 
-    assert(IMPLIES(steps >= 0, screen_y + steps < SCREEN_HEIGHT));
-    assert(IMPLIES(steps < 0, screen_y + steps >= 0));
-
-    if (steps >= 0) {
-        for (int var = screen_y; var <= screen_y + steps; var += 1) {
-            plot(screen_x, var, c);
-        }
-    } else {
-        for (int var = screen_y; var + 1 > screen_y + steps; var -= 1) {
-            plot(screen_x, var, c);
-        }
+    for (int var = screen_y; var <= screen_y + (int)steps; var += 1) {
+        plot_int2(screen_x, var, c);
     }
 }
 
-void draw_line_hort_2d_internal(int screen_x, int screen_y, int steps, char c) {
+void draw_line_horizontal_int2(int screen_x, int screen_y, unsigned int steps, char c) {
     assert(0 <= screen_x && screen_x < SCREEN_WIDTH);
-    assert(0 <= screen_y && screen_y < SCREEN_WIDTH);
+    assert(0 <= screen_y && screen_y < SCREEN_HEIGHT);
+    assert(screen_x + steps < SCREEN_WIDTH);
 
-    assert(IMPLIES(steps >= 0, screen_x + steps < SCREEN_WIDTH));
-    assert(IMPLIES(steps < 0, (int)screen_x + steps >= 0));
-
-    if (steps >= 0) {
-        for (int var = screen_x; var <= screen_x + steps; var += 1) {
-            plot(var, screen_y, c);
-        }
-    } else {
-        for (int var = screen_x; var + 1 > screen_x + steps; var -= 1) {
-            plot(var, screen_y, c);
-        }
+    for (int var = screen_x; var <= screen_x + (int)steps; var += 1) {
+        plot_int2(var, screen_y, c);
     }
 }
 
-void plotLineLow(int x0, int y0, int x1, int y1, char c) {
+void draw_line_pos_slope_int4(int x0, int y0, int x1, int y1, char c) {
     // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
@@ -94,7 +89,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, char c) {
     int y = y0;
 
     for (int x = x0; x <= x1; x++) {
-        plot(x, y, c);
+        plot_int2(x, y, c);
         if (D > 0) {
             y = y + yi;
             D = D + (2 * (dy - dx));
@@ -104,7 +99,7 @@ void plotLineLow(int x0, int y0, int x1, int y1, char c) {
     }
 }
 
-void plotLineHigh(int x0, int y0, int x1, int y1, char c) {
+void draw_line_neg_slope_int4(int x0, int y0, int x1, int y1, char c) {
     // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
@@ -119,7 +114,7 @@ void plotLineHigh(int x0, int y0, int x1, int y1, char c) {
     int x = x0;
 
     for (int y = y0; y <= y1; y++) {
-        plot(x, y, c);
+        plot_int2(x, y, c);
         if (D > 0) {
             x = x + xi;
             D = D + (2 * (dx - dy));
@@ -129,67 +124,49 @@ void plotLineHigh(int x0, int y0, int x1, int y1, char c) {
     }
 }
 
-int diff_int(int x, int y) {
-    return x - y;
-}
-
-int abs_int(int x, int y) {
-    int res = x - y;
-    return (res >= 0) ? res : -res;
-}
-
-void draw_line_2d_internal(screen_indicies sp1, screen_indicies sp2, char c) {
-    // These two cases are not strictly neccesary. I implemented them for learning / optimization reasons.
-    if (sp1.x == sp2.x) {
-        draw_line_vert_2d_internal(sp1.x, sp1.y, diff_int(sp2.y, sp1.y), c);
-    } else if (sp1.y == sp2.y) {
-        draw_line_hort_2d_internal(sp1.x, sp1.y, diff_int(sp2.x, sp1.x), c);
-    }
-
+void draw_line_int4(int x1, int y1, int x2, int y2, char c) {
     // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-    if (abs_int(sp2.y, sp1.y) < abs_int(sp2.x, sp1.x)) {
-        if (sp1.x > sp2.x) {
-            plotLineLow(sp2.x, sp2.y, sp1.x, sp1.y, c);
+
+    unsigned int x_abs_diff = abs_int(diff_int(x1, x2));
+    unsigned int y_abs_diff = abs_int(diff_int(y1, y2));
+
+    if (x1 == x2) {
+        if (y1 < y2) {
+            draw_line_vertical_int2(x1, y1, y_abs_diff, c);
         } else {
-            plotLineLow(sp1.x, sp1.y, sp2.x, sp2.y, c);
+            draw_line_vertical_int2(x2, y2, y_abs_diff, c);
+        }
+    } else if (y1 == y2) {
+        if (x1 < x2) {
+            draw_line_horizontal_int2(x1, y1, x_abs_diff, c);
+        } else {
+            draw_line_horizontal_int2(x2, y2, x_abs_diff, c);
+        }
+    }
+
+    if (y_abs_diff < x_abs_diff) {
+        if (x1 > x2) {
+            draw_line_pos_slope_int4(x2, y2, x1, y1, c);
+        } else {
+            draw_line_pos_slope_int4(x1, y1, x2, y2, c);
         }
     } else {
-        if (sp1.y > sp2.y) {
-            plotLineHigh(sp2.x, sp2.y, sp1.x, sp1.y, c);
+        if (y1 > y2) {
+            draw_line_neg_slope_int4(x2, y2, x1, y1, c);
         } else {
-            plotLineHigh(sp1.x, sp1.y, sp2.x, sp2.y, c);
+            draw_line_neg_slope_int4(x1, y1, x2, y2, c);
         }
     }
 }
 
-void draw_line_2d(vec2 p1, vec2 p2, char c) {
-    screen_indicies sp1 = conv_to_screen_indicies_clamped(p1);
-    screen_indicies sp2 = conv_to_screen_indicies_clamped(p2);
-
-    draw_line_2d_internal(sp1, sp2, c);
+void draw_line_vec2int(vec2int sp1, vec2int sp2, char c) {
+    draw_line_int4(sp1.x, sp1.y, sp2.x, sp2.y, c);
 }
 
-float get_slope_int(float x1, float y1, float x2, float y2) {
-    return y2 - y1 / x2 - x1;
-}
+void draw_line_vec2(vec2 p1, vec2 p2, char c) {
+    vec2int sp1 = conv_to_screen_indicies_clamped_vec2(p1);
+    vec2int sp2 = conv_to_screen_indicies_clamped_vec2(p2);
 
-void swap_vec(vec2* vec1ptr, vec2* vec2ptr) {
-    vec2 temp = *vec1ptr;
-    *vec1ptr = *vec2ptr;
-    *vec2ptr = temp;
-}
-
-void draw_triangle_2d(vec2 p1, vec2 p2, vec2 p3, char c) {
-    // Triangle filling:
-    // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
-
-    // Swap so p1.y <= p2.y <= p3.y.
-    // TODO: proper float comparision
-    if (p2.y < p1.y)
-        swap_vec(&p2, &p1);
-    if (p3.y < p1.y)
-        swap_vec(&p3, &p1);
-    if (p3.y < p2.y)
-        swap_vec(&p3, &p2);
+    draw_line_vec2int(sp1, sp2, c);
 }

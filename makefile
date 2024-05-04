@@ -1,30 +1,32 @@
-name := ascii-engine
+EXEC_NAME := ascii-engine
 
-CC         = gcc
-SRC_PATH   = src
-CFLAGS     = -Wall -lm -I$(SRC_PATH)
-_SRCS      = screen.c transform.c draw.c misc.c
-_SRCS     += main.c
-_SRCS     += scenes/star.c
-_SRCS     += scenes/spiral.c 
+SRC_PATH  := src
 
-SRCS       = $(patsubst %,$(SRC_PATH)/%, $(_SRCS))
-OBJS       = $(patsubst %.c, %.o, $(SRCS))
+CC        := gcc
+CFLAGS    := -Wall -lm -I$(SRC_PATH)
+CFLAGS    += -Wextra -pedantic -fsanitize=undefined
+CFLAGS    += -g -ggdb3
+# CFLAGS    += -DDEBUG
 
-CFLAGS += -DDEBUG
+_SRC_FILES := screen.c transform.c draw.c misc.c
+_SRC_FILES += $(addprefix scenes/, $(notdir $(wildcard $(SRC_PATH)/scenes/*.c)))
+_SRC_FILES += main.c
+
+SRC_FILES  := $(addprefix $(SRC_PATH)/, $(_SRC_FILES))
+OBJ_FILES  := $(SRC_FILES:.c=.o)
 
 .PHONY: all clean test
 
-all: $(name)
+all: $(EXEC_NAME)
 
-$(name): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $(name)
+$(EXEC_NAME): $(OBJ_FILES)
+	$(CC) $(CFLAGS) $^ -o $(EXEC_NAME)
 
-$(OBJS): $(SRCS)
+$(OBJ_FILES): $(SRC_FILES)
 
-@(SRCS):
+$(SRC_FILES):
 	$(CC) -c $(CFLAGS) $@
 
 clean:
-	rm -rf $(OBJS)
-	rm -rf $(name)
+	rm -rf $(OBJ_FILES)
+	rm -rf $(EXEC_NAME)
