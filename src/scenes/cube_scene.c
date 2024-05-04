@@ -74,10 +74,8 @@ void cube_scene_destroy(void** context_ptr) {
 // clang-format off
 
 vec3 moved(vec3 vec, float angle_rad) {
-    vec3 r0 = rotate_around_x_axis(vec, to_angle_in_radians(5.));
-    vec3 r1 = rotate_around_z_axis(r1, to_angle_in_radians(5.));
-    vec3 r_final = rotate_around_y_axis(r0, angle_rad);
-    vec3 shifted = sum_vec3(r_final, (vec3){.x=0,.y=0,.z=1.0f});
+    vec3 r_final = rotate_around_y_axis(vec, angle_rad);
+    vec3 shifted = sum_vec3(r_final, (vec3){.x=0,.y=0,.z=1.1f});
     return shifted; 
 }
 
@@ -89,7 +87,7 @@ static bool visited[8];
 void cube_scene_update(void** context_ptr) {
     cube* cube_ptr = (cube*)context_ptr[CUBE_OBJ];
     int64_t angle_deg = cube_ptr->angle_deg;
-    float fov_const = to_fov_constant_from_degrees(45.);
+    float fov_const = to_fov_constant_from_degrees(60.);
 
     size_t count = 0;
     memset(queue, -1, sizeof queue);
@@ -108,7 +106,7 @@ void cube_scene_update(void** context_ptr) {
             if (!adjacency_list[current][i] || visited[i]) {
                 continue;
             }
-            float angle_rad = to_angle_in_radians(angle_deg);
+            float angle_rad = to_angle_in_radians(-angle_deg);
             vec2 v1 = vec3_projected_as_vec2(moved(verticies[current], angle_rad), fov_const);
             vec2 v2 = vec3_projected_as_vec2(moved(verticies[i], angle_rad), fov_const);
             draw_line_vec2(v1, v2, '.');
