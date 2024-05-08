@@ -36,7 +36,10 @@ vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad);
 vec3 sum_vec3(vec3 a, vec3 b);
 vec3 scaled_vec3(vec3 vec, float scalar);
 vec2 vec3_projected_as_vec2(vec3 vec, float fov_const);
+vec3 vec2_unprojected_as_vec3(vec2 vec, float fov_const);
 
 vec3 rotate_around_x_axis(vec3 vec, float angle_rad);
 vec3 rotate_around_y_axis(vec3 vec, float angle_rad);
 vec3 rotate_around_z_axis(vec3 vec, float angle_rad);
+
+

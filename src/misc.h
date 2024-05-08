@@ -20,7 +20,7 @@
 #define SWAP_UNSAFE(T, a, b) \
     do {                     \
         T t = (a);           \
-        (b) = t;             \
+        (b) = (a);           \
         (a) = t;             \
     } while (false)
 
