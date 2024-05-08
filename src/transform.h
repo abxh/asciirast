@@ -12,11 +12,9 @@ typedef struct {
 } vec3;
 
 // int math:
-int diff_int(int left_expr, int right_expr);
 int abs_int(int expr);
 
 // float math:
-float flip_sign_float(float x);
 float clamp_float(float x, float min, float max);
 int cmp_float(float x, float y);
 

@@ -109,8 +109,8 @@ void draw_line_int4(int x1, int y1, int x2, int y2, char c) {
     // Bresenham line algorithm:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
-    unsigned int x_abs_diff = abs_int(diff_int(x1, x2));
-    unsigned int y_abs_diff = abs_int(diff_int(y1, y2));
+    unsigned int x_abs_diff = abs_int(x1 - x2);
+    unsigned int y_abs_diff = abs_int(y1 - y2);
 
     if (x1 == x2) {
         if (y1 < y2) {

@@ -5,10 +5,6 @@
 // ----------------------------------------------------------------------------
 // int math
 
-int diff_int(int left, int right) {
-    return left - right;
-}
-
 int abs_int(int expr) {
     return (expr > 0) ? expr : -expr;
 }
@@ -17,10 +13,6 @@ int abs_int(int expr) {
 // float math
 
 static const float delta = 0.001f;
-
-float flip_sign_float(float x) {
-    return -x;
-}
 
 int cmp_float(float x, float y) {
     return (x > y + delta) - (x + delta < y);
