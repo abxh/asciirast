@@ -1,8 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "cube_scene.h"
 #include "draw.h"
@@ -10,6 +8,7 @@
 #include "transform.h"
 
 #ifdef DEBUG
+#include <stdio.h>
 #include "misc.h"
 #endif
 
@@ -81,7 +80,7 @@ vec3 moved(vec3 vec, float angle_rad) {
 
 // clang-format on
 
-static int queue[16];
+static int stack[16];
 static bool visited[8];
 
 void cube_scene_update(void** context_ptr) {
@@ -89,52 +88,46 @@ void cube_scene_update(void** context_ptr) {
     int64_t angle_deg = cube_ptr->angle_deg;
     float fov_const = to_fov_constant_from_degrees(60.);
 
-    size_t front = 0;
-    size_t back = 0;
     size_t count = 0;
-    for (size_t i = 0; i < sizeof queue / sizeof *queue; i++) {
-        queue[i] = -1;
+    for (size_t i = 0; i < sizeof(stack) / sizeof(*stack); i++) {
+        stack[i] = -1;
     }
-    memset(visited, false, sizeof visited);
-
-    queue[back] = 0;
-    back = (back + 1) % (sizeof queue / sizeof *queue);
-    count++;
+    for (size_t i = 0; i < 8; i++) {
+        visited[i] = false;
+    }
 
 #ifdef DEBUG
     printf("edges:\n");
+    size_t edge_count = 0;
 #endif
 
-    while (count > 0) {
-        int current = queue[front];
-        front = (front + 1) % (sizeof queue / sizeof *queue);
-        count--;
+    stack[count++] = 0;
 
+    while (count > 0) {
+        int current = stack[--count];
         visited[current] = true;
 
-        for (size_t i = 0; i < 8; i++) {
+        for (int i = 0; i < 8; i++) {
             if (!adjacency_list[current][i] || visited[i]) {
                 continue;
             }
             float angle_rad = to_angle_in_radians(-angle_deg);
             vec2 v1 = vec3_projected_as_vec2(moved(verticies[current], angle_rad), fov_const);
             vec2 v2 = vec3_projected_as_vec2(moved(verticies[i], angle_rad), fov_const);
-            draw_line_vec2(v1, v2, '.');
-            queue[back] = i;
-            back = (back + 1) % (sizeof queue / sizeof *queue);
-            count++;
-
+            draw_line_2d(v1, v2, '.');
 #ifdef DEBUG
             CLEAR_LINE();
-            printf("(%.2f, %.2f) -> (%.2f, %2.f)\n", v1.x, v1.y, v2.x, v2.y);
+            printf("%zu: (%.2f, %.2f) -> (%.2f, %2.f)\n", ++edge_count, v1.x, v1.y, v2.x, v2.y);
 #endif
+            stack[count++] = i;
         }
     }
 #ifdef DEBUG
-    MOVE_UP_LINES(13);
+    CLEAR_LINE();
+    MOVE_UP_LINES(14);
 #endif
 
-    if (angle_deg == 350) {
+    if (angle_deg == 360) {
         cube_ptr->angle_deg = 0;
     }
     cube_ptr->angle_deg += 10;

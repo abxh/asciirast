@@ -1,62 +1,62 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "draw.h"
-#include "misc.h"
 #include "screen.h"
 #include "transform.h"
 
-typedef struct {
-    int x;
-    int y;
-} vec2int;
+int to_framebuf_x(float screen_x) {
+    return (screen_x + 1.) / 2. * (SCREEN_WIDTH - 1);
+}
 
-void plot_int2(int screen_x, int screen_y, char c) {
-    if (!(0 <= screen_x && screen_x < SCREEN_WIDTH)) {
+int to_framebuf_y(float screen_y) {
+    return (-screen_y + 1.) / 2. * (SCREEN_HEIGHT - 1);
+}
+
+bool inside_framebuf(int framebuf_x, int framebuf_y) {
+    bool inside_framebuf_x = 0 <= framebuf_x && framebuf_x < SCREEN_WIDTH;
+    bool inside_framebuf_y = 0 <= framebuf_y && framebuf_y < SCREEN_HEIGHT;
+    return inside_framebuf_x && inside_framebuf_y;
+}
+
+void draw_point_framebuf_coords_split(int framebuf_x, int framebuf_y, char c) {
+    if (!inside_framebuf(framebuf_x, framebuf_y)) {
         return;
     }
 
-    int inv_screen_y = SCREEN_HEIGHT - 1 - screen_y;
+    framebuf[framebuf_y][framebuf_x] = c;
+}
 
-    if (!(0 <= inv_screen_y && inv_screen_y < SCREEN_HEIGHT)) {
+void draw_point_2d(vec2 vec, char c) {
+    int framebuf_x = to_framebuf_x(vec.x);
+    int framebuf_y = to_framebuf_y(vec.y);
+
+    draw_point_framebuf_coords_split(framebuf_x, framebuf_y, c);
+}
+
+void draw_line_vertical_framebuf_coords_split(int framebuf_x, int top_framebuf_y, unsigned int steps, char c) {
+    if (!inside_framebuf(framebuf_x, top_framebuf_y) && !inside_framebuf(framebuf_x, top_framebuf_y + steps)) {
         return;
     }
-
-    screen_buf[inv_screen_y][screen_x] = c;
-}
-
-void plot_vec2int(vec2int sv, char c) {
-    plot_int2(sv.x, sv.y, c);
-}
-
-int conv_to_screen_index_float(float x, int length) {
-    return ((x + 1) / 2) * (length - 1);
-}
-
-vec2int conv_to_screen_indicies_vec2(vec2 vec) {
-    return (vec2int){conv_to_screen_index_float(vec.x, SCREEN_WIDTH), conv_to_screen_index_float(vec.y, SCREEN_HEIGHT)};
-}
-
-void draw_point_vec2(vec2 vec, char c) {
-    vec2int screen_indicies = conv_to_screen_indicies_vec2(vec);
-
-    plot_vec2int(screen_indicies, c);
-}
-
-void draw_line_vertical_int2(int screen_x, int screen_y, unsigned int steps, char c) {
-    for (int var = screen_y; var <= screen_y + (int)steps; var += 1) {
-        plot_int2(screen_x, var, c);
+    int lim = min_int(top_framebuf_y + steps, SCREEN_HEIGHT - 1);
+    for (int current = max_int(top_framebuf_y, 0); current <= lim; current += 1) {
+        framebuf[current][framebuf_x] = c;
     }
 }
 
-void draw_line_horizontal_int2(int screen_x, int screen_y, unsigned int steps, char c) {
-    for (int var = screen_x; var <= screen_x + (int)steps; var += 1) {
-        plot_int2(var, screen_y, c);
+void draw_line_horizontal_framebuf_coords_split(int left_framebuf_x, int framebuf_y, unsigned int steps, char c) {
+    if (!inside_framebuf(left_framebuf_x + steps, framebuf_y) && !inside_framebuf(left_framebuf_x + steps, framebuf_y)) {
+        return;
+    }
+    int lim = min_int(left_framebuf_x + steps, SCREEN_WIDTH - 1);
+    for (int current = max_int(left_framebuf_x, 0); current <= lim; current += 1) {
+        framebuf[framebuf_y][current] = c;
     }
 }
 
-void draw_line_pos_slope_int4(int x0, int y0, int x1, int y1, char c) {
-    // Bresenham line algorithm:
+void draw_line_steep_framebuf_coords_split(int x0, int y0, int x1, int y1, char c) {
+    // Bresenham line algorithm - first case:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
     int dx = x1 - x0;
@@ -70,7 +70,7 @@ void draw_line_pos_slope_int4(int x0, int y0, int x1, int y1, char c) {
     int y = y0;
 
     for (int x = x0; x <= x1; x++) {
-        plot_int2(x, y, c);
+        draw_point_framebuf_coords_split(x, y, c);
         if (D > 0) {
             y = y + yi;
             D = D + (2 * (dy - dx));
@@ -80,8 +80,8 @@ void draw_line_pos_slope_int4(int x0, int y0, int x1, int y1, char c) {
     }
 }
 
-void draw_line_neg_slope_int4(int x0, int y0, int x1, int y1, char c) {
-    // Bresenham line algorithm:
+void draw_nonsteep_slope_framebuf_coords_split(int x0, int y0, int x1, int y1, char c) {
+    // Bresenham line algorithm - second case:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
     int dx = x1 - x0;
@@ -95,7 +95,7 @@ void draw_line_neg_slope_int4(int x0, int y0, int x1, int y1, char c) {
     int x = x0;
 
     for (int y = y0; y <= y1; y++) {
-        plot_int2(x, y, c);
+        draw_point_framebuf_coords_split(x, y, c);
         if (D > 0) {
             x = x + xi;
             D = D + (2 * (dx - dy));
@@ -105,8 +105,8 @@ void draw_line_neg_slope_int4(int x0, int y0, int x1, int y1, char c) {
     }
 }
 
-void draw_line_int4(int x1, int y1, int x2, int y2, char c) {
-    // Bresenham line algorithm:
+void draw_line_framebuf_coords_split(int x1, int y1, int x2, int y2, char c) {
+    // Bresenham line algorithm - all cases:
     // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
 
     unsigned int x_abs_diff = abs_int(x1 - x2);
@@ -114,111 +114,159 @@ void draw_line_int4(int x1, int y1, int x2, int y2, char c) {
 
     if (x1 == x2) {
         if (y1 < y2) {
-            draw_line_vertical_int2(x1, y1, y_abs_diff, c);
+            draw_line_vertical_framebuf_coords_split(x1, y1, y_abs_diff, c);
         } else {
-            draw_line_vertical_int2(x2, y2, y_abs_diff, c);
+            draw_line_vertical_framebuf_coords_split(x2, y2, y_abs_diff, c);
         }
     } else if (y1 == y2) {
         if (x1 < x2) {
-            draw_line_horizontal_int2(x1, y1, x_abs_diff, c);
+            draw_line_horizontal_framebuf_coords_split(x1, y1, x_abs_diff, c);
         } else {
-            draw_line_horizontal_int2(x2, y2, x_abs_diff, c);
+            draw_line_horizontal_framebuf_coords_split(x2, y2, x_abs_diff, c);
         }
     }
 
-    if (y_abs_diff < x_abs_diff) {
+    bool steep_slope = y_abs_diff < x_abs_diff;
+    if (steep_slope) {
         if (x1 > x2) {
-            draw_line_pos_slope_int4(x2, y2, x1, y1, c);
+            draw_line_steep_framebuf_coords_split(x2, y2, x1, y1, c);
         } else {
-            draw_line_pos_slope_int4(x1, y1, x2, y2, c);
+            draw_line_steep_framebuf_coords_split(x1, y1, x2, y2, c);
         }
     } else {
         if (y1 > y2) {
-            draw_line_neg_slope_int4(x2, y2, x1, y1, c);
+            draw_nonsteep_slope_framebuf_coords_split(x2, y2, x1, y1, c);
         } else {
-            draw_line_neg_slope_int4(x1, y1, x2, y2, c);
+            draw_nonsteep_slope_framebuf_coords_split(x1, y1, x2, y2, c);
         }
     }
 }
 
-void draw_line_vec2int(vec2int sp1, vec2int sp2, char c) {
-    draw_line_int4(sp1.x, sp1.y, sp2.x, sp2.y, c);
+void draw_line_2d(vec2 p1, vec2 p2, char c) {
+    draw_line_framebuf_coords_split(to_framebuf_x(p1.x), to_framebuf_y(p1.y), to_framebuf_x(p2.x), to_framebuf_y(p2.y), c);
 }
 
-void draw_line_vec2(vec2 p1, vec2 p2, char c) {
-    vec2int sp1 = conv_to_screen_indicies_vec2(p1);
-    vec2int sp2 = conv_to_screen_indicies_vec2(p2);
+typedef struct {
+    int x;
+    int y;
+} framebuf_coords;
 
-    draw_line_vec2int(sp1, sp2, c);
+void swap_framebuf_coords(framebuf_coords* v1_ptr, framebuf_coords* v2_ptr) {
+    framebuf_coords t = *v1_ptr;
+    *v1_ptr = *v2_ptr;
+    *v2_ptr = t;
 }
 
-#include <stdio.h>
-void plot_bottom_flat_triangle(vec2int v1, vec2int v2, vec2int v3, char c) {
-    // triangle rasterization standard algorithm:
+void draw_filled_bottom_flat_triangle_framebuf_coords(framebuf_coords v1, framebuf_coords v2, framebuf_coords v3, char c) {
+    // scanline algorithm - first case - but with integers and minor additions:
     // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 
-    if ((v2.y - v1.y) == 0 || (v3.y - v1.y) == 0) {
+    if (!(v2.x < v3.x)) {
+        swap_framebuf_coords(&v2, &v3);
+    }
+
+    if (v1.y == v2.y) {
+        draw_line_framebuf_coords_split(v1.x, v1.y, v3.x, v3.y, c);
+        return;
+    } else if (v1.y == v3.y) {
+        draw_line_framebuf_coords_split(v1.x, v1.y, v2.x, v2.y, c);
         return;
     }
 
-    int invslope1 = (v2.x - v1.x) / (v2.y - v1.y);
-    int invslope2 = (v3.x - v1.x) / (v3.y - v1.y);
+    float change_left = (float)(v2.x - v1.x) / (float)(v2.y - v1.y);
+    float change_right = (float)(v3.x - v1.x) / (float)(v3.y - v1.y);
 
-    int curx1 = v1.x;
-    int curx2 = v1.x;
+    float current_left = v1.x;
+    float current_right = v1.x;
 
-    printf("%d %d");
     for (int scanlineY = v1.y; scanlineY <= v2.y; scanlineY++) {
-        draw_line_vec2int((vec2int){.x = curx1, .y = scanlineY}, (vec2int){.x = curx2, .y = scanlineY}, c);
-        curx1 += invslope1;
-        curx2 += invslope2;
+        draw_line_horizontal_framebuf_coords_split(round_float_to_int(current_left), scanlineY,
+                                             round_float_to_int(current_right - current_left), c);
+        current_left += change_left;
+        current_right += change_right;
     }
 }
 
-void plot_top_flat_triangle(vec2int v1, vec2int v2, vec2int v3, char c) {
-    // triangle rasterization standard algorithm:
+void draw_filled_top_flat_triangle_framebuf_coords(framebuf_coords v1, framebuf_coords v2, framebuf_coords v3, char c) {
+    // scanline algorithm - second case - but with integers and minor additions:
     // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 
-    if ((v3.y - v1.y) == 0 || (v3.y - v2.y) == 0) {
+    if (!(v1.x < v2.x)) {
+        swap_framebuf_coords(&v1, &v2);
+    }
+
+    if (v3.y == v1.y || v3.y == v2.y) {
+        draw_line_framebuf_coords_split(v1.x, v1.y, v2.x, v2.y, c);
         return;
     }
 
-    int invslope1 = (v3.x - v1.x) / (v3.y - v1.y);
-    int invslope2 = (v3.x - v2.x) / (v3.y - v2.y);
+    float change_left = (float)(v3.x - v1.x) / (float)(v3.y - v1.y);
+    float change_right = (float)(v3.x - v2.x) / (float)(v3.y - v2.y);
 
-    int curx1 = v3.x;
-    int curx2 = v3.x;
+    float current_left = v3.x;
+    float current_right = v3.x;
 
     for (int scanlineY = v3.y; scanlineY > v1.y; scanlineY--) {
-        draw_line_vec2int((vec2int){.x = curx1, .y = scanlineY}, (vec2int){.x = curx2, .y = scanlineY}, c);
-        curx1 -= invslope1;
-        curx2 -= invslope2;
+        draw_line_horizontal_framebuf_coords_split(round_float_to_int(current_left), scanlineY,
+                                             round_float_to_int(current_right - current_left), c);
+        current_left -= change_left;
+        current_right -= change_right;
     }
 }
 
-void draw_triangle_vec2(vec2 p1, vec2 p2, vec2 p3, char c) {
-    // sort so p1p.y <= p2p.y <= p3p.y
-    if (cmp_float(p2.y, p1.y) == 1) {
-        SWAP_UNSAFE(vec2, p2, p1);
+void draw_filled_triangle_framebuf_coords(framebuf_coords v1, framebuf_coords v2, framebuf_coords v3, char c) {
+    // scanline algorithm:
+    // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+
+    /* sort points and ensure v1.y <= v2.y <= v3.y */
+    if (v1.y > v2.y) {
+        swap_framebuf_coords(&v1, &v2);
     }
-    if (cmp_float(p3.y, p1.y) == 1) {
-        SWAP_UNSAFE(vec2, p3, p1);
+    if (v1.y > v3.y) {
+        swap_framebuf_coords(&v1, &v2);
     }
-    if (cmp_float(p3.y, p2.y) == 1) {
-        SWAP_UNSAFE(vec2, p3, p2);
+    if (v2.y > v3.y) {
+        swap_framebuf_coords(&v2, &v3);
     }
 
-    vec2int p1_int = conv_to_screen_indicies_vec2(p1);
-    vec2int p2_int = conv_to_screen_indicies_vec2(p2);
-    vec2int p3_int = conv_to_screen_indicies_vec2(p3);
-
-    if (p2_int.y == p3_int.y) {
-        plot_bottom_flat_triangle(p1_int, p2_int, p3_int, c);
-    } else if (p1_int.y == p2_int.y) {
-        plot_top_flat_triangle(p1_int, p2_int, p3_int, c);
+    if (v2.y == v3.y) {
+        draw_filled_bottom_flat_triangle_framebuf_coords(v1, v2, v3, c);
+    } else if (v1.y == v2.y) {
+        draw_filled_top_flat_triangle_framebuf_coords(v1, v2, v3, c);
     } else {
-        vec2int v = (vec2int){(p1_int.x + (p2_int.y - p1_int.y) * (p3_int.x - p1_int.x) / (p3_int.y - p1_int.y)), .y = p2_int.y};
-        plot_bottom_flat_triangle(p1_int, p2_int, v, c);
-        plot_top_flat_triangle(p2_int, v, p3_int, c);
+        framebuf_coords v = {round_float_to_int((float)v1.x + ((float)(v2.y - v1.y) / (float)(v3.y - v1.y)) * (float)(v3.x - v1.x)),
+                             v2.y};
+
+        draw_filled_bottom_flat_triangle_framebuf_coords(v1, v2, v, c);
+        draw_filled_top_flat_triangle_framebuf_coords(v2, v, v3, c);
     }
+}
+
+framebuf_coords to_framebuf_coords(vec2 v) {
+    return (framebuf_coords){.x = to_framebuf_x(v.x), .y = to_framebuf_y(v.y)};
+}
+
+void draw_filled_triangle_2d(vec2 p1, vec2 p2, vec2 p3, char c) {
+    draw_filled_triangle_framebuf_coords(to_framebuf_coords(p1), to_framebuf_coords(p2), to_framebuf_coords(p3), c);
+}
+
+void draw_triangle_2d(vec2 p1, vec2 p2, vec2 p3, char c) {
+    framebuf_coords v1 = to_framebuf_coords(p1);
+    framebuf_coords v2 = to_framebuf_coords(p2);
+    framebuf_coords v3 = to_framebuf_coords(p3);
+
+    /* sort points and ensure v1.y <= v2.y <= v3.y */
+    if (v1.y > v2.y) {
+        swap_framebuf_coords(&v1, &v2);
+    }
+    if (v1.y > v3.y) {
+        swap_framebuf_coords(&v1, &v2);
+    }
+    if (v2.y > v3.y) {
+        swap_framebuf_coords(&v2, &v3);
+    }
+
+    draw_line_framebuf_coords_split(v1.x, v1.y, v2.x, v2.y, c);
+    draw_line_framebuf_coords_split(v2.x, v2.y, v3.x, v3.y, c);
+    draw_line_framebuf_coords_split(v3.x, v3.y, v1.x, v1.y, c);
 }

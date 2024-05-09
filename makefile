@@ -6,8 +6,8 @@ CC        := gcc
 CFLAGS    := -Wall -lm -I$(SRC_PATH)
 CFLAGS    += -Wextra -pedantic -fsanitize=undefined
 CFLAGS    += -g -ggdb3
-# CFLAGS    += -DDEBUG
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
+# CFLAGS    += -DDEBUG
 
 _SRC_FILES := screen.c transform.c draw.c misc.c
 _SRC_FILES += $(addprefix scenes/, $(notdir $(wildcard $(SRC_PATH)/scenes/*.c)))

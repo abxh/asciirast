@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "draw.h"
@@ -8,6 +7,7 @@
 #include "transform.h"
 
 #ifdef DEBUG
+#include <stdio.h>
 #include "misc.h"
 #endif
 
@@ -44,7 +44,7 @@ void star_scene_update(void** context_ptr) {
         vec2 v1 = rotate_around_origo_vec2(v_base, angle_rad1);
         vec2 v2 = rotate_around_origo_vec2(v_base, angle_rad2);
 
-        draw_line_vec2(v1, v2, '*');
+        draw_line_2d(v1, v2, '*');
 
 #ifdef DEBUG
         CLEAR_LINE();
@@ -61,8 +61,9 @@ void star_scene_update(void** context_ptr) {
         sleep_portable(100);
 #endif
     }
+
     if (angle_deg == 0) {
-        star_ptr->angle_deg = 350;
+        star_ptr->angle_deg = 360;
     }
     star_ptr->angle_deg -= 10;
 }

@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "draw.h"
@@ -8,6 +7,7 @@
 #include "transform.h"
 
 #ifdef DEBUG
+#include <stdio.h>
 #include "misc.h"
 #endif
 
@@ -40,7 +40,7 @@ void spiral_scene_update(void** context_ptr) {
             vec2 v_base = {.x = 0.6 - 0.1 * (float)i, .y = 0.6 - 0.1 * (float)i};
             vec2 v = rotate_around_origo_vec2(v_base, angle_rad);
 
-            draw_point_vec2(v, '*');
+            draw_point_2d(v, '*');
 
 #ifdef DEBUG
             CLEAR_LINE();
@@ -56,8 +56,9 @@ void spiral_scene_update(void** context_ptr) {
 #endif
         }
     }
-    if (angle_deg == 350) {
+
+    if (angle_deg == 360) {
         spiral_ptr->angle_deg = 0;
-    }
+    }   
     spiral_ptr->angle_deg += 10;
 }

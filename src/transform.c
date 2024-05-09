@@ -9,22 +9,37 @@ int abs_int(int expr) {
     return (expr > 0) ? expr : -expr;
 }
 
+int max_int(int x, int y) {
+    return (x > y) ? x : y;
+}
+
+int min_int(int x, int y) {
+    return (x < y) ? x : y;
+}
+
 // ----------------------------------------------------------------------------
 // float math
 
-static const float delta = 0.001f;
+static const float float_delta = 0.001f;
+
+int round_float_to_int(float expr) {
+    return (expr > (floorf(expr) + 0.5f + float_delta)) ? ceilf(expr) : floorf(expr);
+}
 
 int cmp_float(float x, float y) {
-    return (x > y + delta) - (x + delta < y);
+    return (x > y + float_delta) - (x + float_delta < y);
+}
+
+float max_float(float x, float y) {
+    return (x > y + float_delta) ? x : y;
+}
+
+float min_float(float x, float y) {
+    return (x + float_delta < y) ? x : y;
 }
 
 float clamp_float(float x, float min, float max) {
-    if (x + delta < min) {
-        return min;
-    } else if (max < x - delta) {
-        return max;
-    }
-    return x;
+    return min_float(max_float(x, min), max);
 }
 
 // ----------------------------------------------------------------------------

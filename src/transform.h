@@ -13,10 +13,16 @@ typedef struct {
 
 // int math:
 int abs_int(int expr);
+int max_int(int x, int y);
+int min_int(int x, int y);
 
 // float math:
-float clamp_float(float x, float min, float max);
 int cmp_float(float x, float y);
+
+int round_float_to_int(float expr);
+float max_float(float x, float y);
+float min_float(float x, float y);
+float clamp_float(float x, float min, float max);
 
 // angle math:
 float to_angle_in_radians(float angle_deg);
