@@ -158,7 +158,7 @@ void swap_framebuf_coords(framebuf_coords* v1_ptr, framebuf_coords* v2_ptr) {
 }
 
 void draw_filled_bottom_flat_triangle_framebuf_coords(framebuf_coords v1, framebuf_coords v2, framebuf_coords v3, char c) {
-    // scanline algorithm - first case - but with integers and minor additions:
+    // scanline algorithm:
     // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 
     if (!(v2.x < v3.x)) {
@@ -188,7 +188,7 @@ void draw_filled_bottom_flat_triangle_framebuf_coords(framebuf_coords v1, frameb
 }
 
 void draw_filled_top_flat_triangle_framebuf_coords(framebuf_coords v1, framebuf_coords v2, framebuf_coords v3, char c) {
-    // scanline algorithm - second case - but with integers and minor additions:
+    // scanline algorithm:
     // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 
     if (!(v1.x < v2.x)) {
