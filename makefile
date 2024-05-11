@@ -1,4 +1,4 @@
-EXEC_NAME := ascii-engine
+EXEC_NAME := ascii-library
 
 SRC_PATH  := src
 
