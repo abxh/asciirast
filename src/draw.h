@@ -6,7 +6,7 @@
 
 /*
 screen space:
-              /|\ (1,1)
+              /|\ (0,1)
                |
                |
                |
@@ -14,7 +14,7 @@ screen space:
                |
                |
                |
-              \|/ (-1,-1)
+              \|/ (0,-1)
 */
 
 void draw_point_2d(vec2 vec, char c);

@@ -26,15 +26,15 @@ int main(void) {
     signal(SIGINT, on_sigint);
     screen_init();
 
-    scene_type scene = triangle_scene;
+    scene_type scene = star_scene;
     void** context_ptr = scene.create();
 
     bool on_running = true;
     while (on_running) {
         scene.update(context_ptr);
 
-        framebuf_refresh();
-        framebuf_clear();
+        screen_refresh();
+        screen_clear();
 
         sleep_portable(200);
     }

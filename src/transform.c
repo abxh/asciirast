@@ -5,6 +5,10 @@
 // ----------------------------------------------------------------------------
 // int math
 
+int signof_int(int expr) {
+    return (expr > 0) - (expr < 0);
+}
+
 int abs_int(int expr) {
     return (expr > 0) ? expr : -expr;
 }
@@ -15,6 +19,10 @@ int max_int(int x, int y) {
 
 int min_int(int x, int y) {
     return (x < y) ? x : y;
+}
+
+int clamp_int(int x, int min, int max) {
+    return min_int(max_int(x, min), max);
 }
 
 // ----------------------------------------------------------------------------
