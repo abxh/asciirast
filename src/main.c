@@ -10,7 +10,8 @@
 #include "scenes/star_scene.h"
 #include "scenes/spiral_scene.h"
 #include "scenes/cube_scene.h"
-#include "scenes/triangle_scene.h"
+#include "scenes/wavy_triangle_scene.h"
+#include "scenes/rotating_triangle_scene.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -26,7 +27,7 @@ int main(void) {
     signal(SIGINT, on_sigint);
     screen_init();
 
-    scene_type scene = star_scene;
+    scene_type scene = rotating_triangle_scene;
     void** context_ptr = scene.create();
 
     bool on_running = true;

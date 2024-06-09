@@ -61,14 +61,6 @@ float to_angle_in_degrees(float angle_rad) {
     return angle_rad * 180.f / M_PI;
 }
 
-float to_fov_constant_from_radians(float angle_rad) {
-    return 1.f / tanf(angle_rad / 2.f);
-}
-
-float to_fov_constant_from_degrees(float angle_deg) {
-    return to_fov_constant_from_radians(to_angle_in_radians(angle_deg));
-}
-
 // ----------------------------------------------------------------------------
 // vec2 math
 
@@ -80,8 +72,16 @@ vec2 scaled_vec2(vec2 vec, float scalar) {
     return (vec2){.x = scalar * vec.x, .y = scalar * vec.y};
 }
 
+float dot_vec2(vec2 a, vec2 b) {
+    return a.x * b.x + a.y * b.y;
+}
+
 vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad) {
     return (vec2){.x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad)};
+}
+
+float length_vec2(vec2 v) {
+    return sqrtf(dot_vec2(v, v));
 }
 
 // ----------------------------------------------------------------------------
@@ -95,8 +95,13 @@ vec3 scaled_vec3(vec3 vec, float scalar) {
     return (vec3){.x = scalar * vec.x, .y = scalar * vec.y, .z = scalar * vec.z};
 }
 
-vec2 vec3_projected_as_vec2(vec3 vec, float fov_const) {
-    return scaled_vec2((vec2){.x = vec.x / vec.z, vec.y / vec.z}, 1.f / fov_const);
+float dot_vec3(vec3 a, vec3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+vec3 cross_vec3(vec3 a, vec3 b) {
+    // (a2b3 - a3b2, a3b1 - a1b3, a1b2 - a2b1)
+    return (vec3){.x = a.y * b.z - a.z * b.y, .y = a.z * b.x - a.x * b.z, .z = a.x * b.y - a.y * b.x};
 }
 
 vec3 rotate_around_x_axis(vec3 vec, float angle_rad) {
@@ -112,4 +117,25 @@ vec3 rotate_around_y_axis(vec3 vec, float angle_rad) {
 vec3 rotate_around_z_axis(vec3 vec, float angle_rad) {
     return (vec3){
         .x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad), .z = vec.z};
+}
+
+float length_vec3(vec3 v) {
+    return sqrtf(dot_vec3(v, v));
+}
+
+// ----------------------------------------------------------------------------
+// 3d projection math
+
+vec2 vec3_projected_as_vec2(vec3 vec, float fov_angle_rad, float aspect_ratio) {
+    // consider aspect ratio:
+    vec2 res = (vec2){.x = aspect_ratio * vec.x, .y = vec.y};
+
+    // scale by fov scalar and z-divide:
+    float scalar = vec.z * tanf(fov_angle_rad / 2.f);
+
+    if (scalar != 0) {
+        res = scaled_vec2(res, 1.f / scalar);
+    }
+
+    return res;
 }
