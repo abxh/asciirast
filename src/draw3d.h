@@ -19,8 +19,8 @@ world space:
 */
 
 static const vec3 camera_center = {0, 0, -1};
-static const float camera_near = 1.f;
-static const float camera_far = INFINITY; // for now
+// static const float camera_near = 1.f;
+// static const float camera_far = INFINITY; // for now
 
 // Winding rule, order of verticies: p1 -> p2 -> p3 is clockwise.
 // (use right-hand rule to find if triangle is facing front or back)
