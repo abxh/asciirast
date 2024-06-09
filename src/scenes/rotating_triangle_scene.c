@@ -25,7 +25,7 @@ void** rotating_triangle_scene_create(void) {
 
     context_ptr[TRIANGLE_OBJ] = malloc(sizeof(rotating_triangle));
 
-    ((rotating_triangle*)context_ptr[TRIANGLE_OBJ])->angle_deg = 230;
+    ((rotating_triangle*)context_ptr[TRIANGLE_OBJ])->angle_deg = 0;
 
     return context_ptr;
 }
@@ -43,8 +43,8 @@ void rotating_triangle_scene_update(void** context_ptr) {
     static vec3 shift = {0, 0, 1.75f};
 
     vec3 v1 = {-0.5, 0.7, 0.f};
-    vec3 v2 = {0.5, 0.3, 0.f};
-    vec3 v3 = {-0.5, -0.7f, 0.f};
+    vec3 v2 = {-0.5, -0.7f, 0.f};
+    vec3 v3 = {0.5, 0.3, 0.f};
 
     v1 = rotate_around_y_axis(v1, angle_rad);
     v2 = rotate_around_y_axis(v2, angle_rad);
