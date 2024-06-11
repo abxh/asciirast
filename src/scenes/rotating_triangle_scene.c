@@ -54,10 +54,14 @@ void rotating_triangle_scene_update(void** context_ptr) {
     v2 = sum_vec3(v2, shift);
     v3 = sum_vec3(v3, shift);
 
-    draw_filled_triangle_3d(v1, v2, v3, '*');
-    draw_filled_triangle_3d(v1, v3, v2, '.');
+    draw_triangle_3d(v1, v2, v3, '*');
+    draw_triangle_3d(v1, v3, v2, '.');
 
 #ifdef DEBUG
+    draw_point_3d(v1, '1');
+    draw_point_3d(v2, '2');
+    draw_point_3d(v3, '3');
+
     printf("angle_rad: %.2f\n", angle_rad);
     CLEAR_LINE();
     MOVE_UP_LINES(1);

@@ -1,8 +1,3 @@
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "cube_scene.h"
 #include "draw.h"
 #include "scenes/scene.h"
@@ -11,6 +6,14 @@
 
 #ifdef DEBUG
 #include "misc.h"
+#endif
+
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifdef DEBUG
 #include <stdio.h>
 #endif
 
@@ -110,10 +113,10 @@ void cube_scene_update(void** context_ptr) {
             }
 
             vec3 v1_3d = sum_vec3(rotate_around_y_axis(verticies[current], angle_rad), shift);
-            vec2 v1 = vec3_projected_as_vec2(v1_3d, fov_angle_rad, aspect_ratio);
+            vec2 v1 = vec3_projected_to_screen_space(v1_3d, fov_angle_rad, aspect_ratio);
 
             vec3 v2_3d = sum_vec3(rotate_around_y_axis(verticies[i], angle_rad), shift);
-            vec2 v2 = vec3_projected_as_vec2(v2_3d, fov_angle_rad, aspect_ratio);
+            vec2 v2 = vec3_projected_to_screen_space(v2_3d, fov_angle_rad, aspect_ratio);
 
             draw_line_2d(v1, v2, '.');
 #ifdef DEBUG

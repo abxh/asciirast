@@ -1,21 +1,25 @@
-#include <stdint.h>
-#include <stdlib.h>
-
+#include "spiral_scene.h"
 #include "draw.h"
 #include "scenes/scene.h"
-#include "spiral_scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
-#include <stdio.h>
 #include "misc.h"
+#endif
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifdef DEBUG
+#include <stdio.h>
 #endif
 
 typedef struct {
     int64_t angle_deg;
 } spiral;
 
-scene_type spiral_scene = {.flags = SCENE_OPS_NOP, .create = spiral_scene_create, .destroy = spiral_scene_destroy, .update = spiral_scene_update};
+scene_type spiral_scene = {
+    .flags = SCENE_OPS_NOP, .create = spiral_scene_create, .destroy = spiral_scene_destroy, .update = spiral_scene_update};
 
 #define SPIRAL_OBJ 0
 
@@ -59,6 +63,6 @@ void spiral_scene_update(void** context_ptr) {
 
     if (angle_deg == 360) {
         spiral_ptr->angle_deg = 0;
-    }   
+    }
     spiral_ptr->angle_deg += 10;
 }

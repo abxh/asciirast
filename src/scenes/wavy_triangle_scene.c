@@ -1,14 +1,17 @@
+#include "wavy_triangle_scene.h"
+#include "draw.h"
+#include "scenes/scene.h"
+#include "transform.h"
+
+#ifdef DEBUG
+#include "misc.h"
+#endif
+
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "draw.h"
-#include "scenes/scene.h"
-#include "transform.h"
-#include "wavy_triangle_scene.h"
-
 #ifdef DEBUG
-#include "misc.h"
 #include <stdio.h>
 #endif
 
@@ -49,8 +52,13 @@ void wavy_triangle_update(void** context_ptr) {
     vec2 v3 = {.x = -b1, .y = -b1};
     vec2 v2 = {.x = b2, .y = -b2};
 
-    draw_filled_triangle_2d(v1, v3, v2, '*');
-    draw_triangle_2d(v1, v3, v2, '+');
+    draw_triangle_2d(v1, v2, v3, '*');
+
+#ifdef DEBUG
+    draw_point_2d(v1, '1');
+    draw_point_2d(v2, '2');
+    draw_point_2d(v3, '3');
+#endif
 
     triangle_ptr->angle_deg += 10;
 }

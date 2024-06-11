@@ -1,21 +1,25 @@
-#include <stdint.h>
-#include <stdlib.h>
-
+#include "star_scene.h"
 #include "draw.h"
 #include "scenes/scene.h"
-#include "star_scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
-#include <stdio.h>
 #include "misc.h"
+#endif
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifdef DEBUG
+#include <stdio.h>
 #endif
 
 typedef struct {
     int64_t angle_deg;
 } star;
 
-scene_type star_scene = {.flags = SCENE_OPS_NOP, .create = star_scene_create, .destroy = star_scene_destroy, .update = star_scene_update};
+scene_type star_scene = {
+    .flags = SCENE_OPS_NOP, .create = star_scene_create, .destroy = star_scene_destroy, .update = star_scene_update};
 
 #define STAR_OBJ 0
 

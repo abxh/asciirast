@@ -1,7 +1,6 @@
-
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "misc.h"
 #include "screen.h"
@@ -18,13 +17,17 @@ void clear_lines(void) {
 }
 
 void framebuf_clear(void) {
-    memset(framebuf, ' ', sizeof framebuf);
+    for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
+        for (size_t x = 0; x < SCREEN_WIDTH; x++) {
+            framebuf[y][x] = ' ';
+        }
+    }
 }
 
 void depthbuf_clear(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
         for (size_t x = 0; x < SCREEN_WIDTH; x++) {
-            depthbuf[y][x] = 0;
+            depthbuf[y][x] = INFINITY;
         }
     }
 }
@@ -55,8 +58,15 @@ void screen_refresh(void) {
     }
 }
 
-// helper functions for frame buffer:
-// -----------------------------------------------------------------------------
+// framebuffer and depthbuffer helper functions:
+// ----------------------------------------------------------------------------
+
+bool inside_framebuf(int framebuf_x, int framebuf_y) {
+    bool inside_framebuf_x = 0 <= framebuf_x && framebuf_x < SCREEN_WIDTH;
+    bool inside_framebuf_y = 0 <= framebuf_y && framebuf_y < SCREEN_HEIGHT;
+
+    return inside_framebuf_x && inside_framebuf_y;
+}
 
 int to_framebuf_x(float screen_x) {
     return (screen_x + 1.) / 2. * (SCREEN_WIDTH - 1);
@@ -66,31 +76,30 @@ int to_framebuf_y(float screen_y) {
     return (-screen_y + 1.) / 2. * (SCREEN_HEIGHT - 1);
 }
 
-bool inside_framebuf(int framebuf_x, int framebuf_y) {
-    bool inside_framebuf_x = 0 <= framebuf_x && framebuf_x < SCREEN_WIDTH;
-    bool inside_framebuf_y = 0 <= framebuf_y && framebuf_y < SCREEN_HEIGHT;
-
-    return inside_framebuf_x && inside_framebuf_y;
+vec2int to_framebuf_coords(vec2 v) {
+    return (vec2int){.x = to_framebuf_x(v.x), .y = to_framebuf_y(v.y)};
 }
 
-void draw_framebuf_point_w_no_bounds_checking(int framebuf_x, int framebuf_y, char c) {
+// ----------------------------------------------------------------------------
+
+void plot_point_w_depth_fast_unchecked(int framebuf_x, int framebuf_y, char c, float depth) {
+    assert(inside_framebuf(framebuf_x, framebuf_y));
+    assert(inside_range_float(depth, 0.f, 1.f));
+
+    if (depth > depthbuf[framebuf_y][framebuf_x]) {
+        return;
+    }
     framebuf[framebuf_y][framebuf_x] = c;
+    depthbuf[framebuf_y][framebuf_x] = depth;
 }
 
-void draw_framebuf_point_w_bounds_checking(int framebuf_x, int framebuf_y, char c) {
+void plot_point_w_depth(int framebuf_x, int framebuf_y, char c, float depth) {
     if (!inside_framebuf(framebuf_x, framebuf_y)) {
         return;
     }
-
-    framebuf[framebuf_y][framebuf_x] = c;
+    plot_point_w_depth_fast_unchecked(framebuf_x, framebuf_y, c, depth);
 }
 
-framebuf_coords to_framebuf_coords(vec2 v) {
-    return (framebuf_coords){.x = to_framebuf_x(v.x), .y = to_framebuf_y(v.y)};
-}
-
-void swap_framebuf_coords(framebuf_coords* v1_ptr, framebuf_coords* v2_ptr) {
-    framebuf_coords t = *v1_ptr;
-    *v1_ptr = *v2_ptr;
-    *v2_ptr = t;
+void plot_point(int framebuf_x, int framebuf_y, char c) {
+    plot_point_w_depth(framebuf_x, framebuf_y, c, 0);
 }

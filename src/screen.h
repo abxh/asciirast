@@ -1,6 +1,7 @@
 #pragma once
 
-#include "stdbool.h"
+#include <stdbool.h>
+
 #include "transform.h"
 
 #ifndef SCREEN_HEIGHT
@@ -21,24 +22,19 @@ void screen_clear(void);
 
 void screen_refresh(void);
 
-void draw_framebuf_point_w_no_bounds_checking(int framebuf_x, int framebuf_y, char c);
+void plot_point(int framebuf_x, int framebuf_y, char c);
 
-void draw_framebuf_point_w_bounds_checking(int framebuf_x, int framebuf_y, char c);
+void plot_point_w_depth(int framebuf_x, int framebuf_y, char c, float depth);
 
-// helper functions for frame buffer:
-// -----------------------------------------------------------------------------
+void plot_point_w_depth_fast_unchecked(int framebuf_x, int framebuf_y, char c, float depth);
+
+// framebuffer and depthbuffer helper functions:
+// ----------------------------------------------------------------------------
 
 int to_framebuf_x(float screen_x);
 
 int to_framebuf_y(float screen_y);
 
+vec2int to_framebuf_coords(vec2 v);
+
 bool inside_framebuf(int framebuf_x, int framebuf_y);
-
-typedef struct {
-    int x;
-    int y;
-} framebuf_coords;
-
-framebuf_coords to_framebuf_coords(vec2 v);
-
-void swap_framebuf_coords(framebuf_coords* v1_ptr, framebuf_coords* v2_ptr);
