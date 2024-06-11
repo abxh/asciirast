@@ -35,6 +35,7 @@ void draw_line_3d_fb(int x0, int y0, int x1, int y1, char c, float d0, float d1)
         return;
     }
 
+    // using this hack to calculate t.. not quite accurate
     float square_len1 = x0 * x0 + y0 * y0;
     float square_len2 = x1 * x1 + y1 * y1;
     float square_len = max_float(square_len1, square_len2);
