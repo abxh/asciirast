@@ -36,7 +36,7 @@ int inside_range_int(int x, int min, int max) {
 static const float float_delta = 0.001f;
 
 int round_float_to_int(float expr) {
-    return (expr > (floorf(expr) + 0.5f + float_delta)) ? ceilf(expr) : floorf(expr);
+    return roundf(expr);
 }
 
 int cmp_float(float x, float y) {
