@@ -11,57 +11,39 @@
 void draw_point_2d(vec2 v0, char c) {
     vec2int v0fb = to_framebuf_coords(v0);
 
-    v0fb = (vec2int){.x = clamp_int(v0fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v0fb.y, 0, SCREEN_HEIGHT - 1)};
-
-    plot_point_w_depth_fast_unchecked(v0fb.x, v0fb.y, c, 0);
-}
-
-void draw_line_3d_fb(int x0, int y0, int x1, int y1, char c, float d0, float d1) {
-    // Bresenham line algorithm - all cases:
-    // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
-
-    int dx = abs_int(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-
-    int dy = -abs_int(y1 - y0);
-    int sy = y0 < y1 ? 1 : -1;
-
-    int error = dx + dy;
-
-    int x = x0;
-    int y = y0;
-
-    if (dx == 0) {
+    if (!point_inside_framebuf(v0fb)) {
         return;
     }
 
-    // using this hack to calculate t.. not quite accurate
-    float square_len1 = x0 * x0 + y0 * y0;
-    float square_len2 = x1 * x1 + y1 * y1;
-    float square_len = max_float(square_len1, square_len2);
+    plot_point_vec2int_w_depth_unchecked_bounds(v0fb, c, 0);
+}
 
-    while (true) {
-        plot_point_w_depth_fast_unchecked(x, y, c, lerp_float(d0, d1, (x * x + y * y) / square_len));
+void draw_point_3d(vec3 v0, char c) {
+    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
 
-        if (x == x1 && y == y1) {
-            break;
-        }
+    v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
+    v0p = scaled_vec4(v0p, 1.f / v0p.w);
 
-        int e2 = 2 * error;
-        if (e2 >= dy) {
-            if (x == x1) {
-                break;
-            }
-            error = error + dy;
-            x = x + sx;
-        }
-        if (e2 <= dx) {
-            if (y == y1) {
-                break;
-            }
-            error = error + dx;
-            y = y + sy;
-        }
+    vec2int v0fb = to_framebuf_coords((vec2){v0p.x, v0p.y});
+
+    if (!point_inside_framebuf(v0fb)) {
+        return;
+    }
+
+    plot_point_vec2int_w_depth_unchecked_bounds(v0fb, c, v0p.z);
+}
+
+void draw_line_internal(vec2int v0, vec2int v1, char c, float d0, float d1) {
+    // Linear interpolation algorithm:
+    // based on https://www.redblobgames.com/grids/line-drawing/#more
+    int dx = abs_int(v1.x - v0.x);
+    int dy = abs_int(v1.y - v0.y);
+    int diagonal_dist = dx > dy ? dx : dy;
+
+    for (int step = 0; step <= diagonal_dist; step++) {
+        float t = (float) step / diagonal_dist;
+        vec2int p = lerp_vec2int(v0, v1, t);
+        plot_point_vec2int_w_depth_unchecked_bounds(p, c, lerp_float(d0, d1, t));
     }
 }
 
@@ -69,10 +51,37 @@ void draw_line_2d(vec2 v0, vec2 v1, char c) {
     vec2int v0fb = to_framebuf_coords(v0);
     vec2int v1fb = to_framebuf_coords(v1);
 
+    // if (!inside_framebuf(v0fb.x, v0fb.y) && !inside_framebuf(v1fb.x, v1fb.y)) {
+    //     return;
+    // }
+
     v0fb = (vec2int){.x = clamp_int(v0fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v0fb.y, 0, SCREEN_HEIGHT - 1)};
     v1fb = (vec2int){.x = clamp_int(v1fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v1fb.y, 0, SCREEN_HEIGHT - 1)};
 
-    draw_line_3d_fb(v0fb.x, v0fb.y, v1fb.x, v1fb.y, c, 0, 0);
+    draw_line_internal(v0fb, v1fb, c, 0, 0);
+}
+
+void draw_line_3d(vec3 v0, vec3 v1, char c) {
+    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
+    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
+
+    v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
+    v1p = (vec4){v1p.x, v1p.y, v1p.z, clamp_float(v1p.w, Z_NEAR, Z_FAR)};
+
+    v0p = scaled_vec4(v0p, 1.f / v0p.w);
+    v1p = scaled_vec4(v1p, 1.f / v1p.w);
+
+    vec2int v0fb = to_framebuf_coords((vec2){v0p.x, v0p.y});
+    vec2int v1fb = to_framebuf_coords((vec2){v1p.x, v1p.y});
+
+    // if (!inside_framebuf(v0fb.x, v0fb.y) && !inside_framebuf(v1fb.x, v1fb.y)) {
+    //     return;
+    // }
+
+    v0fb = (vec2int){.x = clamp_int(v0fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v0fb.y, 0, SCREEN_HEIGHT - 1)};
+    v1fb = (vec2int){.x = clamp_int(v1fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v1fb.y, 0, SCREEN_HEIGHT - 1)};
+
+    draw_line_internal(v0fb, v1fb, c, v0p.z, v1p.z);
 }
 
 bool is_top_left_edge_of_triangle(vec2int src, vec2int dest) {
@@ -87,10 +96,9 @@ bool is_top_left_edge_of_triangle(vec2int src, vec2int dest) {
     return is_top_edge || is_left_edge;
 }
 
-void draw_triangle_3d_fb(vec2int v0, vec2int v1, vec2int v2, char c, float d0, float d1, float d2) {
+void draw_triangle_internal(vec2int v0, vec2int v1, vec2int v2, char c, float d0, float d1, float d2) {
     // baycentric algorithm:
     // https://www.youtube.com/watch?v=k5wtuKWmV48
-    // http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html#algo3
 
     /* get the bounding box of the triangle */
     int maxX = max_int(v0.x, max_int(v1.x, v2.x));
@@ -138,7 +146,7 @@ void draw_triangle_3d_fb(vec2int v0, vec2int v1, vec2int v2, char c, float d0, f
                 float beta = w1 / triangle_area_2;
                 float gamma = w2 / triangle_area_2;
 
-                plot_point_w_depth_fast_unchecked(x, y, c, ((beta + gamma) * d0 + (gamma + alpha) * d1 + (alpha + beta) * d2) / 2.f);
+                plot_point_w_depth_unchecked_bounds(x, y, c, alpha * d0 + beta * d1 + gamma * d2);
             }
             w0 += delta_w0_col;
             w1 += delta_w1_col;
@@ -151,42 +159,7 @@ void draw_triangle_3d_fb(vec2int v0, vec2int v1, vec2int v2, char c, float d0, f
 }
 
 void draw_triangle_2d(vec2 v0, vec2 v1, vec2 v2, char c) {
-    draw_triangle_3d_fb(to_framebuf_coords(v0), to_framebuf_coords(v1), to_framebuf_coords(v2), c, 0, 0, 0);
-}
-
-// clamping is one way to resolve out-of-screen verticies
-
-void draw_point_3d(vec3 v0, char c) {
-    vec4 v = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-
-    v = (vec4){v.x, v.y, v.z, clamp_float(v.w, Z_NEAR, Z_FAR)};
-
-    v = scaled_vec4(v, 1.f / v.w);
-
-    vec2int fb = to_framebuf_coords((vec2){v.x, v.y});
-
-    fb = (vec2int){.x = clamp_int(fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(fb.y, 0, SCREEN_HEIGHT - 1)};
-
-    plot_point_w_depth(fb.x, fb.y, c, v.z);
-}
-
-void draw_line_3d(vec3 v0, vec3 v1, char c) {
-    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-
-    v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
-    v1p = (vec4){v1p.x, v1p.y, v1p.z, clamp_float(v1p.w, Z_NEAR, Z_FAR)};
-
-    v0p = scaled_vec4(v0p, 1.f / v0p.w);
-    v1p = scaled_vec4(v1p, 1.f / v1p.w);
-
-    vec2int v0fb = to_framebuf_coords((vec2){v0p.x, v0p.y});
-    vec2int v1fb = to_framebuf_coords((vec2){v1p.x, v1p.y});
-
-    v0fb = (vec2int){.x = clamp_int(v0fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v0fb.y, 0, SCREEN_HEIGHT - 1)};
-    v1fb = (vec2int){.x = clamp_int(v1fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v1fb.y, 0, SCREEN_HEIGHT - 1)};
-
-    draw_line_3d_fb(v0fb.x, v0fb.y, v1fb.x, v1fb.y, c, v0p.z, v1p.z);
+    draw_triangle_internal(to_framebuf_coords(v0), to_framebuf_coords(v1), to_framebuf_coords(v2), c, 0, 0, 0);
 }
 
 void draw_triangle_3d(vec3 v0, vec3 v1, vec3 v2, char c) {
@@ -210,5 +183,5 @@ void draw_triangle_3d(vec3 v0, vec3 v1, vec3 v2, char c) {
     v1fb = (vec2int){.x = clamp_int(v1fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v1fb.y, 0, SCREEN_HEIGHT - 1)};
     v2fb = (vec2int){.x = clamp_int(v2fb.x, 0, SCREEN_WIDTH - 1), .y = clamp_int(v2fb.y, 0, SCREEN_HEIGHT - 1)};
 
-    draw_triangle_3d_fb(v0fb, v1fb, v2fb, c, v0p.z, v1p.z, v2p.z);
+    draw_triangle_internal(v0fb, v1fb, v2fb, c, v0p.z, v1p.z, v2p.z);
 }

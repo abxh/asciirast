@@ -22,14 +22,17 @@ void screen_clear(void);
 
 void screen_refresh(void);
 
-void plot_point(int framebuf_x, int framebuf_y, char c);
+void plot_point(int x0, int y0, char c);
 
-void plot_point_w_depth(int framebuf_x, int framebuf_y, char c, float depth);
+void plot_point_w_depth(int x0, int y0, char c, float depth);
 
-void plot_point_w_depth_fast_unchecked(int framebuf_x, int framebuf_y, char c, float depth);
+void plot_point_w_depth_unchecked_bounds(int x0, int y0, char c, float depth);
 
-// framebuffer and depthbuffer helper functions:
-// ----------------------------------------------------------------------------
+void plot_point_vec2int(vec2int v0, char c);
+
+void plot_point_vec2int_w_depth(vec2int v0, char c, float depth);
+
+void plot_point_vec2int_w_depth_unchecked_bounds(vec2int v0, char c, float depth);
 
 int to_framebuf_x(float screen_x);
 
@@ -37,4 +40,4 @@ int to_framebuf_y(float screen_y);
 
 vec2int to_framebuf_coords(vec2 v);
 
-bool inside_framebuf(int framebuf_x, int framebuf_y);
+bool point_inside_framebuf(vec2int v);

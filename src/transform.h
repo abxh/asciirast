@@ -52,6 +52,7 @@ float length_vec2int(vec2int v);
 int cross_vec2int(vec2int a, vec2int b);
 vec2int src_to_dest_vec2int(vec2int src, vec2int dest);
 vec2 to_vec2(vec2int v);
+vec2int lerp_vec2int(vec2int v0, vec2int v1, float t);
 
 // vec2 math:
 vec2 sum_vec2(vec2 a, vec2 b);
@@ -61,6 +62,7 @@ float length_vec2(vec2 v);
 float cross_vec2(vec2 a, vec2 b);
 vec2 src_to_dest_vec2(vec2 src, vec2 dest);
 vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad);
+vec2 lerp_vec2(vec2 v0, vec2 v1, float t);
 
 // vec3 math:
 vec3 sum_vec3(vec3 a, vec3 b);
@@ -72,12 +74,14 @@ vec3 src_to_dest_vec3(vec3 src, vec3 dest);
 vec3 rotate_around_x_axis(vec3 vec, float angle_rad);
 vec3 rotate_around_y_axis(vec3 vec, float angle_rad);
 vec3 rotate_around_z_axis(vec3 vec, float angle_rad);
+vec3 lerp_vec3(vec3 v0, vec3 v1, float t);
 
 // vec4 math:
 vec4 sum_vec4(vec4 a, vec4 b);
 vec4 scaled_vec4(vec4 vec, float scalar);
 float dot_vec4(vec4 a, vec4 b);
 float length_vec4(vec4 v);
+vec4 lerp_vec4(vec4 v0, vec4 v1, float t);
 
 // 3d perspective projection:
 vec2 vec3_projected_to_screen_space(vec3 vec, float fov_angle_rad, float aspect_ratio);

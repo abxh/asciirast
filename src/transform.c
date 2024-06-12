@@ -106,6 +106,10 @@ vec2 to_vec2(vec2int v) {
     return (vec2){.x = v.x, .y = v.y};
 }
 
+vec2int lerp_vec2int(vec2int v0, vec2int v1, float t) {
+    return (vec2int){.x = round_float_to_int(lerp_float(v0.x, v1.x, t)), .y = round_float_to_int(lerp_float(v0.y, v1.y, t))};
+}
+
 // ----------------------------------------------------------------------------
 // vec2 math
 
@@ -136,6 +140,10 @@ vec2 src_to_dest_vec2(vec2 src, vec2 dest) {
 
 vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad) {
     return (vec2){.x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad)};
+}
+
+vec2 lerp_vec2(vec2 v0, vec2 v1, float t) {
+    return (vec2){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t)};
 }
 
 // ----------------------------------------------------------------------------
@@ -181,6 +189,10 @@ vec3 rotate_around_z_axis(vec3 vec, float angle_rad) {
         .x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad), .z = vec.z};
 }
 
+vec3 lerp_vec3(vec3 v0, vec3 v1, float t) {
+    return (vec3){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t), .z = lerp_float(v0.z, v1.z, t)};
+}
+
 // ----------------------------------------------------------------------------
 // vec4 math
 
@@ -198,6 +210,13 @@ float dot_vec4(vec4 a, vec4 b) {
 
 float length_vec4(vec4 v) {
     return sqrtf(dot_vec4(v, v));
+}
+
+vec4 lerp_vec4(vec4 v0, vec4 v1, float t) {
+    return (vec4){.x = lerp_float(v0.x, v1.x, t),
+                  .y = lerp_float(v0.y, v1.y, t),
+                  .z = lerp_float(v0.z, v1.z, t),
+                  .w = lerp_float(v0.w, v1.w, t)};
 }
 
 // ----------------------------------------------------------------------------

@@ -72,7 +72,6 @@ void diamond_triangle_scene_update(void** context_ptr) {
     vec3 v_top_to_v2 = src_to_dest_vec3(v_top, v2);
 
     vec3 normal_top = cross_vec3(v_top_to_v1, v_top_to_v2);
-    normal_top = scaled_vec3(normal_top, 1 / 2.f);
     vec3 top_center = scaled_vec3(sum_vec3(v_top, sum_vec3(v1, v2)), 1.f / 3.f);
 
     draw_line_3d(top_center, sum_vec3(top_center, normal_top), '-');
@@ -81,7 +80,6 @@ void diamond_triangle_scene_update(void** context_ptr) {
     vec3 v_bottom_to_v2 = src_to_dest_vec3(v_bottom, v2);
 
     vec3 normal_bottom = cross_vec3(v_bottom_to_v1, v_bottom_to_v2);
-    normal_bottom = scaled_vec3(normal_bottom, 1 / 2.f);
     vec3 bottom_center = scaled_vec3(sum_vec3(v_bottom, sum_vec3(v1, v2)), 1.f / 3.f);
 
     draw_line_3d(bottom_center, sum_vec3(bottom_center, normal_bottom), '-');

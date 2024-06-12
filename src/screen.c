@@ -58,14 +58,15 @@ void screen_refresh(void) {
     }
 }
 
-// framebuffer and depthbuffer helper functions:
-// ----------------------------------------------------------------------------
-
-bool inside_framebuf(int framebuf_x, int framebuf_y) {
-    bool inside_framebuf_x = 0 <= framebuf_x && framebuf_x < SCREEN_WIDTH;
-    bool inside_framebuf_y = 0 <= framebuf_y && framebuf_y < SCREEN_HEIGHT;
+bool point_inside_framebuf(vec2int v0) {
+    bool inside_framebuf_x = 0 <= v0.x && v0.y < SCREEN_WIDTH;
+    bool inside_framebuf_y = 0 <= v0.x && v0.y < SCREEN_HEIGHT;
 
     return inside_framebuf_x && inside_framebuf_y;
+}
+
+bool point_inside_framebuf_split(int x0, int y0) {
+    return point_inside_framebuf((vec2int){x0, y0});
 }
 
 int to_framebuf_x(float screen_x) {
@@ -80,26 +81,35 @@ vec2int to_framebuf_coords(vec2 v) {
     return (vec2int){.x = to_framebuf_x(v.x), .y = to_framebuf_y(v.y)};
 }
 
-// ----------------------------------------------------------------------------
-
-void plot_point_w_depth_fast_unchecked(int framebuf_x, int framebuf_y, char c, float depth) {
-    assert(inside_framebuf(framebuf_x, framebuf_y));
+void plot_point_w_depth_unchecked_bounds(int x0, int y0, char c, float depth) {
+    assert(point_inside_framebuf_split(x0, y0));
     assert(inside_range_float(depth, 0.f, 1.f));
 
-    if (depth > depthbuf[framebuf_y][framebuf_x]) {
+    if (depth > depthbuf[y0][x0]) {
         return;
     }
-    framebuf[framebuf_y][framebuf_x] = c;
-    depthbuf[framebuf_y][framebuf_x] = depth;
+    framebuf[y0][x0] = c;
+    depthbuf[y0][x0] = depth;
 }
 
-void plot_point_w_depth(int framebuf_x, int framebuf_y, char c, float depth) {
-    if (!inside_framebuf(framebuf_x, framebuf_y)) {
+void plot_point_w_depth(int x0, int y0, char c, float depth) {
+    if (!point_inside_framebuf_split(x0, y0)) {
         return;
     }
-    plot_point_w_depth_fast_unchecked(framebuf_x, framebuf_y, c, depth);
+    plot_point_w_depth_unchecked_bounds(x0, y0, c, depth);
 }
 
-void plot_point(int framebuf_x, int framebuf_y, char c) {
-    plot_point_w_depth(framebuf_x, framebuf_y, c, 0);
+void plot_point(int x0, int y0, char c) {
+    plot_point_w_depth(x0, y0, c, 0);
+}
+void plot_point_vec2int_w_depth_unchecked_bounds(vec2int v0, char c, float depth) {
+    plot_point_w_depth_unchecked_bounds(v0.x, v0.y, c, depth);
+}
+
+void plot_point_vec2int_w_depth(vec2int v0, char c, float depth) {
+    plot_point_w_depth(v0.x, v0.y, c, depth);
+}
+
+void plot_point_vec2int(vec2int v0, char c) {
+    plot_point(v0.x, v0.y, c);
 }
