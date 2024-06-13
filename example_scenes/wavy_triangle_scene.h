@@ -8,4 +8,4 @@ void wavy_triangle_destroy(void** context_ptr);
 
 void wavy_triangle_update(void** context_ptr);
 
-extern const scene_type wavy_triangle;
+extern const scene_type g_wavy_triangle_scene;

@@ -18,7 +18,7 @@ typedef struct {
     int64_t angle_deg;
 } spiral;
 
-const scene_type spiral_scene = {
+const scene_type g_spiral_scene = {
     .flags = SCENE_OPS_NOP, .create = spiral_scene_create, .destroy = spiral_scene_destroy, .update = spiral_scene_update};
 
 #define SPIRAL_OBJ 0

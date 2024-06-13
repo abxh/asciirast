@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 // hotplug:
-#include "../example_scenes/example_scenes.h"
+#include "../example_scenes/diamond_triangle_scene.h"
 
 static void on_sigint(int sig) {
     MARK_UNUSED(sig);
@@ -20,7 +20,7 @@ int main(void) {
     signal(SIGINT, on_sigint);
     screen_init();
 
-    scene_type scene = diamond_triangle_scene;
+    scene_type scene = g_diamond_triangle_scene;
     void** context_ptr = scene.create();
 
     bool on_running = true;

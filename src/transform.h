@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 
@@ -82,7 +81,7 @@ static inline float clamp_float(float x, float min, float max) {
     return min_float(max_float(x, min), max);
 }
 
-static inline float inside_range_float(float x, float min, float max) {
+static inline bool inside_range_float(float x, float min, float max) {
     return min <= x && x <= max;
 }
 
@@ -251,8 +250,7 @@ static inline vec4 lerp_vec4(vec4 v0, vec4 v1, float t) {
 static inline vec2 vec3_projected_to_screen_space(vec3 vec, float fov_angle_rad, float aspect_ratio) {
     float scalar = vec.z * tanf(fov_angle_rad / 2.f);
 
-    assert("fov angle or z-value does not lead to division by zero" && is_equal_float(scalar, 0) != 0);
-
+    // there is a risk of division by 0. this should be caught by sanitizers
     return (vec2){.x = 1 / scalar * aspect_ratio * vec.x, .y = 1 / scalar * vec.y};
 }
 
@@ -263,11 +261,11 @@ static inline vec4 vec3_apply_projection_matrix(vec3 vec, float fov_angle_rad, f
     // z-culling schenanigan. used to make near objects more precise, far objects less precise
     float depth_scalar = z_far / (z_far - z_near);
 
-    assert("fov angle does not lead to division by zero" && is_equal_float(fov_scalar, 0) != 0);
-
-    // res to be multiplied by the scalar (1 / w) for z-divide
+    // there is a risk of division by 0. this should be caught by sanitizers
     return (vec4){.x = 1 / fov_scalar * aspect_ratio * vec.x,
                   .y = 1 / fov_scalar * vec.y,
                   .z = depth_scalar * vec.z - depth_scalar * z_near,
                   .w = vec.z};
+
+    // res to be multiplied by the scalar (1 / w) for z-divide
 }

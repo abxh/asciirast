@@ -20,7 +20,7 @@ typedef struct {
     int64_t angle_deg;
 } cube;
 
-const scene_type cube_scene = {
+const scene_type g_cube_scene = {
     .flags = SCENE_OPS_NOP, .create = cube_scene_create, .destroy = cube_scene_destroy, .update = cube_scene_update};
 
 // clang-format off
@@ -113,10 +113,10 @@ void cube_scene_update(void** context_ptr) {
             }
 
             vec3 v1_3d = sum_vec3(rotate_around_y_axis(verticies[current], angle_rad), shift);
-            vec2 v1 = vec3_projected_to_screen_space(v1_3d, fov_angle_rad, aspect_ratio);
+            vec2 v1 = vec3_projected_to_screen_space(v1_3d, fov_angle_rad, ASPECT_RATIO);
 
             vec3 v2_3d = sum_vec3(rotate_around_y_axis(verticies[i], angle_rad), shift);
-            vec2 v2 = vec3_projected_to_screen_space(v2_3d, fov_angle_rad, aspect_ratio);
+            vec2 v2 = vec3_projected_to_screen_space(v2_3d, fov_angle_rad, ASPECT_RATIO);
 
             draw_line_2d(v1, v2, '.');
 #ifdef DEBUG

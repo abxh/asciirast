@@ -19,7 +19,7 @@ typedef struct {
     int64_t angle_deg;
 } rotating_triangle;
 
-const scene_type rotating_triangle_scene = {.flags = SCENE_OPS_NOP,
+const scene_type g_rotating_triangle_scene = {.flags = SCENE_OPS_NOP,
                                       .create = rotating_triangle_scene_create,
                                       .destroy = rotating_triangle_scene_destroy,
                                       .update = rotating_triangle_scene_update};

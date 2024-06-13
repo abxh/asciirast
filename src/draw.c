@@ -1,6 +1,7 @@
 #include "draw.h"
 #include "screen.h"
 #include "transform.h"
+#include "framebuf.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,7 +20,7 @@ void draw_point_2d(vec2 v0, char c) {
 }
 
 void draw_point_3d(vec3 v0, char c) {
-    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
+    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
 
     v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
     v0p = scaled_vec4(v0p, 1.f / v0p.w);
@@ -62,8 +63,8 @@ void draw_line_2d(vec2 v0, vec2 v1, char c) {
 }
 
 void draw_line_3d(vec3 v0, vec3 v1, char c) {
-    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
+    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
+    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
 
     v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
     v1p = (vec4){v1p.x, v1p.y, v1p.z, clamp_float(v1p.w, Z_NEAR, Z_FAR)};
@@ -163,9 +164,9 @@ void draw_triangle_2d(vec2 v0, vec2 v1, vec2 v2, char c) {
 }
 
 void draw_triangle_3d(vec3 v0, vec3 v1, vec3 v2, char c) {
-    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
-    vec4 v2p = vec3_apply_projection_matrix(v2, FOV_ANGLE_RAD, aspect_ratio, Z_NEAR, Z_FAR);
+    vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
+    vec4 v1p = vec3_apply_projection_matrix(v1, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
+    vec4 v2p = vec3_apply_projection_matrix(v2, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
 
     v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
     v1p = (vec4){v1p.x, v1p.y, v1p.z, clamp_float(v1p.w, Z_NEAR, Z_FAR)};

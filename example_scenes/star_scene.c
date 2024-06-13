@@ -20,7 +20,7 @@ typedef struct {
     int64_t angle_deg;
 } star;
 
-const scene_type star_scene = {
+const scene_type g_star_scene = {
     .flags = SCENE_OPS_NOP, .create = star_scene_create, .destroy = star_scene_destroy, .update = star_scene_update};
 
 #define STAR_OBJ 0

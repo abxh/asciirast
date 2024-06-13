@@ -19,7 +19,7 @@ typedef struct {
     int64_t angle_deg;
 } triangle;
 
-const scene_type wavy_triangle = {
+const scene_type g_wavy_triangle_scene = {
     .flags = SCENE_OPS_NOP, .create = wavy_triangle_create, .destroy = wavy_triangle_destroy, .update = wavy_triangle_update};
 
 #define TRIANGLE_OBJ 0

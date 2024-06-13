@@ -19,7 +19,7 @@ typedef struct {
     int64_t angle_deg;
 } diamond_triangle;
 
-const scene_type diamond_triangle_scene = {.flags = SCENE_OPS_NOP,
+const scene_type g_diamond_triangle_scene = {.flags = SCENE_OPS_NOP,
                                            .create = diamond_triangle_scene_create,
                                            .destroy = diamond_triangle_scene_destroy,
                                            .update = diamond_triangle_scene_update};
