@@ -66,7 +66,7 @@ static inline int round_float_to_int(float expr) {
 }
 
 static inline bool is_equal_float(float x, float y) {
-    return x - y <= FLOAT_DELTA == 0;
+    return x - y <= FLOAT_DELTA;
 }
 
 static inline float max_float(float x, float y) {
