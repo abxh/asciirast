@@ -33,7 +33,7 @@ void draw_point_3d(vec3 v0, char c) {
     plot_point_vec2int_w_depth_unchecked_bounds(v0fb, c, v0p.z);
 }
 
-void draw_line_internal(vec2int v0, vec2int v1, char c, float d0, float d1) {
+static inline void draw_line_internal(vec2int v0, vec2int v1, char c, float d0, float d1) {
     // Linear interpolation algorithm:
     // based on https://www.redblobgames.com/grids/line-drawing/#more
     int dx = abs_int(v1.x - v0.x);
@@ -41,7 +41,7 @@ void draw_line_internal(vec2int v0, vec2int v1, char c, float d0, float d1) {
     int diagonal_dist = dx > dy ? dx : dy;
 
     for (int step = 0; step <= diagonal_dist; step++) {
-        float t = (float) step / diagonal_dist;
+        float t = (float)step / (float)diagonal_dist;
         vec2int p = lerp_vec2int(v0, v1, t);
         plot_point_vec2int_w_depth_unchecked_bounds(p, c, lerp_float(d0, d1, t));
     }
@@ -84,7 +84,7 @@ void draw_line_3d(vec3 v0, vec3 v1, char c) {
     draw_line_internal(v0fb, v1fb, c, v0p.z, v1p.z);
 }
 
-bool is_top_left_edge_of_triangle(vec2int src, vec2int dest) {
+static inline bool is_top_left_edge_of_triangle(vec2int src, vec2int dest) {
     vec2int edge = src_to_dest_vec2int(src, dest);
 
     bool points_right = edge.x > 0;
@@ -96,7 +96,7 @@ bool is_top_left_edge_of_triangle(vec2int src, vec2int dest) {
     return is_top_edge || is_left_edge;
 }
 
-void draw_triangle_internal(vec2int v0, vec2int v1, vec2int v2, char c, float d0, float d1, float d2) {
+static inline void draw_triangle_internal(vec2int v0, vec2int v1, vec2int v2, char c, float d0, float d1, float d2) {
     // baycentric algorithm:
     // https://www.youtube.com/watch?v=k5wtuKWmV48
 
@@ -106,7 +106,7 @@ void draw_triangle_internal(vec2int v0, vec2int v1, vec2int v2, char c, float d0
     int maxY = max_int(v0.y, max_int(v1.y, v2.y));
     int minY = min_int(v0.y, min_int(v1.y, v2.y));
 
-    vec2 p0 = {minX + 0.5f, minY + 0.5f};
+    vec2 p0 = {(float)minX + 0.5f, (float)minY + 0.5f};
 
     // bias to include top_left edge
     float bias0 = is_top_left_edge_of_triangle(v1, v2) ? 0 : -1;
@@ -122,16 +122,16 @@ void draw_triangle_internal(vec2int v0, vec2int v1, vec2int v2, char c, float d0
     float triangle_area_2 = cross_vec2(v0_to_v1, v0_to_v2);
 
     // cross product things:
-    float delta_w0_col = v1.y - v2.y;
-    float delta_w0_row = v2.x - v1.x;
+    float delta_w0_col = (float)(v1.y - v2.y);
+    float delta_w0_row = (float)(v2.x - v1.x);
     float w0_row = cross_vec2(v1_to_v2, src_to_dest_vec2(to_vec2(v1), p0)) + bias0;
 
-    float delta_w1_col = v2.y - v0.y;
-    float delta_w1_row = v0.x - v2.x;
+    float delta_w1_col = (float)(v2.y - v0.y);
+    float delta_w1_row = (float)(v0.x - v2.x);
     float w1_row = cross_vec2(v2_to_v0, src_to_dest_vec2(to_vec2(v2), p0)) + bias1;
 
-    float delta_w2_col = v0.y - v1.y;
-    float delta_w2_row = v1.x - v0.x;
+    float delta_w2_col = (float)(v0.y - v1.y);
+    float delta_w2_row = (float)(v1.x - v0.x);
     float w2_row = cross_vec2(v0_to_v1, src_to_dest_vec2(to_vec2(v0), p0)) + bias2;
 
     for (int y = minY; y <= maxY; y++) {

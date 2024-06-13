@@ -1,6 +1,6 @@
 #include "cube_scene.h"
 #include "draw.h"
-#include "scenes/scene.h"
+#include "scene.h"
 #include "screen.h"
 #include "transform.h"
 
@@ -8,7 +8,6 @@
 #include "misc.h"
 #endif
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -21,7 +20,7 @@ typedef struct {
     int64_t angle_deg;
 } cube;
 
-scene_type cube_scene = {
+const scene_type cube_scene = {
     .flags = SCENE_OPS_NOP, .create = cube_scene_create, .destroy = cube_scene_destroy, .update = cube_scene_update};
 
 // clang-format off
@@ -81,9 +80,13 @@ void cube_scene_destroy(void** context_ptr) {
 static int stack[16];
 static bool visited[8];
 
+static const float fov_angle_rad = PI / 3;
+static const vec3 shift = {0, 0, 1.75f};
+
 void cube_scene_update(void** context_ptr) {
     cube* cube_ptr = (cube*)context_ptr[CUBE_OBJ];
     int64_t angle_deg = cube_ptr->angle_deg;
+    float angle_rad = to_angle_in_radians((float)-angle_deg);
 
     size_t count = 0;
     for (size_t i = 0; i < sizeof(stack) / sizeof(*stack); i++) {
@@ -97,9 +100,6 @@ void cube_scene_update(void** context_ptr) {
     printf("edges:\n");
     size_t edge_count = 0;
 #endif
-    float angle_rad = to_angle_in_radians(-angle_deg);
-    static float fov_angle_rad = M_PI / 3;
-    static vec3 shift = {0, 0, 1.75f};
 
     stack[count++] = 0;
 

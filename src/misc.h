@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdlib.h>
 
 #define STR(s) #s
 #define XSTR(s) STR(s)
@@ -24,4 +23,6 @@
         (a) = t;             \
     } while (false)
 
-void sleep_portable(size_t millisec);
+#define MARK_UNUSED(x) (void)(x)
+
+void sleep_ms(int milliseconds);

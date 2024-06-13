@@ -8,4 +8,4 @@ void star_scene_destroy(void** context_ptr);
 
 void star_scene_update(void** context_ptr);
 
-extern scene_type star_scene;
+extern const scene_type star_scene;

@@ -1,6 +1,8 @@
-#include "star_scene.h"
+
+
 #include "draw.h"
-#include "scenes/scene.h"
+#include "scene.h"
+#include "star_scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
@@ -18,7 +20,7 @@ typedef struct {
     int64_t angle_deg;
 } star;
 
-scene_type star_scene = {
+const scene_type star_scene = {
     .flags = SCENE_OPS_NOP, .create = star_scene_create, .destroy = star_scene_destroy, .update = star_scene_update};
 
 #define STAR_OBJ 0
@@ -42,8 +44,8 @@ void star_scene_update(void** context_ptr) {
     for (size_t l = 0; l < 6; l++) {
         vec2 v_base = {.x = 0.5, .y = -1.};
 
-        float angle_rad1 = to_angle_in_radians(angle_deg + (72 + 72) * (l + 0));
-        float angle_rad2 = to_angle_in_radians(angle_deg + (72 + 72) * (l + 1));
+        float angle_rad1 = to_angle_in_radians((float)(angle_deg + (72 + 72) * ((int64_t)l + 0)));
+        float angle_rad2 = to_angle_in_radians((float)(angle_deg + (72 + 72) * ((int64_t)l + 1)));
 
         vec2 v1 = rotate_around_origo_vec2(v_base, angle_rad1);
         vec2 v2 = rotate_around_origo_vec2(v_base, angle_rad2);
@@ -62,7 +64,7 @@ void star_scene_update(void** context_ptr) {
         CLEAR_LINE();
         printf("v2.x: %.2f, v2.y: %.2f\n", v2.x, v2.y);
         MOVE_UP_LINES(5);
-        sleep_portable(100);
+        sleep_ms(100);
 #endif
     }
 

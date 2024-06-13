@@ -1,6 +1,6 @@
 #include "wavy_triangle_scene.h"
 #include "draw.h"
-#include "scenes/scene.h"
+#include "scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
@@ -19,7 +19,7 @@ typedef struct {
     int64_t angle_deg;
 } triangle;
 
-scene_type wavy_triangle = {
+const scene_type wavy_triangle = {
     .flags = SCENE_OPS_NOP, .create = wavy_triangle_create, .destroy = wavy_triangle_destroy, .update = wavy_triangle_update};
 
 #define TRIANGLE_OBJ 0
@@ -39,11 +39,11 @@ void wavy_triangle_destroy(void** context_ptr) {
 void wavy_triangle_update(void** context_ptr) {
     triangle* triangle_ptr = (triangle*)context_ptr[TRIANGLE_OBJ];
     int64_t angle_deg = triangle_ptr->angle_deg;
-    float angle_rad = to_angle_in_radians(-angle_deg);
+    float angle_rad = to_angle_in_radians((float)-angle_deg);
 
-    float a1 = sinf(M_PI / 3. * (angle_rad - 3.f));
-    float a2 = sinf(M_PI / 3. * (angle_rad - 4.5f));
-    float x = sinf(M_PI / 12. * (angle_rad - 6.f));
+    float a1 = sinf(PI / 3.f * (angle_rad - 3.f));
+    float a2 = sinf(PI / 3.f * (angle_rad - 4.5f));
+    float x = sinf(PI / 12.f * (angle_rad - 6.f));
 
     float b1 = max_float(((a1 * a1 + a1) / 2.f + 1.f) / 2.f, 0.5f);
     float b2 = max_float(((a2 * a2 + a2) / 2.f + 1.f) / 2.f, 0.5f);

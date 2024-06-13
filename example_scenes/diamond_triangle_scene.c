@@ -1,7 +1,7 @@
 
 #include "diamond_triangle_scene.h"
 #include "draw.h"
-#include "scenes/scene.h"
+#include "scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
@@ -19,10 +19,10 @@ typedef struct {
     int64_t angle_deg;
 } diamond_triangle;
 
-scene_type diamond_triangle_scene = {.flags = SCENE_OPS_NOP,
-                                     .create = diamond_triangle_scene_create,
-                                     .destroy = diamond_triangle_scene_destroy,
-                                     .update = diamond_triangle_scene_update};
+const scene_type diamond_triangle_scene = {.flags = SCENE_OPS_NOP,
+                                           .create = diamond_triangle_scene_create,
+                                           .destroy = diamond_triangle_scene_destroy,
+                                           .update = diamond_triangle_scene_update};
 
 #define TRIANGLE_OBJ 0
 
@@ -45,12 +45,12 @@ void diamond_triangle_scene_update(void** context_ptr) {
     diamond_triangle* triangle_ptr = (diamond_triangle*)context_ptr[TRIANGLE_OBJ];
 
     int64_t angle_deg = triangle_ptr->angle_deg;
-    float angle_rad = to_angle_in_radians(-angle_deg);
-    static vec3 shift = {0, 0, 2.f};
+    float angle_rad = to_angle_in_radians((float)-angle_deg);
+
+    const vec3 shift = {0, 0, 2.f};
 
     vec3 v1 = {0.5, -0, 0.f};
     vec3 v2 = {-0.5, -0, 0.f};
-
     vec3 v_top = {0, 1.f, 0.f};
     vec3 v_bottom = {0, -1.f, 0.f};
 
@@ -93,7 +93,7 @@ void diamond_triangle_scene_update(void** context_ptr) {
     printf("angle_rad: %.2f\n", angle_rad);
     CLEAR_LINE();
     MOVE_UP_LINES(1);
-    sleep_portable(200);
+    sleep_ms(200);
 #endif
 
     if (angle_deg == 360) {

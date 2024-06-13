@@ -44,12 +44,10 @@ world space:
 */
 
 /* near and far plane distances for clipping */
-static const float Z_NEAR = 0.1f;
-static const float Z_FAR = 100.0f;
-
-static const float FOV_ANGLE_RAD = M_PI / 3; // 60 degrees
-
-static const vec3 CAMERA_CENTER = {0, 0, 0}; // changing this doesn't do anything at the moment
+#define Z_NEAR (0.1f)
+#define Z_FAR (100.0f)
+#define FOV_ANGLE_RAD (PI / 3.f) // 60 degrees
+#define CAMERA_CENTER ((vec3){0, 0, 0}) // changing this doesn't do anything at the moment
 
 void draw_point_3d(vec3 v0, char c);
 

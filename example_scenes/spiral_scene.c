@@ -1,6 +1,6 @@
 #include "spiral_scene.h"
 #include "draw.h"
-#include "scenes/scene.h"
+#include "scene.h"
 #include "transform.h"
 
 #ifdef DEBUG
@@ -18,7 +18,7 @@ typedef struct {
     int64_t angle_deg;
 } spiral;
 
-scene_type spiral_scene = {
+const scene_type spiral_scene = {
     .flags = SCENE_OPS_NOP, .create = spiral_scene_create, .destroy = spiral_scene_destroy, .update = spiral_scene_update};
 
 #define SPIRAL_OBJ 0
@@ -40,8 +40,8 @@ void spiral_scene_update(void** context_ptr) {
     int64_t angle_deg = spiral_ptr->angle_deg;
     for (size_t o = 0; o < 6; o++) {
         for (size_t i = 0; i <= 6; i++) {
-            float angle_rad = to_angle_in_radians(-angle_deg - 20. * i - 60 * o);
-            vec2 v_base = {.x = 0.6 - 0.1 * (float)i, .y = 0.6 - 0.1 * (float)i};
+            float angle_rad = to_angle_in_radians((float)-angle_deg - 20.f * (float)i - 60.f * (float)o);
+            vec2 v_base = {.x = 0.6f - 0.1f * (float)i, .y = 0.6f - 0.1f * (float)i};
             vec2 v = rotate_around_origo_vec2(v_base, angle_rad);
 
             draw_point_2d(v, '*');
@@ -56,7 +56,7 @@ void spiral_scene_update(void** context_ptr) {
             CLEAR_LINE();
             printf("v.x: %.2f, v.y: %.2f\n", v.x, v.y);
             MOVE_UP_LINES(4);
-            sleep_portable(100);
+            sleep_ms(100);
 #endif
         }
     }

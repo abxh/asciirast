@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdalign.h>
 #include <stdint.h>
 
 typedef enum {
@@ -8,9 +9,9 @@ typedef enum {
 } EXTENDED_OBJ_OPS_ENUM;
 
 typedef struct {
-    uint32_t flags;
+    uint64_t flags;
 
-    void** (*create)();
+    void** (*create)(void);
     void (*destroy)(void** context_ptr);
     void (*update)(void** context_ptr);
 

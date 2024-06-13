@@ -1,28 +1,20 @@
 #include "misc.h"
 #include "screen.h"
-
-#include "scenes/cube_scene.h"
-#include "scenes/rotating_triangle_scene.h"
-#include "scenes/scene.h"
-#include "scenes/spiral_scene.h"
-#include "scenes/star_scene.h"
-#include "scenes/wavy_triangle_scene.h"
-#include "scenes/diamond_triangle_scene.h"
+#include "scene.h"
 
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+// hotplug:
+#include "../example_scenes/example_scenes.h"
 
-void on_sigint(int sig) {
+static void on_sigint(int sig) {
+    MARK_UNUSED(sig);
     screen_deinit();
     exit(0);
 }
-
-#pragma GCC diagnostic pop
 
 int main(void) {
     signal(SIGINT, on_sigint);
@@ -38,7 +30,7 @@ int main(void) {
         screen_refresh();
         screen_clear();
 
-        sleep_portable(200);
+        sleep_ms(200);
     }
 
     scene.destroy(context_ptr);

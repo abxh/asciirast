@@ -1,5 +1,11 @@
 #pragma once
 
+#include <assert.h>
+#include <math.h>
+#include <stdbool.h>
+
+#define PI 3.1415927f
+
 typedef struct {
     int x;
     int y;
@@ -23,66 +29,245 @@ typedef struct {
     float w;
 } vec4;
 
-// int math:
-int signof_int(int expr);
-int abs_int(int expr);
-int max_int(int x, int y);
-int min_int(int x, int y);
-int clamp_int(int x, int min, int max);
-int inside_range_int(int x, int min, int max);
+// ----------------------------------------------------------------------------
+// int math
 
-// float math:
-int cmp_float(float x, float y);
-int round_float_to_int(float expr);
-float max_float(float x, float y);
-float min_float(float x, float y);
-float clamp_float(float x, float min, float max);
-float inside_range_float(float x, float min, float max);
-float lerp_float(float v0, float v1, float t);
+static inline int signof_int(int expr) {
+    return (expr > 0) - (expr < 0);
+}
 
-// angle math:
-float to_angle_in_radians(float angle_deg);
-float to_angle_in_degrees(float angle_rad);
+static inline int abs_int(int expr) {
+    return (expr > 0) ? expr : -expr;
+}
 
-// vec2int math:
-vec2int sum_vec2int(vec2int a, vec2int b);
-vec2int scaled_vec2int(vec2int vec, float scalar);
-int dot_vec2int(vec2int a, vec2int b);
-float length_vec2int(vec2int v);
-int cross_vec2int(vec2int a, vec2int b);
-vec2int src_to_dest_vec2int(vec2int src, vec2int dest);
-vec2 to_vec2(vec2int v);
-vec2int lerp_vec2int(vec2int v0, vec2int v1, float t);
+static inline int max_int(int x, int y) {
+    return (x > y) ? x : y;
+}
 
-// vec2 math:
-vec2 sum_vec2(vec2 a, vec2 b);
-vec2 scaled_vec2(vec2 vec, float scalar);
-float dot_vec2(vec2 a, vec2 b);
-float length_vec2(vec2 v);
-float cross_vec2(vec2 a, vec2 b);
-vec2 src_to_dest_vec2(vec2 src, vec2 dest);
-vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad);
-vec2 lerp_vec2(vec2 v0, vec2 v1, float t);
+static inline int min_int(int x, int y) {
+    return (x < y) ? x : y;
+}
 
-// vec3 math:
-vec3 sum_vec3(vec3 a, vec3 b);
-vec3 scaled_vec3(vec3 vec, float scalar);
-float dot_vec3(vec3 a, vec3 b);
-float length_vec3(vec3 v);
-vec3 cross_vec3(vec3 a, vec3 b);
-vec3 src_to_dest_vec3(vec3 src, vec3 dest);
-vec3 rotate_around_x_axis(vec3 vec, float angle_rad);
-vec3 rotate_around_y_axis(vec3 vec, float angle_rad);
-vec3 rotate_around_z_axis(vec3 vec, float angle_rad);
-vec3 lerp_vec3(vec3 v0, vec3 v1, float t);
+static inline int clamp_int(int x, int min, int max) {
+    return min_int(max_int(x, min), max);
+}
 
-// vec4 math:
-vec4 sum_vec4(vec4 a, vec4 b);
-vec4 scaled_vec4(vec4 vec, float scalar);
-float dot_vec4(vec4 a, vec4 b);
-float length_vec4(vec4 v);
-vec4 lerp_vec4(vec4 v0, vec4 v1, float t);
+static inline int inside_range_int(int x, int min, int max) {
+    return min <= x && x <= max;
+}
 
-// 3d perspective projection:
-vec2 vec3_projected_to_screen_space(vec3 vec, float fov_angle_rad, float aspect_ratio);
-vec4 vec3_apply_projection_matrix(vec3 vec, float fov_angle_rad, float aspect_ratio, float z_near, float z_far);
+// ----------------------------------------------------------------------------
+// float math
+
+#define FLOAT_DELTA (0.001f)
+
+static inline int round_float_to_int(float expr) {
+    float rounded_value = roundf(expr);
+    return (int)rounded_value;
+}
+
+static inline bool is_equal_float(float x, float y) {
+    return x - y <= FLOAT_DELTA == 0;
+}
+
+static inline float max_float(float x, float y) {
+    return (x > y + FLOAT_DELTA) ? x : y;
+}
+
+static inline float min_float(float x, float y) {
+    return (x + FLOAT_DELTA < y) ? x : y;
+}
+
+static inline float clamp_float(float x, float min, float max) {
+    return min_float(max_float(x, min), max);
+}
+
+static inline float inside_range_float(float x, float min, float max) {
+    return min <= x && x <= max;
+}
+
+static inline float lerp_float(float v0, float v1, float t) {
+    return (1 - t) * v0 + t * v1;
+}
+
+// ----------------------------------------------------------------------------
+// angle math
+
+static inline float to_angle_in_radians(float angle_deg) {
+    return angle_deg * PI / 180.f;
+}
+
+static inline float to_angle_in_degrees(float angle_rad) {
+    return angle_rad * 180.f / PI;
+}
+
+// ----------------------------------------------------------------------------
+// vec2int math
+
+static inline vec2int sum_vec2int(vec2int a, vec2int b) {
+    return (vec2int){.x = a.x + b.x, .y = a.y + b.y};
+}
+
+static inline vec2int scaled_vec2int(vec2int vec, float scalar) {
+    return (vec2int){.x = round_float_to_int(scalar * (float)vec.x), .y = round_float_to_int(scalar * (float)vec.y)};
+}
+
+static inline int dot_vec2int(vec2int a, vec2int b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+static inline float length_vec2int(vec2int v) {
+    int res = dot_vec2int(v, v);
+    return sqrtf((float)res);
+}
+
+static inline int cross_vec2int(vec2int a, vec2int b) {
+    return a.x * b.y - b.x * a.y;
+}
+
+static inline vec2int src_to_dest_vec2int(vec2int src, vec2int dest) {
+    return (vec2int){.x = dest.x - src.x, .y = dest.y - src.y};
+}
+
+static inline vec2 to_vec2(vec2int v) {
+    return (vec2){.x = (float)v.x, .y = (float)v.y};
+}
+
+static inline vec2int lerp_vec2int(vec2int v0, vec2int v1, float t) {
+    return (vec2int){.x = round_float_to_int(lerp_float((float)v0.x, (float)v1.x, t)),
+                     .y = round_float_to_int(lerp_float((float)v0.y, (float)v1.y, t))};
+}
+
+// ----------------------------------------------------------------------------
+// vec2 math
+
+static inline vec2 sum_vec2(vec2 a, vec2 b) {
+    return (vec2){.x = a.x + b.x, .y = a.y + b.y};
+}
+
+static inline vec2 scaled_vec2(vec2 vec, float scalar) {
+    return (vec2){.x = scalar * vec.x, .y = scalar * vec.y};
+}
+
+static inline float dot_vec2(vec2 a, vec2 b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+static inline float length_vec2(vec2 v) {
+    return sqrtf(dot_vec2(v, v));
+}
+
+static inline float cross_vec2(vec2 a, vec2 b) {
+    return a.x * b.y - b.x * a.y;
+}
+
+static inline vec2 src_to_dest_vec2(vec2 src, vec2 dest) {
+    return (vec2){.x = dest.x - src.x, .y = dest.y - src.y};
+}
+
+static inline vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad) {
+    return (vec2){.x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad)};
+}
+
+static inline vec2 lerp_vec2(vec2 v0, vec2 v1, float t) {
+    return (vec2){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t)};
+}
+
+// ----------------------------------------------------------------------------
+// vec3 math
+
+static inline vec3 sum_vec3(vec3 a, vec3 b) {
+    return (vec3){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
+}
+
+static inline vec3 scaled_vec3(vec3 vec, float scalar) {
+    return (vec3){.x = scalar * vec.x, .y = scalar * vec.y, .z = scalar * vec.z};
+}
+
+static inline float dot_vec3(vec3 a, vec3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+static inline float length_vec3(vec3 v) {
+    return sqrtf(dot_vec3(v, v));
+}
+
+static inline vec3 cross_vec3(vec3 a, vec3 b) {
+    return (vec3){.x = a.y * b.z - a.z * b.y, .y = a.z * b.x - a.x * b.z, .z = a.x * b.y - a.y * b.x};
+}
+
+static inline vec3 src_to_dest_vec3(vec3 src, vec3 dest) {
+    return (vec3){.x = dest.x - src.x, .y = dest.y - src.y, .z = dest.z - src.z};
+}
+
+static inline vec3 rotate_around_x_axis(vec3 vec, float angle_rad) {
+    return (vec3){
+        .x = vec.x, .y = vec.y * cosf(angle_rad) - vec.z * sinf(angle_rad), .z = vec.y * sinf(angle_rad) + vec.z * cosf(angle_rad)};
+}
+
+static inline vec3 rotate_around_y_axis(vec3 vec, float angle_rad) {
+    return (vec3){
+        .x = vec.x * cosf(angle_rad) + vec.z * sinf(angle_rad), .y = vec.y, .z = vec.z * cosf(angle_rad) - vec.x * sinf(angle_rad)};
+}
+
+static inline vec3 rotate_around_z_axis(vec3 vec, float angle_rad) {
+    return (vec3){
+        .x = vec.x * cosf(angle_rad) - vec.y * sinf(angle_rad), .y = vec.x * sinf(angle_rad) + vec.y * cosf(angle_rad), .z = vec.z};
+}
+
+static inline vec3 lerp_vec3(vec3 v0, vec3 v1, float t) {
+    return (vec3){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t), .z = lerp_float(v0.z, v1.z, t)};
+}
+
+// ----------------------------------------------------------------------------
+// vec4 math
+
+static inline vec4 sum_vec4(vec4 a, vec4 b) {
+    return (vec4){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z, .w = a.w + b.w};
+}
+
+static inline vec4 scaled_vec4(vec4 vec, float scalar) {
+    return (vec4){.x = scalar * vec.x, .y = scalar * vec.y, .z = scalar * vec.z, .w = scalar * vec.w};
+}
+
+static inline float dot_vec4(vec4 a, vec4 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+static inline float length_vec4(vec4 v) {
+    return sqrtf(dot_vec4(v, v));
+}
+
+static inline vec4 lerp_vec4(vec4 v0, vec4 v1, float t) {
+    return (vec4){.x = lerp_float(v0.x, v1.x, t),
+                  .y = lerp_float(v0.y, v1.y, t),
+                  .z = lerp_float(v0.z, v1.z, t),
+                  .w = lerp_float(v0.w, v1.w, t)};
+}
+
+// ----------------------------------------------------------------------------
+// 3d perspective projection
+
+static inline vec2 vec3_projected_to_screen_space(vec3 vec, float fov_angle_rad, float aspect_ratio) {
+    float scalar = vec.z * tanf(fov_angle_rad / 2.f);
+
+    assert("fov angle or z-value does not lead to division by zero" && is_equal_float(scalar, 0) != 0);
+
+    return (vec2){.x = 1 / scalar * aspect_ratio * vec.x, .y = 1 / scalar * vec.y};
+}
+
+static inline vec4 vec3_apply_projection_matrix(vec3 vec, float fov_angle_rad, float aspect_ratio, float z_near, float z_far) {
+    // fov scalar. to get the basic perspective projection
+    float fov_scalar = tanf(fov_angle_rad / 2.f);
+
+    // z-culling schenanigan. used to make near objects more precise, far objects less precise
+    float depth_scalar = z_far / (z_far - z_near);
+
+    assert("fov angle does not lead to division by zero" && is_equal_float(fov_scalar, 0) != 0);
+
+    // res to be multiplied by the scalar (1 / w) for z-divide
+    return (vec4){.x = 1 / fov_scalar * aspect_ratio * vec.x,
+                  .y = 1 / fov_scalar * vec.y,
+                  .z = depth_scalar * vec.z - depth_scalar * z_near,
+                  .w = vec.z};
+}

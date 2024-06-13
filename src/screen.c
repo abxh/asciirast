@@ -5,18 +5,18 @@
 #include "misc.h"
 #include "screen.h"
 
-char framebuf[SCREEN_HEIGHT][SCREEN_WIDTH];
+static char framebuf[SCREEN_HEIGHT][SCREEN_WIDTH];
 
-float depthbuf[SCREEN_HEIGHT][SCREEN_WIDTH];
+static float depthbuf[SCREEN_HEIGHT][SCREEN_WIDTH];
 
-void clear_lines(void) {
+static inline void clear_lines(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
         CLEAR_LINE();
         putchar('\n');
     }
 }
 
-void framebuf_clear(void) {
+static inline void framebuf_clear(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
         for (size_t x = 0; x < SCREEN_WIDTH; x++) {
             framebuf[y][x] = ' ';
@@ -24,7 +24,7 @@ void framebuf_clear(void) {
     }
 }
 
-void depthbuf_clear(void) {
+static inline void depthbuf_clear(void) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
         for (size_t x = 0; x < SCREEN_WIDTH; x++) {
             depthbuf[y][x] = INFINITY;
@@ -65,16 +65,19 @@ bool point_inside_framebuf(vec2int v0) {
     return inside_framebuf_x && inside_framebuf_y;
 }
 
-bool point_inside_framebuf_split(int x0, int y0) {
-    return point_inside_framebuf((vec2int){x0, y0});
+static inline bool point_inside_framebuf_split(int x0, int y0) {
+    bool inside_framebuf_x = 0 <= x0 && x0 < SCREEN_WIDTH;
+    bool inside_framebuf_y = 0 <= y0 && y0 < SCREEN_HEIGHT;
+
+    return inside_framebuf_x && inside_framebuf_y;
 }
 
 int to_framebuf_x(float screen_x) {
-    return (screen_x + 1.) / 2. * (SCREEN_WIDTH - 1);
+    return (int)((screen_x + 1.f) / 2.f * (SCREEN_WIDTH - 1));
 }
 
 int to_framebuf_y(float screen_y) {
-    return (-screen_y + 1.) / 2. * (SCREEN_HEIGHT - 1);
+    return (int)((-screen_y + 1.f) / 2.f * (SCREEN_HEIGHT - 1));
 }
 
 vec2int to_framebuf_coords(vec2 v) {
@@ -82,8 +85,8 @@ vec2int to_framebuf_coords(vec2 v) {
 }
 
 void plot_point_w_depth_unchecked_bounds(int x0, int y0, char c, float depth) {
-    assert(point_inside_framebuf_split(x0, y0));
     assert(inside_range_float(depth, 0.f, 1.f));
+    assert(point_inside_framebuf_split(x0, y0));
 
     if (depth > depthbuf[y0][x0]) {
         return;
