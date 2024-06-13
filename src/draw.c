@@ -23,6 +23,7 @@ void draw_point_3d(vec3 v0, char c) {
     vec4 v0p = vec3_apply_projection_matrix(v0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
 
     v0p = (vec4){v0p.x, v0p.y, v0p.z, clamp_float(v0p.w, Z_NEAR, Z_FAR)};
+
     v0p = scaled_vec4(v0p, 1.f / v0p.w);
 
     vec2int v0fb = to_framebuf_coords((vec2){v0p.x, v0p.y});
