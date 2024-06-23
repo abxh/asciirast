@@ -16,8 +16,8 @@ CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn -Wno-pr
 CFLAGS    += -Wno-declaration-after-statement
 CFLAGS    += -fsanitize=address,undefined
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
-CFLAGS    += -D'MS_PER_UPDATE=200'
-# CFLAGS    += -DDEBUG
+CFLAGS    += -D'MS_PER_UPDATE=100'
+CFLAGS    += -DDEBUG
 
 LD_FLAGS  := -lm
 LD_FLAGS  += -fsanitize=address,undefined

@@ -116,13 +116,11 @@ void rgb_triangle_scene_update(void** context_ptr) {
 }
 
 void rgb_triangle_scene_render(void** context_ptr) {
-    movement_info* info = (movement_info*)context_ptr[MOVEMENT_INFO_OBJ];
     rgb_triangle* triangle = (rgb_triangle*)context_ptr[RGB_TRIANGLE_OBJ];
 
     CLEAR_LINE();
     printf("w|a|s|d: movement, h|l: rotate triangle" NEW_LINE);
     g_extra_lines += 1;
-
 
     vec3 v1 = {-0.5f, -0.5f, 0.f};
     vec3 v2 = {0.f, 0.5f, 0.f};

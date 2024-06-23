@@ -3,14 +3,14 @@
 #include "scene.h"
 #include "screen.h"
 
+#ifdef DEBUG
+#include "time.h"
+#endif
+
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#ifndef MS_PER_UPDATE
-#define MS_PER_UPDATE 200
-#endif
 
 static void on_sigint(int sig) {
     MARK_UNUSED(sig);
@@ -23,18 +23,18 @@ int main(void) {
     screen_init();
     signal(SIGINT, on_sigint);
 
-    scene_type scene = g_rgb_triangle_scene; // change scene here
+    const scene_type scene = g_rgb_triangle_scene; // change scene here
     void** context_ptr = scene.create();
 
     bool on_running = true;
-    int previous_time = get_current_time_ms();
-    int lag = 0.;
+    int previous_time_ms = get_current_time_ms();
+    int lag_ms = 0.;
 
     while (on_running) {
-        const int current_time = get_current_time_ms();
-        const int elapsed = current_time - previous_time;
-        previous_time = current_time;
-        lag += elapsed;
+        const int current_time_ms = get_current_time_ms();
+        const int elapsed_ms = current_time_ms - previous_time_ms;
+        previous_time_ms = current_time_ms;
+        lag_ms += elapsed_ms;
 
         char c;
         if (on_key(&c)) {
@@ -46,9 +46,9 @@ int main(void) {
             }
         }
 
-        while (lag >= MS_PER_UPDATE) {
+        while (lag_ms >= MS_PER_UPDATE) {
             scene.update(context_ptr);
-            lag -= MS_PER_UPDATE;
+            lag_ms -= MS_PER_UPDATE;
         }
 
         scene.render(context_ptr);

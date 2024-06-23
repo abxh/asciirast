@@ -3,10 +3,10 @@
 #include "draw.h"
 #include "scene.h"
 #include "transform.h"
+#include "screen.h"
 
 #ifdef DEBUG
 #include "misc.h"
-#include "screen.h"
 #endif
 
 #include <stdint.h>
@@ -45,7 +45,7 @@ void diamond_triangle_scene_destroy(void** context_ptr) {
 
 void diamond_triangle_scene_update(void** context_ptr) {
     diamond_triangle* triangle_ptr = (diamond_triangle*)context_ptr[TRIANGLE_OBJ];
-    triangle_ptr->angle_deg += 10;
+    triangle_ptr->angle_deg += (int)(10.f * MS_PER_UPDATE / 400.f);
 }
 
 void diamond_triangle_scene_render(void** context_ptr) {
@@ -97,7 +97,7 @@ void diamond_triangle_scene_render(void** context_ptr) {
     draw_point_3d(&v_top, &color_white, 'T');
 
     CLEAR_LINE();
-    printf("angle_rad: %.2f" NEW_LINE, angle_rad);
+    printf("angle_rad: %.2f" NEW_LINE, (double)angle_rad);
     g_extra_lines += 1;
 #endif
 }

@@ -4,10 +4,10 @@
 #include "draw.h"
 #include "scene.h"
 #include "transform.h"
+#include "screen.h"
 
 #ifdef DEBUG
 #include "misc.h"
-#include "screen.h"
 #endif
 
 #include <stdint.h>
@@ -43,7 +43,7 @@ void star_scene_destroy(void** context_ptr) {
 
 void star_scene_update(void** context_ptr) {
     star* star_ptr = (star*)context_ptr[STAR_OBJ];
-    star_ptr->angle_deg -= 10;
+    star_ptr->angle_deg -= (int)(10.f * MS_PER_UPDATE / 400.f);
 }
 
 void star_scene_render(void** context_ptr) {
@@ -66,16 +66,16 @@ void star_scene_render(void** context_ptr) {
         printf("l: %zu" NEW_LINE, l);
 
         CLEAR_LINE();
-        printf("angle_deg: %ld, angle_rad1: %.2f, angle_rad2: %.2f" NEW_LINE, angle_deg, angle_rad1, angle_rad2);
+        printf("angle_deg: %ld, angle_rad1: %.2f, angle_rad2: %.2f" NEW_LINE, angle_deg, (double)angle_rad1, (double)angle_rad2);
 
         CLEAR_LINE();
-        printf("v_base.x: %.2f, v_base.y: %.2f" NEW_LINE, v_base.x, v_base.y);
+        printf("v_base.x: %.2f, v_base.y: %.2f" NEW_LINE, (double)v_base.x, (double)v_base.y);
 
         CLEAR_LINE();
-        printf("v1.x: %.2f, v1.y: %.2f" NEW_LINE, v1.x, v1.y);
+        printf("v1.x: %.2f, v1.y: %.2f" NEW_LINE, (double)v1.x, (double)v1.y);
 
         CLEAR_LINE();
-        printf("v2.x: %.2f, v2.y: %.2f" NEW_LINE, v2.x, v2.y);
+        printf("v2.x: %.2f, v2.y: %.2f" NEW_LINE, (double)v2.x, (double)v2.y);
 
         g_extra_lines += 5;
 #endif

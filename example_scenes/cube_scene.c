@@ -89,7 +89,7 @@ static const vec3 shift = {0, 0, 1.75f};
 
 void cube_scene_update(void** context_ptr) {
     cube* cube_ptr = (cube*)context_ptr[CUBE_OBJ];
-    cube_ptr->angle_deg += 10;
+    cube_ptr->angle_deg += (int)(10.f * MS_PER_UPDATE / 400.f);
 }
 
 void cube_scene_render(void** context_ptr) {
@@ -132,7 +132,7 @@ void cube_scene_render(void** context_ptr) {
 
 #ifdef DEBUG
             CLEAR_LINE();
-            printf("%zu: (%.2f, %.2f) -> (%.2f, %2.f)" NEW_LINE, ++edge_count, v1.x, v1.y, v2.x, v2.y);
+            printf("%zu: (%.2f, %.2f) -> (%.2f, %2.f)" NEW_LINE, ++edge_count, (double)v1.x, (double)v1.y, (double)v2.x, (double)v2.y);
 #endif
             stack[count++] = i;
         }

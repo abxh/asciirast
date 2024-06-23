@@ -2,6 +2,7 @@
 #include "misc.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <termios.h>
@@ -25,6 +26,9 @@ static struct termios orig_termios;
 static void disable_raw_mode(void) {
     // restore previous value
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+
+    // Enable line buffering
+    setvbuf(stdout, NULL, _IOLBF, 0);
 }
 
 void enable_raw_mode(void) {
@@ -44,6 +48,9 @@ void enable_raw_mode(void) {
 
     // use new value
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+
+    // Disable output buffering
+    setvbuf(stdout, NULL, _IONBF, 0);
 }
 
 bool on_key(char* char_dest) {

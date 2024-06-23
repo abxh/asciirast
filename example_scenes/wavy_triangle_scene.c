@@ -2,10 +2,10 @@
 #include "draw.h"
 #include "scene.h"
 #include "transform.h"
+#include "screen.h"
 
 #ifdef DEBUG
 #include "misc.h"
-#include "screen.h"
 #endif
 
 #include <math.h>
@@ -42,7 +42,7 @@ void wavy_triangle_destroy(void** context_ptr) {
 
 void wavy_triangle_update(void** context_ptr) {
     triangle* triangle_ptr = (triangle*)context_ptr[TRIANGLE_OBJ];
-    triangle_ptr->angle_deg += 10;
+    triangle_ptr->angle_deg += (int)(10.f * MS_PER_UPDATE / 400.f);
 }
 
 void wavy_triangle_render(void** context_ptr) {

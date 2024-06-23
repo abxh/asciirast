@@ -3,10 +3,10 @@
 #include "draw.h"
 #include "scene.h"
 #include "transform.h"
+#include "screen.h"
 
 #ifdef DEBUG
 #include "misc.h"
-#include "screen.h"
 #endif
 
 #include <stdint.h>
@@ -42,7 +42,7 @@ void spiral_scene_destroy(void** context_ptr) {
 
 void spiral_scene_update(void** context_ptr) {
     spiral* spiral_ptr = (spiral*)context_ptr[SPIRAL_OBJ];
-    spiral_ptr->angle_deg += 10;
+    spiral_ptr->angle_deg += (int)(10.f * MS_PER_UPDATE / 400.f);
 }
 
 void spiral_scene_render(void** context_ptr) {
@@ -62,13 +62,13 @@ void spiral_scene_render(void** context_ptr) {
             printf("i: %zu, o: %zu" NEW_LINE, i, o);
 
             CLEAR_LINE();
-            printf("angle_deg: %ld, angle_rad: %.2f" NEW_LINE, angle_deg, angle_rad);
+            printf("angle_deg: %ld, angle_rad: %.2f" NEW_LINE, angle_deg, (double)angle_rad);
 
             CLEAR_LINE();
-            printf("v_base.x: %.2f, v_base.y: %.2f" NEW_LINE, v_base.x, v_base.y);
+            printf("v_base.x: %.2f, v_base.y: %.2f" NEW_LINE, (double)v_base.x, (double)v_base.y);
 
             CLEAR_LINE();
-            printf("v.x: %.2f, v.y: %.2f" NEW_LINE, v.x, v.y);
+            printf("v.x: %.2f, v.y: %.2f" NEW_LINE, (double)v.x, (double)v.y);
 
             g_extra_lines += 4;
 #endif

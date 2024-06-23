@@ -12,6 +12,10 @@
 #define SCREEN_WIDTH 40
 #endif
 
+#ifndef MS_PER_UPDATE
+#define MS_PER_UPDATE 100
+#endif
+
 #define ASPECT_RATIO (2.f * (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH)
 
 extern char g_framebuf[SCREEN_HEIGHT][SCREEN_WIDTH];
