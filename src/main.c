@@ -1,14 +1,16 @@
+#include "../example_scenes/example_scenes.h"
 #include "misc.h"
-#include "screen.h"
 #include "scene.h"
+#include "screen.h"
 
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-// hotplug:
-#include "../example_scenes/diamond_triangle_scene.h"
+#ifndef MS_PER_UPDATE
+#define MS_PER_UPDATE 200
+#endif
 
 static void on_sigint(int sig) {
     MARK_UNUSED(sig);
@@ -17,20 +19,46 @@ static void on_sigint(int sig) {
 }
 
 int main(void) {
-    signal(SIGINT, on_sigint);
+    enable_raw_mode();
     screen_init();
+    signal(SIGINT, on_sigint);
 
-    scene_type scene = g_diamond_triangle_scene;
+    scene_type scene = g_rgb_triangle_scene; // change scene here
     void** context_ptr = scene.create();
 
     bool on_running = true;
+    int previous_time = get_current_time_ms();
+    int lag = 0.;
+
     while (on_running) {
-        scene.update(context_ptr);
+        int current_time = get_current_time_ms();
+        int elapsed = current_time - previous_time;
+        previous_time = current_time;
+        lag += elapsed;
+
+        char c;
+        if (on_key(&c)) {
+            if (c == 'q') {
+                on_running = false;
+            }
+            if (scene.flags & SCENE_OPS_ON_KEY) {
+                scene.on_key(context_ptr, c);
+            }
+        }
+
+        while (lag >= MS_PER_UPDATE) {
+            scene.update(context_ptr);
+            lag -= MS_PER_UPDATE;
+        }
+
+        scene.render(context_ptr);
+
+        printf("q: exit" NEW_LINE);
+        g_extra_lines += 1;
+        screen_restore_line_cursor();
 
         screen_refresh();
         screen_clear();
-
-        sleep_ms(200);
     }
 
     scene.destroy(context_ptr);

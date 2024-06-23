@@ -6,6 +6,7 @@
 
 #ifdef DEBUG
 #include "misc.h"
+#include "screen.h"
 #endif
 
 #include <stdint.h>
@@ -20,9 +21,10 @@ typedef struct {
 } diamond_triangle;
 
 const scene_type g_diamond_triangle_scene = {.flags = SCENE_OPS_NOP,
-                                           .create = diamond_triangle_scene_create,
-                                           .destroy = diamond_triangle_scene_destroy,
-                                           .update = diamond_triangle_scene_update};
+                                             .create = diamond_triangle_scene_create,
+                                             .destroy = diamond_triangle_scene_destroy,
+                                             .update = diamond_triangle_scene_update,
+                                             .render = diamond_triangle_scene_render};
 
 #define TRIANGLE_OBJ 0
 
@@ -43,7 +45,11 @@ void diamond_triangle_scene_destroy(void** context_ptr) {
 
 void diamond_triangle_scene_update(void** context_ptr) {
     diamond_triangle* triangle_ptr = (diamond_triangle*)context_ptr[TRIANGLE_OBJ];
+    triangle_ptr->angle_deg += 10;
+}
 
+void diamond_triangle_scene_render(void** context_ptr) {
+    diamond_triangle* triangle_ptr = (diamond_triangle*)context_ptr[TRIANGLE_OBJ];
     int64_t angle_deg = triangle_ptr->angle_deg;
     float angle_rad = to_angle_in_radians((float)-angle_deg);
 
@@ -62,11 +68,11 @@ void diamond_triangle_scene_update(void** context_ptr) {
     v_top = sum_vec3(v_top, shift);
     v_bottom = sum_vec3(v_bottom, shift);
 
-    draw_triangle_3d(v1, v2, v_bottom, '*');
-    draw_triangle_3d(v1, v_bottom, v2, '.');
+    draw_triangle_3d((vec3[3]){v1, v2, v_bottom}, (color[3]){color_white, color_white, color_white}, '*');
+    draw_triangle_3d((vec3[3]){v1, v_bottom, v2}, (color[3]){color_white, color_white, color_white}, '.');
 
-    draw_triangle_3d(v1, v_top, v2, '.');
-    draw_triangle_3d(v1, v2, v_top, '*');
+    draw_triangle_3d((vec3[3]){v1, v_top, v2}, (color[3]){color_white, color_white, color_white}, '.');
+    draw_triangle_3d((vec3[3]){v1, v2, v_top}, (color[3]){color_white, color_white, color_white}, '*');
 
     vec3 v_top_to_v1 = src_to_dest_vec3(v_top, v1);
     vec3 v_top_to_v2 = src_to_dest_vec3(v_top, v2);
@@ -74,7 +80,7 @@ void diamond_triangle_scene_update(void** context_ptr) {
     vec3 normal_top = cross_vec3(v_top_to_v1, v_top_to_v2);
     vec3 top_center = scaled_vec3(sum_vec3(v_top, sum_vec3(v1, v2)), 1.f / 3.f);
 
-    draw_line_3d(top_center, sum_vec3(top_center, normal_top), '-');
+    draw_line_3d((vec3[2]){top_center, sum_vec3(top_center, normal_top)}, (color[2]){color_white, color_white}, '-');
 
     vec3 v_bottom_to_v1 = src_to_dest_vec3(v_bottom, v1);
     vec3 v_bottom_to_v2 = src_to_dest_vec3(v_bottom, v2);
@@ -82,22 +88,16 @@ void diamond_triangle_scene_update(void** context_ptr) {
     vec3 normal_bottom = cross_vec3(v_bottom_to_v1, v_bottom_to_v2);
     vec3 bottom_center = scaled_vec3(sum_vec3(v_bottom, sum_vec3(v1, v2)), 1.f / 3.f);
 
-    draw_line_3d(bottom_center, sum_vec3(bottom_center, normal_bottom), '-');
+    draw_line_3d((vec3[2]){bottom_center, sum_vec3(bottom_center, normal_bottom)}, (color[2]){color_white, color_white}, '-');
 
 #ifdef DEBUG
-    draw_point_3d(v1, '1');
-    draw_point_3d(v2, '2');
-    draw_point_3d(v_bottom, 'B');
-    draw_point_3d(v_top, 'T');
+    draw_point_3d(&v1, &color_white, '1');
+    draw_point_3d(&v2, &color_white, '2');
+    draw_point_3d(&v_bottom, &color_white, 'B');
+    draw_point_3d(&v_top, &color_white, 'T');
 
-    printf("angle_rad: %.2f\n", angle_rad);
     CLEAR_LINE();
-    MOVE_UP_LINES(1);
-    sleep_ms(200);
+    printf("angle_rad: %.2f" NEW_LINE, angle_rad);
+    g_extra_lines += 1;
 #endif
-
-    if (angle_deg == 360) {
-        triangle_ptr->angle_deg = 0;
-    }
-    triangle_ptr->angle_deg += 10;
 }

@@ -1,24 +1,54 @@
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#define _POSIX_C_SOURCE 199309L
-#include <time.h>
-#include <unistd.h>
-#endif
-
 #include "misc.h"
 
-void sleep_ms(int milliseconds) {
-    // cross-platform sleep function
-    // taken from and modified: https://stackoverflow.com/a/28827188
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <termios.h>
+#include <unistd.h>
 
-#ifdef WIN32
-    Sleep(milliseconds);
-#else
-    struct timespec ts;
-    ts.tv_sec = milliseconds / 1000;
-    ts.tv_nsec = (milliseconds % 1000) * 1000000;
-    nanosleep(&ts, NULL);
-#endif
+int get_current_time_ms(void) {
+    // taken from:
+    // https://stackoverflow.com/a/44896326
+
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    return (int)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+}
+
+// reference:
+// https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
+
+static struct termios orig_termios;
+
+static void disable_raw_mode(void) {
+    // restore previous value
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+}
+
+void enable_raw_mode(void) {
+    // store previous value
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+
+    struct termios raw = orig_termios;
+
+    // disable some things
+    raw.c_oflag &= (unsigned int)~(OPOST);  // turn off output processing
+    raw.c_lflag &= (unsigned int)~(ECHO);   // turn off echoing, when characters are typed
+    raw.c_lflag &= (unsigned int)~(ICANON); // read byte by byte - disable cannonical mode
+
+    raw.c_cc[VMIN] = 0;  // minimum number of characters before read() can return
+    raw.c_cc[VTIME] = 1; // wait 100 millisec before timeout read()
+
+    // use new value
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+bool on_key(char* char_dest) {
+    if (read(STDIN_FILENO, char_dest, 1) == 1) {
+        return true;
+    }
+    return false;
 }

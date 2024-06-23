@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 typedef enum {
-    SCENE_OPS_NOP = 1,
-    SCENE_OPS_ON_KEY = 2, // TODO: make use of this
+    SCENE_OPS_NOP = 0,    // 0b0
+    SCENE_OPS_ON_KEY = 1, // 0b1
 } EXTENDED_OBJ_OPS_ENUM;
 
 typedef struct {
@@ -14,6 +14,7 @@ typedef struct {
     void** (*create)(void);
     void (*destroy)(void** context_ptr);
     void (*update)(void** context_ptr);
+    void (*render)(void** context_ptr);
 
-    void (*on_key)(void** context_ptr, char key); // TODO: make use of this
+    void (*on_key)(void** context_ptr, char key);
 } scene_type;

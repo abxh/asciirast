@@ -137,6 +137,10 @@ static inline vec2int lerp_vec2int(vec2int v0, vec2int v1, float t) {
                      .y = round_float_to_int(lerp_float((float)v0.y, (float)v1.y, t))};
 }
 
+static inline vec2int normalize_vec2int(vec2int v) {
+    return scaled_vec2int(v, 1.f / length_vec2int(v));
+}
+
 // ----------------------------------------------------------------------------
 // vec2 math
 
@@ -170,6 +174,10 @@ static inline vec2 rotate_around_origo_vec2(vec2 vec, float angle_rad) {
 
 static inline vec2 lerp_vec2(vec2 v0, vec2 v1, float t) {
     return (vec2){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t)};
+}
+
+static inline vec2 normalize_vec2(vec2 v) {
+    return scaled_vec2(v, 1.f / length_vec2(v));
 }
 
 // ----------------------------------------------------------------------------
@@ -218,6 +226,10 @@ static inline vec3 lerp_vec3(vec3 v0, vec3 v1, float t) {
     return (vec3){.x = lerp_float(v0.x, v1.x, t), .y = lerp_float(v0.y, v1.y, t), .z = lerp_float(v0.z, v1.z, t)};
 }
 
+static inline vec3 normalize_vec3(vec3 v) {
+    return scaled_vec3(v, 1.f / length_vec3(v));
+}
+
 // ----------------------------------------------------------------------------
 // vec4 math
 
@@ -244,6 +256,10 @@ static inline vec4 lerp_vec4(vec4 v0, vec4 v1, float t) {
                   .w = lerp_float(v0.w, v1.w, t)};
 }
 
+static inline vec4 normalize_vec4(vec4 v) {
+    return scaled_vec4(v, 1.f / length_vec4(v));
+}
+
 // ----------------------------------------------------------------------------
 // 3d perspective projection
 
@@ -261,11 +277,22 @@ static inline vec4 vec3_apply_projection_matrix(vec3 vec, float fov_angle_rad, f
     // z-culling schenanigan. used to make near objects more precise, far objects less precise
     float depth_scalar = z_far / (z_far - z_near);
 
-    // there is a risk of division by 0. this should be caught by sanitizers
+    // there is a risk of division by 0 when dividing by fov_scalar. this should be caught by sanitizers
+
     return (vec4){.x = 1 / fov_scalar * aspect_ratio * vec.x,
                   .y = 1 / fov_scalar * vec.y,
                   .z = depth_scalar * vec.z - depth_scalar * z_near,
                   .w = vec.z};
 
     // res to be multiplied by the scalar (1 / w) for z-divide
+}
+
+static inline vec3 vec3_apply_basic_camera_matrix(vec3 vec, vec3 camera_pos, float camera_orientation[3]) {
+    vec3 v0 = sum_vec3(vec, scaled_vec3(camera_pos, -1));
+
+    vec3 v1 = rotate_around_x_axis(v0, -camera_orientation[0]);
+    vec3 v2 = rotate_around_y_axis(v1, -camera_orientation[1]);
+    vec3 v3 = rotate_around_z_axis(v2, -camera_orientation[2]);
+
+    return v3;
 }

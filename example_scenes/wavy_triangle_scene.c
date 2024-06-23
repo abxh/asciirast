@@ -5,6 +5,7 @@
 
 #ifdef DEBUG
 #include "misc.h"
+#include "screen.h"
 #endif
 
 #include <math.h>
@@ -19,8 +20,11 @@ typedef struct {
     int64_t angle_deg;
 } triangle;
 
-const scene_type g_wavy_triangle_scene = {
-    .flags = SCENE_OPS_NOP, .create = wavy_triangle_create, .destroy = wavy_triangle_destroy, .update = wavy_triangle_update};
+const scene_type g_wavy_triangle_scene = {.flags = SCENE_OPS_NOP,
+                                          .create = wavy_triangle_create,
+                                          .destroy = wavy_triangle_destroy,
+                                          .update = wavy_triangle_update,
+                                          .render = wavy_triangle_render};
 
 #define TRIANGLE_OBJ 0
 
@@ -38,6 +42,11 @@ void wavy_triangle_destroy(void** context_ptr) {
 
 void wavy_triangle_update(void** context_ptr) {
     triangle* triangle_ptr = (triangle*)context_ptr[TRIANGLE_OBJ];
+    triangle_ptr->angle_deg += 10;
+}
+
+void wavy_triangle_render(void** context_ptr) {
+    triangle* triangle_ptr = (triangle*)context_ptr[TRIANGLE_OBJ];
     int64_t angle_deg = triangle_ptr->angle_deg;
     float angle_rad = to_angle_in_radians((float)-angle_deg);
 
@@ -52,13 +61,11 @@ void wavy_triangle_update(void** context_ptr) {
     vec2 v3 = {.x = -b1, .y = -b1};
     vec2 v2 = {.x = b2, .y = -b2};
 
-    draw_triangle_2d(v1, v2, v3, '*');
+    draw_triangle_2d((vec2[3]){v1, v2, v3}, (color[3]){color_white, color_white, color_white}, '*');
 
 #ifdef DEBUG
-    draw_point_2d(v1, '1');
-    draw_point_2d(v2, '2');
-    draw_point_2d(v3, '3');
+    draw_point_2d(&v1, &color_white, '1');
+    draw_point_2d(&v2, &color_white, '2');
+    draw_point_2d(&v3, &color_white, '3');
 #endif
-
-    triangle_ptr->angle_deg += 10;
 }

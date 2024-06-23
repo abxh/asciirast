@@ -10,9 +10,13 @@
 #define CSI_SHOWCURSOR "?25h"
 #define CSI_HIDECURSOR "?25l"
 #define CSI_CLEARLINE "2K"
+#define CSI_SETCOLOR_INITIALS "38;2;"
+#define CSI_RESETCOLOR "0m"
 
 #define CLEAR_LINE() printf(CSI_ESC CSI_CLEARLINE)
-#define MOVE_UP_LINES(num_lines) printf(CSI_ESC XSTR(num_lines) CSI_UP)
+#define MOVE_UP_LINES(num_lines) printf(CSI_ESC "%d" CSI_UP, num_lines)
+
+#define NEW_LINE "\r\n"
 
 #define IMPLIES(a, b) (!(a) || (b))
 
@@ -25,4 +29,8 @@
 
 #define MARK_UNUSED(x) (void)(x)
 
-void sleep_ms(int milliseconds);
+int get_current_time_ms(void);
+
+void enable_raw_mode(void);
+
+bool on_key(char* char_dest);
