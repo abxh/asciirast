@@ -31,8 +31,8 @@ int main(void) {
     int lag = 0.;
 
     while (on_running) {
-        int current_time = get_current_time_ms();
-        int elapsed = current_time - previous_time;
+        const int current_time = get_current_time_ms();
+        const int elapsed = current_time - previous_time;
         previous_time = current_time;
         lag += elapsed;
 
