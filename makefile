@@ -1,35 +1,38 @@
-EXEC_NAME := ascii-library
+EXEC_NAME := ascii-rasterizer
 
-SRC_PATH  := src
+CFLAGS    += -I./src
+CFLAGS    += -I./example_scenes
 
-# CC        := gcc
-# CFLAGS    += -I$(SRC_PATH)
-# CFLAGS    += -lm 
-# CFLAGS    += -Wall -Wextra -pedantic
-# CFLAGS    += -fsanitize=address,undefined
-
-CC        := clang
-CFLAGS    += -I$(SRC_PATH)
-CFLAGS    += -std=c11
-CFLAGS    += -ggdb3
-CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn -Wno-pre-c2x-compat
-CFLAGS    += -Wno-declaration-after-statement
-CFLAGS    += -fsanitize=address,undefined
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
 CFLAGS    += -D'MS_PER_UPDATE=100'
-CFLAGS    += -DDEBUG
+CFLAGS    += -D'COLOR_INTENSITY=0.8f'
 
-LD_FLAGS  := -lm
-LD_FLAGS  += -fsanitize=address,undefined
+CFLAGS    += -D'EXTRA_WINDOW_WIDTH=650' -D'EXTRA_WINDOW_HEIGHT=100'
+CFLAGS    += -D'FONT_PATH="terminus.ttf"'
+CFLAGS    += -D'FONT_SIZE=32'
 
-_SRC_FILES := screen.c draw.c misc.c
-_SRC_FILES += main.c
-# _SRC_FILES += $(addprefix scenes/, $(notdir $(wildcard $(SRC_PATH)/scenes/*.c)))
-
-SRC_FILES  := $(addprefix $(SRC_PATH)/, $(_SRC_FILES))
-SRC_FILES  += $(wildcard example_scenes/*.c) 
-
+SRC_FILES  := $(wildcard src/*.c) $(wildcard example_scenes/*.c) 
 OBJ_FILES  := $(SRC_FILES:.c=.o)
+
+LD_FLAGS  += -lm
+LD_FLAGS  += -lSDL2main -lSDL2 
+LD_FLAGS  += -lSDL2_ttf
+
+# use `make RELEASE=0` to turn off release build
+RELEASE ?= 1
+ifeq ($(RELEASE), 1) 
+	CFLAGS    += -O3 -march=native
+endif
+
+# use `make DEBUG=1` to turn on debugging flags
+DEBUG ?= 0
+ifeq ($(DEBUG), 1) 
+	CC        := clang
+	CFLAGS    += -std=c11 -Wmost
+	CFLAGS    += -DDEBUG -ggdb3
+	CFLAGS    += -fsanitize=address,undefined
+	LD_FLAGS  += -fsanitize=address,undefined
+endif
 
 .PHONY: all clean test
 

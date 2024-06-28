@@ -1,37 +1,31 @@
 #pragma once
 
+#include "external.h"
+
 #include "color.h"
 
-#include <stdbool.h>
-
-#ifndef SCREEN_HEIGHT
-#define SCREEN_HEIGHT 20
+#ifndef FRAMEBUF_WIDTH
+#define FRAMEBUF_WIDTH 40
 #endif
 
-#ifndef SCREEN_WIDTH
-#define SCREEN_WIDTH 40
+#ifndef FRAMEBUF_HEIGHT
+#define FRAMEBUF_HEIGHT 20
 #endif
 
-#ifndef MS_PER_UPDATE
-#define MS_PER_UPDATE 100
-#endif
+#define ASPECT_RATIO (2.f * (float)FRAMEBUF_WIDTH / (float)FRAMEBUF_HEIGHT)
 
-#define ASPECT_RATIO (2.f * (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH)
+typedef struct {
+    color_type color;
+    float depth;
+    char ascii_char;
+} pixel_data_type;
 
-extern char g_framebuf[SCREEN_HEIGHT][SCREEN_WIDTH];
-
-extern float g_depthbuf[SCREEN_HEIGHT][SCREEN_WIDTH];
-
-extern colorint_str g_colorbuf [SCREEN_HEIGHT][SCREEN_WIDTH];
-
-extern size_t g_extra_lines;
-
-void screen_init(void);
+void screen_init(FILE* output_stream);
 
 void screen_deinit(void);
 
-void screen_restore_line_cursor(void);
-    
-void screen_clear(void);
-
 void screen_refresh(void);
+
+void screen_set_pixel_data(const vec2int_type framebuf_pos, const pixel_data_type data);
+
+pixel_data_type screen_get_pixel_data(const vec2int_type framebuf_pos);

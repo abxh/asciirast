@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdio.h>
+#include "external.h"
 
 #include "transform.h"
 
@@ -9,51 +8,50 @@ typedef struct {
     float r;
     float g;
     float b;
-} color;
+} color_type;
 
-typedef struct {
-    char r[4];
-    char g[4];
-    char b[4];
-} colorint_str;
+#ifndef COLOR_INTENSITY
+#define COLOR_INTENSITY 0.9f
+#endif
 
-static color color_white = {.r = 1.f, .g = 1.f, .b = 1.f};
-static color color_grey = {.r = 0.5f, .g = 0.5f, .b = 0.5f};
-static color color_black = {.r = 0.f, .g = 0.f, .b = 0.f};
+static const float CLRI = COLOR_INTENSITY;
 
-static color color_red = {.r = 1.f, .g = 0.f, .b = 0.f};
-static color color_green = {.r = 0.f, .g = 1.f, .b = 0.f};
-static color color_blue = {.r = 0.f, .g = 0.f, .b = 1.f};
+static const color_type color_white = {.r = CLRI, .g = CLRI, .b = CLRI};
+static const color_type color_gray = {.r = CLRI / 2.f, .g = CLRI / 2.f, .b = CLRI / 2.f};
+static const color_type color_black = {.r = 0.f, .g = 0.f, .b = 0.f};
 
-static color color_yellow = {.r = 1.f, .g = 1.f, .b = 0.f};
-static color color_magenta = {.r = 1.f, .g = 0.f, .b = 1.f};
-static color color_cyan = {.r = 0.f, .g = 1.f, .b = 1.f};
+static const color_type color_red = {.r = CLRI, .g = 0.f, .b = 0.f};
+static const color_type color_green = {.r = 0.f, .g = CLRI, .b = 0.f};
+static const color_type color_blue = {.r = 0.f, .g = 0.f, .b = CLRI};
 
-static inline color sum_color(color a, color b) {
-    return (color){.r = a.r + b.r, .g = a.g + b.g, .b = a.b + b.b};
+static const color_type color_yellow = {.r = CLRI, .g = CLRI, .b = 0.f};
+static const color_type color_magenta = {.r = CLRI, .g = 0.f, .b = CLRI};
+static const color_type color_cyan = {.r = 0.f, .g = CLRI, .b = CLRI};
+
+static inline vec3_type from_color_to_vec3(const color_type c0) {
+    return (vec3_type){.x = c0.r, .y = c0.g, .z = c0.b};
 }
 
-static inline color scaled_color(color c, float scalar) {
-    return (color){.r = scalar * c.r, .g = scalar * c.g, .b = scalar * c.b};
+static inline color_type from_vec3_to_color(const vec3_type v0) {
+    return (color_type){.r = v0.x, .g = v0.y, .b = v0.z};
 }
 
-static inline color src_to_dest_color(color src, color dest) {
-    return (color){.r = dest.r - src.r, .g = dest.g - src.g, .b = dest.b - src.b};
+static inline bool is_equal_color(const color_type c0, const color_type c1) {
+    return is_equal_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1));
 }
 
-static inline color lerp_color(color c0, color c1, float t) {
-    return (color){.r = lerp_float(c0.r, c1.r, t), .g = lerp_float(c0.g, c1.g, t), .b = lerp_float(c0.b, c1.b, t)};
+static inline bool inside_range_color(const color_type c0, const color_type min, const color_type max) {
+    return inside_range_vec3(from_color_to_vec3(c0), from_color_to_vec3(min), from_color_to_vec3(max));
 }
 
-static inline colorint_str to_colorint_str(color c) {
-    int r_int = (int)(255.999f * c.r);
-    int g_int = (int)(255.999f * c.g);
-    int b_int = (int)(255.999f * c.b);
+static inline color_type add_color(const color_type c0, const color_type c1) {
+    return from_vec3_to_color(add_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1)));
+}
 
-    colorint_str c_int;
-    snprintf(c_int.r, sizeof c_int.r, "%03d", r_int);
-    snprintf(c_int.g, sizeof c_int.g, "%03d", g_int);
-    snprintf(c_int.b, sizeof c_int.b, "%03d", b_int);
+static inline color_type scale_color(const color_type c0, const float t) {
+    return from_vec3_to_color(scale_vec3(from_color_to_vec3(c0), t));
+}
 
-    return c_int;
+static inline color_type lerp_color(const color_type c0, const color_type c1, const float t) {
+    return from_vec3_to_color(lerp_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1), t));
 }
