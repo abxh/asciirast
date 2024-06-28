@@ -16,7 +16,7 @@
 #endif
 
 #ifndef FONT_PATH
-#define FONT_PATH "./tff/terminus.ttf"
+#define FONT_PATH "tff/terminus.ttf"
 #endif
 
 cmdstk_type* g_commands_stack;

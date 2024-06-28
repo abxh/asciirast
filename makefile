@@ -8,7 +8,7 @@ CFLAGS    += -D'MS_PER_UPDATE=100'
 CFLAGS    += -D'COLOR_INTENSITY=0.8f'
 
 CFLAGS    += -D'EXTRA_WINDOW_WIDTH=650' -D'EXTRA_WINDOW_HEIGHT=100'
-CFLAGS    += -D'FONT_PATH="terminus.ttf"'
+CFLAGS    += -D'FONT_PATH="ttf/terminus.ttf"'
 CFLAGS    += -D'FONT_SIZE=32'
 
 SRC_FILES  := $(wildcard src/*.c) $(wildcard example_scenes/*.c) 
