@@ -5,7 +5,6 @@ CFLAGS    += -I./example_scenes
 
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
 CFLAGS    += -D'MS_PER_UPDATE=100'
-CFLAGS    += -D'COLOR_INTENSITY=0.8f'
 
 CFLAGS    += -D'EXTRA_WINDOW_WIDTH=650' -D'EXTRA_WINDOW_HEIGHT=100'
 CFLAGS    += -D'FONT_PATH="ttf/terminus.ttf"'
@@ -18,18 +17,16 @@ LD_FLAGS  += -lm
 LD_FLAGS  += -lSDL2main -lSDL2 
 LD_FLAGS  += -lSDL2_ttf
 
-# use `make RELEASE=0` to turn off release build
-RELEASE ?= 1
+RELEASE ?= 1 # use `make RELEASE=0` to turn off release build
+DEBUG ?= 0 # use `make DEBUG=1` to turn on debugging flags
+
 ifeq ($(RELEASE), 1) 
 	CFLAGS    += -O3 -march=native
-endif
-
-# use `make DEBUG=1` to turn on debugging flags
-DEBUG ?= 0
-ifeq ($(DEBUG), 1) 
+else ifeq ($(DEBUG), 1) 
 	CC        := clang
-	CFLAGS    += -std=c11 -Wmost
 	CFLAGS    += -DDEBUG -ggdb3
+	CFLAGS    += -std=c11
+	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn -Wno-declaration-after-statement -Wno-padded
 	CFLAGS    += -fsanitize=address,undefined
 	LD_FLAGS  += -fsanitize=address,undefined
 endif

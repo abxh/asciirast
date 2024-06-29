@@ -12,7 +12,17 @@
 #define FRAMEBUF_HEIGHT 20
 #endif
 
+#ifndef ASPECT_RATIO
 #define ASPECT_RATIO (2.f * (float)FRAMEBUF_WIDTH / (float)FRAMEBUF_HEIGHT)
+#endif
+
+#ifndef DEFAULT_COLOR
+#define DEFAULT_COLOR color_white
+#endif
+
+#ifndef DEFAULT_CHAR
+#define DEFAULT_CHAR ' '
+#endif
 
 typedef struct {
     color_type color;

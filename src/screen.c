@@ -23,7 +23,7 @@ static FILE* output_stream;
 static inline void framebuf_clear(void) {
     for (size_t y = 0; y < FRAMEBUF_HEIGHT; y++) {
         for (size_t x = 0; x < FRAMEBUF_WIDTH; x++) {
-            framebuf[y][x] = ' ';
+            framebuf[y][x] = DEFAULT_CHAR;
         }
     }
 }
@@ -39,7 +39,7 @@ static inline void depthbuf_clear(void) {
 static inline void colorbuf_clear(void) {
     for (size_t y = 0; y < FRAMEBUF_HEIGHT; y++) {
         for (size_t x = 0; x < FRAMEBUF_WIDTH; x++) {
-            colorbuf[y][x] = color_white;
+            colorbuf[y][x] = DEFAULT_COLOR;
         }
     }
 }
@@ -73,7 +73,7 @@ void screen_refresh(void) {
 
             snprintf(color_str_buf_r, sizeof(color_str_buf_r), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].r * 255.999f));
             snprintf(color_str_buf_g, sizeof(color_str_buf_b), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].g * 255.999f));
-            snprintf(color_str_buf_b, sizeof(color_str_buf_g), "%03hhu", (unsigned int)(colorbuf[y_flipped][x].b * 255.999f));
+            snprintf(color_str_buf_b, sizeof(color_str_buf_g), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].b * 255.999f));
             fprintf(output_stream, CSI_ESC CSI_SETCOLOR_INITIALS "%s;%s;%s;m", color_str_buf_r, color_str_buf_g, color_str_buf_b);
 
             putchar(framebuf[y_flipped][x]);
@@ -87,11 +87,12 @@ void screen_refresh(void) {
 void screen_set_pixel_data(const vec2int_type framebuf_pos, const pixel_data_type data) {
     assert(inside_range_int(framebuf_pos.x, 0, FRAMEBUF_WIDTH - 1));
     assert(inside_range_int(framebuf_pos.y, 0, FRAMEBUF_HEIGHT - 1));
-    assert(inside_range_int(data.ascii_char, 0, 128 - 1));
-    assert(inside_range_float(data.depth, 0.f, 1.f));
+    assert(inside_range_int(data.ascii_char, 32, 126) && "ascii char is not printable");
     assert(inside_range_color(data.color, color_black, color_white));
 
-    if (data.depth < depthbuf[framebuf_pos.y][framebuf_pos.x]) {
+    const float prev_depth = depthbuf[framebuf_pos.y][framebuf_pos.x];
+
+    if (!inside_range_float(data.depth, 0.f, 1.f) || data.depth < prev_depth) {
         return;
     }
 
@@ -104,7 +105,9 @@ pixel_data_type screen_get_pixel_data(const vec2int_type framebuf_pos) {
     assert(inside_range_int(framebuf_pos.x, 0, FRAMEBUF_WIDTH - 1));
     assert(inside_range_int(framebuf_pos.y, 0, FRAMEBUF_HEIGHT - 1));
 
-    return (pixel_data_type){.ascii_char = framebuf[framebuf_pos.y][framebuf_pos.x],
-                             .depth = depthbuf[framebuf_pos.y][framebuf_pos.x],
-                             .color = colorbuf[framebuf_pos.y][framebuf_pos.x]};
+    const char ascii_char = framebuf[framebuf_pos.y][framebuf_pos.x];
+    const float depth = depthbuf[framebuf_pos.y][framebuf_pos.x];
+    const color_type color = colorbuf[framebuf_pos.y][framebuf_pos.x];
+
+    return (pixel_data_type){.ascii_char = ascii_char, .depth = depth, .color = color};
 }

@@ -1,7 +1,8 @@
 
 #include "engine.h"
+#include "draw.h"
+#include "engine_commands_view.h"
 #include "screen.h"
-#include <SDL2/SDL_ttf.h>
 
 #ifndef EXTRA_WINDOW_WIDTH
 #define EXTRA_WINDOW_WIDTH 600
@@ -19,8 +20,7 @@
 #define FONT_PATH "tff/terminus.ttf"
 #endif
 
-cmdstk_type* g_commands_stack;
-// static scene_type next_scene;
+cmdht_type* g_commands_view_ht;
 
 static inline void sdl_poll_events(SDL_Event* event_p, bool* on_running_p) {
     while (SDL_PollEvent(event_p)) {
@@ -28,11 +28,10 @@ static inline void sdl_poll_events(SDL_Event* event_p, bool* on_running_p) {
         case SDL_KEYUP:
             break;
         case SDL_KEYDOWN:
-            if (inside_range_int(event_p->key.keysym.sym, 33, 126)) {
-                printf("%c", (char)event_p->key.keysym.sym);
-            }
-            if (event_p->key.keysym.sym == SDLK_q) {
+            switch (event_p->key.keysym.sym) {
+            case SDLK_q:
                 *on_running_p = false;
+                break;
             }
             break;
         case SDL_QUIT:
@@ -44,39 +43,44 @@ static inline void sdl_poll_events(SDL_Event* event_p, bool* on_running_p) {
     }
 }
 
+#define OUTPUT_TEXT_CHUNK_SIZE (sizeof(key_comb_type) + sizeof(command_name_type) + 4)
+
 static inline void update_output_text(char** output_text_pp, size_t* output_text_capacity_p) {
-    if (*output_text_capacity_p != g_commands_stack->capacity) {
-        *output_text_capacity_p = g_commands_stack->capacity;
-        *output_text_pp = realloc(*output_text_pp, *output_text_capacity_p * (sizeof(cmd_type) + 4));
+    if (*output_text_capacity_p < g_commands_view_ht->count) {
+        *output_text_capacity_p *= 2;
+        *output_text_pp = realloc(*output_text_pp, *output_text_capacity_p * OUTPUT_TEXT_CHUNK_SIZE);
     }
 
     char* p0 = *output_text_pp;
-    size_t count;
-    cmd_type value;
-    stack_for_each(g_commands_stack, count, value) {
-        char* p1 = value.key_comb;
-        while (*p1 != '\0') {
-            *p0++ = *p1++;
-        }
-        *p0++ = ':';
-        *p0++ = ' ';
-        p1 = value.command_name;
-        while (*p1 != '\0') {
-            *p0++ = *p1++;
-        }
-        if (count != 1) {
-            *p0++ = ',';
+    {
+        size_t count;
+        key_comb_type key;
+        command_name_type value;
+        hashtable_for_each(g_commands_view_ht, count, key, value) {
+            char* p1 = key.value;
+            while (*p1 != '\0') {
+                *p0++ = *p1++;
+            }
+            *p0++ = ':';
             *p0++ = ' ';
+            p1 = value.value;
+            while (*p1 != '\0') {
+                *p0++ = *p1++;
+            }
+            if (count != 1) {
+                *p0++ = ',';
+                *p0++ = ' ';
+            }
         }
     }
     *p0++ = '\0';
 }
 
-static inline void sdl_refresh_window(SDL_Renderer* renderer_p, TTF_Font* font_p, char* text_p, size_t win_width) {
+static inline void sdl_refresh_window(SDL_Renderer* renderer_p, TTF_Font* font_p, char* text_p, int win_width) {
     SDL_SetRenderDrawColor(renderer_p, 255, 255, 255, 255);
     SDL_RenderClear(renderer_p);
 
-    SDL_Surface* text_surface = TTF_RenderText_Solid_Wrapped(font_p, text_p, (SDL_Color){0, 0, 0}, win_width);
+    SDL_Surface* text_surface = TTF_RenderText_Solid_Wrapped(font_p, text_p, (SDL_Color){0, 0, 0, 0}, (uint32_t)win_width);
     SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_p, text_surface);
     SDL_Rect text_rect = {.x = 0, .y = 0, .w = text_surface->w, .h = text_surface->h};
 
@@ -96,10 +100,8 @@ void run(const scene_type default_scene) {
                                             EXTRA_WINDOW_WIDTH, EXTRA_WINDOW_HEIGHT, 0);
     SDL_Renderer* renderer_p = SDL_CreateRenderer(window_p, -1, 0);
 
-    g_commands_stack = cmdstk_create_with_capacity(16);
-    cmdstk_push(g_commands_stack, (cmd_type){.key_comb = "q", .command_name = "quit"});
-    cmdstk_push(g_commands_stack, (cmd_type){.key_comb = "w|a|s|d", .command_name = "movement"});
-    cmdstk_push(g_commands_stack, (cmd_type){.key_comb = "left|right", .command_name = "rotate"});
+    g_commands_view_ht = cmdht_create_with_initial_capacity(16);
+    cmdht_insert(g_commands_view_ht, (key_comb_type){"q"}, (command_name_type){"quit"});
 
     TTF_Init();
     TTF_Font* font_p = TTF_OpenFont(FONT_PATH, FONT_SIZE);
@@ -108,7 +110,7 @@ void run(const scene_type default_scene) {
         exit(EXIT_FAILURE);
     }
     size_t output_text_capacity = 16;
-    char* output_text_p = malloc(output_text_capacity * (sizeof(cmd_type) + 4));
+    char* output_text_p = malloc(output_text_capacity * OUTPUT_TEXT_CHUNK_SIZE);
 
     int win_width, win_height;
     SDL_GetWindowSizeInPixels(window_p, &win_width, &win_height);
@@ -122,12 +124,15 @@ void run(const scene_type default_scene) {
         update_output_text(&output_text_p, &output_text_capacity);
         sdl_refresh_window(renderer_p, font_p, output_text_p, win_width);
 
+        draw_line_2d_w_interpolated_color((vec2_type[2]){{.x = -1, .y = -1}, {.x = 1, .y = 1}},
+                                          (color_type[2]){color_black, color_white}, '*');
+
         screen_refresh();
     }
 
     // deinit:
     screen_deinit();
-    cmdstk_destroy(g_commands_stack);
+    cmdht_destroy(g_commands_view_ht);
     free(output_text_p);
     TTF_CloseFont(font_p);
     TTF_Quit();

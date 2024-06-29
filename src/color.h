@@ -1,7 +1,6 @@
 #pragma once
 
 #include "external.h"
-
 #include "transform.h"
 
 typedef struct {
@@ -45,11 +44,11 @@ static inline bool inside_range_color(const color_type c0, const color_type min,
 }
 
 static inline color_type add_color(const color_type c0, const color_type c1) {
-    return from_vec3_to_color(add_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1)));
+    return from_vec3_to_color(sum_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1)));
 }
 
 static inline color_type scale_color(const color_type c0, const float t) {
-    return from_vec3_to_color(scale_vec3(from_color_to_vec3(c0), t));
+    return from_vec3_to_color(scaled_vec3(from_color_to_vec3(c0), t));
 }
 
 static inline color_type lerp_color(const color_type c0, const color_type c1, const float t) {
