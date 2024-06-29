@@ -1,6 +1,6 @@
 # ascii-rasterizer
 
 Dependencies:
-- Terminal with `TrueColor ANSI` support.
+- `TrueColor ANSI` supporting terminal.
 - `SDL2`
 - `SDL2_ttf`
