@@ -1,8 +1,8 @@
 #pragma once
 
-#include "external.h"
-
 #include "color.h"
+
+#include <stdio.h>
 
 #ifndef FRAMEBUF_WIDTH
 #define FRAMEBUF_WIDTH 40

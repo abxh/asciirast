@@ -1,8 +1,10 @@
-
 #include "engine.h"
 #include "draw.h"
 #include "engine_commands_view.h"
 #include "screen.h"
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #ifndef EXTRA_WINDOW_WIDTH
 #define EXTRA_WINDOW_WIDTH 600

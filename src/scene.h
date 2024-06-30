@@ -1,6 +1,9 @@
 #pragma once
 
-#include "external.h"
+#include <SDL2/SDL_events.h>
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
     SCENE_NOP = 0,    // 0b0

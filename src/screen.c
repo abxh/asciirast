@@ -1,6 +1,7 @@
 
 #include "screen.h"
 #include "color.h"
+
 #include <stdint.h>
 
 #define CSI_ESC "\033["

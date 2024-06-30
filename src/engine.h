@@ -1,7 +1,5 @@
 #pragma once
 
-#include "external.h"
-
 #include "scene.h"
 
 #ifndef MS_PER_UPDATE

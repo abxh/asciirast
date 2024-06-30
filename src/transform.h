@@ -1,6 +1,10 @@
 #pragma once
 
-#include "external.h"
+#include <math.h>
+
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 typedef struct {
     float x;

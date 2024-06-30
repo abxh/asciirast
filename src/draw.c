@@ -94,7 +94,7 @@ void draw_line_2d_w_interpolated_color(vec2_type v[2], color_type color[2], char
 
     // TODO: framebuf check
 
-    return internal_draw_line_routine(f0.x, f0.y, f1.x, f1.y, c, 1.f, 1.f, color[0], color[1]);
+    internal_draw_line_routine(f0.x, f0.y, f1.x, f1.y, c, 1.f, 1.f, color[0], color[1]);
 }
 
 // 3d
