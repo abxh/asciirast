@@ -45,6 +45,12 @@ static inline void colorbuf_clear(void) {
     }
 }
 
+void screen_clear(void) {
+    framebuf_clear();
+    depthbuf_clear();
+    colorbuf_clear();
+}
+
 void screen_init(FILE* stream) {
     output_stream = stream;
 
@@ -53,10 +59,8 @@ void screen_init(FILE* stream) {
     for (size_t y = 0; y < FRAMEBUF_HEIGHT; y++) {
         fprintf(output_stream, CSI_ESC CSI_CLEARLINE "\n");
     }
-
-    framebuf_clear();
-    depthbuf_clear();
-    colorbuf_clear();
+    
+    screen_clear();
 }
 
 void screen_deinit(void) {
@@ -72,9 +76,10 @@ void screen_refresh(void) {
         for (size_t x = 0; x < FRAMEBUF_WIDTH; x++) {
             const size_t y_flipped = (FRAMEBUF_HEIGHT - 1) - y;
 
-            snprintf(color_str_buf_r, sizeof(color_str_buf_r), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].r * 255.999f));
-            snprintf(color_str_buf_g, sizeof(color_str_buf_b), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].g * 255.999f));
-            snprintf(color_str_buf_b, sizeof(color_str_buf_g), "%03hhu", (uint8_t)(colorbuf[y_flipped][x].b * 255.999f));
+            const color_type current_color = clamp_color(colorbuf[y_flipped][x], color_black, color_white);
+            snprintf(color_str_buf_r, sizeof(color_str_buf_r), "%03hhu", (uint8_t)(current_color.r * 255.f));
+            snprintf(color_str_buf_g, sizeof(color_str_buf_b), "%03hhu", (uint8_t)(current_color.g * 255.f));
+            snprintf(color_str_buf_b, sizeof(color_str_buf_g), "%03hhu", (uint8_t)(current_color.b * 255.f));
             fprintf(output_stream, CSI_ESC CSI_SETCOLOR_INITIALS "%s;%s;%s;m", color_str_buf_r, color_str_buf_g, color_str_buf_b);
 
             putchar(framebuf[y_flipped][x]);
@@ -89,11 +94,11 @@ void screen_set_pixel_data(const vec2int_type framebuf_pos, const pixel_data_typ
     assert(inside_range_int(framebuf_pos.x, 0, FRAMEBUF_WIDTH - 1));
     assert(inside_range_int(framebuf_pos.y, 0, FRAMEBUF_HEIGHT - 1));
     assert(inside_range_int(data.ascii_char, 32, 126) && "ascii char is not printable");
+    assert(inside_range_float(data.depth, 0.f, 1.f));
     assert(inside_range_color(data.color, color_black, color_white));
 
     const float prev_depth = depthbuf[framebuf_pos.y][framebuf_pos.x];
-
-    if (!inside_range_float(data.depth, 0.f, 1.f) || data.depth < prev_depth) {
+    if (data.depth < prev_depth) {
         return;
     }
 

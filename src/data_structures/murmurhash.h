@@ -6,6 +6,8 @@
  * MurmurHash3 was written by Austin Appleby, and is placed in the public domain.
  */
 
+#pragma once
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

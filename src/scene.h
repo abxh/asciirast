@@ -6,9 +6,9 @@
 #include <stdint.h>
 
 typedef enum {
-    SCENE_NOP = 0,    // 0b0
-    SCENE_ON_KEY = 1, // 0b1
-} SCENE_EXTENSIONS;
+    SCENE_NOP = 0b0,
+    SCENE_ON_KEY = 0b1,
+} scene_extensions_type;
 
 typedef struct {
     uint64_t id;

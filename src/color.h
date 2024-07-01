@@ -42,14 +42,22 @@ static inline bool inside_range_color(const color_type c0, const color_type min,
     return inside_range_vec3(from_color_to_vec3(c0), from_color_to_vec3(min), from_color_to_vec3(max));
 }
 
-static inline color_type add_color(const color_type c0, const color_type c1) {
+static inline color_type sum_color(const color_type c0, const color_type c1) {
     return from_vec3_to_color(sum_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1)));
 }
 
-static inline color_type scale_color(const color_type c0, const float t) {
+static inline color_type scaled_color(const color_type c0, const float t) {
     return from_vec3_to_color(scaled_vec3(from_color_to_vec3(c0), t));
 }
 
 static inline color_type lerp_color(const color_type c0, const color_type c1, const float t) {
     return from_vec3_to_color(lerp_vec3(from_color_to_vec3(c0), from_color_to_vec3(c1), t));
+}
+
+static inline color_type clamp_color(const color_type c0, const color_type min, const color_type max) {
+    const float r = clamp_float(c0.r, min.r, max.r);
+    const float g = clamp_float(c0.g, min.g, max.g);
+    const float b = clamp_float(c0.b, min.b, max.b);
+
+    return (color_type){.r = r, .g = g, .b = b};
 }

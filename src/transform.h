@@ -122,9 +122,9 @@ static inline vec4_type normalize_vec4(const vec4_type v0);
 static inline vec2_type rotate_vec2_around_origo(const vec2_type v0, const float angle_rad);
 static inline vec2_type project_from_world_space_to_screen_space(const vec3_type v0, const float fov_angle_rad,
                                                                  const float aspect_ratio);
-static inline vec3_type rotate_vec3_around_x(const vec3_type v0, const float angle_rad);
-static inline vec3_type rotate_vec3_around_y(const vec3_type v0, const float angle_rad);
-static inline vec3_type rotate_vec3_around_z(const vec3_type v0, const float angle_rad);
+static inline vec3_type rotate_vec3_around_x_axis(const vec3_type v0, const float angle_rad);
+static inline vec3_type rotate_vec3_around_y_axis(const vec3_type v0, const float angle_rad);
+static inline vec3_type rotate_vec3_around_z_axis(const vec3_type v0, const float angle_rad);
 static inline vec4_type project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(
     const vec3_type vec, const float fov_angle_rad, const float aspect_ratio, const float z_near, const float z_far);
 
@@ -434,7 +434,7 @@ static inline vec2_type project_from_world_space_to_screen_space(const vec3_type
     return (vec2_type){.x = 1.f / c * aspect_ratio * v0.x, .y = 1.f / c * v0.y};
 }
 
-static inline vec3_type rotate_around_x_axis(const vec3_type v0, const float angle_rad) {
+static inline vec3_type rotate_vec3_around_x_axis(const vec3_type v0, const float angle_rad) {
     const float x_comp = v0.x;
     const float y_comp = v0.y * cosf(angle_rad) - v0.z * sinf(angle_rad);
     const float z_comp = v0.y * sinf(angle_rad) + v0.z * cosf(angle_rad);
@@ -442,7 +442,7 @@ static inline vec3_type rotate_around_x_axis(const vec3_type v0, const float ang
     return (vec3_type){.x = x_comp, .y = y_comp, .z = z_comp};
 }
 
-static inline vec3_type rotate_around_y_axis(const vec3_type v0, const float angle_rad) {
+static inline vec3_type rotate_vec3_around_y_axis(const vec3_type v0, const float angle_rad) {
     const float x_comp = v0.x * cosf(angle_rad) + v0.z * sinf(angle_rad);
     const float y_comp = v0.y;
     const float z_comp = v0.z * cosf(angle_rad) - v0.x * sinf(angle_rad);
@@ -450,7 +450,7 @@ static inline vec3_type rotate_around_y_axis(const vec3_type v0, const float ang
     return (vec3_type){.x = x_comp, .y = y_comp, .z = z_comp};
 }
 
-static inline vec3_type rotate_around_z_axis(const vec3_type v0, const float angle_rad) {
+static inline vec3_type rotate_vec3_around_z_axis(const vec3_type v0, const float angle_rad) {
     const float x_comp = v0.x * cosf(angle_rad) - v0.y * sinf(angle_rad);
     const float y_comp = v0.x * sinf(angle_rad) + v0.y * cosf(angle_rad);
     const float z_comp = v0.z;
@@ -477,11 +477,11 @@ static inline vec3_type move_against_camera(const vec3_type vec, const vec3_type
 
     const vec3_type v0 = sum_vec3(vec, scaled_vec3(camera_pos, -1));
 
-    const vec3_type v1 = rotate_around_x_axis(v0, -camera_angle_rad[0]);
+    const vec3_type v1 = rotate_vec3_around_x_axis(v0, -camera_angle_rad[0]);
 
-    const vec3_type v2 = rotate_around_y_axis(v1, -camera_angle_rad[1]);
+    const vec3_type v2 = rotate_vec3_around_y_axis(v1, -camera_angle_rad[1]);
 
-    const vec3_type v3 = rotate_around_z_axis(v2, -camera_angle_rad[2]);
+    const vec3_type v3 = rotate_vec3_around_z_axis(v2, -camera_angle_rad[2]);
 
     return v3;
 }

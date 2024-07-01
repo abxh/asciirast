@@ -34,6 +34,8 @@ void screen_init(FILE* output_stream);
 
 void screen_deinit(void);
 
+void screen_clear(void);
+
 void screen_refresh(void);
 
 void screen_set_pixel_data(const vec2int_type framebuf_pos, const pixel_data_type data);

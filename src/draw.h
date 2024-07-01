@@ -3,67 +3,80 @@
 #include "color.h"
 #include "transform.h"
 
-#define Z_NEAR (0.1f)
-#define Z_FAR (100.0f)
-#define FOV_ANGLE_RAD (FROM_ANGLE_DEG_TO_ANGLE_RAD(60))
+#include <stdint.h>
 
-// winding order      : Only triangles with clockwise order [for v0 -> v1 -> p2] is drawn.
-// filling convention : top-left edge of triangle is filled. bottom-right is left out.
+#define Z_NEAR 0.1f
+#define Z_FAR 100.0f
+#define FOV_ANGLE_RAD (FROM_ANGLE_DEG_TO_ANGLE_RAD(60))
 
 // 2d space = {(x,y) where x in [-1;1] and y in [-1;1]}
 // 3d space = {(x,y,z) where x in [-1;1] and y in [-1;1] and z in [Z_NEAR;Z_FAR]}
 // Any shape outside this range is clipped.
 
+// winding order      : Only triangles with clockwise ordered verticies is drawn.
+// filling convention : top-left edges of triangle is filled. bottom-right edges is left out.
+
 extern vec3_type g_camera_position;
 
 typedef struct {
-    union {
-        struct {
-            float x_axis_angle_rad;
-            float y_axis_angle_rad;
-            float z_axis_angle_rad;
-        };
-        vec3_type as_vec3;
-        float as_float3[3];
-    };
+    float x_axis_angle_rad;
+    float y_axis_angle_rad;
+    float z_axis_angle_rad;
 } camera_orientation_type;
 
 extern camera_orientation_type g_camera_orientation;
 
-// 2d
+// 2d - draw point
 // ------------------------------------------------------------------------------------------------------------
 
-void draw_point_2d(vec2_type v0, char c);
+void draw_point_2d(const vec2_type v0, const char c);
 
-void draw_point_2d_w_color(vec2_type v0, color_type color0, char c);
+void draw_point_2d_w_color(const vec2_type v0, const color_type color0, const char c);
 
-void draw_line_2d(vec2_type v0, vec2_type v1, char c);
+void draw_point_2d_w_color_and_z_order(const vec2_type v0, const color_type color0, const uint8_t z_order, const char c);
 
-void draw_line_2d_w_color(vec2_type v0, vec2_type v1, color_type color0, char c);
-
-void draw_line_2d_w_interpolated_color(vec2_type v[2], color_type color[2], char c);
-
-void draw_filled_triangle_2d(vec2_type v0, vec2_type v1, vec2_type p2, char c);
-
-void draw_filled_triangle_2d_w_color(vec2_type v0, vec2_type v1, vec2_type p2, color_type color0, char c);
-
-void draw_filled_triangle_2d_w_interpolated_color(vec2_type vertix_pos[3], color_type vertix_color[3], char c);
-
-// 3d
+// 2d - draw line
 // ------------------------------------------------------------------------------------------------------------
 
-void draw_point_3d(vec3_type v0, char c);
+void draw_line_2d(const vec2_type v0, const vec2_type v1, const char c);
 
-void draw_point_3d_w_color(vec3_type v0, color_type color0, char c);
+void draw_line_2d_w_color(const vec2_type v0, const vec2_type v1, const color_type color0, const char c);
 
-void draw_line_3d(vec3_type v0, vec3_type v1, char c);
+void draw_line_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const color_type color0, const uint8_t z_order,
+                                      const char c);
 
-void draw_line_3d_w_color(vec3_type v0, vec3_type v1, color_type color0, char c);
+void draw_line_2d_w_interpolated_color(const vec2_type v[2], const color_type color[2], const char c);
 
-void draw_line_3d_w_interpolated_color(vec3_type v[2], color_type color[2], char c);
+void draw_line_2d_w_interpolated_color_and_z_order(const vec2_type v[2], const color_type color[2], const uint8_t z_order,
+                                                   const char c);
 
-void draw_filled_triangle_3d(vec3_type v0, vec3_type v1, vec3_type p2, char c);
+// 2d - draw triangle
+// ------------------------------------------------------------------------------------------------------------
 
-void draw_filled_triangle_3d_w_color(vec3_type v0, vec3_type v1, vec3_type p2, color_type color0, char c);
+void draw_filled_triangle_2d(const vec2_type v0, const vec2_type v1, const vec2_type v2, const char c);
 
-void draw_filled_triangle_3d_w_interpolated_color(vec3_type vertix_pos[3], color_type vertix_color[3], char c);
+void draw_filled_triangle_2d_w_color(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
+                                     const char c);
+
+void draw_filled_triangle_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
+                                                 const uint8_t z_order, const char c);
+
+void draw_filled_triangle_2d_w_interpolated_color(const vec2_type v[3], const color_type color[3], const char c);
+
+void draw_filled_triangle_2d_w_interpolated_color_and_z_order(const vec2_type v[3], const color_type color[3], const uint8_t z_order,
+                                                              const char c);
+// 3d - draw point
+// ------------------------------------------------------------------------------------------------------------
+
+void draw_point_3d(const vec3_type v0, const char c);
+
+void draw_point_3d_w_color(const vec3_type v0, const color_type color0, const char c);
+
+// 3d - draw line
+// ------------------------------------------------------------------------------------------------------------
+
+void draw_line_3d(const vec3_type v0, const vec3_type v1, const char c);
+
+void draw_line_3d_w_color(const vec3_type v0, const vec3_type v1, const color_type color0, const char c);
+
+void draw_line_3d_w_interpolated_color(const vec3_type v[2], const color_type color[2], const char c);

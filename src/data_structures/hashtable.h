@@ -3,6 +3,9 @@
  * @brief Hashtable data structure based on robin hood hashing and dynamic array.
  */
 
+#include "is_pow2.h"    // is_pow2
+#include "murmurhash.h" // murmur3_32
+
 #include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
@@ -10,9 +13,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "is_pow2.h"    // is_pow2
-#include "murmurhash.h" // murmur3_32
 
 /**
  * @def HASHTABLE_PREFIX
