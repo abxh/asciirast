@@ -17,7 +17,7 @@ typedef struct {
 
     char* buf_p;
     size_t buf_capacity;
-    uint32_t buf_hash;
+    size_t prev_entry_count;
 } sdl_text_type;
 
 typedef struct {
@@ -125,7 +125,7 @@ engine_sdl_window_type* engine_sdl_window_create(void) {
     if (this->text.buf_p == NULL) {
         abort();
     }
-    this->text.buf_hash = murmur3_32((const uint8_t*)this->text.buf_p, this->text.buf_capacity, 0);
+    this->text.prev_entry_count = 0;
     this->text.sdl_surface_obj = NULL;
     this->text.sdl_text_obj = NULL;
 
@@ -149,9 +149,9 @@ void engine_sdl_window_destroy(engine_sdl_window_type* this) {
 }
 
 void engine_sdl_window_update(engine_sdl_window_type* this) {
-    const uint32_t new_hash = murmur3_32((const uint8_t*)this->text.buf_p, this->text.buf_capacity, 0);
-    if (new_hash != this->text.buf_hash) {
+    if (this->text.prev_entry_count != g_engine_settings.cmdht_p->count) {
         update_text(this);
+        this->text.prev_entry_count = g_engine_settings.cmdht_p->count;
     }
 }
 
