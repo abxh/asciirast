@@ -105,7 +105,7 @@ void renderer_deinit(void) {
     }
     s.initialized = false;
 
-    vert2dstk_count(s.vert2dstk_p);
+    vert2dstk_destroy(s.vert2dstk_p);
 }
 
 // world space -> screen space
