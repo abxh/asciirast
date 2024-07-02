@@ -1,28 +1,19 @@
 #pragma once
 
 #include "color.h"
+#include "math/vec.h"
 
 #include <stdio.h>
 
-#ifndef FRAMEBUF_WIDTH
-#define FRAMEBUF_WIDTH 40
+#ifndef SCREEN_WIDTH
+#define SCREEN_WIDTH 40
 #endif
 
-#ifndef FRAMEBUF_HEIGHT
-#define FRAMEBUF_HEIGHT 20
+#ifndef SCREEN_HEIGHT
+#define SCREEN_HEIGHT 20
 #endif
 
-#ifndef ASPECT_RATIO
-#define ASPECT_RATIO (2.f * (float)FRAMEBUF_WIDTH / (float)FRAMEBUF_HEIGHT)
-#endif
-
-#ifndef DEFAULT_COLOR
-#define DEFAULT_COLOR color_white
-#endif
-
-#ifndef DEFAULT_CHAR
-#define DEFAULT_CHAR ' '
-#endif
+#define ASPECT_RATIO (SCREEN_WIDTH / (float)SCREEN_HEIGHT)
 
 typedef struct {
     color_type color;
@@ -30,14 +21,16 @@ typedef struct {
     char ascii_char;
 } pixel_data_type;
 
-void screen_init(FILE* output_stream);
+struct screen_type;
 
-void screen_deinit(void);
+struct screen_type* screen_create(FILE* output_stream);
 
-void screen_clear(void);
+void screen_destroy(struct screen_type* context_p);
 
-void screen_refresh(void);
+void screen_clear(struct screen_type* context_p);
 
-void screen_set_pixel_data(const vec2int_type framebuf_pos, const pixel_data_type data);
+void screen_refresh(const struct screen_type* context_p);
 
-pixel_data_type screen_get_pixel_data(const vec2int_type framebuf_pos);
+void screen_set_pixel_data(struct screen_type* context_p, const vec2int_type pos, const pixel_data_type data);
+
+pixel_data_type screen_get_pixel_data(struct screen_type* context_p, const vec2int_type pos);

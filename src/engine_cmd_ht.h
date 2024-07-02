@@ -13,5 +13,3 @@ typedef struct {
 #define VALUE_TYPE command_name_type
 #define KEY_IS_EQUAL(a, b) (strncmp(a.value, b.value, sizeof(key_comb_type)) == 0)
 #include "data_structures/hashtable.h"
-
-extern cmdht_type* g_commands_view_ht;

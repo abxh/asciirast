@@ -1,82 +1,68 @@
 #pragma once
 
 #include "color.h"
-#include "transform.h"
+#include "math/mat4x4.h"
+#include "math/vec.h"
+#include "screen.h"
 
 #include <stdint.h>
 
-#define Z_NEAR 0.1f
-#define Z_FAR 100.0f
-#define FOV_ANGLE_RAD (FROM_ANGLE_DEG_TO_ANGLE_RAD(60))
-
-// 2d space = {(x,y) where x in [-1;1] and y in [-1;1]}
-// 3d space = {(x,y,z) where x in [-1;1] and y in [-1;1] and z in [Z_NEAR;Z_FAR]}
+// 2d space = {(x,y,z) where x in [-1;1] and y in [-1;1] and z_order in [0; UINT8_MAX]}
+// 3d space = {(x,y,z,w) where x in [-1;1] and y in [-1;1] and z in [Z_NEAR;Z_FAR] and w = 1}
 // Any shape outside this range is clipped.
 
 // winding order      : Only triangles with clockwise ordered verticies is drawn.
 // filling convention : top-left edges of triangle is filled. bottom-right edges is left out.
 
-extern vec3_type g_camera_position;
+// Note the use of static variables internally. Rendering is done with a fixed pipeline. Is neither made to be thread-safe.
 
 typedef struct {
-    float x_axis_angle_rad;
-    float y_axis_angle_rad;
-    float z_axis_angle_rad;
-} camera_orientation_type;
+    union {
+        struct {
+            float x;
+            float y;
+        };
+        vec2_type pos;
+    };
+    color_type color;
+    char ascii_char;
+} vertix_2d_type;
 
-extern camera_orientation_type g_camera_orientation;
+typedef struct {
+    union {
+        struct {
+            float x;
+            float y;
+            float z;
+            float w;
+        };
+        vec4_type pos;
+    };
+    color_type color;
+    char ascii_char;
+} vertix_3d_type;
 
-// 2d - draw point
+void renderer_init(struct screen_type* screen_context_p, const mat4x4_type model_view_perspective_matrix, const size_t n,
+                   const char acsii_palette[n]);
+
+void renderer_deinit(void);
+
+// 2d
 // ------------------------------------------------------------------------------------------------------------
 
-void draw_point_2d(const vec2_type v0, const char c);
+void draw_point_2d(const vertix_2d_type v[1], const uint8_t z_order);
 
-void draw_point_2d_w_color(const vec2_type v0, const color_type color0, const char c);
+void draw_line_2d(const vertix_2d_type v[2], const uint8_t z_order);
 
-void draw_point_2d_w_color_and_z_order(const vec2_type v0, const color_type color0, const uint8_t z_order, const char c);
+void draw_filled_triangle_2d(const vertix_2d_type v[3], const uint8_t z_order);
 
-// 2d - draw line
+// 3d
 // ------------------------------------------------------------------------------------------------------------
 
-void draw_line_2d(const vec2_type v0, const vec2_type v1, const char c);
+void draw_point_3d(const vertix_3d_type v[1]);
 
-void draw_line_2d_w_color(const vec2_type v0, const vec2_type v1, const color_type color0, const char c);
+void draw_line_3d(const vertix_3d_type v[2]);
 
-void draw_line_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const color_type color0, const uint8_t z_order,
-                                      const char c);
+void draw_filled_triangle_3d(const vertix_2d_type v[3]);
 
-void draw_line_2d_w_interpolated_color(const vec2_type v[2], const color_type color[2], const char c);
-
-void draw_line_2d_w_interpolated_color_and_z_order(const vec2_type v[2], const color_type color[2], const uint8_t z_order,
-                                                   const char c);
-
-// 2d - draw triangle
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_filled_triangle_2d(const vec2_type v0, const vec2_type v1, const vec2_type v2, const char c);
-
-void draw_filled_triangle_2d_w_color(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
-                                     const char c);
-
-void draw_filled_triangle_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
-                                                 const uint8_t z_order, const char c);
-
-void draw_filled_triangle_2d_w_interpolated_color(const vec2_type v[3], const color_type color[3], const char c);
-
-void draw_filled_triangle_2d_w_interpolated_color_and_z_order(const vec2_type v[3], const color_type color[3], const uint8_t z_order,
-                                                              const char c);
-// 3d - draw point
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_point_3d(const vec3_type v0, const char c);
-
-void draw_point_3d_w_color(const vec3_type v0, const color_type color0, const char c);
-
-// 3d - draw line
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_line_3d(const vec3_type v0, const vec3_type v1, const char c);
-
-void draw_line_3d_w_color(const vec3_type v0, const vec3_type v1, const color_type color0, const char c);
-
-void draw_line_3d_w_interpolated_color(const vec3_type v[2], const color_type color[2], const char c);
+void draw_triangle_mesh_3d(const size_t n, const vertix_3d_type v[n]);

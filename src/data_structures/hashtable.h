@@ -46,6 +46,34 @@
 #endif
 
 /**
+ * @def KEY_IS_EQUAL(a, b)
+ * @brief Used to compare two keys. Is undefined once header is included.
+ * @attention
+ *   @li If comparing two primtive values, define KEY_IS_EQUAL(a,b) to ((a) == (b)).
+ *   @li If comparing two structs, set this macro to a function that does element-wise comparison between the structs.
+ *   @li If comparing two strings, use strcmp or wrap the string in a struct with string length info and define KEY_IS_EQUAL to a
+ *       unwrapper function that in turn calls strncmp.
+ *
+ * @retval true If the two keys are equal. Equivalent to a non-zero int.
+ * @retval false If the two key are not equal. Equivalent to the int 0.
+ */
+#ifndef KEY_IS_EQUAL
+#error "Must declare KEY_IS_EQUAL. Defaulting to ((a) == (b))."
+#define KEY_IS_EQUAL(a, b) ((a) == (b))
+#endif
+
+/**
+ * @def HASH_FUNCTION(key)
+ * @brief Used to compute the hash of a key and locate it's index in the hashtable. Is undefined once header is included.
+ * @note This is defaulted to use murmur3 hash.
+ * @param key The key at hand to be converted to bytes.
+ * @retval The hash of the key able to be stored in `size_t`.
+ */
+#ifndef HASH_FUNCTION
+#define HASH_FUNCTION(key) (murmur3_32((const uint8_t*)&(key), sizeof(KEY_TYPE), 0))
+#endif
+
+/**
  * @def EMPTY_HASHTABLE_SLOT_OFFSET
  * @brief Offset constant used to flag empty slots.
  */
@@ -66,32 +94,6 @@
     for ((index) = 0; (index) <= (hashtable_ptr)->index_mask; (index)++)             \
         if ((hashtable_ptr)->slots[(index)].offset != EMPTY_HASHTABLE_SLOT_OFFSET && \
             ((key) = (hashtable_ptr)->slots[(index)].key, (value) = (hashtable_ptr)->slots[(index)].value, true))
-#endif
-
-/**
- * @def KEY_IS_EQUAL(a, b)
- * @brief Used to compare two keys. Is undefined once header is included.
- * @note This is defaulted to use the C == operator.
- * @attention
- *   @li If comparing two structs, set this macro to a function that does element-wise comparison between the structs.
- *   @li If comparing two strings, use strcmp or wrap the string in a struct with string length info and define KEY_IS_EQUAL to a
- *       unwrapper function that in turn calls strncmp.
- * @retval true If the two keys are equal. Equivalent to a non-zero int.
- * @retval false If the two key are not equal. Equivalent to the int 0.
- */
-#ifndef KEY_IS_EQUAL
-#define KEY_IS_EQUAL(a, b) ((a) == (b))
-#endif
-
-/**
- * @def HASH_FUNCTION(key)
- * @brief Used to compute the hash of a key and locate it's index in the hashtable. Is undefined once header is included.
- * @note This is defaulted to use murmur3 hash.
- * @param key The key at hand to be converted to bytes.
- * @retval The hash of the key able to be stored in `size_t`.
- */
-#ifndef HASH_FUNCTION
-#define HASH_FUNCTION(key) (murmur3_32((const uint8_t*)&(key), sizeof(KEY_TYPE), 0))
 #endif
 
 /// @cond DO_NOT_DOCUMENT
@@ -463,10 +465,7 @@ static inline bool JOIN(HASHTABLE_PREFIX, insert)(HASHTABLE_TYPE* hashtable_ptr,
     assert(false == JOIN(HASHTABLE_PREFIX, contains_key)(hashtable_ptr, key));
 
     const size_t old_capacity = hashtable_ptr->index_mask + 1;
-    if (hashtable_ptr->count >= old_capacity / 2) {
-        return false;
-    }
-    if (!JOIN(HASHTABLE_PREFIX, grow)(hashtable_ptr, 2 * old_capacity)) {
+    if (hashtable_ptr->count >= old_capacity / 2 && !JOIN(HASHTABLE_PREFIX, grow)(hashtable_ptr, 2 * old_capacity)) {
         return false;
     }
 
@@ -512,10 +511,7 @@ static inline bool JOIN(HASHTABLE_PREFIX, update)(HASHTABLE_TYPE* hashtable_ptr,
     assert(NULL != hashtable_ptr);
 
     const size_t old_capacity = hashtable_ptr->index_mask + 1;
-    if (hashtable_ptr->count >= old_capacity / 2) {
-        return false;
-    }
-    if (!JOIN(HASHTABLE_PREFIX, grow)(hashtable_ptr, 2 * old_capacity)) {
+    if (hashtable_ptr->count >= old_capacity / 2 && !JOIN(HASHTABLE_PREFIX, grow)(hashtable_ptr, 2 * old_capacity)) {
         return false;
     }
 

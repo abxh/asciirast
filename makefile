@@ -1,14 +1,14 @@
-EXEC_NAME := ascii-rasterizer
+EXEC_NAME := a.out
 
 CFLAGS    += -I./src
 CFLAGS    += -I./example_scenes
 
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
-CFLAGS    += -D'MS_PER_UPDATE=20'
+CFLAGS    += -D'MS_PER_UPDATE=100'
 
-CFLAGS    += -D'EXTRA_WINDOW_WIDTH=650' -D'EXTRA_WINDOW_HEIGHT=100'
-CFLAGS    += -D'FONT_PATH="ttf/terminus.ttf"'
-CFLAGS    += -D'FONT_SIZE=32'
+CFLAGS    += -D'SDL_WINDOW_WIDTH=650' -D'SDL_WINDOW_HEIGHT=100'
+CFLAGS    += -D'SDL_FONT_PATH="ttf/terminus.ttf"'
+CFLAGS    += -D'SDL_FONT_SIZE=32'
 
 SRC_FILES  := $(wildcard src/*.c) $(wildcard example_scenes/*.c) 
 OBJ_FILES  := $(SRC_FILES:.c=.o)
@@ -24,11 +24,14 @@ ifeq ($(RELEASE), 1)
 	CFLAGS    += -O3 -march=native
 else ifeq ($(DEBUG), 1) 
 	CC        := clang
+	# CFLAGS    += -DDEBUG_DRAW
 	CFLAGS    += -DDEBUG -ggdb3
 	CFLAGS    += -std=c11
-	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn -Wno-declaration-after-statement -Wno-padded -Wno-gnu-binary-literal
-	CFLAGS    += -fsanitize=address,undefined
-	LD_FLAGS  += -fsanitize=address,undefined
+	CFLAGS    += -fPIC
+	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn
+	CFLAGS    += -Wno-declaration-after-statement -Wno-padded -Wno-gnu-binary-literal -Wno-vla
+	CFLAGS    += -fsanitize=undefined,address
+	LD_FLAGS  += -fsanitize=undefined,address
 endif
 
 .PHONY: all clean test

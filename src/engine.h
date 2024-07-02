@@ -1,9 +1,13 @@
 #pragma once
 
+#include "engine_cmd_ht.h"
 #include "scene.h"
 
-#ifndef MS_PER_UPDATE
-#define MS_PER_UPDATE 100
-#endif
+typedef struct {
+    cmdht_type* cmdht_p;
+    scene_type next_scene;
+} engine_settings_type;
 
-void run(const scene_type scene);
+extern engine_settings_type g_engine_settings;
+
+void run(void); //(const scene_type scene);

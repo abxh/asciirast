@@ -1,99 +1,217 @@
 #include "draw.h"
+#include "math/mat4x4.h"
+#include "math/vec.h"
 #include "screen.h"
-#include "transform.h"
 
-#include "draw_clipping.h"
+#define STACK_PREFIX vert2dstk
+#define VALUE_TYPE vertix_2d_type
+#include "data_structures/stack.h"
 
-vec3_type g_camera_position = {0.f, 0.f, 0.f};
+typedef struct {
 
-camera_orientation_type g_camera_orientation = {0.f, 0.f, 0.f};
+    struct screen_type* screen_context_p;
+    vert2dstk_type* vert2dstk_p;
 
-static inline vec2_type from_screen_pos_to_framebuf_pos(const vec2_type v0) {
-    const float framebuf_x = (v0.x + 1.f) / 2.f * (FRAMEBUF_WIDTH - 1);
-    const float framebuf_y = (v0.y + 1.f) / 2.f * (FRAMEBUF_HEIGHT - 1);
+    size_t ascii_palette_size;
+    char index_to_ascii[128];
+    int ascii_to_index[128];
 
-    return (vec2_type){.x = framebuf_x, .y = framebuf_y};
+    bool initialized;
+} renderer_state;
+
+static mat4x4_type mvp;
+static renderer_state s = {.initialized = false};
+
+// vertix copy
+// ------------------------------------------------------------------------------------------------------------
+
+static inline void vertix_2d_copy(const size_t n, vertix_2d_type res[n], const vertix_2d_type v[n]) {
+    for (size_t i = 0; i < n; i++) {
+        res[i].ascii_char = v[i].ascii_char;
+        vec2_copy(res[i].pos, v[i].pos);
+        vec3_copy(res[i].color.as_vec3, v[i].color.as_vec3);
+    }
 }
 
-static inline void internal_plot_line_routine(const vec2int_type v0, const vec2int_type v1, const char c, const float d0,
-                                              const float d1, const color_type c0, const color_type c1) {
+// valid vertix check
+// ------------------------------------------------------------------------------------------------------------
+
+static inline bool valid_vertix_2d_check(const size_t n, const vertix_2d_type v[n]) {
+    bool is_valid = true;
+    for (size_t i = 0; i < n; i++) {
+        const char c = v[i].ascii_char;
+        is_valid &= s.ascii_to_index[(int)c] != -1;
+        is_valid &= vec3_is_inside_range(v[i].color.as_vec3, (vec3_type){0.f, 0.f, 0.f}, (vec3_type){1.f, 1.f, 1.f});
+    }
+    return is_valid;
+}
+
+static inline bool valid_vertix_3d_check(const size_t n, const vertix_3d_type v[n]) {
+    bool is_valid = true;
+    for (size_t i = 0; i < n; i++) {
+        const char c = v[i].ascii_char;
+        is_valid &= s.ascii_to_index[(int)c] != -1;
+        is_valid &= vec3_is_inside_range(v[i].color.as_vec3, (vec3_type){0.f, 0.f, 0.f}, (vec3_type){1.f, 1.f, 1.f});
+    }
+    return is_valid;
+}
+
+// vertix 2d interpolation
+// ------------------------------------------------------------------------------------------------------------
+
+static inline void vectix_2d_lerp(vertix_2d_type res[1], const vertix_2d_type v[2], const float t0) {
+    vec2_lerp(res[0].pos, v[0].pos, v[1].pos, t0);
+    vec3_lerp(res[0].color.as_vec3, v[0].color.as_vec3, v[1].color.as_vec3, t0);
+
+    const int c0 = s.ascii_to_index[(int)v[0].ascii_char];
+    const int c1 = s.ascii_to_index[(int)v[1].ascii_char];
+    const int c = int_lerped(c0, c1, t0);
+
+    res[0].ascii_char = s.index_to_ascii[c];
+}
+
+// renderer init/deinit
+// ------------------------------------------------------------------------------------------------------------
+
+void renderer_init(struct screen_type* screen_context_p, const mat4x4_type model_view_matrix, const size_t n,
+                   const char ascii_palette[n]) {
+    if (s.initialized) {
+        return;
+    }
+    s.initialized = true;
+
+    s.screen_context_p = screen_context_p;
+    mat4x4_copy(mvp, model_view_matrix);
+
+    for (size_t i = 0; i < 128; i++) {
+        s.ascii_to_index[i] = -1;
+        s.index_to_ascii[i] = ' ';
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        assert(int_is_inside_range(ascii_palette[i], 32, 126) && "ascii char is not printable");
+
+        const char c = ascii_palette[i];
+        s.ascii_to_index[(int)c] = (int)i;
+        s.index_to_ascii[i] = c;
+    }
+
+    s.vert2dstk_p = vert2dstk_create_with_initial_capacity(32);
+}
+
+void renderer_deinit(void) {
+    if (!s.initialized) {
+        return;
+    }
+    s.initialized = false;
+
+    vert2dstk_count(s.vert2dstk_p);
+}
+
+// world space -> screen space
+// ------------------------------------------------------------------------------------------------------------
+
+static inline void vertix_2d_transform_pos_to_screen_space(const size_t n, vertix_2d_type res[n], const vertix_2d_type v[n]) {
+    for (size_t i = 0; i < n; i++) {
+        vec2_add(res[i].pos, v[i].pos, (vec2_type){1.f, 1.f});
+        vec2_scale(res[i].pos, res[i].pos, 1.f / 2.f);
+        vec2_elementwise_prod(res[i].pos, res[i].pos, (vec2_type){(float)SCREEN_WIDTH - 1.f, (float)SCREEN_HEIGHT - 1.f});
+        vec2_truncated(res[i].pos, res[i].pos);
+    }
+}
+
+// internal draw routines
+// ------------------------------------------------------------------------------------------------------------
+
+static inline void internal_plot_point(const vertix_2d_type v[1], const float depth0) {
+    vec2int_type r_v;
+    vec2_truncated_to_vec2int(r_v, v[0].pos);
+    screen_set_pixel_data(s.screen_context_p, r_v,
+                          (pixel_data_type){.color = v[0].color, .depth = depth0, .ascii_char = v[0].ascii_char});
+}
+
+static inline void internal_plot_line(const vertix_2d_type v[2], const float depth[2]) {
     // based on:
     // https://www.redblobgames.com/grids/line-drawing/#more
 
-    const int dx = abs_int(v1.x - v0.x);
-    const int dy = abs_int(v1.y - v0.y);
+    const int dx = float_truncated_to_int(float_abs(v[1].pos[0] - v[0].pos[0]));
+    const int dy = float_truncated_to_int(float_abs(v[1].pos[1] - v[0].pos[1]));
     const int diagonal_dist = dx > dy ? dx : dy;
 
     if (diagonal_dist == 0) {
         return;
     }
 
-    const vec2_type v0_f = from_vec2int_to_vec2(v0);
-    const vec2_type v1_f = from_vec2int_to_vec2(v1);
+    for (int step = 0.f; step <= diagonal_dist; step += 1) {
+        const float t = (float)step / (float)diagonal_dist;
+        const float d = float_lerped(depth[0], depth[1], t);
 
-    for (int step = 0; step <= diagonal_dist; step++) {
-        const float t = from_int_to_float(step) / from_int_to_float(diagonal_dist);
-        const vec2_type p = lerp_vec2(v0_f, v1_f, t);
+        vertix_2d_type p;
+        vectix_2d_lerp(&p, &v[0], t);
+        vec2int_type r_v;
+        vec2_truncated_to_vec2int(r_v, v[0].pos);
 
-        const vec2int_type p_int = from_vec2_to_vec2int_rounded(p);
-        const color_type color = lerp_color(c0, c1, t);
-        const float depth = lerp_float(d0, d1, t);
-
-        screen_set_pixel_data(p_int, (pixel_data_type){.ascii_char = c, .color = color, .depth = depth});
+        screen_set_pixel_data(s.screen_context_p, r_v,
+                              (pixel_data_type){.color = v[0].color, .depth = d, .ascii_char = v[0].ascii_char});
     }
 }
 
-static inline bool is_top_left_edge_of_triangle(const vec2int_type src, const vec2int_type dest) {
-    const vec2int_type edge = src_to_dest_vec2int(src, dest);
+static inline bool internal_is_top_left_edge_of_triangle(const vec2_type src, const vec2_type dest) {
+    vec2_type edge;
+    vec2_sub(edge, dest, src);
 
-    const bool points_right = edge.x > 0;
-    const bool points_up = edge.y < 0; // since y-axis points down for framebuffer
+    const bool points_right = edge[0] > 0;
+    const bool points_up = edge[1] < 0; // since y-axis points down for framebuffer
 
-    const bool is_top_edge = edge.y == 0 && points_right;
+    const bool is_top_edge = float_is_equal(edge[1], 0.f) && points_right;
     const bool is_left_edge = points_up;
 
     return is_top_edge || is_left_edge;
 }
 
-static inline void internal_plot_triangle_routine(const vec2int_type v0, const vec2int_type v1, const vec2int_type v2, const char c,
-                                                  const float d0, const float d1, const float d2, const color_type c0,
-                                                  const color_type c1, const color_type c2) {
+static inline void internal_plot_triangle(const vertix_2d_type v[3], const float depth[3]) {
     // baycentric algorithm:
     // https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
-    const int maxX = max_int(v0.x, max_int(v1.x, v2.x));
-    const int minX = min_int(v0.x, min_int(v1.x, v2.x));
-    const int maxY = max_int(v0.y, max_int(v1.y, v2.y));
-    const int minY = min_int(v0.y, min_int(v1.y, v2.y));
+    const int maxX = int_max(v[0].x, int_max(v[1].x, v[2].x));
+    const int minX = int_min(v[0].x, int_min(v[1].x, v[2].x));
+    const int maxY = int_max(v[0].y, int_max(v[1].y, v[2].y));
+    const int minY = int_min(v[0].y, int_min(v[1].y, v[2].y));
 
-    const vec2_type p0 = sum_vec2(from_vec2int_to_vec2(v0), (vec2_type){.x = 0.5f, .y = 0.5f});
+    const vec2_type p0 = {(float)minX + 0.5f, (float)minY + 0.5f};
 
-    // bias to include top left edge and *not* bottom right edge
-    const float bias0 = is_top_left_edge_of_triangle(v1, v2) ? 0 : -1;
-    const float bias1 = is_top_left_edge_of_triangle(v2, v0) ? 0 : -1;
-    const float bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0 : -1;
+    // bias to include top left edge and exclude bottom right edge:
+    const float bias0 = internal_is_top_left_edge_of_triangle(v[1].pos, v[2].pos) ? 0 : -1;
+    const float bias1 = internal_is_top_left_edge_of_triangle(v[2].pos, v[0].pos) ? 0 : -1;
+    const float bias2 = internal_is_top_left_edge_of_triangle(v[0].pos, v[1].pos) ? 0 : -1;
 
-    // useful vectors:
-    const vec2_type v1_to_v2 = from_vec2int_to_vec2(src_to_dest_vec2int(v1, v2));
-    const vec2_type v2_to_v0 = from_vec2int_to_vec2(src_to_dest_vec2int(v2, v0));
-    const vec2_type v0_to_v1 = from_vec2int_to_vec2(src_to_dest_vec2int(v0, v1));
-    const vec2_type v0_to_v2 = from_vec2int_to_vec2(src_to_dest_vec2int(v0, v2));
+    // relevant vectors:
+    vec2_type v1_to_v2, v2_to_v0, v0_to_v1, v0_to_v2, v1_to_p0, v2_to_p0, v0_to_p0;
 
-    const float triangle_area_2 = cross_vec2(v0_to_v1, v0_to_v2);
+    vec2_sub(v1_to_v2, v[2].pos, v[1].pos);
+    vec2_sub(v2_to_v0, v[0].pos, v[2].pos);
+    vec2_sub(v0_to_v1, v[1].pos, v[0].pos);
+    vec2_sub(v0_to_v2, v[2].pos, v[0].pos);
 
-    // for efficient calculaton of cross product at each point in the bounding box - see video for details
-    const float delta_w0_col = from_int_to_float(v1.y - v2.y);
-    const float delta_w0_row = from_int_to_float(v2.x - v1.x);
-    const float delta_w1_col = from_int_to_float(v2.y - v0.y);
-    const float delta_w1_row = from_int_to_float(v0.x - v2.x);
-    const float delta_w2_col = from_int_to_float(v0.y - v1.y);
-    const float delta_w2_row = from_int_to_float(v1.x - v0.x);
+    vec2_sub(v0_to_p0, p0, v[0].pos);
+    vec2_sub(v1_to_p0, p0, v[1].pos);
+    vec2_sub(v2_to_p0, p0, v[2].pos);
 
-    // cross product value at starting point
-    float w0_row = cross_vec2(v1_to_v2, src_to_dest_vec2(from_vec2int_to_vec2(v1), p0)) + bias0;
-    float w1_row = cross_vec2(v2_to_v0, src_to_dest_vec2(from_vec2int_to_vec2(v2), p0)) + bias1;
-    float w2_row = cross_vec2(v0_to_v1, src_to_dest_vec2(from_vec2int_to_vec2(v0), p0)) + bias2;
+    const float triangle_area_2 = vec2_cross(v0_to_v1, v0_to_v2);
+
+    // for efficient cross product calculation for each point in the bounding box. see video for derivation.
+    const float delta_w0_col = v[1].y - v[2].y;
+    const float delta_w0_row = v[2].x - v[1].x;
+    float w0_row = vec2_cross(v1_to_v2, v1_to_p0) + bias0;
+
+    const float delta_w1_col = v[2].y - v[0].y;
+    const float delta_w1_row = v[0].x - v[2].x;
+    float w1_row = vec2_cross(v2_to_v0, v2_to_p0) + bias1;
+
+    const float delta_w2_col = v[0].y - v[1].y;
+    const float delta_w2_row = v[1].x - v[0].x;
+    float w2_row = vec2_cross(v0_to_v1, v0_to_p0) + bias2;
 
     for (int y = minY; y <= maxY; y++) {
         float w0 = w0_row;
@@ -107,15 +225,23 @@ static inline void internal_plot_triangle_routine(const vec2int_type v0, const v
                 const float beta = w1 / triangle_area_2;
                 const float gamma = w2 / triangle_area_2;
 
-                const color_type color0 = scaled_color(c0, alpha);
-                const color_type color1 = scaled_color(c1, beta);
-                const color_type color2 = scaled_color(c2, gamma);
-                const color_type color = sum_color(sum_color(color0, color1), color2);
+                const float d = alpha * depth[0] + beta * depth[1] + gamma * depth[2];
 
-                const float depth = alpha * d0 + beta * d1 + gamma * d2;
+                color_type c, c_comp0, c_comp1, c_comp2;
+                vec3_scale(c_comp0.as_vec3, v[0].color.as_vec3, alpha);
+                vec3_scale(c_comp1.as_vec3, v[1].color.as_vec3, beta);
+                vec3_scale(c_comp2.as_vec3, v[2].color.as_vec3, gamma);
+                vec3_add(c.as_vec3, c_comp0.as_vec3, c_comp1.as_vec3);
+                vec3_add(c.as_vec3, c.as_vec3, c_comp2.as_vec3);
 
-                screen_set_pixel_data((vec2int_type){.x = x, .y = y},
-                                      (pixel_data_type){.ascii_char = c, .color = color, .depth = depth});
+                char ch;
+                float ch_comp0_idx, ch_comp1_idx, ch_comp2_idx;
+                ch_comp0_idx = int_to_float(s.ascii_to_index[(int)v[0].ascii_char]);
+                ch_comp1_idx = int_to_float(s.ascii_to_index[(int)v[1].ascii_char]);
+                ch_comp2_idx = int_to_float(s.ascii_to_index[(int)v[1].ascii_char]);
+                ch = s.index_to_ascii[float_truncated_to_int(alpha * ch_comp0_idx + beta * ch_comp1_idx + gamma * ch_comp2_idx)];
+
+                screen_set_pixel_data(s.screen_context_p, (int[2]){x, y}, (pixel_data_type){.color = c, .depth = d, .ascii_char = ch});
             }
             w0 += delta_w0_col;
             w1 += delta_w1_col;
@@ -127,194 +253,104 @@ static inline void internal_plot_triangle_routine(const vec2int_type v0, const v
     }
 }
 
-// 2d - draw point
+// internal clip routines
 // ------------------------------------------------------------------------------------------------------------
 
-void draw_point_2d_w_color_and_z_order(const vec2_type v0, const color_type color0, const uint8_t z_order, const char c) {
-    const vec2_type f0 = from_screen_pos_to_framebuf_pos(v0);
+static inline bool clip_line_2d(const vec2_type f0, const vec2_type f1, const float xmin, const float ymin, const float xmax,
+                                const float ymax, float* out_t0, float* out_t1) {
+    // Based on (Liang-Barsky algorithm implementation):
+    // https://www.geeksforgeeks.org/liang-barsky-algorithm/
 
-    if (!clip_point_2d(f0, 0.f, 0.f, FRAMEBUF_WIDTH - 1.f, FRAMEBUF_HEIGHT - 1.f)) {
+    const float x1 = f0[0];
+    const float y1 = f0[1];
+    const float x2 = f1[0];
+    const float y2 = f1[1];
+
+    const float dx = x2 - x1;
+    const float dy = y2 - y1;
+
+    // 0, 1, 2, 3: left, right, bottom, top
+    const float p[4] = {-dx, dx, -dy, dy};
+    const float q[4] = {x1 - xmin, xmax - x1, y1 - ymin, ymax - y1};
+
+    *out_t0 = 0.0f;
+    *out_t1 = 1.0f;
+
+    for (size_t i = 0; i < 4; i++) {
+        if (float_is_equal(p[i], 0.f)) { // Check if line is parallel to the clipping boundary
+            if (q[i] < 0.f) {
+                return false; // Line is outside and parallel, so completely discarded
+            }
+        } else {
+            const float t = q[i] / p[i];
+
+            if (p[i] < 0.f) {
+                if (t > *out_t0) {
+                    *out_t0 = t;
+                }
+            } else {
+                if (t < *out_t1) {
+                    *out_t1 = t;
+                }
+            }
+        }
+    }
+
+    if (*out_t0 > *out_t1) {
+        return false; // Line is completely outside
+    }
+
+    return true;
+}
+// 2d
+// ------------------------------------------------------------------------------------------------------------
+
+void draw_point_2d(const vertix_2d_type v[1], const uint8_t z_order) {
+    assert(valid_vertix_2d_check(1, v));
+
+    if (!vec2_is_inside_range(v[0].pos, (vec2_type){-1.f, -1.f}, (vec2_type){1.f, 1.f})) {
         return;
     }
 
-    const vec2int_type f0r = from_vec2_to_vec2int_truncated(f0);
+    const float depth = (float)z_order / UINT8_MAX;
 
-    const float depth0 = from_int_to_float(z_order) / UINT8_MAX;
+    vertix_2d_type res[1];
+    vertix_2d_copy(1, res, v);
+    vertix_2d_transform_pos_to_screen_space(1, res, v);
 
-    screen_set_pixel_data(f0r, (pixel_data_type){.ascii_char = c, .color = color0, .depth = depth0});
+    internal_plot_point(res, depth);
 }
 
-void draw_point_2d_w_color(const vec2_type v0, const color_type color0, const char c) {
-    draw_point_2d_w_color_and_z_order(v0, color0, 0, c);
-}
+void draw_line_2d(const vertix_2d_type v[2], const uint8_t z_order) {
+    assert(valid_vertix_2d_check(2, v));
 
-void draw_point_2d(const vec2_type v0, const char c) {
-    draw_point_2d_w_color_and_z_order(v0, DEFAULT_COLOR, 0, c);
-}
-
-// 2d - draw line
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_line_2d_w_interpolated_color_and_z_order(const vec2_type v[2], const color_type color[2], const uint8_t z_order,
-                                                   const char c) {
-    const vec2_type f0 = from_screen_pos_to_framebuf_pos(v[0]);
-    const vec2_type f1 = from_screen_pos_to_framebuf_pos(v[1]);
-
-    float t0 = 0.f, t1 = 1.f;
-    if (!clip_line_2d(f0, f1, 0.f, 0.f, FRAMEBUF_WIDTH - 1.f, FRAMEBUF_HEIGHT - 1.f, &t0, &t1)) {
+    float t0, t1;
+    if (!clip_line_2d(v[0].pos, v[1].pos, -1.f, -1.f, 1.f, 1.f, &t0, &t1)) {
         return;
     }
 
-    const vec2_type f0_new = lerp_vec2(f0, f1, t0);
-    const vec2_type f1_new = lerp_vec2(f0, f1, t1);
+    const float depth = (float)z_order / UINT8_MAX;
 
-    const color_type color0_new = lerp_color(color[0], color[1], t0);
-    const color_type color1_new = lerp_color(color[0], color[1], t1);
+    vertix_2d_type res[2];
+    vertix_2d_copy(2, res, v);
 
-    const vec2int_type f0r = from_vec2_to_vec2int_truncated(f0_new);
-    const vec2int_type f1r = from_vec2_to_vec2int_truncated(f1_new);
+    vectix_2d_lerp(&res[0], v, t0);
+    vectix_2d_lerp(&res[1], v, t1);
 
-    const float depth0 = from_int_to_float(z_order) / UINT8_MAX;
+    vertix_2d_transform_pos_to_screen_space(2, res, res);
 
-    internal_plot_line_routine(f0r, f1r, c, depth0, depth0, color0_new, color1_new);
+    internal_plot_line(res, (float[2]){depth, depth});
 }
 
-void draw_line_2d_w_interpolated_color(const vec2_type v[2], const color_type color[2], const char c) {
-    draw_line_2d_w_interpolated_color_and_z_order((const vec2_type[2]){v[0], v[1]}, (const color_type[2]){color[0], color[1]}, 0, c);
-}
+void draw_filled_triangle_2d(const vertix_2d_type v[3], const uint8_t z_order) {
+    assert(valid_vertix_2d_check(3, v));
 
-void draw_line_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const color_type color0, const uint8_t z_order,
-                                      const char c) {
-    draw_line_2d_w_interpolated_color_and_z_order((const vec2_type[2]){v0, v1}, (const color_type[2]){color0, color0}, z_order, c);
-}
+    // TODO: culling
 
-void draw_line_2d_w_color(const vec2_type v0, const vec2_type v1, const color_type color0, const char c) {
-    draw_line_2d_w_interpolated_color_and_z_order((const vec2_type[2]){v0, v1}, (const color_type[2]){color0, color0}, 0, c);
-}
+    const float depth = (float)z_order / UINT8_MAX;
 
-void draw_line_2d(const vec2_type v0, const vec2_type v1, const char c) {
-    draw_line_2d_w_interpolated_color_and_z_order((const vec2_type[2]){v0, v1}, (const color_type[2]){DEFAULT_COLOR, DEFAULT_COLOR}, 0,
-                                                  c);
-}
-
-// 2d - draw triangle
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_filled_triangle_2d_w_interpolated_color_and_z_order(const vec2_type v[3], const color_type color[3], const uint8_t z_order,
-                                                              const char c) {
-    const vec2_type f0 = from_screen_pos_to_framebuf_pos(v[0]);
-    const vec2_type f1 = from_screen_pos_to_framebuf_pos(v[1]);
-    const vec2_type f2 = from_screen_pos_to_framebuf_pos(v[2]);
-
-    // TODO: framebuf check
-
-    const vec2int_type f0r = from_vec2_to_vec2int_truncated(f0);
-    const vec2int_type f1r = from_vec2_to_vec2int_truncated(f1);
-    const vec2int_type f2r = from_vec2_to_vec2int_truncated(f2);
-
-    const float depth0 = from_int_to_float(z_order) / UINT8_MAX;
-
-    internal_plot_triangle_routine(f0r, f1r, f2r, c, depth0, depth0, depth0, color[0], color[1], color[2]);
-}
-
-void draw_filled_triangle_2d_w_interpolated_color(const vec2_type v[3], const color_type color[3], const char c) {
-    draw_filled_triangle_2d_w_interpolated_color_and_z_order((const vec2_type[3]){v[0], v[1], v[2]},
-                                                             (const color_type[3]){color[0], color[1], color[2]}, 0, c);
-}
-
-void draw_filled_triangle_2d_w_color_and_z_order(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
-                                                 const uint8_t z_order, const char c) {
-    draw_filled_triangle_2d_w_interpolated_color_and_z_order((const vec2_type[3]){v0, v1, v2},
-                                                             (const color_type[3]){color0, color0, color0}, z_order, c);
-}
-
-void draw_filled_triangle_2d_w_color(const vec2_type v0, const vec2_type v1, const vec2_type v2, const color_type color0,
-                                     const char c) {
-    draw_filled_triangle_2d_w_interpolated_color_and_z_order((const vec2_type[3]){v0, v1, v2},
-                                                             (const color_type[3]){color0, color0, color0}, 0, c);
-}
-
-void draw_filled_triangle_2d(const vec2_type v0, const vec2_type v1, const vec2_type v2, const char c) {
-    draw_filled_triangle_2d_w_interpolated_color_and_z_order((const vec2_type[3]){v0, v1, v2},
-                                                             (const color_type[3]){DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR}, 0, c);
-}
-
-// 3d - draw point
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_point_3d_w_color(const vec3_type v0, const color_type color0, const char c) {
-    const vec3_type c0 = move_against_camera(v0, g_camera_position, (float*)&g_camera_orientation);
-
-    const vec4_type p0 =
-        project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(c0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
-
-    if (!inside_range_float(p0.z, Z_NEAR, Z_FAR)) {
-        return;
-    }
-
-    const vec4_type p0z = scaled_vec4(p0, 1.f / p0.w);
-
-    const vec2_type f0 = from_screen_pos_to_framebuf_pos((vec2_type){.x = p0z.x, .y = p0z.y});
-
-    if (!clip_point_2d(f0, 0.f, 0.f, FRAMEBUF_WIDTH - 1.f, FRAMEBUF_HEIGHT - 1.f)) {
-        return;
-    }
-
-    const vec2int_type f0r = from_vec2_to_vec2int_truncated(f0);
-
-    screen_set_pixel_data(f0r, (pixel_data_type){.ascii_char = c, .color = color0, .depth = p0z.z});
-}
-
-void draw_point_3d(const vec3_type v0, const char c) {
-    draw_point_3d_w_color(v0, DEFAULT_COLOR, c);
-}
-
-// 3d - draw line
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_line_3d_w_interpolated_color(const vec3_type v[2], const color_type color[2], const char c) {
-    const vec3_type c0 = move_against_camera(v[0], g_camera_position, (float*)&g_camera_orientation);
-    const vec3_type c1 = move_against_camera(v[1], g_camera_position, (float*)&g_camera_orientation);
-
-    const vec4_type p0 =
-        project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(c0, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
-    const vec4_type p1 =
-        project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(c1, FOV_ANGLE_RAD, ASPECT_RATIO, Z_NEAR, Z_FAR);
-
-    // TODO:
-    // clip against z_near plane
-
-
-    const vec4_type p0z = scaled_vec4(p0, 1.f / p0.w);
-    const vec4_type p1z = scaled_vec4(p1, 1.f / p1.w);
-
-    const vec2_type f0 = from_screen_pos_to_framebuf_pos((vec2_type){.x = p0z.x, .y = p0z.y});
-    const vec2_type f1 = from_screen_pos_to_framebuf_pos((vec2_type){.x = p1z.x, .y = p1z.y});
-
-    float t0 = 0.f, t1 = 1.f;
-    if (!clip_line_2d(f0, f1, 0.f, 0.f, FRAMEBUF_WIDTH - 1.f, FRAMEBUF_HEIGHT - 1.f, &t0, &t1)) {
-        return;
-    }
-
-    const vec2_type f0_new = lerp_vec2(f0, f1, t0);
-    const vec2_type f1_new = lerp_vec2(f0, f1, t1);
-
-    const color_type color0_new = lerp_color(color[0], color[1], t0);
-    const color_type color1_new = lerp_color(color[0], color[1], t1);
-
-    const float depth0_new = lerp_float(p0z.z, p1z.z, t0);
-    const float depth1_new = lerp_float(p0z.z, p1z.z, t1);
-
-    const vec2int_type f0r = from_vec2_to_vec2int_truncated(f0_new);
-    const vec2int_type f1r = from_vec2_to_vec2int_truncated(f1_new);
-
-    internal_plot_line_routine(f0r, f1r, c, depth0_new, depth1_new, color0_new, color1_new);
-}
-
-void draw_line_3d_w_color(const vec3_type v0, const vec3_type v1, const color_type color0, const char c) {
-    draw_line_3d_w_interpolated_color((const vec3_type[2]){v0, v1}, (const color_type[3]){color0, color0}, c);
-}
-
-void draw_line_3d(const vec3_type v0, const vec3_type v1, const char c) {
-    draw_line_3d_w_interpolated_color((const vec3_type[2]){v0, v1}, (const color_type[3]){DEFAULT_COLOR, DEFAULT_COLOR}, c);
+    vertix_2d_type res[3];
+    vertix_2d_copy(3, res, v);
+    vertix_2d_transform_pos_to_screen_space(3, res, res);
+    internal_plot_triangle(res, (float[3]){depth, depth, depth});
 }
