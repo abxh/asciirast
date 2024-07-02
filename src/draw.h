@@ -14,7 +14,7 @@
 // winding order      : Only triangles with clockwise ordered verticies is drawn.
 // filling convention : top-left edges of triangle is filled. bottom-right edges is left out.
 
-// Note the use of static variables internally. Rendering is done with a fixed pipeline. Is neither made to be thread-safe.
+// Not thread safe and uses static variables to keep track of internal state.
 
 typedef struct {
     union {
@@ -42,8 +42,7 @@ typedef struct {
     char ascii_char;
 } vertix_3d_type;
 
-void renderer_init(struct screen_type* screen_context_p, const mat4x4_type model_view_perspective_matrix, const size_t n,
-                   const char acsii_palette[n]);
+void renderer_init(struct screen_type* screen_context_p, const mat4x4_type mvp, const size_t n, const char acsii_palette[n]);
 
 void renderer_deinit(void);
 

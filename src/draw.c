@@ -8,6 +8,7 @@
 #include "data_structures/stack.h"
 
 typedef struct {
+    mat4x4_type mvp;
 
     struct screen_type* screen_context_p;
     vert2dstk_type* vert2dstk_p;
@@ -19,7 +20,6 @@ typedef struct {
     bool initialized;
 } renderer_state;
 
-static mat4x4_type mvp;
 static renderer_state s = {.initialized = false};
 
 // vertix copy
@@ -81,7 +81,7 @@ void renderer_init(struct screen_type* screen_context_p, const mat4x4_type model
     s.initialized = true;
 
     s.screen_context_p = screen_context_p;
-    mat4x4_copy(mvp, model_view_matrix);
+    mat4x4_copy(s.mvp, model_view_matrix);
 
     for (size_t i = 0; i < 128; i++) {
         s.ascii_to_index[i] = -1;
