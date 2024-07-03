@@ -61,16 +61,16 @@ void engine_run(const scene_type default_scene) {
         vec2_type vec2 = {0, 1};
 
         vertix_2d_type v0 = {.pos = {vec0[0], vec0[1]}, .prop = {.color = color_red, .ascii_char = '@'}};
-        vertix_2d_type v1 = {.pos = {vec1[0], vec1[1]}, .prop = {.color = color_blue, .ascii_char = '.'}};
+        vertix_2d_type v1 = {.pos = {vec1[0], vec1[1]}, .prop = {.color = color_blue, .ascii_char = '%'}};
         vertix_2d_type v2 = {.pos = {vec2[0], vec2[1]}, .prop = {.color = color_green, .ascii_char = '.'}};
         // draw_point_2d(renderer_p, &v0, 0);
         // draw_point_2d(renderer_p, &v1, 0);
         // draw_point_2d(renderer_p, &v2, 0);
 
-        draw_line_2d(renderer_p, (vertix_2d_type[2]){v0, v1}, 0);
-        draw_line_2d(renderer_p, (vertix_2d_type[2]){v1, v2}, 0);
-        draw_line_2d(renderer_p, (vertix_2d_type[2]){v2, v0}, 0);
-        // draw_filled_triangle_2d(renderer_p, (vertix_2d_type[3]){v0, v1, v2}, 0);
+        // draw_line_2d(renderer_p, (vertix_2d_type[2]){v0, v1}, 0);
+        // draw_line_2d(renderer_p, (vertix_2d_type[2]){v1, v2}, 0);
+        // draw_line_2d(renderer_p, (vertix_2d_type[2]){v2, v0}, 0);
+        draw_filled_triangle_2d(renderer_p, (vertix_2d_type[3]){v0, v1, v2}, 0);
 
         engine_sdl_window_render(sdl_window_context_p);
         screen_refresh(screen_context_p);

@@ -1,6 +1,6 @@
 #include "engine.h"
 
 int main(void) {
-    run();//(scene_type){});
+    engine_run((scene_type){0});
     return 0;
 }

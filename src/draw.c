@@ -65,12 +65,43 @@ void renderer_destroy(renderer_type* this) {
     free(this);
 }
 
-// vertix properties copy
+// vertix prop operations
 // ------------------------------------------------------------------------------------------------------------
 
-static inline void vertix_prop_copy(vertix_prop_type* res, const vertix_prop_type* prop) {
-    res->ascii_char = prop->ascii_char;
-    vec3_copy(res->color.as_vec3, prop->color.as_vec3);
+#pragma clang diagnostic push 
+#pragma clang diagnostic ignored "-Wunused-function"
+
+static inline vertix_prop_type vertix_prop_sum(const ascii_index_conversion_table* conv, const vertix_prop_type v0,
+                                               const vertix_prop_type v1) {
+    color_type color;
+    vec3_add(color.as_vec3, v0.color.as_vec3, v1.color.as_vec3);
+    const int i = conv->ascii_to_index[(int)v0.ascii_char] + conv->ascii_to_index[(int)v1.ascii_char];
+    const char c = conv->index_to_ascii[i];
+
+    return (vertix_prop_type){.color = color, .ascii_char = c};
+}
+
+static inline vertix_prop_type vertix_prop_scaled(const ascii_index_conversion_table* conv, const vertix_prop_type v0, const float t) {
+    color_type color;
+    vec3_scale(color.as_vec3, v0.color.as_vec3, t);
+    const int i = float_rounded_to_int(t * int_to_float(conv->ascii_to_index[(int)v0.ascii_char]));
+    const char c = conv->index_to_ascii[i];
+
+    return (vertix_prop_type){.color = color, .ascii_char = c};
+}
+
+#pragma clang diagnostic pop
+
+static inline vertix_prop_type vertix_prop_lerped(const ascii_index_conversion_table* conv, const vertix_prop_type v0,
+                                                  vertix_prop_type v1, const float t) {
+    color_type color;
+    vec3_lerp(color.as_vec3, v0.color.as_vec3, v1.color.as_vec3, t);
+    const int i0 = conv->ascii_to_index[(int)v0.ascii_char];
+    const int i1 = conv->ascii_to_index[(int)v1.ascii_char];
+    const int i = int_lerped_rounded(i0, i1, t);
+    const char c = conv->index_to_ascii[i];
+
+    return (vertix_prop_type){.color = color, .ascii_char = c};
 }
 
 // valid vertix check
@@ -96,25 +127,11 @@ static inline bool valid_vertix_3d_check(const ascii_index_conversion_table* con
     return is_valid;
 }
 
-// vertix property 2d lerp
-// ------------------------------------------------------------------------------------------------------------
-
-static inline void vertix_prop_lerp(const ascii_index_conversion_table* conv, vertix_prop_type* res, const vertix_prop_type v0,
-                                    const vertix_prop_type v1, const float t) {
-    vec3_lerp(res->color.as_vec3, v0.color.as_vec3, v1.color.as_vec3, t);
-
-    const int c0 = conv->ascii_to_index[(int)v0.ascii_char];
-    const int c1 = conv->ascii_to_index[(int)v1.ascii_char];
-    const int c = int_lerped_rounded(c0, c1, t);
-
-    res->ascii_char = conv->index_to_ascii[c];
-}
-
 // world space -> screen space
 // ------------------------------------------------------------------------------------------------------------
 
-static inline void vec2_transform_pos_to_screen_space(vec2_type res, const vec2_type v) {
-    vec2_add(res, v, (vec2_type){1.f, 1.f});
+static inline void vec2_transform_to_screen_space(vec2_type res, const vec2_type pos) {
+    vec2_add(res, pos, (vec2_type){1.f, 1.f});
     vec2_scale(res, res, 1.f / 2.f);
     vec2_elementwise_prod(res, res, (vec2_type){(float)SCREEN_WIDTH - 1.f, (float)SCREEN_HEIGHT - 1.f});
 }
@@ -122,43 +139,42 @@ static inline void vec2_transform_pos_to_screen_space(vec2_type res, const vec2_
 // internal draw routines
 // ------------------------------------------------------------------------------------------------------------
 
-static inline void internal_plot_point(const renderer_type* this, const vec2_type* pos, const vertix_prop_type* prop,
-                                       const float depth0) {
+static inline void internal_plot_point(const renderer_type* this, const vec2_type* v, const vertix_prop_type* prop,
+                                       const float* depth) {
     vec2int_type r_v;
-    vec2_rounded_to_vec2int(r_v, *pos);
+    vec2_rounded_to_vec2int(r_v, *v);
     screen_set_pixel_data(this->screen_context_p, r_v,
-                          (pixel_data_type){.color = prop->color, .depth = depth0, .ascii_char = prop->ascii_char});
+                          (pixel_data_type){.color = prop->color, .depth = *depth, .ascii_char = prop->ascii_char});
 }
 
-static inline void internal_plot_line(const renderer_type* this, const vec2_type pos[2], const vertix_prop_type prop[2],
+static inline void internal_plot_line(const renderer_type* this, const vec2_type v[2], const vertix_prop_type prop[2],
                                       const float depth[2]) {
     // based on:
     // https://www.redblobgames.com/grids/line-drawing/#more
 
-    const int dx = float_rounded_to_int(float_abs(pos[1][0] - pos[0][0]));
-    const int dy = float_rounded_to_int(float_abs(pos[1][1] - pos[0][1]));
+    const int dx = float_rounded_to_int(float_abs(v[1][0] - v[0][0]));
+    const int dy = float_rounded_to_int(float_abs(v[1][1] - v[0][1]));
     const int diagonal_dist = dx > dy ? dx : dy;
 
     if (diagonal_dist == 0) {
         return;
     }
 
-    vec2int_type p0, p1;
-    vec2_rounded_to_vec2int(p0, pos[0]);
-    vec2_rounded_to_vec2int(p1, pos[1]);
+    vec2int_type vi[2];
+    vec2_rounded_to_vec2int(vi[0], v[0]);
+    vec2_rounded_to_vec2int(vi[1], v[1]);
 
-    for (int step = 0; step <= diagonal_dist; step++) {
+    for (int step = 0; step <= diagonal_dist; step += 1) {
         const float t = (float)step / (float)diagonal_dist;
         const float d = float_lerped(depth[0], depth[1], t);
 
-        vec2int_type p;
-        vec2int_lerp_rounded(p, p0, p1, t);
+        vec2int_type vi_current;
+        vec2int_lerp_rounded(vi_current, vi[0], vi[1], t);
 
-        vertix_prop_type prop_new;
-        vertix_prop_lerp(&this->conv, &prop_new, prop[0], prop[1], t);
+        const vertix_prop_type p = vertix_prop_lerped(&this->conv, prop[0], prop[1], t);
 
-        screen_set_pixel_data(this->screen_context_p, p,
-                              (pixel_data_type){.color = prop->color, .depth = d, .ascii_char = prop->ascii_char});
+        screen_set_pixel_data(this->screen_context_p, vi_current,
+                              (pixel_data_type){.color = p.color, .depth = d, .ascii_char = p.ascii_char});
     }
 }
 
@@ -400,12 +416,10 @@ void draw_point_2d(const renderer_type* this, const vertix_2d_type v[1], const u
     const float depth = (float)z_order / UINT8_MAX;
 
     vec2_type pos;
-    vec2_transform_pos_to_screen_space(pos, v[0].pos);
+    vertix_prop_type prop = v[0].prop;
+    vec2_transform_to_screen_space(pos, v[0].pos);
 
-    vertix_prop_type prop;
-    vertix_prop_copy(&prop, &v[0].prop);
-
-    internal_plot_point(this, &pos, &prop, depth);
+    internal_plot_point(this, &pos, &prop, &depth);
 }
 
 void draw_line_2d(const renderer_type* this, const vertix_2d_type v[2], const uint8_t z_order) {
@@ -423,11 +437,11 @@ void draw_line_2d(const renderer_type* this, const vertix_2d_type v[2], const ui
 
     for (size_t i = 0; i < 2; i++) {
         vec2_lerp(pos[i], v[0].pos, v[1].pos, t[i]);
-        vertix_prop_lerp(&this->conv, &prop[i], v[0].prop, v[1].prop, t[i]);
+        prop[i] = vertix_prop_lerped(&this->conv, v[0].prop, v[1].prop, t[i]);
     }
 
     for (size_t i = 0; i < 2; i++) {
-        vec2_transform_pos_to_screen_space(pos[i], pos[i]);
+        vec2_transform_to_screen_space(pos[i], pos[i]);
     }
 
     internal_plot_line(this, pos, prop, (float[2]){depth, depth});
@@ -443,34 +457,13 @@ void draw_filled_triangle_2d(const renderer_type* this, const vertix_2d_type v[3
     vec2_type pos[3];
     vertix_prop_type prop[3];
 
-    for (size_t i = 0; i < 2; i++) {
-        vertix_prop_copy(&prop[i], &v[i].prop);
-        vec2_transform_pos_to_screen_space(pos[i], v[i].pos);
+    for (size_t i = 0; i < 3; i++) {
+        prop[i] = v[i].prop;
+    }
+
+    for (size_t i = 0; i < 3; i++) {
+        vec2_transform_to_screen_space(pos[i], v[i].pos);
     }
 
     internal_plot_triangle(this, pos, prop, (float[3]){depth, depth, depth});
-}
-
-// 3d
-// ------------------------------------------------------------------------------------------------------------
-
-void draw_point_3d(const struct renderer_type* this, const vertix_3d_type v[1]) {
-    assert(valid_vertix_3d_check(&this->conv, 1, v));
-
-    // const bool forward_facing = v[0].w > 0;
-    // if (!vec2_is_inside_range(v[0].pos, (vec3_type){-v[0].w, -v[0].w}, (vec2_type){v[0].w, v[0].w}) || !forward_facing) {
-    //     return;
-    // }
-    //
-    // vertix_3d_type res[1];
-    //
-    // for (size_t i = 0; i < 1; i++) {
-    //     res[i].ascii_char = v[i].ascii_char;
-    //     mat4x4_mul_vec4(res[i].pos, this->mvp, v->pos);
-    //     vec3_copy(res[i].color.as_vec3, v[i].color.as_vec3);
-    // }
-    //
-    // for (size_t i = 0; i < 1; i++) {
-    //     vec2_transform_pos_to_screen_space(res[i].pos, res[i].pos);
-    // }
 }
