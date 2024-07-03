@@ -62,7 +62,7 @@ void run(void) {
 
         vertix_2d_type v0 = {.x = vec0[0], .y = vec0[1], .color = color_red, .ascii_char = '@'};
         vertix_2d_type v1 = {.x = vec1[0], .y = vec1[1], .color = color_blue, .ascii_char = '.'};
-        vertix_2d_type v2 = {.x = vec2[0], .y = vec2[1], .color = color_green, .ascii_char = '.'};
+        vertix_2d_type v2 = {.x = vec2[0], .y = vec2[1], .color = color_green, .ascii_char = '#'};
         // draw_point_2d(&v0, 0);
         // draw_point_2d(&v1, 0);
 
