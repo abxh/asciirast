@@ -239,7 +239,7 @@ static inline void internal_plot_triangle(const vertix_2d_type v[3], const float
                 ch_comp0_idx = int_to_float(s.ascii_to_index[(int)v[0].ascii_char]);
                 ch_comp1_idx = int_to_float(s.ascii_to_index[(int)v[1].ascii_char]);
                 ch_comp2_idx = int_to_float(s.ascii_to_index[(int)v[2].ascii_char]);
-                ch = s.index_to_ascii[float_truncated_to_int(alpha * ch_comp0_idx + beta * ch_comp1_idx + gamma * ch_comp2_idx)];
+                ch = s.index_to_ascii[float_rounded_to_int(alpha * ch_comp0_idx + beta * ch_comp1_idx + gamma * ch_comp2_idx)];
 
                 screen_set_pixel_data(s.screen_context_p, (int[2]){x, y}, (pixel_data_type){.color = c, .depth = d, .ascii_char = ch});
             }
