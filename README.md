@@ -1,9 +1,7 @@
 # ascii-rasterizer
 
-An ascii rasterizer. Use the code as you want adhering to the license.
-
 Dependencies:
-- `XTerm/ANSI-compatible terminals ` supporting terminal.
+- `XTerm/ANSI-compatible terminals` supporting terminal.
 - `SDL2`
 - `SDL2_ttf`
 
