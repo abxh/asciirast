@@ -1,6 +1,6 @@
 #pragma once
 
-// palettes from:
+// Paul Bourke's palettes. Taken from:
 // https://www.astoundingscripts.com/art/create-your-own-ascii-art-palettes-densitysort/
 
 static const char ascii_short_palette[] = "@%#*+=-:. ";

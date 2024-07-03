@@ -1,4 +1,5 @@
 #include "engine_timer.h"
+#include "log.h"
 
 #include <SDL2/SDL_timer.h>
 
@@ -13,10 +14,7 @@ typedef struct engine_timer_type {
 
 engine_timer_type* engine_timer_create(void) {
     engine_timer_type* this = malloc(sizeof(engine_timer_type));
-
-    if (!this) {
-        abort();
-    }
+    HANDLE_NULL(this, "malloc");
 
     this->previous_time_ms = SDL_GetTicks64();
     this->lag_ms = 0.;

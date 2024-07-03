@@ -1,13 +1,12 @@
 #pragma once
 
-#include "engine_cmd_ht.h"
 #include "scene.h"
+#include "engine_cmd_ht.h"
 
-typedef struct {
-    cmdht_type* cmdht_p;
-    scene_type next_scene;
-} engine_settings_type;
+struct engine_handle_type;
 
-extern engine_settings_type g_engine_settings;
+void engine_run(const scene_type default_scene);
 
-void run(void); //(const scene_type scene);
+cmdht_type* engine_get_cmd_hashtable(struct engine_handle_type* handle_p);
+
+void engine_set_next_scene(struct engine_handle_type* handle_p, scene_type next_scene);

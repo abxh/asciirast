@@ -3,11 +3,10 @@
 #include "draw.h"
 #include "engine_sdl_window.h"
 #include "engine_timer.h"
+#include "log.h"
 #include "screen.h"
 
 #include <SDL2/SDL.h>
-
-engine_settings_type g_engine_settings;
 
 static inline void sdl_poll_events(bool* on_running_p) {
     SDL_Event event;
@@ -31,18 +30,18 @@ static inline void sdl_poll_events(bool* on_running_p) {
     }
 }
 
-void run(void) {
-    g_engine_settings.cmdht_p = cmdht_create_with_initial_capacity(16);
-    if (!g_engine_settings.cmdht_p) {
-        abort();
-    }
-    cmdht_insert(g_engine_settings.cmdht_p, (key_comb_type){"q"}, (command_name_type){"quit"});
+void engine_run(const scene_type default_scene) {
+    cmdht_type* cmdht_p = cmdht_create_with_initial_capacity(16);
+    HANDLE_NULL(cmdht_p, "cmdht_create_with_initial_capacity");
+
+    cmdht_insert(cmdht_p, (key_comb_type){"q"}, (command_name_type){"quit"});
 
     struct screen_type* screen_context_p = screen_create(stdout);
-    struct engine_sdl_window_type* sdl_window_context_p = engine_sdl_window_create();
+    struct engine_sdl_window_type* sdl_window_context_p = engine_sdl_window_create(cmdht_p);
     struct engine_timer_type* timer_context_p = engine_timer_create();
-
-    renderer_init(screen_context_p, (mat4x4_type){}, sizeof(ascii_short_palette) - 1, ascii_short_palette);
+    struct renderer_type* renderer_p = renderer_create(
+        screen_context_p, sizeof(ascii_short_palette) - 1, ascii_short_palette,
+        (perspective_proj_prop_type){.fovy_rad = DEG_TO_ANGLE_RAD(60), .aspect_ratio = ASPECT_RATIO, .z_near = 0.1f, .z_far = 100.f});
 
     float x = 0;
 
@@ -53,6 +52,7 @@ void run(void) {
 
         while (engine_timer_scene_should_update(timer_context_p)) {
             x += 0.1f * MS_PER_UPDATE / 200.f;
+
             engine_timer_scene_tick(timer_context_p);
         }
 
@@ -60,16 +60,17 @@ void run(void) {
         vec2_type vec1 = {1, -1};
         vec2_type vec2 = {0, 1};
 
-        vertix_2d_type v0 = {.x = vec0[0], .y = vec0[1], .color = color_red, .ascii_char = '@'};
-        vertix_2d_type v1 = {.x = vec1[0], .y = vec1[1], .color = color_blue, .ascii_char = '*'};
-        vertix_2d_type v2 = {.x = vec2[0], .y = vec2[1], .color = color_green, .ascii_char = '.'};
-        // draw_point_2d(&v0, 0);
-        // draw_point_2d(&v1, 0);
+        vertix_2d_type v0 = {.pos = {vec0[0], vec0[1]}, .prop = {.color = color_red, .ascii_char = '@'}};
+        vertix_2d_type v1 = {.pos = {vec1[0], vec1[1]}, .prop = {.color = color_blue, .ascii_char = '.'}};
+        vertix_2d_type v2 = {.pos = {vec2[0], vec2[1]}, .prop = {.color = color_green, .ascii_char = '.'}};
+        // draw_point_2d(renderer_p, &v0, 0);
+        // draw_point_2d(renderer_p, &v1, 0);
+        // draw_point_2d(renderer_p, &v2, 0);
 
-        // draw_line_2d((vertix_2d_type[2]){v0, v1}, 0);
-        // draw_line_2d((vertix_2d_type[2]){v1, v2}, 0);
-        // draw_line_2d((vertix_2d_type[2]){v2, v0}, 0);
-        draw_filled_triangle_2d((vertix_2d_type[3]){v0, v1, v2}, 0);
+        draw_line_2d(renderer_p, (vertix_2d_type[2]){v0, v1}, 0);
+        draw_line_2d(renderer_p, (vertix_2d_type[2]){v1, v2}, 0);
+        draw_line_2d(renderer_p, (vertix_2d_type[2]){v2, v0}, 0);
+        // draw_filled_triangle_2d(renderer_p, (vertix_2d_type[3]){v0, v1, v2}, 0);
 
         engine_sdl_window_render(sdl_window_context_p);
         screen_refresh(screen_context_p);
@@ -78,9 +79,8 @@ void run(void) {
         engine_timer_tick(timer_context_p);
     }
 
-    renderer_deinit();
-
-    cmdht_destroy(g_engine_settings.cmdht_p);
+    renderer_destroy(renderer_p);
+    cmdht_destroy(cmdht_p);
     screen_destroy(screen_context_p);
     engine_sdl_window_destroy(sdl_window_context_p);
     engine_timer_destroy(timer_context_p);

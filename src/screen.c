@@ -2,6 +2,7 @@
 #include "screen.h"
 #include "color.h"
 #include "math/vec.h"
+#include "log.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -54,10 +55,7 @@ void screen_clear(screen_type* this) {
 
 screen_type* screen_create(FILE* output_stream) {
     screen_type* this = malloc(sizeof(screen_type));
-
-    if (!this) {
-        abort();
-    }
+    HANDLE_NULL(this, "malloc");
 
     this->output_stream = output_stream;
     fprintf(this->output_stream, CSI_ESC CSI_HIDECURSOR);

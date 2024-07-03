@@ -1,6 +1,6 @@
 
 #include "engine_sdl_window.h"
-#include "engine.h"
+#include "log.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -18,6 +18,8 @@ typedef struct {
     char* buf_p;
     size_t buf_capacity;
     size_t prev_entry_count;
+
+    cmdht_type* cmdht_p;
 } sdl_text_type;
 
 typedef struct {
@@ -34,12 +36,10 @@ typedef struct engine_sdl_window_type {
 } engine_sdl_window_type;
 
 static inline void update_text(engine_sdl_window_type* this) {
-    if (this->text.buf_capacity < g_engine_settings.cmdht_p->count) {
+    if (this->text.buf_capacity < cmdht_count(this->text.cmdht_p)) {
         this->text.buf_capacity *= 2;
         void* tmp = realloc(this->text.buf_p, this->text.buf_capacity * OUTPUT_TEXT_CHUNK_SIZE);
-        if (!tmp) {
-            abort();
-        }
+        HANDLE_NULL(tmp, "realloc");
         this->text.buf_p = tmp;
     }
 
@@ -48,7 +48,7 @@ static inline void update_text(engine_sdl_window_type* this) {
         size_t count;
         key_comb_type key;
         command_name_type value;
-        hashtable_for_each(g_engine_settings.cmdht_p, count, key, value) {
+        hashtable_for_each(this->text.cmdht_p, count, key, value) {
             char* p1 = key.value;
             while (*p1 != '\0') {
                 *p0++ = *p1++;
@@ -91,43 +91,40 @@ static inline void sdl_render_text(const engine_sdl_window_type* this) {
     SDL_RenderPresent(this->win.sdl_rend_obj);
 }
 
-engine_sdl_window_type* engine_sdl_window_create(void) {
+engine_sdl_window_type* engine_sdl_window_create(cmdht_type* cmdht_p) {
     engine_sdl_window_type* this = malloc(sizeof(engine_sdl_window_type));
-
-    if (!this) {
-        abort();
-    }
+    HANDLE_NULL(this, "malloc");
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         abort();
     }
     this->win.sdl_win_obj = SDL_CreateWindow("ascii-rasterizer - controls", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                              SDL_WINDOW_WIDTH, SDL_WINDOW_HEIGHT, 0);
-    if (!this->win.sdl_win_obj) {
-        abort();
-    }
+    HANDLE_NULL(this->win.sdl_win_obj, "SDL_CreateWindow");
+
     this->win.sdl_rend_obj = SDL_CreateRenderer(this->win.sdl_win_obj, -1, 0);
-    if (!this->win.sdl_rend_obj) {
-        abort();
-    }
+    HANDLE_NULL(this->win.sdl_win_obj, "SDL_CreateRenderer");
+
     SDL_GetWindowSizeInPixels(this->win.sdl_win_obj, &this->win.width_pixels, &this->win.height_pixels);
 
     if (TTF_Init() < 0) {
         abort();
     }
+
     this->text.sdl_font_obj = TTF_OpenFont(SDL_FONT_PATH, SDL_FONT_SIZE);
     if (this->text.sdl_font_obj == NULL) {
         fprintf(stderr, "error: '" SDL_FONT_PATH "' not found\n");
         exit(EXIT_FAILURE);
     }
+
     this->text.buf_capacity = 16;
     this->text.buf_p = calloc(OUTPUT_TEXT_CHUNK_SIZE, this->text.buf_capacity);
-    if (this->text.buf_p == NULL) {
-        abort();
-    }
+    HANDLE_NULL(this->text.buf_p, "calloc");
+
     this->text.prev_entry_count = 0;
     this->text.sdl_surface_obj = NULL;
     this->text.sdl_text_obj = NULL;
+    this->text.cmdht_p = cmdht_p;
 
     update_text(this);
 
@@ -149,9 +146,9 @@ void engine_sdl_window_destroy(engine_sdl_window_type* this) {
 }
 
 void engine_sdl_window_update(engine_sdl_window_type* this) {
-    if (this->text.prev_entry_count != g_engine_settings.cmdht_p->count) {
+    if (this->text.prev_entry_count != cmdht_count(this->text.cmdht_p)) {
         update_text(this);
-        this->text.prev_entry_count = g_engine_settings.cmdht_p->count;
+        this->text.prev_entry_count = cmdht_count(this->text.cmdht_p);
     }
 }
 

@@ -294,6 +294,19 @@ static inline VALUE_TYPE JOIN(STACK_PREFIX, pop)(STACK_TYPE* stack_ptr) {
     return stack_ptr->values[--stack_ptr->count];
 }
 
+/**
+ * @brief Clear the stack.
+ *
+ * Asserts stack_ptr is not `NULL`.
+ *
+ * @param[in] stack_ptr The stack pointer.
+ */
+static inline void JOIN(STACK_PREFIX, clear)(STACK_TYPE* stack_ptr) {
+    assert(NULL != stack_ptr);
+
+    stack_ptr->count = 0;
+}
+
 #undef STACK_PREFIX
 #undef VALUE_TYPE
 #undef STACK_TYPE

@@ -83,10 +83,17 @@ static inline void VECINT_METHOD(DIM, clamp)(VECINT_NAME(DIM) res, const VECINT_
     }
 }
 
-static inline void VECINT_METHOD(DIM, lerp)(VECINT_NAME(DIM) res, const VECINT_NAME(DIM) v0, const VECINT_NAME(DIM) v1,
+static inline void VECINT_METHOD(DIM, lerp_rounded)(VECINT_NAME(DIM) res, const VECINT_NAME(DIM) v0, const VECINT_NAME(DIM) v1,
                                             const float t0) {
     for (size_t i = 0; i < DIM; i++) {
-        res[i] = int_lerped(v0[i], v1[i], t0);
+        res[i] = int_lerped_rounded(v0[i], v1[i], t0);
+    }
+}
+
+static inline void VECINT_METHOD(DIM, lerp_truncated)(VECINT_NAME(DIM) res, const VECINT_NAME(DIM) v0, const VECINT_NAME(DIM) v1,
+                                            const float t0) {
+    for (size_t i = 0; i < DIM; i++) {
+        res[i] = int_lerped_truncated(v0[i], v1[i], t0);
     }
 }
 
