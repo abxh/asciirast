@@ -1,6 +1,7 @@
 EXEC_NAME := a.out
 
 CFLAGS    += -I./src
+CFLAGS    += -I./lib/ctl
 CFLAGS    += -I./example_scenes
 
 CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
@@ -24,12 +25,12 @@ ifeq ($(RELEASE), 1)
 	CFLAGS    += -O3 -march=native
 else ifeq ($(DEBUG), 1) 
 	CC        := clang
-	# CFLAGS    += -DDEBUG_DRAW
 	CFLAGS    += -DDEBUG -ggdb3
 	CFLAGS    += -std=c11
 	CFLAGS    += -fPIC
 	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn
 	CFLAGS    += -Wno-declaration-after-statement -Wno-padded -Wno-gnu-binary-literal -Wno-vla
+	CFLAGS    += -Wno-unused-but-set-variable
 	CFLAGS    += -fsanitize=undefined,address
 	LD_FLAGS  += -fsanitize=undefined,address
 endif

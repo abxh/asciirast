@@ -101,8 +101,9 @@ void screen_refresh(const screen_type* this) {
 void screen_set_pixel_data(screen_type* this, const vec2int_type pos, const pixel_data_type data) {
     assert(int_is_inside_range(pos[0], 0, SCREEN_WIDTH - 1));
     assert(int_is_inside_range(pos[1], 0, SCREEN_HEIGHT - 1));
-    assert(int_is_inside_range(data.ascii_char, 32, 126) && "ascii char is not printable");
     assert(float_is_inside_range(data.depth, 0.f, 1.f));
+
+    assert(int_is_inside_range(data.ascii_char, 32, 126) && "ascii char is not printable");
     assert(vec3_is_inside_range(data.color.as_vec3, (vec3_type){0.f, 0.f, 0.f}, (vec3_type){1.f, 1.f, 1.f}));
 
     const float prev_depth = this->depthbuf[pos[1]][pos[0]];

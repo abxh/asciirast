@@ -29,8 +29,8 @@ struct renderer_type;
 struct renderer_type* renderer_create(struct screen_type* screen_context_p, const size_t n, const char acsii_palette[n],
                                       const perspective_proj_prop_type prop);
 
+void renderer_destroy(struct renderer_type* obj_p);
+
 void renderer_frustum(struct renderer_type* obj_p, const frustum_prop_type prop);
 
 void renderer_look_at(struct renderer_type* obj_p, const camera_prop_type prop);
-
-void renderer_destroy(struct renderer_type* obj_p);

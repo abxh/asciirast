@@ -40,3 +40,7 @@ static inline int int_lerped_truncated(const int v0, const int v1, const float t
 static inline float int_to_float(const int v0) {
     return (float)v0;
 }
+
+static inline int int_signof(const int v0) {
+    return (v0 > 0) - (v0 < 0);
+}

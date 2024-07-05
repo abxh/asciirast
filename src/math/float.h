@@ -46,3 +46,11 @@ static inline int float_rounded_to_int(const float v0) {
     const float r = roundf(v0);
     return (int)r;
 }
+
+static inline float float_truncated(const float v0) {
+    return truncf(v0);
+}
+
+static inline float float_rounded(const float v0) {
+    return roundf(v0);
+}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine_cmd_ht.h"
+#include "engine_cmd_desc.h"
 
 #ifndef SDL_WINDOW_WIDTH
 #define SDL_WINDOW_WIDTH 600
@@ -20,7 +20,7 @@
 
 struct engine_sdl_window_type;
 
-struct engine_sdl_window_type* engine_sdl_window_create(cmdht_type* cmdht_p);
+struct engine_sdl_window_type* engine_sdl_window_create(set_cmd_desc desc_set);
 
 void engine_sdl_window_destroy(struct engine_sdl_window_type* obj_p);
 

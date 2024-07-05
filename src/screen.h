@@ -13,7 +13,7 @@
 #define SCREEN_HEIGHT 20
 #endif
 
-#define ASPECT_RATIO (SCREEN_WIDTH / (float)SCREEN_HEIGHT)
+#define ASPECT_RATIO (SCREEN_WIDTH / (2.f * SCREEN_HEIGHT))
 
 typedef struct {
     color_type color;

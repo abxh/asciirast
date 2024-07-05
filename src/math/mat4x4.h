@@ -3,7 +3,9 @@
 //
 // Under public domain.
 //
-// May calculate inplace operations incorrectly. 
+// May calculate inplace operations incorrectly.
+//
+// Column-major matrix
 
 #pragma once
 
@@ -362,4 +364,29 @@ static inline void mat4x4_arcball(mat4x4_type res, const mat4x4_type M, const ve
 
     float const angle_rad = acosf(vec3_dot(a_, b_)) * s;
     mat4x4_rotate(res, M, c_[0], c_[1], c_[2], angle_rad);
+}
+
+static inline void mat4x4_extract_planes_from_projmat(const mat4x4_type mvp, vec4_type left, vec4_type right, vec4_type bottom,
+                                                      vec4_type top, vec4_type near, vec4_type far) {
+    // Gribb/Hartmann method:
+    // https://stackoverflow.com/a/34960913
+
+    for (int i = 4; i--;) {
+        left[i] = mvp[i][3] + mvp[i][0];
+    }
+    for (int i = 4; i--;) {
+        right[i] = mvp[i][3] - mvp[i][0];
+    }
+    for (int i = 4; i--;) {
+        bottom[i] = mvp[i][3] + mvp[i][1];
+    }
+    for (int i = 4; i--;) {
+        top[i] = mvp[i][3] - mvp[i][1];
+    }
+    for (int i = 4; i--;) {
+        near[i] = mvp[i][3] + mvp[i][2];
+    }
+    for (int i = 4; i--;) {
+        far[i] = mvp[i][3] - mvp[i][2];
+    }
 }

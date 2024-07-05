@@ -1,3 +1,5 @@
+#pragma once
+
 #include "vec.h"
 
 static inline void project_from_world_space_to_screen_space(vec2_type* res, const vec3_type v0, const float fov_angle_rad,

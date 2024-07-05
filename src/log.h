@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 #ifdef DEBUG
 #define HANDLE_NULL_(func_name) \

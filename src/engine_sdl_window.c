@@ -1,13 +1,12 @@
-
 #include "engine_sdl_window.h"
 #include "log.h"
+
+#include <str.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
 #include <stdlib.h>
-
-#define OUTPUT_TEXT_CHUNK_SIZE (sizeof(key_comb_type) + sizeof(command_name_type) + 4)
 
 typedef struct {
     TTF_Font* sdl_font_obj;
@@ -15,11 +14,9 @@ typedef struct {
     SDL_Texture* sdl_text_obj;
     SDL_Rect sdl_rect;
 
-    char* buf_p;
-    size_t buf_capacity;
-    size_t prev_entry_count;
-
-    cmdht_type* cmdht_p;
+    size_t prev_size;
+    str desc_str;
+    set_cmd_desc desc_set;
 } sdl_text_type;
 
 typedef struct {
@@ -36,44 +33,19 @@ typedef struct engine_sdl_window_type {
 } engine_sdl_window_type;
 
 static inline void update_text(engine_sdl_window_type* this) {
-    if (this->text.buf_capacity < cmdht_count(this->text.cmdht_p)) {
-        this->text.buf_capacity *= 2;
-        void* tmp = realloc(this->text.buf_p, this->text.buf_capacity * OUTPUT_TEXT_CHUNK_SIZE);
-        HANDLE_NULL(tmp, "realloc");
-        this->text.buf_p = tmp;
+    str_clear(&this->text.desc_str);
+    foreach (set_cmd_desc, &this->text.desc_set, it) {
+        str_append(&this->text.desc_str, *it.ref);
+        str_append(&this->text.desc_str, (it.next == it.end) ? "." : ", ");
     }
-
-    char* p0 = this->text.buf_p;
-    {
-        size_t count;
-        key_comb_type key;
-        command_name_type value;
-        hashtable_for_each(this->text.cmdht_p, count, key, value) {
-            char* p1 = key.value;
-            while (*p1 != '\0') {
-                *p0++ = *p1++;
-            }
-            *p0++ = ':';
-            *p0++ = ' ';
-            p1 = value.value;
-            while (*p1 != '\0') {
-                *p0++ = *p1++;
-            }
-            if (count != 1) {
-                *p0++ = ',';
-                *p0++ = ' ';
-            }
-        }
-    }
-    *p0++ = '\0';
 
     if (this->text.sdl_surface_obj != NULL) {
         SDL_FreeSurface(this->text.sdl_surface_obj);
         SDL_DestroyTexture(this->text.sdl_text_obj);
     }
 
-    this->text.sdl_surface_obj = TTF_RenderText_Solid_Wrapped(this->text.sdl_font_obj, this->text.buf_p, (SDL_Color){0, 0, 0, 0},
-                                                              (uint32_t)this->win.width_pixels);
+    this->text.sdl_surface_obj = TTF_RenderText_Solid_Wrapped(this->text.sdl_font_obj, this->text.desc_str.value,
+                                                              (SDL_Color){0, 0, 0, 0}, (uint32_t)this->win.width_pixels);
     if (!this->text.sdl_surface_obj) {
         abort();
     }
@@ -91,7 +63,7 @@ static inline void sdl_render_text(const engine_sdl_window_type* this) {
     SDL_RenderPresent(this->win.sdl_rend_obj);
 }
 
-engine_sdl_window_type* engine_sdl_window_create(cmdht_type* cmdht_p) {
+engine_sdl_window_type* engine_sdl_window_create(set_cmd_desc desc_set) {
     engine_sdl_window_type* this = malloc(sizeof(engine_sdl_window_type));
     HANDLE_NULL(this, "malloc");
 
@@ -116,15 +88,12 @@ engine_sdl_window_type* engine_sdl_window_create(cmdht_type* cmdht_p) {
         fprintf(stderr, "error: '" SDL_FONT_PATH "' not found\n");
         exit(EXIT_FAILURE);
     }
-
-    this->text.buf_capacity = 16;
-    this->text.buf_p = calloc(OUTPUT_TEXT_CHUNK_SIZE, this->text.buf_capacity);
-    HANDLE_NULL(this->text.buf_p, "calloc");
-
-    this->text.prev_entry_count = 0;
     this->text.sdl_surface_obj = NULL;
     this->text.sdl_text_obj = NULL;
-    this->text.cmdht_p = cmdht_p;
+
+    this->text.desc_str = str_init("");
+    this->text.desc_set = desc_set;
+    this->text.prev_size = desc_set.size;
 
     update_text(this);
 
@@ -136,7 +105,7 @@ void engine_sdl_window_destroy(engine_sdl_window_type* this) {
     SDL_DestroyTexture(this->text.sdl_text_obj);
     TTF_CloseFont(this->text.sdl_font_obj);
     TTF_Quit();
-    free(this->text.buf_p);
+    str_free(&this->text.desc_str);
 
     SDL_DestroyRenderer(this->win.sdl_rend_obj);
     SDL_DestroyWindow(this->win.sdl_win_obj);
@@ -146,9 +115,9 @@ void engine_sdl_window_destroy(engine_sdl_window_type* this) {
 }
 
 void engine_sdl_window_update(engine_sdl_window_type* this) {
-    if (this->text.prev_entry_count != cmdht_count(this->text.cmdht_p)) {
+    if (this->text.prev_size != this->text.desc_set.size) {
         update_text(this);
-        this->text.prev_entry_count = cmdht_count(this->text.cmdht_p);
+        this->text.prev_size = this->text.desc_set.size;
     }
 }
 

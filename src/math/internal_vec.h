@@ -113,13 +113,13 @@ static inline void VEC_METHOD(DIM, lerp)(VEC_NAME(DIM) res, const VEC_NAME(DIM) 
 
 static inline void VEC_METHOD(DIM, rounded)(VEC_NAME(DIM) res, const VEC_NAME(DIM) v0) {
     for (size_t i = 0; i < DIM; i++) {
-        res[i] = roundf(v0[i]);
+        res[i] = float_rounded(v0[i]);
     }
 }
 
 static inline void VEC_METHOD(DIM, truncated)(VEC_NAME(DIM) res, const VEC_NAME(DIM) v0) {
     for (size_t i = 0; i < DIM; i++) {
-        res[i] = truncf(v0[i]);
+        res[i] = float_truncated(v0[i]);
     }
 }
 
