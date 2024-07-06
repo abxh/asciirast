@@ -53,6 +53,7 @@ renderer_type* renderer_create(struct screen_type* screen_context_p, const size_
         this->conv.ascii_to_index[i] = -1;
         this->conv.index_to_ascii[i] = ' ';
     }
+    this->conv.ascii_palette_size = n;
 
     for (size_t i = 0; i < n; i++) {
         assert(int_is_inside_range(ascii_palette[i], 32, 126) && "ascii char is not printable");

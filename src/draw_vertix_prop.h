@@ -35,9 +35,10 @@ static inline vertix_prop_type vertix_prop_lerped(const ascii_index_conversion_t
                                                   vertix_prop_type v1, const float t) {
     color_type color;
     vec3_lerp(color.as_vec3, v0.color.as_vec3, v1.color.as_vec3, t);
+
     const int i0 = conv->ascii_to_index[(int)v0.ascii_char];
     const int i1 = conv->ascii_to_index[(int)v1.ascii_char];
-    const int i = int_lerped_rounded(i0, i1, t);
+    const int i = int_lerped_truncated(i0, i1, t);
     const char c = conv->index_to_ascii[i];
 
     return (vertix_prop_type){.color = color, .ascii_char = c};

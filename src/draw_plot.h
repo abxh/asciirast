@@ -11,7 +11,7 @@
 static inline void internal_plot_point(struct screen_type* screen_p, const vec2_type* v, const vertix_prop_type* prop,
                                        const float* depth) {
     vec2int_type r_v;
-    vec2_rounded_to_vec2int(r_v, *v);
+    vec2_truncated_to_vec2int(r_v, *v);
     screen_set_pixel_data(screen_p, r_v, (pixel_data_type){.color = prop->color, .depth = *depth, .ascii_char = prop->ascii_char});
 }
 
@@ -21,10 +21,10 @@ static inline void internal_plot_line(struct screen_type* screen_p, const ascii_
     // https://www.redblobgames.com/grids/line-drawing/#more
 
     vec2_type v[2];
-    vec2_truncated(v[0], pos[0]);
-    vec2_truncated(v[1], pos[1]);
-    vec2_add(v[0], v[0], (vec2_type){0.5f, 0.5f});
-    vec2_add(v[1], v[1], (vec2_type){0.5f, 0.5f});
+    vec2_copy(v[0], pos[0]); // vec2_copy
+    vec2_copy(v[1], pos[1]);
+    // vec2_add(v[0], v[0], (vec2_type){0.5f, 0.5f});
+    // vec2_add(v[1], v[1], (vec2_type){0.5f, 0.5f});
 
     const float dx = v[1][0] - v[0][0];
     const float dy = v[1][1] - v[0][1];
@@ -69,17 +69,13 @@ static inline void internal_plot_triangle(struct screen_type* screen_p, const as
     vec2_truncated(v[1], pos[1]);
     vec2_truncated(v[2], pos[2]);
 
-    vec2_add(v[0], v[0], (vec2_type){0.5f, 0.5f});
-    vec2_add(v[1], v[1], (vec2_type){0.5f, 0.5f});
-    vec2_add(v[2], v[2], (vec2_type){0.5f, 0.5f});
-
     // get the bounding box of the triangle
     const int maxX = float_truncated_to_int(float_max(v[0][0], float_max(v[1][0], v[2][0])));
     const int minX = float_truncated_to_int(float_min(v[0][0], float_min(v[1][0], v[2][0])));
     const int maxY = float_truncated_to_int(float_max(v[0][1], float_max(v[1][1], v[2][1])));
     const int minY = float_truncated_to_int(float_min(v[0][1], float_min(v[1][1], v[2][1])));
 
-    const vec2_type p0 = {int_to_float(minX) + 0.5f, int_to_float(minY) + 0.5f};
+    const vec2_type p0 = {int_to_float(minX), int_to_float(minY)};
 
     // relevant vectors:
     vec2_type v1_to_v2, v2_to_v0, v0_to_v1, v0_to_v2, v1_to_p0, v2_to_p0, v0_to_p0;
@@ -94,6 +90,10 @@ static inline void internal_plot_triangle(struct screen_type* screen_p, const as
     vec2_sub(v2_to_p0, p0, v[2]);
 
     const float triangle_area_2 = vec2_cross(v0_to_v1, v0_to_v2);
+
+    if (float_is_equal(triangle_area_2, 0.f)) {
+        return;
+    }
 
     // for efficient cross product calculation for each point in the bounding box. see video for derivation.
     const float delta_w0_col = v[1][1] - v[2][1];
@@ -114,7 +114,6 @@ static inline void internal_plot_triangle(struct screen_type* screen_p, const as
         float w2 = w2_row;
 
         for (int x = minX; x <= maxX; x++) {
-
             // non-optimal way to get (w0):
             // vec2_type v1_to_p0;
             // vec2_sub(v1_to_p0, (vec2_type){x,y}, pos[1]);
@@ -122,6 +121,8 @@ static inline void internal_plot_triangle(struct screen_type* screen_p, const as
 
             bool is_inside_triangle = w0 >= 0 && w1 >= 0 && w2 >= 0;
             if (is_inside_triangle) {
+
+                assert(!float_is_equal(triangle_area_2, 0.f));
                 const float alpha = w0 / triangle_area_2;
                 const float beta = w1 / triangle_area_2;
                 const float gamma = w2 / triangle_area_2;
@@ -140,6 +141,9 @@ static inline void internal_plot_triangle(struct screen_type* screen_p, const as
                 const float i1 = int_to_float(conv->ascii_to_index[(int)prop[1].ascii_char]);
                 const float i2 = int_to_float(conv->ascii_to_index[(int)prop[2].ascii_char]);
                 const int i = float_rounded_to_int(alpha * i0 + beta * i1 + gamma * i2);
+
+                assert(int_is_inside_range(i, 0, (int)(conv->ascii_palette_size - 1)) && "ascii character is inside table");
+
                 const char c = conv->index_to_ascii[i];
 
                 screen_set_pixel_data(screen_p, (int[2]){x, y}, (pixel_data_type){.color = color, .depth = d, .ascii_char = c});

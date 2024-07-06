@@ -11,6 +11,6 @@ typedef struct {
     int ascii_to_index[128];
 } ascii_index_conversion_table;
 
-static const char ascii_short_palette[] = "@%#*+=-:. ";
+static const char ascii_short_palette[] = "@%#*+=-:. 1234567890"; // numbers are added for debugging
 
 static const char ascii_long_palette[] = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";

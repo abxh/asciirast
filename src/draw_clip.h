@@ -30,6 +30,16 @@ typedef struct {
 // internal cull/clip routines
 // ------------------------------------------------------------------------------------------------------------
 
+static inline float internal_vert3_2d_cross(const vert3_2d vert) {
+    vec2_type p0_to_p1;
+    vec2_type p0_to_p2;
+
+    vec2_sub(p0_to_p1, vert.value[1].pos, vert.value[0].pos);
+    vec2_sub(p0_to_p2, vert.value[2].pos, vert.value[0].pos);
+
+    return vec2_cross(p0_to_p2, p0_to_p1);
+}
+
 static inline bool internal_vert3_2d_back_face_cull(const vert3_2d vert) {
     vec2_type p0_to_p1;
     vec2_type p0_to_p2;
@@ -104,7 +114,7 @@ static inline bool internal_clip_line_2d(const vec2_type pos0, const vec2_type p
     return true;
 }
 
-static inline int internal_vert3_2d_count_points_inside(const int border_id, const vert3_2d vert3, int i[3]) {
+static inline int internal_vert3_2d_count_points_inside(const int border_id, const vert3_2d vert3, bool inside[3]) {
 
     vec2_type min = {-INFINITY, -INFINITY};
     vec2_type max = {+INFINITY, +INFINITY};
@@ -124,54 +134,54 @@ static inline int internal_vert3_2d_count_points_inside(const int border_id, con
         break;
     }
 
-    const bool p0_inside = vec2_is_inside_range(vert3.value[0].pos, min, max);
-    const bool p1_inside = vec2_is_inside_range(vert3.value[1].pos, min, max);
-    const bool p2_inside = vec2_is_inside_range(vert3.value[2].pos, min, max);
-    const int count = p0_inside + p1_inside + p2_inside;
-
-    if (count == 1) {
-        if (p0_inside) {
-            // inside:
-            i[0] = 0;
-            // outside:
-            i[1] = 1;
-            i[2] = 2;
-        } else if (p1_inside) {
-            // inside:
-            i[0] = 1;
-            // outside:
-            i[1] = 0;
-            i[2] = 2;
-        } else {
-            // inside:
-            i[0] = 2;
-            // outside:
-            i[1] = 0;
-            i[2] = 1;
-        }
-    } else if (count == 2) {
-        if (p0_inside && p1_inside) {
-            // inside:
-            i[0] = 0;
-            i[1] = 1;
-            // outside:
-            i[2] = 2;
-        } else if (p0_inside && p2_inside) {
-            // inside:
-            i[0] = 0;
-            i[1] = 2;
-            // outside:
-            i[2] = 1;
-        } else if (p1_inside && p2_inside) {
-            // inside:
-            i[0] = 1;
-            i[1] = 2;
-            // outside:
-            i[2] = 0;
-        }
-    }
+    inside[0] = vec2_is_inside_range(vert3.value[0].pos, min, max);
+    inside[1] = vec2_is_inside_range(vert3.value[1].pos, min, max);
+    inside[2] = vec2_is_inside_range(vert3.value[2].pos, min, max);
+    const int count = inside[0] + inside[1] + inside[2];
 
     return count;
+}
+
+static inline void internal_get_ordered_verticies_from_inside_points(const bool inside[2], int idx[2]) {
+    // order:
+    // 0 -> 1 -> 2
+    if (inside[0] && inside[1]) {
+        // inside:
+        idx[0] = 0;
+        idx[1] = 1;
+        // outside:
+        idx[2] = 2;
+    } else if (inside[0] && inside[2]) {
+        // inside:
+        idx[0] = 2;
+        idx[1] = 0;
+        // outside:
+        idx[2] = 1;
+    } else if (inside[1] && inside[2]) {
+        // inside:
+        idx[0] = 1;
+        idx[1] = 2;
+        // outside:
+        idx[2] = 0;
+    } else if (inside[0]) {
+        // inside:
+        idx[0] = 0;
+        // outside:
+        idx[1] = 1;
+        idx[2] = 2;
+    } else if (inside[1]) {
+        // inside:
+        idx[0] = 1;
+        // outside:
+        idx[1] = 2;
+        idx[2] = 0;
+    } else if (inside[2]) {
+        // inside:
+        idx[0] = 2;
+        // outside:
+        idx[1] = 0;
+        idx[2] = 1;
+    }
 }
 
 static inline void internal_clip_triangle_2d(const ascii_index_conversion_table* conv, lst_vert3_2d* lst_p, vert3_2d vert3,
@@ -181,9 +191,7 @@ static inline void internal_clip_triangle_2d(const ascii_index_conversion_table*
 
     assert(lst_p->size == 0);
 
-    float t0, t1, t2;
-    int idx[3];
-
+    // extra info
     vert3.clipped_at_border_id[0] = false;
     vert3.clipped_at_border_id[1] = false;
     vert3.clipped_at_border_id[2] = false;
@@ -192,13 +200,18 @@ static inline void internal_clip_triangle_2d(const ascii_index_conversion_table*
     lst_vert3_2d_push_front(lst_p, vert3);
     size_t n_new_triangles = 1;
 
+    bool ret1, ret2;
+    int idx[3];
+    float t0, t1, t2;
+    bool inside[3];
+
     for (int id = 0; id < 4; id++) {
         while (n_new_triangles > 0) {
             vert3_2d test = *lst_vert3_2d_front(lst_p);
             lst_vert3_2d_pop_front(lst_p);
             n_new_triangles--;
 
-            const int inside_point_count = internal_vert3_2d_count_points_inside(id, test, idx);
+            const int inside_point_count = internal_vert3_2d_count_points_inside(id, test, inside);
             switch (inside_point_count) {
             case 0:
                 break;
@@ -207,60 +220,66 @@ static inline void internal_clip_triangle_2d(const ascii_index_conversion_table*
                 t1 = 1.f;
                 t2 = 1.f;
 
-                internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[1]].pos, min, max, &t0, &t1);
-                internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[2]].pos, min, max, &t0, &t2);
+                {
+                    internal_get_ordered_verticies_from_inside_points(inside, idx);
 
-                assert(float_is_equal(t0, 0.f));
-                assert(!float_is_equal(t1, 1.f));
-                assert(!float_is_equal(t2, 1.f));
+                    ret1 = internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[1]].pos, min, max, &t0, &t1);
+                    assert(ret1);
+                    assert(float_is_equal(t0, 0.f));
+                    assert(t1 < 1.f);
 
-                vec2_lerp(test.value[idx[1]].pos, test.value[idx[0]].pos, test.value[idx[1]].pos, t1);
-                vec2_lerp(test.value[idx[2]].pos, test.value[idx[0]].pos, test.value[idx[2]].pos, t1);
+                    ret2 = internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[2]].pos, min, max, &t0, &t2);
+                    assert(ret2);
+                    assert(float_is_equal(t0, 0.f));
+                    assert(t2 < 1.f);
 
-                test.value[idx[1]].prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[1]].prop, t1);
-                test.value[idx[2]].prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[2]].prop, t2);
+                    vec2_lerp(test.value[idx[1]].pos, test.value[idx[0]].pos, test.value[idx[1]].pos, t1);
+                    vec2_lerp(test.value[idx[2]].pos, test.value[idx[0]].pos, test.value[idx[2]].pos, t2);
 
-                test.clipped_at_border_id[id] = true;
-                lst_vert3_2d_push_back(lst_p, test);
+                    test.value[idx[1]].prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[1]].prop, t1);
+                    test.value[idx[2]].prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[2]].prop, t2);
+
+                    test.clipped_at_border_id[id] = true;
+                    lst_vert3_2d_push_back(lst_p, test);
+                }
                 break;
             case 2:
                 t0 = 0.f;
                 t1 = 1.f;
+
+                internal_get_ordered_verticies_from_inside_points(inside, idx);
+                vertix_2d_type v2_1;
+                {
+
+                    ret1 = internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[2]].pos, min, max, &t0, &t1);
+                    assert(ret1);
+                    assert(float_is_equal(t0, 0.f));
+                    assert(t1 < 1.f);
+
+                    vec2_lerp(v2_1.pos, test.value[idx[0]].pos, test.value[idx[2]].pos, t1);
+                    v2_1.prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[2]].prop, t1);
+
+                    vert3_2d vert3_0 = {.value = {test.value[idx[0]], test.value[idx[1]], v2_1},
+                                        .clipped_at_border_id = {false, false, false, false}};
+
+                    lst_vert3_2d_push_back(lst_p, vert3_0);
+                }
+
+                t0 = 0.f;
                 t2 = 1.f;
+                {
+                    ret2 = internal_clip_line_2d_w_border(id, test.value[idx[1]].pos, test.value[idx[2]].pos, min, max, &t0, &t2);
+                    assert(ret2);
+                    assert(float_is_equal(t0, 0.f));
+                    assert(t2 < 1.f);
 
-                internal_clip_line_2d_w_border(id, test.value[idx[0]].pos, test.value[idx[2]].pos, min, max, &t0, &t1);
-                internal_clip_line_2d_w_border(id, test.value[idx[1]].pos, test.value[idx[2]].pos, min, max, &t0, &t2);
+                    vertix_2d_type v2_2;
+                    vec2_lerp(v2_2.pos, test.value[idx[1]].pos, test.value[idx[2]].pos, t2);
+                    v2_2.prop = vertix_prop_lerped(conv, test.value[idx[1]].prop, test.value[idx[2]].prop, t2);
 
-                assert(float_is_equal(t0, 0.f));
-                assert(!float_is_equal(t1, 1.f));
-                assert(!float_is_equal(t2, 1.f));
+                    vert3_2d vert3_1 = {.value = {test.value[idx[1]], v2_2, v2_1},
+                                        .clipped_at_border_id = {false, false, false, false}};
 
-                const vert3_2d vert_tmp = {.value = {test.value[idx[0]], test.value[idx[2]], test.value[idx[1]]}};
-                const bool winding_order_012 = internal_vert3_2d_back_face_cull(vert_tmp);
-
-                vertix_2d_type v2_0, v2_1;
-
-                vec2_lerp(v2_0.pos, test.value[idx[0]].pos, test.value[idx[2]].pos, t1);
-                vec2_lerp(v2_1.pos, test.value[idx[1]].pos, test.value[idx[2]].pos, t2);
-
-                v2_0.prop = vertix_prop_lerped(conv, test.value[idx[0]].prop, test.value[idx[2]].prop, t1);
-                v2_1.prop = vertix_prop_lerped(conv, test.value[idx[1]].prop, test.value[idx[2]].prop, t2);
-
-                if (winding_order_012) {
-                    vert3_2d vert3_0 = {.value = {test.value[idx[0]], test.value[idx[1]], v2_0}};
-                    vert3_2d vert3_1 = {.value = {test.value[idx[1]], v2_1, v2_0}};
-
-                    vert3_1.clipped_at_border_id[id] = true;
-
-                    lst_vert3_2d_push_back(lst_p, vert3_0);
-                    lst_vert3_2d_push_back(lst_p, vert3_1);
-                } else {
-                    vert3_2d vert3_0 = {.value = {test.value[idx[0]], v2_0, test.value[idx[1]]}};
-                    vert3_2d vert3_1 = {.value = {test.value[idx[1]], v2_0, v2_1}};
-
-                    vert3_1.clipped_at_border_id[id] = true;
-
-                    lst_vert3_2d_push_back(lst_p, vert3_0);
                     lst_vert3_2d_push_back(lst_p, vert3_1);
                 }
                 break;
@@ -269,6 +288,7 @@ static inline void internal_clip_triangle_2d(const ascii_index_conversion_table*
                 break;
             }
         }
+
         n_new_triangles = lst_p->size;
     }
 }

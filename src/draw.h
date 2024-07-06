@@ -10,8 +10,8 @@
 // 3d space = {(x,y,z,w) where x in [-1;1] and y in [-1;1] and z in [-Z_NEAR;-Z_FAR] and w = 1}
 // Any shape outside this range is to be clipped.
 
-// winding order      : Only triangles with counterclockwise ordered verticies is drawn.
-// filling convention : top-left edges of triangle is left out.
+// winding order      : Only triangles with counterclockwise ordered verticies is drawn. [TODO: check this]
+// filling convention : top-left edges of triangle is left out. [TODO: do this correctly and expand on this]
 
 typedef struct {
     color_type color;
