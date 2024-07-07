@@ -1,60 +1,71 @@
 #pragma once
 
-#include "vec.h"
+#include "math/vec.h"
 
-static inline void project_from_world_space_to_screen_space(vec2_type* res, const vec3_type v0, const float fov_angle_rad,
-                                                            const float aspect_ratio) {
-    assert(!float_is_equal(0.f, v0[2]) && "Cannot divide by 0");
-    assert(!float_is_equal(0.f, tanf(fov_angle_rad / 2.f)) && "Cannot divide by 0");
+static inline vec2_type project_from_world_space_to_screen_space(const vec3_type v0, const float fov_angle_rad,
+                                                                 const float aspect_ratio) {
+    // this gets rid of useful info like z value that can be used for clipping/culling
+    // as z approaches 0 from the positive side
 
-    const float c = v0[2] * tanf(fov_angle_rad / 2.f);
+    assert(!f32_is_equal(0.f, v0.z) && "Cannot divide by 0");
+    assert(!f32_is_equal(0.f, tanf(fov_angle_rad / 2.f)) && "Cannot divide by 0");
 
-    *res[0] = 1.f / c * aspect_ratio * v0[0];
-    *res[1] = 1.f / c * v0[1];
+    const f32 c = v0.z * tanf(fov_angle_rad / 2.f);
+
+    const f32 res_x = 1.f / c * aspect_ratio * v0.x;
+    const f32 res_y = 1.f / c * v0.y;
+
+    return (vec2_type){.x = res_x, .y = res_y};
 }
 
-static inline void rotate_vec3_around_x_axis(vec3_type* res, const vec3_type v0, const float angle_rad) {
-    *res[0] = v0[0];
-    *res[1] = v0[1] * cosf(angle_rad) - v0[2] * sinf(angle_rad);
-    *res[2] = v0[1] * sinf(angle_rad) + v0[2] * cosf(angle_rad);
+static inline vec3_type rotate_vec3_around_x_axis(const vec3_type v0, const float angle_rad) {
+    const f32 res_x = v0.x;
+    const f32 res_y = v0.y * cosf(angle_rad) - v0.z * sinf(angle_rad);
+    const f32 res_z = v0.y * sinf(angle_rad) + v0.z * cosf(angle_rad);
+
+    return (vec3_type){.x = res_x, .y = res_y, .z = res_z};
 }
 
-static inline void rotate_vec3_around_y_axis(vec3_type* res, const vec3_type v0, const float angle_rad) {
-    *res[0] = v0[0] * cosf(angle_rad) + v0[2] * sinf(angle_rad);
-    *res[1] = v0[1];
-    *res[2] = v0[2] * cosf(angle_rad) - v0[0] * sinf(angle_rad);
+static inline vec3_type rotate_vec3_around_y_axis(const vec3_type v0, const float angle_rad) {
+    const f32 res_x = v0.x * cosf(angle_rad) + v0.z * sinf(angle_rad);
+    const f32 res_y = v0.y;
+    const f32 res_z = v0.z * cosf(angle_rad) - v0.x * sinf(angle_rad);
+
+    return (vec3_type){.x = res_x, .y = res_y, .z = res_z};
 }
 
-static inline void rotate_vec3_around_z_axis(vec3_type* res, const vec3_type v0, const float angle_rad) {
-    *res[0] = v0[0] * cosf(angle_rad) - v0[1] * sinf(angle_rad);
-    *res[1] = v0[0] * sinf(angle_rad) + v0[1] * cosf(angle_rad);
-    *res[2] = v0[2];
+static inline vec3_type rotate_vec3_around_z_axis(const vec3_type v0, const float angle_rad) {
+    const f32 res_x = v0.x * cosf(angle_rad) - v0.y * sinf(angle_rad);
+    const f32 res_y = v0.x * sinf(angle_rad) + v0.y * cosf(angle_rad);
+    const f32 res_z = v0.z;
+
+    return (vec3_type){.x = res_x, .y = res_y, .z = res_z};
 }
 
-static inline void project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(vec4_type* res, const vec3_type v0,
-                                                                                             const float fov_angle_rad,
-                                                                                             const float aspect_ratio,
-                                                                                             const float z_near, const float z_far) {
+static inline vec4_type project_from_world_space_to_screen_space_w_info_perserved_and_no_z_divide(
+    const vec3_type v0, const float fov_angle_rad, const float aspect_ratio, const float z_near, const float z_far) {
 
-    assert(!float_is_equal(0.f, tanf(fov_angle_rad / 2.f)) && "Cannot divide by 0");
+    assert(!f32_is_equal(0.f, tanf(fov_angle_rad / 2.f)) && "Cannot divide by 0");
 
     const float fov_inv_scalar = tanf(fov_angle_rad / 2.f);
 
     const float depth_scalar = z_far / (z_far - z_near);
 
-    *res[0] = 1 / fov_inv_scalar * aspect_ratio * v0[0];
-    *res[1] = 1 / fov_inv_scalar * v0[1];
-    *res[2] = depth_scalar * v0[2] - depth_scalar * z_near;
-    *res[3] = v0[2];
+    const f32 res_x = 1 / fov_inv_scalar * aspect_ratio * v0.x;
+    const f32 res_y = 1 / fov_inv_scalar * v0.y;
+    const f32 res_z = depth_scalar * v0.z - depth_scalar * z_near;
+    const f32 res_w = v0.z;
+
+    return (vec4_type){.x = res_x, .y = res_y, .z = res_z, .w = res_w};
 }
 
-static inline void move_against_camera(vec3_type* res_final, const vec3_type vec, const vec3_type camera_pos,
-                                            const float camera_angle_rad[3]) {
-    vec3_type res0, res1, res2, res3;
+static inline vec3_type move_against_camera(const vec3_type vec, const vec3_type camera_pos, const float camera_angle_rad[3]) {
+    // this cannot be expressed with a 3x3 matrix.
 
-    vec3_scale(res0, camera_pos, -1);
-    vec3_add(res1, res0, vec);
-    rotate_vec3_around_x_axis(&res2, res1, -camera_angle_rad[0]);
-    rotate_vec3_around_y_axis(&res3, res2, -camera_angle_rad[1]);
-    rotate_vec3_around_z_axis(res_final, res3, -camera_angle_rad[2]);
+    const vec3_type res0 = vec3_sub(vec, camera_pos);
+    const vec3_type res1 = rotate_vec3_around_x_axis(res0, -camera_angle_rad[0]);
+    const vec3_type res2 = rotate_vec3_around_y_axis(res1, -camera_angle_rad[1]);
+    const vec3_type res3 = rotate_vec3_around_z_axis(res2, -camera_angle_rad[2]);
+
+    return res3;
 }

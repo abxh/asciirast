@@ -1,19 +1,17 @@
 // taken from - and further modified:
 // https://github.com/datenwolf/linmath.h/blob/master/linmath.h
 //
-// Under public domain.
-//
-// May calculate inplace operations incorrectly.
+// Originally under public domain.
 //
 // Column-major matrix
+//
+// Modifications may have introduced errors. The modifications are not tested. Use the original if in doubt.
 
 #pragma once
 
-#include "vec.h"
+#include "math/vec.h"
 
-#include <string.h>
-
-typedef vec4_type mat4x4_type[4];
+typedef float mat4x4_type[4][4];
 
 static inline void mat4x4_identity(mat4x4_type res) {
     for (size_t i = 0; i < 4; ++i) {
@@ -25,19 +23,19 @@ static inline void mat4x4_identity(mat4x4_type res) {
 
 static inline void mat4x4_copy(mat4x4_type res, const mat4x4_type N) {
     for (size_t i = 0; i < 4; ++i) {
-        vec4_copy(res[i], N[i]);
+        vec4_to_array(res[i], vec4_copy(vec4_from_array(N[i])));
     }
 }
 
 static inline void mat4x4_row(vec4_type res, const mat4x4_type M, const size_t i) {
     for (size_t k = 0; k < 4; ++k) {
-        res[k] = M[k][i];
+        res.array[k] = M[k][i];
     }
 }
 
 static inline void mat4x4_col(vec4_type res, const mat4x4_type M, const size_t i) {
     for (size_t k = 0; k < 4; ++k) {
-        res[k] = M[i][k];
+        res.array[k] = M[i][k];
     }
 }
 
@@ -53,26 +51,26 @@ static inline void mat4x4_transpose(mat4x4_type res, const mat4x4_type N) {
 
 static inline void mat4x4_add(mat4x4_type res, const mat4x4_type a, const mat4x4_type b) {
     for (size_t i = 0; i < 4; ++i) {
-        vec4_add(res[i], a[i], b[i]);
+        vec4_to_array(res[i], vec4_add(vec4_from_array(a[i]), vec4_from_array(b[i])));
     }
 }
 
 static inline void mat4x4_sub(mat4x4_type res, const mat4x4_type a, const mat4x4_type b) {
     for (size_t i = 0; i < 4; ++i) {
-        vec4_sub(res[i], a[i], b[i]);
+        vec4_to_array(res[i], vec4_sub(vec4_from_array(a[i]), vec4_from_array(b[i])));
     }
 }
 
 static inline void mat4x4_scale(mat4x4_type res, const mat4x4_type a, const float k) {
     for (size_t i = 0; i < 4; ++i)
-        vec4_scale(res[i], a[i], k);
+        vec4_to_array(res[i], vec4_scale(vec4_from_array(a[i]), k));
 }
 
 static inline void mat4x4_scale_aniso(mat4x4_type res, const mat4x4_type a, const float x, const float y, const float z) {
-    vec4_scale(res[0], a[0], x);
-    vec4_scale(res[1], a[1], y);
-    vec4_scale(res[2], a[2], z);
-    vec4_copy(res[3], a[3]);
+    vec4_to_array(res[0], vec4_scale(vec4_from_array(a[0]), x));
+    vec4_to_array(res[1], vec4_scale(vec4_from_array(a[1]), y));
+    vec4_to_array(res[1], vec4_scale(vec4_from_array(a[2]), z));
+    vec4_to_array(res[3], vec4_from_array(a[3]));
 }
 
 static inline void mat4x4_mul(mat4x4_type res, const mat4x4_type a, const mat4x4_type b) {
@@ -90,9 +88,9 @@ static inline void mat4x4_mul(mat4x4_type res, const mat4x4_type a, const mat4x4
 
 static inline void mat4x4_mul_vec4(vec4_type res, const mat4x4_type M, const vec4_type v) {
     for (size_t j = 0; j < 4; ++j) {
-        res[j] = 0.f;
+        res.array[j] = 0.f;
         for (size_t i = 0; i < 4; ++i) {
-            res[j] += M[i][j] * v[i];
+            res.array[j] += M[i][j] * v.array[i];
         }
     }
 }
@@ -116,7 +114,7 @@ static inline void mat4x4_translate_in_place(mat4x4_type res, const float x, con
 static inline void mat4x4_from_vec3_mul_outer(mat4x4_type res, const vec3_type a, const vec3_type b) {
     for (size_t i = 0; i < 4; ++i) {
         for (size_t j = 0; j < 4; ++j) {
-            res[i][j] = i < 3 && j < 3 ? a[i] * b[j] : 0.f;
+            res[i][j] = i < 3 && j < 3 ? a.array[i] * b.array[j] : 0.f;
         }
     }
 }
@@ -128,11 +126,12 @@ static inline void mat4x4_rotate(mat4x4_type res, const mat4x4_type M, const flo
     vec3_type u = {x, y, z};
 
     if (vec3_length(u) > (float)(1e-4)) {
-        vec3_norm(u, u);
+        u = vec3_norm(u);
         mat4x4_type T;
         mat4x4_from_vec3_mul_outer(T, u, u);
 
-        mat4x4_type S = {{0, u[2], -u[1], 0}, {-u[2], 0, u[0], 0}, {u[1], -u[0], 0, 0}, {0, 0, 0, 0}};
+        mat4x4_type S = {
+            {0, u.array[2], -u.array[1], 0}, {-u.array[2], 0, u.array[0], 0}, {u.array[1], -u.array[0], 0, 0}, {0, 0, 0, 0}};
         mat4x4_scale(S, S, s);
 
         mat4x4_type C;
@@ -217,21 +216,19 @@ static inline void mat4x4_orthonormalize(mat4x4_type res, const mat4x4_type M) {
     float s = 1.f;
     vec3_type h;
 
-    vec3_norm(res[2], res[2]);
+    vec3_to_array(res[2], vec3_norm(vec3_from_array(res[2])));
 
-    s = vec3_dot(res[1], res[2]);
-    vec3_scale(h, res[2], s);
-    vec3_sub(res[1], res[1], h);
-    vec3_norm(res[1], res[1]);
+    s = vec3_dot(vec3_from_array(res[1]), vec3_from_array(res[2]));
+    h = vec3_scale(vec3_from_array(res[2]), s);
+    vec3_to_array(res[1], vec3_norm(vec3_sub(vec3_from_array(res[1]), h)));
 
-    s = vec3_dot(res[0], res[2]);
-    vec3_scale(h, res[2], s);
-    vec3_sub(res[0], res[0], h);
+    s = vec3_dot(vec3_from_array(res[0]), vec3_from_array(res[2]));
+    h = vec3_scale(vec3_from_array(res[2]), s);
+    vec3_to_array(res[0], vec3_sub(vec3_from_array(res[0]), h));
 
-    s = vec3_dot(res[0], res[1]);
-    vec3_scale(h, res[1], s);
-    vec3_sub(res[0], res[0], h);
-    vec3_norm(res[0], res[0]);
+    s = vec3_dot(vec3_from_array(res[0]), vec3_from_array(res[1]));
+    h = vec3_scale(vec3_from_array(res[1]), s);
+    vec3_to_array(res[0], vec3_norm(vec3_sub(vec3_from_array(res[0]), h)));
 }
 
 static inline void mat4x4_frustum(mat4x4_type res, const float l, const float r, const float b, const float t, const float n,
@@ -301,30 +298,24 @@ static inline void mat4x4_look_at(mat4x4_type m, const vec3_type eye, const vec3
 
     /* TODO: The negation of of can be spared by swapping the order of
      *       operands in the following cross products in the right way. */
-    vec3_type f;
-    vec3_sub(f, center, eye);
-    vec3_norm(f, f);
 
-    vec3_type s;
-    vec3_cross(s, f, up);
-    vec3_norm(s, s);
+    vec3_type f = vec3_norm(vec3_sub(center, eye));
+    vec3_type s = vec3_norm(vec3_cross(f, up));
+    vec3_type t = vec3_cross(s, f);
 
-    vec3_type t;
-    vec3_cross(t, s, f);
-
-    m[0][0] = s[0];
-    m[0][1] = t[0];
-    m[0][2] = -f[0];
+    m[0][0] = s.array[0];
+    m[0][1] = t.array[0];
+    m[0][2] = -f.array[0];
     m[0][3] = 0.f;
 
-    m[1][0] = s[1];
-    m[1][1] = t[1];
-    m[1][2] = -f[1];
+    m[1][0] = s.array[1];
+    m[1][1] = t.array[1];
+    m[1][2] = -f.array[1];
     m[1][3] = 0.f;
 
-    m[2][0] = s[2];
-    m[2][1] = t[2];
-    m[2][2] = -f[2];
+    m[2][0] = s.array[2];
+    m[2][1] = t.array[2];
+    m[2][2] = -f.array[2];
     m[2][3] = 0.f;
 
     m[3][0] = 0.f;
@@ -332,14 +323,12 @@ static inline void mat4x4_look_at(mat4x4_type m, const vec3_type eye, const vec3
     m[3][2] = 0.f;
     m[3][3] = 1.f;
 
-    mat4x4_translate_in_place(m, -eye[0], -eye[1], -eye[2]);
+    mat4x4_translate_in_place(m, -eye.array[0], -eye.array[1], -eye.array[2]);
 }
 
 static inline void mat4x4_arcball(mat4x4_type res, const mat4x4_type M, const vec2_type _a, const vec2_type _b, const float s) {
-    vec2_type a;
-    memcpy(a, _a, sizeof(a));
-    vec2_type b;
-    memcpy(b, _b, sizeof(b));
+    vec2_type a = _a;
+    vec2_type b = _b;
 
     float z_a = 0.;
     float z_b = 0.;
@@ -347,23 +336,22 @@ static inline void mat4x4_arcball(mat4x4_type res, const mat4x4_type M, const ve
     if (vec2_length(a) < 1.f) {
         z_a = sqrtf(1.f - vec2_dot(a, a));
     } else {
-        vec2_norm(a, a);
+        a = vec2_norm(a);
     }
 
     if (vec2_length(b) < 1.f) {
         z_b = sqrtf(1.f - vec2_dot(b, b));
     } else {
-        vec2_norm(b, b);
+        b = vec2_norm(b);
     }
 
-    vec3_type a_ = {a[0], a[1], z_a};
-    vec3_type b_ = {b[0], b[1], z_b};
+    vec3_type a_ = {a.array[0], a.array[1], z_a};
+    vec3_type b_ = {b.array[0], b.array[1], z_b};
 
-    vec3_type c_;
-    vec3_cross(c_, a_, b_);
+    vec3_type c_ = vec3_cross(a_, b_);
 
     float const angle_rad = acosf(vec3_dot(a_, b_)) * s;
-    mat4x4_rotate(res, M, c_[0], c_[1], c_[2], angle_rad);
+    mat4x4_rotate(res, M, c_.array[0], c_.array[1], c_.array[2], angle_rad);
 }
 
 static inline void mat4x4_extract_planes_from_projmat(const mat4x4_type mvp, vec4_type left, vec4_type right, vec4_type bottom,
@@ -372,21 +360,21 @@ static inline void mat4x4_extract_planes_from_projmat(const mat4x4_type mvp, vec
     // https://stackoverflow.com/a/34960913
 
     for (int i = 4; i--;) {
-        left[i] = mvp[i][3] + mvp[i][0];
+        left.array[i] = mvp[i][3] + mvp[i][0];
     }
     for (int i = 4; i--;) {
-        right[i] = mvp[i][3] - mvp[i][0];
+        right.array[i] = mvp[i][3] - mvp[i][0];
     }
     for (int i = 4; i--;) {
-        bottom[i] = mvp[i][3] + mvp[i][1];
+        bottom.array[i] = mvp[i][3] + mvp[i][1];
     }
     for (int i = 4; i--;) {
-        top[i] = mvp[i][3] - mvp[i][1];
+        top.array[i] = mvp[i][3] - mvp[i][1];
     }
     for (int i = 4; i--;) {
-        near[i] = mvp[i][3] + mvp[i][2];
+        near.array[i] = mvp[i][3] + mvp[i][2];
     }
     for (int i = 4; i--;) {
-        far[i] = mvp[i][3] - mvp[i][2];
+        far.array[i] = mvp[i][3] - mvp[i][2];
     }
 }

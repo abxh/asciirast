@@ -1,17 +1,16 @@
 EXEC_NAME := a.out
 
 CFLAGS    += -I./src
-CFLAGS    += -I./lib/ctl
-CFLAGS    += -I./example_scenes
+CFLAGS    += -I./sc
 
-CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
+# CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
 CFLAGS    += -D'MS_PER_UPDATE=100'
 
 CFLAGS    += -D'SDL_WINDOW_WIDTH=650' -D'SDL_WINDOW_HEIGHT=100'
 CFLAGS    += -D'SDL_FONT_PATH="ttf/terminus.ttf"'
 CFLAGS    += -D'SDL_FONT_SIZE=32'
 
-SRC_FILES  := $(wildcard src/*.c) $(wildcard example_scenes/*.c) 
+SRC_FILES  := $(wildcard src/*.c) $(wildcard src/*/*.c) $(wildcard sc/*.c)
 OBJ_FILES  := $(SRC_FILES:.c=.o)
 
 LD_FLAGS  += -lm
@@ -30,7 +29,7 @@ else ifeq ($(DEBUG), 1)
 	CFLAGS    += -fPIC
 	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn
 	CFLAGS    += -Wno-declaration-after-statement -Wno-padded -Wno-gnu-binary-literal -Wno-vla
-	CFLAGS    += -Wno-unused-but-set-variable
+	CFLAGS    += -Wno-unused-but-set-variable -Wno-missing-prototypes
 	CFLAGS    += -fsanitize=undefined,address
 	LD_FLAGS  += -fsanitize=undefined,address
 endif
