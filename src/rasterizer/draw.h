@@ -1,7 +1,8 @@
 #pragma once
 
-#include "rasterizer/color.h"
 #include "math/vec.h"
+
+#include "rasterizer/color.h"
 
 #include <stdint.h>
 
@@ -23,6 +24,8 @@ struct renderer_type;
 void draw_point_2d(struct renderer_type* obj_p, const vec2_type v[1], const prop_type prop[1], const uint8_t z_order);
 
 void draw_line_2d(struct renderer_type* obj_p, const vec2_type v[2], const prop_type prop[2], const uint8_t z_order);
+
+void draw_edge_2d(struct renderer_type* obj_p, const vec2_type v[2], const color_type color0, const uint8_t z_order);
 
 void draw_filled_triangle_2d(struct renderer_type* obj_p, const vec2_type v[3], const prop_type prop[3], const uint8_t z_order);
 

@@ -4,7 +4,7 @@
 
 struct engine_handle_type;
 
-void engine_run(scene_type default_scene);
+void engine_run(const scene_type default_scene, const size_t n, const char ascii_palette[n]);
 
 void engine_quit(struct engine_handle_type* handle_p);
 

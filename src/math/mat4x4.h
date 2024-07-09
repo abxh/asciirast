@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include "math/quat.h"
 #include "math/vec.h"
 
 typedef float mat4x4_type[4][4];
+typedef float quat_type[4];
 
 static inline void mat4x4_identity(mat4x4_type res) {
     for (size_t i = 0; i < 4; ++i) {
@@ -27,16 +29,20 @@ static inline void mat4x4_copy(mat4x4_type res, const mat4x4_type N) {
     }
 }
 
-static inline void mat4x4_row(vec4_type res, const mat4x4_type M, const size_t i) {
+static inline vec4_type mat4x4_row(const mat4x4_type M, const size_t i) {
+    vec4_type res;
     for (size_t k = 0; k < 4; ++k) {
         res.array[k] = M[k][i];
     }
+    return res;
 }
 
-static inline void mat4x4_col(vec4_type res, const mat4x4_type M, const size_t i) {
+static inline vec4_type mat4x4_col(const mat4x4_type M, const size_t i) {
+    vec4_type res;
     for (size_t k = 0; k < 4; ++k) {
         res.array[k] = M[i][k];
     }
+    return res;
 }
 
 static inline void mat4x4_transpose(mat4x4_type res, const mat4x4_type N) {
@@ -103,10 +109,10 @@ static inline void mat4x4_translate(mat4x4_type res, const float x, const float 
 }
 
 static inline void mat4x4_translate_in_place(mat4x4_type res, const float x, const float y, const float z) {
-    const vec4_type t = {x, y, z, 0};
+    const vec4_type t = {.array = {x, y, z, 0}};
     vec4_type r;
     for (size_t i = 0; i < 4; ++i) {
-        mat4x4_row(r, res, i);
+        r = mat4x4_row(res, i);
         res[3][i] += vec4_dot(r, t);
     }
 }
@@ -123,7 +129,7 @@ static inline void mat4x4_rotate(mat4x4_type res, const mat4x4_type M, const flo
                                  const float angle_rad) {
     float s = sinf(angle_rad);
     float c = cosf(angle_rad);
-    vec3_type u = {x, y, z};
+    vec3_type u = {.array = {x, y, z}};
 
     if (vec3_length(u) > (float)(1e-4)) {
         u = vec3_norm(u);
@@ -345,8 +351,8 @@ static inline void mat4x4_arcball(mat4x4_type res, const mat4x4_type M, const ve
         b = vec2_norm(b);
     }
 
-    vec3_type a_ = {a.array[0], a.array[1], z_a};
-    vec3_type b_ = {b.array[0], b.array[1], z_b};
+    vec3_type a_ = {.array = {a.array[0], a.array[1], z_a}};
+    vec3_type b_ = {.array = {b.array[0], b.array[1], z_b}};
 
     vec3_type c_ = vec3_cross(a_, b_);
 
@@ -354,27 +360,45 @@ static inline void mat4x4_arcball(mat4x4_type res, const mat4x4_type M, const ve
     mat4x4_rotate(res, M, c_.array[0], c_.array[1], c_.array[2], angle_rad);
 }
 
-static inline void mat4x4_extract_planes_from_projmat(const mat4x4_type mvp, vec4_type left, vec4_type right, vec4_type bottom,
-                                                      vec4_type top, vec4_type near, vec4_type far) {
-    // Gribb/Hartmann method:
-    // https://stackoverflow.com/a/34960913
+static inline void mat4x4o_mul_quat(mat4x4_type res, const mat4x4_type M, const quat_type q) {
+    /*  XXX: The way this is written only works for orthogonal matrices. */
+    /* TODO: Take care of non-orthogonal case. */
+    quat_mul_vec3_alt(res[0], q, M[0]);
+    quat_mul_vec3_alt(res[1], q, M[1]);
+    quat_mul_vec3_alt(res[2], q, M[2]);
 
-    for (int i = 4; i--;) {
-        left.array[i] = mvp[i][3] + mvp[i][0];
-    }
-    for (int i = 4; i--;) {
-        right.array[i] = mvp[i][3] - mvp[i][0];
-    }
-    for (int i = 4; i--;) {
-        bottom.array[i] = mvp[i][3] + mvp[i][1];
-    }
-    for (int i = 4; i--;) {
-        top.array[i] = mvp[i][3] - mvp[i][1];
-    }
-    for (int i = 4; i--;) {
-        near.array[i] = mvp[i][3] + mvp[i][2];
-    }
-    for (int i = 4; i--;) {
-        far.array[i] = mvp[i][3] - mvp[i][2];
-    }
+    res[3][0] = res[3][1] = res[3][2] = 0.f;
+    res[0][3] = M[0][3];
+    res[1][3] = M[1][3];
+    res[2][3] = M[2][3];
+    res[3][3] = M[3][3]; // typically 1.0, but here we make it general
+}
+
+static inline void mat4x4_from_quat(mat4x4_type res, const quat_type q) {
+    float a = q[3];
+    float b = q[0];
+    float c = q[1];
+    float d = q[2];
+    float a2 = a * a;
+    float b2 = b * b;
+    float c2 = c * c;
+    float d2 = d * d;
+
+    res[0][0] = a2 + b2 - c2 - d2;
+    res[0][1] = 2.f * (b * c + a * d);
+    res[0][2] = 2.f * (b * d - a * c);
+    res[0][3] = 0.f;
+
+    res[1][0] = 2 * (b * c - a * d);
+    res[1][1] = a2 - b2 + c2 - d2;
+    res[1][2] = 2.f * (c * d + a * b);
+    res[1][3] = 0.f;
+
+    res[2][0] = 2.f * (b * d + a * c);
+    res[2][1] = 2.f * (c * d - a * b);
+    res[2][2] = a2 - b2 - c2 + d2;
+    res[2][3] = 0.f;
+
+    res[3][0] = res[3][1] = res[3][2] = 0.f;
+    res[3][3] = 1.f;
 }

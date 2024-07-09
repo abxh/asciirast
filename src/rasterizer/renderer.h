@@ -1,11 +1,12 @@
 #pragma once
 
 #include "math/vec.h"
+#include "rasterizer/ascii_table_type.h"
 
+#include "sc_list.h"
+
+#include <stdbool.h>
 #include <stddef.h>
-
-struct renderer_type;
-struct screen_type;
 
 typedef struct {
     float fovy_rad;
@@ -20,7 +21,14 @@ typedef struct {
     vec3_type up;
 } camera_prop_type;
 
-struct renderer_type;
+typedef struct renderer_type {
+    float perspective_mat[4][4];
+    float model_camera_mat[4][4];
+    float mvp[4][4];
+
+    ascii_table_type table;
+    struct screen_type* screen_p;
+} renderer_type;
 
 struct renderer_type* renderer_create(struct screen_type* screen_context_p, const size_t n, const char acsii_palette[n],
                                       const perspective_proj_prop_type prop);

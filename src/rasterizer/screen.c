@@ -1,11 +1,11 @@
 
-#include "rasterizer/screen.h"
-#include "math/f32.h"
-#include "math/f32_to_i32.h"
-#include "math/i32.h"
+#include "math/float.h"
+#include "math/int.h"
 #include "math/vec.h"
+
 #include "rasterizer/ascii_table_type.h"
 #include "rasterizer/color.h"
+#include "rasterizer/screen.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -18,13 +18,6 @@
 #define CSI_SETBG_RGBCOLOR "48;2;"
 #define CSI_SETFG_RGBCOLOR "38;2;"
 #define CSI_RESETCOLOR "0m"
-
-typedef struct screen_type {
-    char framebuf[SCREEN_HEIGHT][SCREEN_WIDTH];
-    float depthbuf[SCREEN_HEIGHT][SCREEN_WIDTH];
-    color_type colorbuf[SCREEN_HEIGHT][SCREEN_WIDTH];
-    FILE* output_stream;
-} screen_type;
 
 static inline void framebuf_clear(screen_type* this) {
     for (size_t y = 0; y < SCREEN_HEIGHT; y++) {
@@ -90,11 +83,7 @@ void screen_refresh(screen_type* this) {
         for (size_t x = 0; x < SCREEN_WIDTH; x++) {
             const size_t y_flipped = (SCREEN_HEIGHT - 1) - y;
 
-            color_type color;
-            color.vec3 = vec3_clamp(s.colorbuf[y_flipped][x].vec3, (vec3_type){.array = {0.f, 0.f, 0.f}},
-                                    (vec3_type){.array = {1.f, 1.f, 1.f}});
-            color.vec3 = vec3_scale(color.vec3, 255.f);
-
+            const color_type color = color_scale(this->colorbuf[y_flipped][x], 255.f);
             fprintf(s.output_stream, CSI_ESC CSI_SETBG_RGBCOLOR "0;0;0;" CSI_SETFG_RGBCOLOR "%03u;%03u;%03u;m", (unsigned int)color.r,
                     (unsigned int)color.g, (unsigned int)color.b);
 
@@ -108,14 +97,14 @@ void screen_refresh(screen_type* this) {
 
 void screen_set_pixel_data(screen_type* this, const vec2_type pos, const pixel_data_type data) {
 
-    const int x = f32_to_i32_floor(pos.x);
-    const int y = f32_to_i32_floor(pos.y);
+    const int x = float_to_int_floor(pos.x);
+    const int y = float_to_int_floor(pos.y);
 
-    assert(i32_in_range(x, 0, SCREEN_WIDTH - 1));
-    assert(i32_in_range(y, 0, SCREEN_HEIGHT - 1));
-    assert(f32_in_range(data.depth, 0.f, 1.f));
-    assert(i32_in_range(data.ascii_char, ASCII_MIN_PRINTABLE, ASCII_MAX_PRINTABLE) && "ascii char is not printable");
-    assert(vec3_in_range(data.color.vec3, g_color_min.vec3, g_color_max.vec3));
+    assert(int_in_range(x, 0, SCREEN_WIDTH - 1));
+    assert(int_in_range(y, 0, SCREEN_HEIGHT - 1));
+    assert(float_in_range(data.depth, 0.f - FLOAT_TOLERANCE, 1.f + FLOAT_TOLERANCE));
+    assert(int_in_range(data.ascii_char, ASCII_MIN_PRINTABLE, ASCII_MAX_PRINTABLE) && "ascii char is not printable");
+    assert(color_in_range(data.color, g_color_min, g_color_max));
 
     const float prev_depth = this->depthbuf[y][x];
     if (data.depth < prev_depth) {
@@ -128,11 +117,11 @@ void screen_set_pixel_data(screen_type* this, const vec2_type pos, const pixel_d
 }
 
 pixel_data_type screen_get_pixel_data(screen_type* this, const vec2_type pos) {
-    const int x = f32_to_i32_floor(pos.x);
-    const int y = f32_to_i32_floor(pos.y);
+    const int x = float_to_int_floor(pos.x);
+    const int y = float_to_int_floor(pos.y);
 
-    assert(i32_in_range(x, 0, SCREEN_WIDTH - 1));
-    assert(i32_in_range(y, 0, SCREEN_HEIGHT - 1));
+    assert(int_in_range(x, 0, SCREEN_WIDTH - 1));
+    assert(int_in_range(y, 0, SCREEN_HEIGHT - 1));
 
     const char ascii_char = this->framebuf[y][x];
     const float depth = this->depthbuf[y][x];

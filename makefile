@@ -3,7 +3,7 @@ EXEC_NAME := a.out
 CFLAGS    += -I./src
 CFLAGS    += -I./sc
 
-# CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
+CFLAGS    += -D'SCREEN_WIDTH=60' -D'SCREEN_HEIGHT=30'
 CFLAGS    += -D'MS_PER_UPDATE=100'
 
 CFLAGS    += -D'SDL_WINDOW_WIDTH=650' -D'SDL_WINDOW_HEIGHT=100'
@@ -25,13 +25,16 @@ ifeq ($(RELEASE), 1)
 else ifeq ($(DEBUG), 1) 
 	CC        := clang
 	CFLAGS    += -DDEBUG -ggdb3
-	CFLAGS    += -std=c11
+	CFLAGS    += -std=c2x
 	CFLAGS    += -fPIC
 	CFLAGS    += -Weverything -Wno-unsafe-buffer-usage -Wno-missing-noreturn
 	CFLAGS    += -Wno-declaration-after-statement -Wno-padded -Wno-gnu-binary-literal -Wno-vla
 	CFLAGS    += -Wno-unused-but-set-variable -Wno-missing-prototypes
 	CFLAGS    += -fsanitize=undefined,address
 	LD_FLAGS  += -fsanitize=undefined,address
+else
+	CC        := gcc
+	CFLAGS    += -Wall -Wextra -pedantic -std=c2x
 endif
 
 .PHONY: all clean test
