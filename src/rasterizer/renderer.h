@@ -3,8 +3,6 @@
 #include "math/vec.h"
 #include "rasterizer/ascii_table_type.h"
 
-#include "sc_list.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 

@@ -92,11 +92,11 @@ static inline void mat4x4_mul(mat4x4_type res, const mat4x4_type a, const mat4x4
     mat4x4_copy(res, temp);
 }
 
-static inline void mat4x4_mul_vec4(vec4_type res, const mat4x4_type M, const vec4_type v) {
+static inline void mat4x4_mul_vec4(vec4_type* res, const mat4x4_type M, const vec4_type v) {
     for (size_t j = 0; j < 4; ++j) {
-        res.array[j] = 0.f;
+        res->array[j] = 0.f;
         for (size_t i = 0; i < 4; ++i) {
-            res.array[j] += M[i][j] * v.array[i];
+            res->array[j] += M[i][j] * v.array[i];
         }
     }
 }

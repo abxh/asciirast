@@ -19,6 +19,7 @@ static inline int int_max(const int i0, const int i1) {
 static inline int int_clamp(const int i0, const int min, const int max) {
     return int_min(int_max(i0, min), max);
 }
+
 static inline int int_abs(const int i0) {
     return abs(i0);
 }
@@ -28,7 +29,7 @@ static inline int int_signof(const int i0) {
 }
 
 static inline bool int_in_range(const int i0, const int min, const int max) {
-    return min <= i0 && i0 <= max; 
+    return min <= i0 && i0 <= max;
 }
 
 static inline float int_to_float(const int i0) {

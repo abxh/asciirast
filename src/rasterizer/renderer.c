@@ -9,9 +9,11 @@ renderer_type* renderer_create(struct screen_type* screen_context_p, const size_
     renderer_type* this = malloc(sizeof(renderer_type));
 
     this->screen_p = screen_context_p;
+
     mat4x4_perspective(this->perspective_mat, prop.fovy_rad, prop.aspect_ratio, prop.z_near, prop.z_far);
     mat4x4_identity(this->model_camera_mat);
-    mat4x4_copy(this->mvp, this->perspective_mat);
+    mat4x4_mul(this->mvp, this->model_camera_mat, this->perspective_mat);
+
     renderer_use_ascii_palette(this, n, ascii_palette);
 
     return this;

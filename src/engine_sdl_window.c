@@ -1,4 +1,4 @@
-#include "engine/engine_sdl_window.h"
+#include "engine_sdl_window.h"
 
 #include "sc_map.h"
 #include "sc_str.h"

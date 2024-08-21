@@ -14,9 +14,7 @@
 #define SCREEN_HEIGHT 20
 #endif
 
-// since ascii characters are almost twice as high as they are wide,
-// normal screen ratio factors it in like so:
-#define ASPECT_RATIO (SCREEN_WIDTH / (2.f * SCREEN_HEIGHT))
+#define ASPECT_RATIO (SCREEN_WIDTH / (float)SCREEN_HEIGHT)
 
 typedef struct {
     color_type color;

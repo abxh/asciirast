@@ -2,7 +2,7 @@
 
 #include "math/int.h"
 
-#include "rasterizer/draw/draw_propi.h"
+#include "rasterizer/draw_propi.h"
 #include "rasterizer/screen.h"
 
 static inline void plot_point(struct screen_type* screen_p, const ascii_table_type* table_p, const vec2_type v,
@@ -43,8 +43,7 @@ static inline void plot_line(struct screen_type* screen_p, const ascii_table_typ
     // traverse the diagonal line step-by-step and lerp values
     for (int step = 0; step <= max_diagonal_abs_dist; step += 1) {
         const char ac_curr = prop_get_ascii_char(table_p, aci_curr);
-
-        pixel_data_type data = {.color = c_curr, .depth = d_curr, .ascii_char = ac_curr};
+        const pixel_data_type data = {.color = c_curr, .depth = d_curr, .ascii_char = ac_curr};
 
         screen_set_pixel_data(screen_p, v_curr, data);
 
@@ -83,27 +82,30 @@ static inline void plot_edge(struct screen_type* screen_p, const vec2_type v[2],
     const vec2_type v_step = vec2_scale(diagonal_vec, t_step);
     const float d_step = t_step * (depth[1] - depth[0]);
 
-    vec2_type v_curr_prev = vec2_sub(v0, vec2_scale(v_step, 1.499f));
-    vec2_type v_curr = v0;
+    vec2_type v_curr_prev = v0;
+    vec2_type v_curr = vec2_add(v0, v_step);
     float d_curr = depth[0];
 
     const bool points_up = (diagonal_vec.y > 0);
 
     // traverse the diagonal line step-by-step and lerp values
-    for (int step = 0; step <= max_diagonal_abs_dist; step += 1) {
+    for (int step = 1; step <= max_diagonal_abs_dist - 1; step += 1) {
         const int dx = +((int)v_curr.x - (int)v_curr_prev.x);
         const int dy = -((int)v_curr.y - (int)v_curr_prev.y);
-        char ac_curr = g_edge_map[dy + 1][dx + 1];
-
-        pixel_data_type data = {.color = color0, .depth = d_curr, .ascii_char = ac_curr};
+        const char new_char = g_edge_map[dy + 1][dx + 1];
+        const pixel_data_type data = {.color = color0, .depth = d_curr, .ascii_char = new_char};
 
         vec2_type v_curr_new = v_curr;
-        v_curr_new.y += (float)(points_up && dy == 0);
-        v_curr_new.y = float_min(v_curr_new.y, SCREEN_HEIGHT - 1.f);
+        if (points_up && dy == 0) {
+            if (v_curr_new.y + 1.f > SCREEN_HEIGHT - 1.f) {
+                continue;
+            }
+            v_curr_new.y += 1.f;
+        }
 
-        // generally try to keep the edges closed:
+        // prefer other chars over _
         const char prev_char_at_pos = screen_p->framebuf[(int)v_curr_new.y][(int)v_curr_new.x];
-        if (!(ac_curr == '_' && (prev_char_at_pos == '/' || prev_char_at_pos == '\\'))) {
+        if (!(new_char == '_' && (prev_char_at_pos == '/' || prev_char_at_pos == '\\' || prev_char_at_pos == '|'))) {
             screen_set_pixel_data(screen_p, v_curr_new, data);
         }
 
@@ -111,4 +113,8 @@ static inline void plot_edge(struct screen_type* screen_p, const vec2_type v[2],
         v_curr = vec2_add(v_curr, v_step);
         d_curr += d_step;
     }
+
+    screen_set_pixel_data(screen_p, v0, (pixel_data_type){.color = color0, .depth = depth[0], .ascii_char = ':'});
+
+    screen_set_pixel_data(screen_p, v1, (pixel_data_type){.color = color0, .depth = depth[1], .ascii_char = ':'});
 }

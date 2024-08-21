@@ -112,11 +112,11 @@ static inline VEC_TYPE VEC_METHOD(clamp)(const VEC_TYPE v0, const VEC_TYPE min, 
 }
 
 static inline bool VEC_METHOD(in_range)(const VEC_TYPE v0, const VEC_TYPE min, const VEC_TYPE max) {
-    bool is_inside_range = true;
+    bool in_range = true;
     for (size_t i = 0; i < DIM; i++) {
-        is_inside_range &= float_in_range(v0.array[i], min.array[i], max.array[i]);
+        in_range = in_range && float_in_range(v0.array[i], min.array[i], max.array[i]);
     }
-    return is_inside_range;
+    return in_range;
 }
 
 static inline VEC_TYPE VEC_METHOD(elementwise_prod)(const VEC_TYPE v0, const VEC_TYPE v1) {

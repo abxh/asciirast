@@ -1,10 +1,11 @@
+#include "math/mat4x4.h"
 #include "math/vec.h"
 
 #include "rasterizer/draw.h"
-#include "rasterizer/draw/draw_clip.h"
-#include "rasterizer/draw/draw_plot.h"
-#include "rasterizer/draw/draw_propi.h"
-#include "rasterizer/draw/draw_valid_prop.h"
+#include "rasterizer/draw_clip_2d.h"
+#include "rasterizer/draw_plot.h"
+#include "rasterizer/draw_propi.h"
+#include "rasterizer/draw_valid_prop.h"
 #include "rasterizer/renderer.h"
 #include "rasterizer/screen.h"
 
@@ -24,7 +25,7 @@ static inline void float2_transform_to_screen_space(float res[2], const float po
 void draw_point_2d(renderer_type* this, const vec2_type v[1], const prop_type prop[1], const uint8_t z_order) {
     assert(valid_prop_check(&this->table, 1, prop));
 
-    bool outside_screen = !vec2_in_range(v[0], (vec2_type){.x = -1.f, .y = -1.f}, (vec2_type){.x = 1.f, .y = 1.f});
+    bool outside_screen = cull_point_2d(v[0]);
     if (outside_screen) {
         return;
     }
@@ -84,32 +85,64 @@ void draw_edge_2d(renderer_type* this, const vec2_type v[2], const color_type co
     plot_edge(this->screen_p, pos, color0, (float[2]){depth0, depth0});
 }
 
-// void draw_filled_triangle_2d(struct renderer_type* this, const vec2_type v[3], const prop_type prop[3], const uint8_t z_order) {
-//     assert(valid_prop_2d_check(&this->table, 3, prop));
-// }
+void draw_filled_triangle_2d(struct renderer_type* this, const vec2_type v[3], const prop_type prop[3], const uint8_t z_order) {
+    assert(valid_prop_check(&this->table, 3, prop));
+}
 
 // void draw_point_3d(struct renderer_type* this, const vec4_type v[1], const prop_type prop[1]) {
 //     assert(valid_prop_check(&this->table, 1, prop));
 //
-//     vec4_type v0_new;
-//     mat4x4_mul_vec4(v0_new, this->mvp, v[0]);
+//     vec4_type v_new0;
+//     mat4x4_mul_vec4(&v_new0, this->mvp, v[0]);
 //
 //     // -w0 <= x0,y0,z0 <= w0
-//     const vec3_type min = (vec3_type){.array = {-v0_new.w, -v0_new.w, -v0_new.w}};
-//     const vec3_type max = (vec3_type){.array = {+v0_new.w, +v0_new.w, +v0_new.w}};
+//     const vec4_type min = {.array = {-v_new0.w, -v_new0.w, -v_new0.w, -INFINITY}};
+//     const vec4_type max = {.array = {+v_new0.w, +v_new0.w, +v_new0.w, +INFINITY}};
 //
-//     bool outside_screen = !vec3_in_range(vec3_from_array(v[0].array), min, max);
+//     bool outside_screen = !vec4_in_range(v_new0, min, max);
 //     if (outside_screen) {
 //         return;
 //     }
-//     v0_new = vec4_scale(v0_new, 1.f / v0_new.w); // z-divide
-//     float2_transform_to_screen_space(v0_new.array, v0_new.array);
+//     v_new0 = vec4_scale(v_new0, 1.f / v_new0.w); // z-divide
+//
+//     float2_transform_to_screen_space(v_new0.array, v_new0.array);
 //
 //     const propi_rep_type propi0 = prop_to_intermidate_rep(&this->table, prop[0]);
 //
-//     plot_point(this->screen_p, &this->table, vec2_from_array(v0_new.array), propi0, v0_new.z);
+//     plot_point(this->screen_p, &this->table, vec2_from_array(v_new0.array), propi0, v_new0.z);
 // }
 
 // void draw_line_3d(struct renderer_type* this, const vec4_type v[2], const prop_type prop[2]) {
 //     assert(valid_prop_check(&this->table, 2, prop));
+//
+//     vec4_type v_new[2];
+//
+//     for (size_t i = 0; i < 2; i++) {
+//         mat4x4_mul_vec4(&v_new[i], this->mvp, v[i]);
+//     }
+//
+//     float t[2];
+//     bool outside_screen = !clip_line_3d(v_new[0], v_new[1], &t[0], &t[1]);
+//     if (outside_screen) {
+//         return;
+//     }
+//
+//     propi_rep_type propi[2];
+//     for (size_t i = 0; i < 2; i++) {
+//         propi[i] = prop_to_intermidate_rep(&this->table, prop[i]);
+//     }
+//     for (size_t i = 0; i < 2; i++) {
+//         propi[i] = prop_lerp(propi[0], propi[1], t[i]);
+//     }
+//
+//     vec2_type pos[2];
+//     for (size_t i = 0; i < 2; i++) {
+//         v_new[i] = vec4_scale(v_new[i], 1.f / v_new[i].w);
+//     }
+//     for (size_t i = 0; i < 2; i++) {
+//         v_new[i] = vec4_lerp(v_new[0], v_new[1], t[i]);
+//         float2_transform_to_screen_space(pos[i].array, v_new[i].array);
+//     }
+//
+//     plot_line(this->screen_p, &this->table, pos, propi, (float[2]){v_new[0].z, v_new[1].z});
 // }
