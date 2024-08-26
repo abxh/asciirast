@@ -1,2 +1,4 @@
 ascii-3d
 *.o
+*.so
+__pycache__/
