@@ -10,7 +10,7 @@ from typing import Sequence, Type
 import ctypes
 import os
 
-_libfile = CDLL(os.path.join(".", "rasterizer.so"))
+_libfile = CDLL(os.path.join(".", "acrast.so"))
 _libc = CDLL(find_library("c"))
 
 

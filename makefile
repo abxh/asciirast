@@ -1,5 +1,5 @@
-LIB_FILE_FP := rasterizer.so
-SRC_DIR     := ./rasterizer_c
+LIB_FILE_FP := acrast.so
+SRC_DIR     := ./acrast
 
 CC        := gcc
 CFLAGS    += -Wall -Wextra -Wshadow -Wconversion -pedantic -std=c2x

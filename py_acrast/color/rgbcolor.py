@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from ctypes import c_uint8, c_uint32, Structure
 
-from rasterizer_api._external import typed_lib_func
+from py_acrast._external import typed_lib_func
 
 
 @dataclass

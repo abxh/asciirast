@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from rasterizer_api.canvas import Canvas
-from rasterizer_api.color import RGBColor
+from py_acrast.canvas import Canvas
+from py_acrast.color import RGBColor
 
 # from colorama import just_fix_windows_console
 #
