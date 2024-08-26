@@ -3,9 +3,12 @@
 from py_acrast.canvas import Canvas
 from py_acrast.color import RGBColor
 
-# from colorama import just_fix_windows_console
-#
-# just_fix_windows_console()
+import os
+
+if is_windows := os.name == "nt":
+    from colorama import just_fix_windows_console
+
+    just_fix_windows_console()
 
 
 c = Canvas(50, 25)

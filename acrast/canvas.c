@@ -83,7 +83,7 @@ void canvas_print_formatted(const struct canvas_type* this, FILE* out)
                     "\033[" // ESC
                     "38;2;" // FG
                     "%03u;%03u;%03u;"
-                    "48;2;"
+                    "48;2;" // BG
                     "%03u;%03u;%03u;"
                     "m"
                     "%c",
