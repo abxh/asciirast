@@ -15,6 +15,10 @@ class RGBColor_c(Structure):
     _fields_ = [("r", c_uint8), ("g", c_uint8), ("b", c_uint8)]
 
 
+def to_rgb_c(rgb: RGBColor) -> RGBColor_c:
+    return RGBColor_c(rgb.r, rgb.g, rgb.b)
+
+
 def encode_rgb(rgb: RGBColor) -> int:
     f = typed_lib_func("color_encode_rgb", (c_uint8, c_uint8, c_uint8), c_uint32)
     return f(rgb.r, rgb.g, rgb.b)

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from functools import cached_property, cache
 from ctypes import c_int, c_char_p, c_uint32, c_float, c_char, c_void_p
-from typing import TextIO
+from typing import List, TextIO
 
-from py_asciirast.color.rgbcolor import RGBColor, encode_rgb
 from py_asciirast._external import typed_lib_func, typed_libc_func
+from py_asciirast.color_encoding import RGBColor, RGBColor_c, decode_rgb, to_rgb_c
 
 import sys
 import ctypes
@@ -16,15 +16,12 @@ class Canvas:
         self,
         w: int,
         h: int,
-        default_fg: RGBColor = RGBColor(255, 255, 255),
-        default_bg: RGBColor = RGBColor(0, 0, 0),
-        default_depth: int = 0,
+        default_fg_color: RGBColor = RGBColor(255, 255, 255),
+        default_bg_color: RGBColor = RGBColor(0, 0, 0),
         default_ascii_char: str = " ",
     ) -> None:
         self._obj = None
 
-        if not 0 <= default_depth <= 1:
-            raise ValueError("depth must be between 0 and 1")
         if not len(default_ascii_char) == 1:
             raise ValueError("must be a single char")
         if not 32 <= ord(default_ascii_char) <= 126:
@@ -32,22 +29,21 @@ class Canvas:
 
         self.w = w
         self.h = h
-        self._default_fg_encoded = encode_rgb(default_fg)
-        self._default_bg_encoded = encode_rgb(default_bg)
-        self._default_depth = default_depth
+        self.default_fg_color = default_fg_color
+        self.default_bg_color = default_bg_color
+        self.default_ascii_char = default_ascii_char
 
         f = typed_lib_func(
             "canvas_create",
-            (c_uint32, c_uint32, c_uint32, c_uint32, c_float, c_char),
+            (c_uint32, c_uint32, RGBColor_c, RGBColor_c, c_char),
             c_void_p,
         )
         self._obj = f(
             self.w,
             self.h,
-            self._default_fg_encoded,
-            self._default_bg_encoded,
-            self._default_depth,
-            ord(default_ascii_char),
+            to_rgb_c(self.default_fg_color),
+            to_rgb_c(self.default_bg_color),
+            ord(self.default_ascii_char),
         )
 
     def __del__(self) -> None:
@@ -57,7 +53,7 @@ class Canvas:
         f(self._obj)
 
     @cached_property
-    def raw_fg_color_values(
+    def _raw_fg_color_values(
         self,
     ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
         f = typed_lib_func(
@@ -67,7 +63,7 @@ class Canvas:
         return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.h * self.w))
 
     @cached_property
-    def raw_bg_color_values(
+    def _raw_bg_color_values(
         self,
     ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
         f = typed_lib_func(
@@ -77,17 +73,17 @@ class Canvas:
         return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.h * self.w))
 
     @cached_property
-    def raw_char_values(
+    def _raw_ascii_char_values(
         self,
     ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_char]]]:
         f = typed_lib_func(
-            "canvas_get_raw_char_values", (c_void_p,), ctypes.POINTER(c_uint32)
+            "canvas_get_raw_ascii_char_values", (c_void_p,), ctypes.POINTER(c_uint32)
         )
         ret_ptr = f(self._obj)
         return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_char * self.h * self.w))
 
     @cached_property
-    def raw_depth_values(
+    def _raw_depth_values(
         self,
     ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_float]]]:
         f = typed_lib_func(
@@ -95,6 +91,31 @@ class Canvas:
         )
         ret_ptr = f(self._obj)
         return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_float * self.h * self.w))
+
+    @property
+    def fg_color_values(self) -> List[List[RGBColor]]:
+        return [
+            [decode_rgb(rgb) for rgb in arr]
+            for arr in self._raw_fg_color_values.contents
+        ]
+
+    @property
+    def bg_color_values(self) -> List[List[RGBColor]]:
+        return [
+            [decode_rgb(rgb) for rgb in arr]
+            for arr in self._raw_bg_color_values.contents
+        ]
+
+    @property
+    def ascii_char_values(self) -> List[List[str]]:
+        return [
+            [ascii_char.decode("utf8") for ascii_char in arr]
+            for arr in self._raw_ascii_char_values.contents
+        ]
+
+    @property
+    def depth_values(self) -> List[List[str]]:
+        return [[d for d in arr] for arr in self._raw_depth_values.contents]
 
     def clear(self) -> None:
         f = typed_lib_func("canvas_clear", (c_void_p,), None)
@@ -104,32 +125,29 @@ class Canvas:
         self,
         x: int,
         y: int,
-        c: str,
+        ascii_char: str,
         fg_color: RGBColor | None = None,
         bg_color: RGBColor | None = None,
-        depth: float | None = None,
+        depth_value: float = 0.0,
     ) -> None:
         if not 0 <= x < self.w or not 0 <= y < self.h:
             return
-        if not len(c) == 1:
+        if not len(ascii_char) == 1:
             raise ValueError("must be a single char")
-        if not 32 <= ord(c) <= 126:
+        if not 32 <= ord(ascii_char) <= 126:
             raise ValueError("ascii character not representable when printed")
+        if not 0.0 <= depth_value <= 1.0:
+            raise ValueError("depth value must be between 0.0 and 1.0")
 
-        fg_color_encoded = (
-            self._default_fg_encoded if not fg_color else encode_rgb(fg_color)
-        )
-        bg_color_encoded = (
-            self._default_bg_encoded if not bg_color else encode_rgb(bg_color)
-        )
-        depth_value = self._default_depth if not depth else depth
+        fg_color_c = to_rgb_c(self.default_fg_color if not fg_color else fg_color)
+        bg_color_c = to_rgb_c(self.default_bg_color if not bg_color else bg_color)
 
         f = typed_lib_func(
             "canvas_plot",
-            (c_void_p, c_uint32, c_uint32, c_float, c_uint32, c_uint32, c_char),
+            (c_void_p, c_uint32, c_uint32, c_float, RGBColor_c, RGBColor_c, c_char),
             None,
         )
-        f(self._obj, x, y, depth_value, fg_color_encoded, bg_color_encoded, ord(c))
+        f(self._obj, x, y, depth_value, fg_color_c, bg_color_c, ord(ascii_char))
 
     def print_formatted(self, out: TextIO = sys.stdout, with_bg: bool = False) -> None:
         f = typed_lib_func(
