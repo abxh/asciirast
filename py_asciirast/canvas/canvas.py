@@ -4,8 +4,8 @@ from functools import cached_property, cache
 from ctypes import c_int, c_char_p, c_uint32, c_float, c_char, c_void_p
 from typing import TextIO
 
-from py_acrast.color.rgbcolor import RGBColor, encode_rgb
-from py_acrast._external import typed_lib_func, typed_libc_func
+from py_asciirast.color.rgbcolor import RGBColor, encode_rgb
+from py_asciirast._external import typed_lib_func, typed_libc_func
 
 import sys
 import ctypes

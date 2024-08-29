@@ -1,5 +1,5 @@
-LIB_FILE_FP := acrast.so
-SRC_DIR     := ./acrast
+LIB_FILE_FP := asciirast.so
+SRC_DIR     := ./asciirast
 
 CC        := gcc
 CFLAGS    += -Wall -Wextra -Wshadow -Wconversion -pedantic -std=c2x

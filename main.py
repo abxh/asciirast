@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from py_acrast.canvas import Canvas
-from py_acrast.color import RGBColor
+from py_asciirast.canvas import Canvas
+from py_asciirast.color import RGBColor
 
 import os
 
