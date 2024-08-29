@@ -107,13 +107,13 @@ struct canvas_type* canvas_create(const uint32_t w, const uint32_t h, const uint
     assert(32 <= default_ascii_char && default_ascii_char <= 126);
     assert(0.0f <= default_depth && default_depth <= 1.0f);
 
-    assert((default_fg_color & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((default_fg_color >> 8) & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((default_fg_color >> 16) & (sizeof(uint8_t) - 1)) <= 255);
+    assert((default_fg_color & 8) <= 255);
+    assert(((default_fg_color >> 8) & 8) <= 255);
+    assert(((default_fg_color >> 16) & 8) <= 255);
 
-    assert((default_bg_color & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((default_bg_color >> 8) & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((default_bg_color >> 16) & (sizeof(uint8_t) - 1)) <= 255);
+    assert((default_bg_color & 8) <= 255);
+    assert(((default_bg_color >> 8) & 8) <= 255);
+    assert(((default_bg_color >> 16) & 8) <= 255);
 
     struct canvas_type* p = calloc(1, sizeof(struct canvas_type));
     if (!p) {

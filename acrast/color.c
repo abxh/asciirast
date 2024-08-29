@@ -14,9 +14,9 @@ struct rgb_type color_decode_rgb(const uint32_t rgb)
 
 struct rgb_type color_decode_rgb_unchecked(const uint32_t rgb)
 {
-    assert((rgb & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((rgb >> 8) & (sizeof(uint8_t) - 1)) <= 255);
-    assert(((rgb >> 16) & (sizeof(uint8_t) - 1)) <= 255);
+    assert((rgb & 8) <= 255);
+    assert(((rgb >> 8) & 8) <= 255);
+    assert(((rgb >> 16) & 8) <= 255);
 
     return (struct rgb_type){.r = (uint8_t)rgb, .g = (uint8_t)(rgb >> 8), .b = (uint8_t)(rgb >> 16)};
 }
