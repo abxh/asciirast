@@ -1,4 +1,4 @@
-from ctypes import c_void_p, c_uint32, c_char
+from ctypes import c_uint16, c_void_p, c_uint32, c_char
 
 from py_asciirast.canvas import Canvas
 from py_asciirast.color_encoding import RGBColor, RGBColor_c, to_rgb_c
@@ -12,7 +12,7 @@ def draw_point(
     ascii_char: str,
     fg_color: RGBColor | None = None,
     bg_color: RGBColor | None = None,
-    z_order: int = 0,
+    z_order: int = 1,
 ) -> None:
     if not len(ascii_char) == 1:
         raise ValueError("must be a single char")
@@ -24,7 +24,7 @@ def draw_point(
 
     f = typed_lib_func(
         "draw_point",
-        (c_void_p, c_uint32, c_uint32, RGBColor_c, RGBColor_c, c_char, c_uint32),
+        (c_void_p, c_uint32, c_uint32, RGBColor_c, RGBColor_c, c_char, c_uint16),
         None,
     )
     f(canvas._obj, x, y, fg_color_c, bg_color_c, ord(ascii_char), z_order)

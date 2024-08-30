@@ -13,21 +13,17 @@ void canvas_plot(struct canvas_type* this, const uint32_t x, const uint32_t y, c
     assert(x < this->w);
     assert(y < this->h);
     assert(32 <= ascii_char && ascii_char <= 126);
-    assert(0.f - 128 * FLT_EPSILON <= d && d <= 1.0f + 128 * FLT_EPSILON);
+    assert(d <= 1.0f + 128 * FLT_EPSILON);
 
     const uint32_t index = y * this->w + x;
+    const float prev_depth = this->depth_values[index];
 
-    {
-        const float prev_depth = this->depth_values[index];
-        if (d < prev_depth) {
-            return;
-        }
+    if (d > prev_depth) {
+        this->ascii_char_values[index] = ascii_char;
+        this->fg_color_values[index] = color_encode_rgb(fg_color.r, fg_color.g, fg_color.b);
+        this->bg_color_values[index] = color_encode_rgb(bg_color.r, bg_color.g, bg_color.b);
+        this->depth_values[index] = d;
     }
-
-    this->ascii_char_values[index] = ascii_char;
-    this->fg_color_values[index] = color_encode_rgb(fg_color.r, fg_color.g, fg_color.b);
-    this->bg_color_values[index] = color_encode_rgb(bg_color.r, bg_color.g, bg_color.b);
-    this->depth_values[index] = d;
 }
 
 void canvas_print_formatted_wo_bg(const struct canvas_type* this, FILE* out)
@@ -84,10 +80,8 @@ struct canvas_type* canvas_create(const uint32_t w, const uint32_t h, const uint
                                   const char default_ascii_char)
 
 {
-    {
-        const uint32_t temp_prod = w * h;
-        assert(w != 0 && temp_prod / w == h);
-    }
+    const uint32_t area = w * h;
+    assert(w != 0 && area / w == h);
     assert(32 <= default_ascii_char && default_ascii_char <= 126);
 
     assert((default_fg_color & 8) <= 255);
@@ -102,19 +96,19 @@ struct canvas_type* canvas_create(const uint32_t w, const uint32_t h, const uint
     if (!p) {
         return NULL;
     }
-    p->ascii_char_values = calloc(w * h, sizeof(char));
+    p->ascii_char_values = calloc(area, sizeof(char));
     if (!p->ascii_char_values) {
         goto cleanup;
     }
-    p->fg_color_values = calloc(w * h, sizeof(uint32_t));
+    p->fg_color_values = calloc(area, sizeof(uint32_t));
     if (!p->fg_color_values) {
         goto cleanup;
     }
-    p->bg_color_values = calloc(w * h, sizeof(uint32_t));
+    p->bg_color_values = calloc(area, sizeof(uint32_t));
     if (!p->bg_color_values) {
         goto cleanup;
     }
-    p->depth_values = calloc(w * h, sizeof(float));
+    p->depth_values = calloc(area, sizeof(float));
     if (!p->depth_values) {
         goto cleanup;
     }

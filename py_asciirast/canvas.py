@@ -14,8 +14,8 @@ import ctypes
 class Canvas:
     def __init__(
         self,
-        w: int,
-        h: int,
+        width: int,
+        height: int,
         default_fg_color: RGBColor = RGBColor(255, 255, 255),
         default_bg_color: RGBColor = RGBColor(0, 0, 0),
         default_ascii_char: str = " ",
@@ -27,8 +27,8 @@ class Canvas:
         if not 32 <= ord(default_ascii_char) <= 126:
             raise ValueError("ascii character not representable when printed")
 
-        self.w = w
-        self.h = h
+        self.width = width
+        self.height = height
         self.default_fg_color = default_fg_color
         self.default_bg_color = default_bg_color
         self.default_ascii_char = default_ascii_char
@@ -39,8 +39,8 @@ class Canvas:
             c_void_p,
         )
         self._obj = f(
-            self.w,
-            self.h,
+            self.width,
+            self.height,
             to_rgb_c(self.default_fg_color),
             to_rgb_c(self.default_bg_color),
             ord(self.default_ascii_char),
@@ -60,7 +60,7 @@ class Canvas:
             "canvas_get_raw_fg_color_values", (c_void_p,), ctypes.POINTER(c_uint32)
         )
         ret_ptr = f(self._obj)
-        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.h * self.w))
+        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.height * self.width))
 
     @cached_property
     def _raw_bg_color_values(
@@ -70,7 +70,7 @@ class Canvas:
             "canvas_get_raw_bg_color_values", (c_void_p,), ctypes.POINTER(c_uint32)
         )
         ret_ptr = f(self._obj)
-        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.h * self.w))
+        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_uint32 * self.height * self.width))
 
     @cached_property
     def _raw_ascii_char_values(
@@ -80,7 +80,7 @@ class Canvas:
             "canvas_get_raw_ascii_char_values", (c_void_p,), ctypes.POINTER(c_uint32)
         )
         ret_ptr = f(self._obj)
-        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_char * self.h * self.w))
+        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_char * self.height * self.width))
 
     @cached_property
     def _raw_depth_values(
@@ -90,7 +90,7 @@ class Canvas:
             "canvas_get_raw_depth_values", (c_void_p,), ctypes.POINTER(c_float)
         )
         ret_ptr = f(self._obj)
-        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_float * self.h * self.w))
+        return ctypes.cast(ret_ptr, ctypes.POINTER(ctypes.c_float * self.height * self.width))
 
     @property
     def fg_color_values(self) -> List[List[RGBColor]]:
@@ -128,9 +128,9 @@ class Canvas:
         ascii_char: str,
         fg_color: RGBColor | None = None,
         bg_color: RGBColor | None = None,
-        depth_value: float = 0.0,
+        depth_value: float = 0.01,
     ) -> None:
-        if not 0 <= x < self.w or not 0 <= y < self.h:
+        if not 0 <= x < self.width or not 0 <= y < self.height:
             return
         if not len(ascii_char) == 1:
             raise ValueError("must be a single char")
