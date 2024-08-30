@@ -3,7 +3,6 @@ import sys
 
 from contextlib import contextmanager
 
-
 def move_up_lines(n: int, out: TextIO = sys.stdout) -> None:
     out.write(f"\033[{n}A\r")
 
@@ -14,5 +13,5 @@ def hidden_cursor(out: TextIO = sys.stdout):
         out.write("\033[?25l")
         yield None
         out.write("\033[?25h")
-    except:
+    except KeyboardInterrupt:
         out.write("\033[?25h")
