@@ -1,12 +1,11 @@
 from time import sleep
 from math import cos, sin
 
+import math
+
 from py_asciirast import Canvas, CanvasDepth
 
 import py_asciirast as asciirast
-import py_asciirast.printutils as printutils
-
-import math
 
 
 def frame_renderer(canvas: Canvas):
@@ -79,7 +78,7 @@ def main() -> None:
     A = 0
     B = 0
 
-    with printutils.hidden_cursor():
+    with asciirast.hidden_cursor():
         while True:
             render(A, B)
 
@@ -89,7 +88,7 @@ def main() -> None:
 
             canvas.print_formatted()
             canvas.clear()
-            printutils.move_up_lines(canvas._height)
+            asciirast.move_up_lines(canvas._height)
 
     canvas.clear()
     render(A, B)

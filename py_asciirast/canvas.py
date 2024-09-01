@@ -5,11 +5,11 @@ from typing import List, TextIO
 from ctypes import c_uint32, c_char, c_void_p
 from dataclasses import dataclass
 
-from py_asciirast._external import typed_lib_func, typed_libc_func
-from py_asciirast.color_encoding import RGBColor, RGBColor_c, EncodedRGBColor
-
 import sys
 import ctypes
+
+from py_asciirast._external import typed_lib_func, typed_libc_func
+from py_asciirast.color_encoding import RGBColor, RGBColor_c, EncodedRGBColor
 
 
 @dataclass

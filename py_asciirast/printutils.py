@@ -1,7 +1,7 @@
 from typing import TextIO
-import sys
-
 from contextlib import contextmanager
+
+import sys
 
 
 def move_up_lines(n: int, out: TextIO = sys.stdout) -> None:
