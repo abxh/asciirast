@@ -3,6 +3,7 @@ import sys
 
 from contextlib import contextmanager
 
+
 def move_up_lines(n: int, out: TextIO = sys.stdout) -> None:
     out.write(f"\033[{n}A\r")
 

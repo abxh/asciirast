@@ -1,12 +1,12 @@
 from time import sleep
 from math import cos, sin
-import math
-import itertools
-import sys
+
+from py_asciirast import Canvas, CanvasDepth
 
 import py_asciirast as asciirast
 import py_asciirast.printutils as printutils
-from py_asciirast import Canvas
+
+import math
 
 
 def frame_renderer(canvas: Canvas):
@@ -19,7 +19,7 @@ def frame_renderer(canvas: Canvas):
     R1 = 1
     R2 = 2
     K2 = 5
-    K1 = canvas.width * (2 / 10) * K2 * 1 / (R1 + R2)
+    K1 = canvas._width * (2 / 10) * K2 * 1 / (R1 + R2)
 
     def frame_render(A: float, B: float) -> None:
         cosA, sinA = cos(A), sin(A)
@@ -50,8 +50,8 @@ def frame_renderer(canvas: Canvas):
                 z = K2 + cosA * circlex * sinphi + circley * sinA
                 one_over_z = 1 / z
 
-                xp = int(canvas.width / 2 + K1 * one_over_z * x)
-                yp = int(canvas.height / 2 - K1 * one_over_z * y)
+                xp = int(canvas._width / 2 + K1 * one_over_z * x)
+                yp = int(canvas._height / 2 - K1 * one_over_z * y)
 
                 L = (
                     cosphi * costheta * sinB
@@ -63,7 +63,10 @@ def frame_renderer(canvas: Canvas):
                 if L > 0:
                     luminance_index = int(L * 8)
                     canvas.plot(
-                        xp, yp, ".,-~:;=!*#$@"[luminance_index], depth_value=one_over_z
+                        xp,
+                        yp,
+                        ".,-~:;=!*#$@"[luminance_index],
+                        depth_value=CanvasDepth.from_float(one_over_z),
                     )
 
     return frame_render
@@ -86,7 +89,7 @@ def main() -> None:
 
             canvas.print_formatted()
             canvas.clear()
-            printutils.move_up_lines(canvas.height)
+            printutils.move_up_lines(canvas._height)
 
     canvas.clear()
     render(A, B)

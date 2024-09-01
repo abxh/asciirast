@@ -23,7 +23,7 @@ import examples
 l = list(iter_submodules(examples))
 
 for i, module in enumerate(l):
-    print(f"[{i}]: {module.__name__.split('.')[1]}")
+    print(f"{i} : {module.__name__.split('.')[1]}")
 
 if not (inp := input()).isdigit():
     print(f"{inp} is not a integer.")

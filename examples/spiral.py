@@ -3,8 +3,9 @@ from time import sleep
 from typing import Tuple
 
 import py_asciirast as asciirast
-from py_asciirast.color_encoding import RGBColor
 import py_asciirast.printutils as printutils
+
+from py_asciirast.color_encoding import RGBColor
 from py_asciirast.draw import draw_point
 from py_asciirast import Canvas
 
@@ -19,8 +20,8 @@ def rotate_2d(xy: Tuple[float, float], radians: float) -> Tuple[float, float]:
 
 def get_pixel_coords(xy: Tuple[float, float], canvas: Canvas) -> Tuple[int, int]:
     x, y = xy
-    px, py = (x + 1.0) / 2.0 * canvas.width, (y + 1.0) / 2.0 * canvas.height
-    return int(px), canvas.height - 1 - int(py)
+    px, py = (x + 1.0) / 2.0 * canvas._width, (y + 1.0) / 2.0 * canvas._height
+    return int(px), canvas._height - 1 - int(py)
 
 
 def interpolate_float(x: float, y: float, t: float) -> float:
@@ -49,7 +50,9 @@ def main() -> None:
                 angle_rad = math.radians(curr_angle_deg - 20 * i - 60 * o)
                 vec = rotate_2d((0.6 - 0.1 * i, 0.6 - 0.1 * i), angle_rad)
                 color = interpolate_color(color_red, color_yellow, i / 6)
-                draw_point(canvas, *get_pixel_coords(vec, canvas), ascii_palette[i], color)
+                draw_point(
+                    canvas, *get_pixel_coords(vec, canvas), ascii_palette[i], color
+                )
         curr_angle_deg -= 10
 
     with printutils.hidden_cursor():
@@ -57,7 +60,7 @@ def main() -> None:
             render()
             canvas.print_formatted()
             canvas.clear()
-            printutils.move_up_lines(canvas.height)
+            printutils.move_up_lines(canvas._height)
 
             sleep(1 / 10)
 
