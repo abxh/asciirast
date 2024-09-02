@@ -8,10 +8,6 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
     const int64_t dx = (int64_t)x1 - (int64_t)x0;
     const int64_t dy = (int64_t)y1 - (int64_t)y0;
 
-    assert(dx >= 0);
-    assert(dy >= 0);
-    assert(dx >= dy);
-
     if (dx != 0) {
         const float m = (float)dy / (float)dx;
 
@@ -30,10 +26,6 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
 
     const int64_t dx = (int64_t)x1 - (int64_t)x0;
     const int64_t dy = (int64_t)y1 - (int64_t)y0;
-
-    assert(dx >= 0);
-    assert(dy >= 0);
-    assert(dx >= dy);
 
     if (dx != 0) {
         const float m = (float)dy / (float)dx;
@@ -77,11 +69,6 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
     const int64_t dx = (int64_t)x1 - (int64_t)x0;
     const int64_t dy = (int64_t)y1 - (int64_t)y0;
 
-
-    assert(dx >= 0);
-    assert(dy >= 0);
-    assert(dx >= dy);
-
     uint32_t y = y0;
 
     for (uint32_t i = 0; i < dx + 1; i++) {
@@ -104,10 +91,6 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
     const int64_t dx = (int64_t)x1 - (int64_t)x0;
     const int64_t dy = (int64_t)y1 - (int64_t)y0;
 
-    assert(dx >= 0);
-    assert(dy >= 0);
-    assert(dx >= dy);
-
     uint32_t y = y0;
     int64_t D = dx - 2 * dy;
 
@@ -123,7 +106,7 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
 }
 ```
 
-Integer only for (one more quadrant):
+Integer only (for one more quadrant):
 ```c
 void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1,
                const uint32_t depth, const struct rgb_type fg_color, const struct rgb_type bg_color, const char ascii_char)
@@ -133,9 +116,6 @@ void draw_line(struct canvas_type* canvas, const uint32_t x0, const uint32_t y0,
     int64_t dir = (dy < 0) ? -1 : 1;
 
     dy *= dir;
-
-    assert(dx >= 0);
-    assert(dx >= dy);
 
     uint32_t y = y0;
     int64_t D = dx - 2 * dy;
