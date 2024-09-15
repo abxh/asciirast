@@ -87,7 +87,7 @@ def analyze_audio(filename: str) -> Tuple[float, list[float], list[float]]:
 
     frametime = librosa.core.get_duration(
         y=y, hop_length=512, n_fft=2048 * 4
-    ) / np.size(tempo)
+    ) / np.size(tempo) / 2
 
     return frametime, tempo.tolist(), pitch.tolist()
 
@@ -139,7 +139,7 @@ def main() -> None:
                 canvas.clear()
                 asciirast.move_up_lines(canvas.height)
 
-                sleep(frametime * 0.5)
+                sleep(frametime)
 
     t1 = Thread(target=play_audio, args=(filename,))
     t2 = Thread(target=loop)
