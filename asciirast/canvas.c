@@ -35,15 +35,16 @@ void canvas_print_formatted_wo_bg(const struct canvas_type* this, FILE* out)
             const char ascii_char = this->ascii_char_values[index];
 
             fprintf(out,
-                    "\033[" // ESC
+                    "\x1b[" // ESC
                     "38;2;" // FG
-                    "%03u;%03u;%03u;m"
+                    "%u;%u;%u"
+                    "m"
                     "%c",
                     fg_rgb.r, fg_rgb.g, fg_rgb.b, ascii_char);
         }
-        fprintf(out, "\n");
+        fprintf(out, "\x1b[0m\n");
     }
-    fprintf(out, "\033[0m");
+    fprintf(out, "\x1b[0m");
     fflush(out);
 }
 
@@ -59,18 +60,18 @@ void canvas_print_formatted(const struct canvas_type* this, FILE* out)
             const char ascii_char = this->ascii_char_values[index];
 
             fprintf(out,
-                    "\033[" // ESC
+                    "\x1b[" // ESC
                     "38;2;" // FG
                     "%u;%u;%u;"
                     "48;2;" // BG
-                    "%u;%u;%u;"
+                    "%u;%u;%u"
                     "m"
                     "%c",
                     fg_rgb.r, fg_rgb.g, fg_rgb.b, bg_rgb.r, bg_rgb.g, bg_rgb.b, ascii_char);
         }
-        fprintf(out, "\n");
+        fprintf(out, "\x1b[0m\n");
     }
-    fprintf(out, "\033[0m");
+    fprintf(out, "\x1b[0m");
     fflush(out);
 }
 

@@ -92,6 +92,7 @@ def main() -> None:
 
     canvas.clear()
     render(A, B)
+    print("\n", end="")
     canvas.print_formatted()
 
 

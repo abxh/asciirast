@@ -70,6 +70,7 @@ def main() -> None:
 
     canvas.clear()
     render()
+    print("\n", end="")
     canvas.print_formatted()
 
 
