@@ -146,15 +146,15 @@ static inline void draw_line_unclipped(struct canvas_type* canvas, const int64_t
     }
 }
 
-void draw_line(struct canvas_type* canvas, const int64_t x0, const int64_t y0, const int64_t x1, const int64_t y1,
+void draw_line(struct canvas_type* canvas, const float pixel_x0, const float pixel_y0, const float pixel_x1, const float pixel_y1,
                const uint32_t depth, const struct rgb_type fg_color, const struct rgb_type bg_color, const char ascii_char)
 {
     const struct AABB_type aabb = {.xmin = 0.f, .ymin = 0.f, .xmax = (float)(canvas->width - 1), .ymax = (float)(canvas->height - 1)};
 
-    float x0_new = (float)x0;
-    float y0_new = (float)y0;
-    float x1_new = (float)x1;
-    float y1_new = (float)y1;
+    float x0_new = pixel_x0;
+    float y0_new = pixel_y0;
+    float x1_new = pixel_x1;
+    float y1_new = pixel_y1;
 
     if (clip_line_cohen_sutherland(aabb, &x0_new, &y0_new, &x1_new, &y1_new)) {
         const int64_t x0_rounded = (int64_t)(x0_new + 0.5f);

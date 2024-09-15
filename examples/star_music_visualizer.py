@@ -18,10 +18,10 @@ def rotate_2d(xy: Tuple[float, float], radians: float) -> Tuple[float, float]:
 
 def get_pixel_coords(
     xy: Tuple[float, float], width: int, height: int
-) -> Tuple[int, int]:
+) -> Tuple[float, float]:
     x, y = xy
     px, py = (x + 1.0) / 2.0 * width, (y + 1.0) / 2.0 * height
-    return int(px), height - 1 - int(py)
+    return px, height - 1 - py
 
 
 def render_star(
@@ -113,10 +113,11 @@ def main() -> None:
     canvas = asciirast.Canvas(50, 25)
 
     import librosa
+
     filename = librosa.example("trumpet")
 
     # print("music file name (relative path): ", end = "")
-    # filename = input() 
+    # filename = input()
 
     frametime, tempo, pitch = analyze_audio(filename)
 

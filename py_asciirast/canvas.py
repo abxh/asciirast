@@ -55,66 +55,6 @@ class Canvas:
             self._default_ascii_char_c,
         )
 
-    def __del__(self) -> None:
-        if not self._obj:
-            return
-        f = typed_lib_func("canvas_destroy", (c_void_p,), None)
-        f(self._obj)
-
-    @cached_property
-    def _raw_fg_color_values(
-        self,
-    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
-        f = typed_lib_func(
-            "canvas_get_raw_fg_color_values",
-            (c_void_p,),
-            ctypes.POINTER(c_uint32),
-        )
-        ret_ptr = f(self._obj)
-        return ctypes.cast(
-            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
-        )
-
-    @cached_property
-    def _raw_bg_color_values(
-        self,
-    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
-        f = typed_lib_func(
-            "canvas_get_raw_bg_color_values",
-            (c_void_p,),
-            ctypes.POINTER(c_uint32),
-        )
-        ret_ptr = f(self._obj)
-        return ctypes.cast(
-            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
-        )
-
-    @cached_property
-    def _raw_ascii_char_values(
-        self,
-    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_char]]]:
-        f = typed_lib_func(
-            "canvas_get_raw_ascii_char_values",
-            (c_void_p,),
-            ctypes.POINTER(c_uint32),
-        )
-        ret_ptr = f(self._obj)
-        return ctypes.cast(ret_ptr, ctypes.POINTER(c_char * self._height * self._width))
-
-    @cached_property
-    def _raw_depth_values(
-        self,
-    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
-        f = typed_lib_func(
-            "canvas_get_raw_depth_values",
-            (c_void_p,),
-            ctypes.POINTER(c_uint32),
-        )
-        ret_ptr = f(self._obj)
-        return ctypes.cast(
-            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
-        )
-
     @property
     def width(self) -> int:
         return self._width
@@ -219,6 +159,66 @@ class Canvas:
             None,
         )
         f(self._obj, OutputFileDescriptor_c(out).FILE_ptr)
+
+    def __del__(self) -> None:
+        if not self._obj:
+            return
+        f = typed_lib_func("canvas_destroy", (c_void_p,), None)
+        f(self._obj)
+
+    @cached_property
+    def _raw_fg_color_values(
+        self,
+    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
+        f = typed_lib_func(
+            "canvas_get_raw_fg_color_values",
+            (c_void_p,),
+            ctypes.POINTER(c_uint32),
+        )
+        ret_ptr = f(self._obj)
+        return ctypes.cast(
+            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
+        )
+
+    @cached_property
+    def _raw_bg_color_values(
+        self,
+    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
+        f = typed_lib_func(
+            "canvas_get_raw_bg_color_values",
+            (c_void_p,),
+            ctypes.POINTER(c_uint32),
+        )
+        ret_ptr = f(self._obj)
+        return ctypes.cast(
+            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
+        )
+
+    @cached_property
+    def _raw_ascii_char_values(
+        self,
+    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_char]]]:
+        f = typed_lib_func(
+            "canvas_get_raw_ascii_char_values",
+            (c_void_p,),
+            ctypes.POINTER(c_uint32),
+        )
+        ret_ptr = f(self._obj)
+        return ctypes.cast(ret_ptr, ctypes.POINTER(c_char * self._height * self._width))
+
+    @cached_property
+    def _raw_depth_values(
+        self,
+    ) -> ctypes._Pointer[ctypes.Array[ctypes.Array[ctypes.c_uint32]]]:
+        f = typed_lib_func(
+            "canvas_get_raw_depth_values",
+            (c_void_p,),
+            ctypes.POINTER(c_uint32),
+        )
+        ret_ptr = f(self._obj)
+        return ctypes.cast(
+            ret_ptr, ctypes.POINTER(c_uint32 * self._height * self._width)
+        )
 
 
 @cache

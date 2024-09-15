@@ -18,10 +18,10 @@ def rotate_2d(xy: Tuple[float, float], radians: float) -> Tuple[float, float]:
 
 def get_pixel_coords(
     xy: Tuple[float, float], width: int, height: int
-) -> Tuple[int, int]:
+) -> Tuple[float, float]:
     x, y = xy
     px, py = (x + 1.0) / 2.0 * width, (y + 1.0) / 2.0 * height
-    return int(px), height - 1 - int(py)
+    return px, height - 1 - py 
 
 
 def interpolate_float(x: float, y: float, t: float) -> float:
@@ -61,6 +61,7 @@ def main() -> None:
     with asciirast.hidden_cursor():
         while True:
             render()
+
             canvas.print_formatted()
             canvas.clear()
             asciirast.move_up_lines(canvas.height)
