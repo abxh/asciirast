@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-
-if is_windows := os.name == "nt":
-    from colorama import just_fix_windows_console
-
-    just_fix_windows_console()
+import examples
+import py_asciirast as asciirast
 
 
 def iter_submodules(module):
@@ -18,7 +15,20 @@ def iter_submodules(module):
         yield importlib.import_module(module_name)
 
 
-import examples
+if is_windows := os.name == "nt":
+    from colorama import just_fix_windows_console
+
+    just_fix_windows_console()
+
+if not os.path.exists(asciirast.get_libfile_path()):
+    print(f"Cannot file {asciirast.get_libfile_path()}. Please specify file path:")
+    asciirast.set_libfile_path(input())
+
+    if not os.path.exists(asciirast.get_libfile_path()):
+        raise Exception(
+            "Cannot find file. Try building the library before running this script."
+        )
+
 
 l = list(iter_submodules(examples))
 

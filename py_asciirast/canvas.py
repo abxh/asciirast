@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import sys
 import ctypes
 
-from py_asciirast._external import typed_lib_func, typed_libc_func
+from py_asciirast.external import typed_lib_func, typed_libc_func
 from py_asciirast.color_encoding import RGBColor, RGBColor_c, EncodedRGBColor
 
 

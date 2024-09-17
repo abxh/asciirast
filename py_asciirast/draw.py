@@ -2,7 +2,7 @@ from ctypes import c_float, c_void_p, c_uint32, c_char
 
 from py_asciirast.canvas import Canvas, CanvasDepth
 from py_asciirast.color_encoding import RGBColor, RGBColor_c
-from py_asciirast._external import typed_lib_func
+from py_asciirast.external import typed_lib_func
 
 
 def draw_point(

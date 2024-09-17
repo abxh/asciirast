@@ -10,19 +10,24 @@ from typing import Sequence, Type
 import ctypes
 import os
 
-# TODO: find a better way to find the `asciirast.so` file
+_libfile_path = "asciirast_libfile"
 
-_libfile_path = os.path.join(".", "asciirast.so")
 
-if not os.path.isfile(_libfile_path):
-    raise Exception(
-        "Ensure you have built the `.so` in the same dir as the __main__ python script."
-        + "Otherwise adjust the path in _external.py."
-        + "This will properly done some day."
-    )
+def set_libfile_path(path: str):
+    global _libfile_path
+    _libfile_path = path
 
-_libfile = CDLL(_libfile_path)
-_libc = CDLL(find_library("c"))
+
+def get_libfile_path():
+    return _libfile_path
+
+
+def get_libfile():
+    return CDLL(get_libfile_path())
+
+
+def get_libc():
+    return CDLL(find_library("c"))
 
 
 @lru_cache
@@ -31,7 +36,7 @@ def typed_lib_func(
     argtypes: Sequence[Type[ctypes._CData]],
     restype: Type[ctypes._CData],
 ) -> ctypes._NamedFuncPointer:
-    f = _libfile.__getattr__(function_name)
+    f = get_libfile().__getattr__(function_name)
     f.argtypes = argtypes
     f.restype = restype
     return f
@@ -43,7 +48,7 @@ def typed_libc_func(
     argtypes: Sequence[Type[ctypes._CData]],
     restype: Type[ctypes._CData],
 ) -> ctypes._NamedFuncPointer:
-    f = _libc.__getattr__(function_name)
+    f = get_libfile().__getattr__(function_name)
     f.argtypes = argtypes
     f.restype = restype
     return f
