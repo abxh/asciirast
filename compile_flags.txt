@@ -1,3 +1,0 @@
--I
-./asciirast
--std=c++2a
