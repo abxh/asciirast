@@ -1,0 +1,28 @@
+# see https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+---
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: "c++20"
+
+ColumnLimit: 120
+
+AccessModifierOffset: -4
+IndentWidth: 4
+UseTab: Never
+
+AlignEscapedNewlines: Left
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AlwaysBreakTemplateDeclarations: "Yes"
+BreakConstructorInitializers: BeforeComma
+
+# IndentPPDirectives: AfterHash
+
+PointerAlignment: Right
+
+AlignConsecutiveMacros: "AcrossEmptyLines"
+AlignOperands: "AlignAfterOperator"
+BreakBeforeBinaryOperators: "NonAssignment"
+BreakBeforeBraces: Stroustrup
+AllowShortIfStatementsOnASingleLine: "AllIfsAndElse"
+AllowShortBlocksOnASingleLine: "Empty"
