@@ -1,4 +1,4 @@
-#include "math/vec.h"
+#include "math/Vec.h"
 #include "utils.h"
 
 #include <iostream>
@@ -7,19 +7,11 @@ int main()
 {
     using namespace asciirast::math;
 
-    Vec4<int> a{1, 2, 3, 4};
-    std::cout << "dot product: " << a.dot(a) << std::endl;
+    auto v = Vec4<int>(1, Vec2<int>(2, 3), 4);
 
-    // a = a + a;
+    (v.wzyx = v.xyxy) = v.yyyy;
 
-    int width, height;
-    get_terminal_size(width, height);
-    std::cout << "terminal size: " << width << " x " << height << std::endl;
-
-    std::cout << a.x + a.y << std::endl;
-    // a.xy = a.xy.as_vec() + a.zw.as_vec();
-
-    for (const auto x : a) {
+    for (const auto x : v) {
         std::cout << x << ", ";
     }
 }

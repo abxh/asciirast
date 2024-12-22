@@ -4,7 +4,7 @@ BasedOnStyle: LLVM
 Language: Cpp
 Standard: "c++20"
 
-ColumnLimit: 120
+ColumnLimit: 80
 
 AccessModifierOffset: -4
 IndentWidth: 4
@@ -26,3 +26,4 @@ BreakBeforeBinaryOperators: "NonAssignment"
 BreakBeforeBraces: Stroustrup
 AllowShortIfStatementsOnASingleLine: "AllIfsAndElse"
 AllowShortBlocksOnASingleLine: "Empty"
+RequiresClausePosition: OwnLine
