@@ -42,6 +42,6 @@ have geometric meaning. This is powerful for several reasons:
   You can subdivide the parts of the matrix, and recalculate the changed subdivisions. You can use tricks
   involving inverse matrices to revert transformations.
 
-- If you use 3d vectors for 2d, you have an encoding for most desired units of operations (translation, rotation,
-  scaling, sheering). And similarly using 4d vectors for 3d. In practice, the same operation is done in
-  the hardware. That means pipelining and other fancy tricks can be leveraged. 
+- If you use 3d vectors for 2d, you have an encoding for most desired units of transformations
+ (translation, rotation, scaling, sheering). And similarly using 4d vectors for 3d. In practice,
+  the same operation is done in the hardware. That means pipelining and other fancy tricks can be leveraged. 
