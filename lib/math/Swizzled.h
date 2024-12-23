@@ -76,7 +76,7 @@ public:
         return this->as_num();
     }
     /**
-     * @brief Set using rvalue.
+     * @brief Set using value.
      */
     Swizzled &operator=(const T &rhs)
     {

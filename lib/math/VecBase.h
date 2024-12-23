@@ -4,13 +4,13 @@
  */
 #pragma once
 
+#include "Swizzled.h"
+#include "utils/non_narrowing_conv.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
 #include <type_traits>
-
-#include "Swizzled.h"
-#include "utils/non_narrowing_conv.h"
 
 namespace asciirast::math {
 
@@ -18,7 +18,7 @@ namespace asciirast::math {
  * @brief Base vector.
  */
 template <template <std::size_t, typename> class Vec, std::size_t N, typename T>
-    requires(N > 1 && std::is_arithmetic_v<T>)
+    requires(N > 1)
 class VecBase {
 public:
     /**
@@ -29,7 +29,7 @@ public:
     /**
      * @brief The size of the vector
      */
-    consteval auto size()
+    consteval auto size() const
     {
         return N;
     }
@@ -63,13 +63,33 @@ public:
         : e{value_type{values}...} {};
 
     /**
+     * @brief Use std::array to fill the array.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::array<T, N> &array)
+    {
+        std::copy(array.begin(), array.end(), this->begin());
+    };
+
+    /**
+     * @brief Use pointer to fill the vector.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::size_t n, const T *ptr)
+        requires(n == N)
+    {
+        std::copy_n(ptr, n, this->begin());
+    };
+
+    /**
      * @brief Index the vector. Can throw runtime_error.
      */
     T &operator[](std::size_t i)
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -80,8 +100,7 @@ public:
     const T &operator[](std::size_t i) const
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -118,7 +137,7 @@ public:
     /**
      * @brief Get the value pointer
      */
-    const T *get_value_ptr()
+    const T *get_value_ptr() const
     {
         return std::decay(this->e);
     }
@@ -134,7 +153,6 @@ public:
  * max size 2 can be accessed as a class member.
  */
 template <template <std::size_t, typename> class Vec, typename T>
-    requires(std::is_arithmetic_v<T>)
 class VecBase<Vec, 2, T> {
 private:
     static constexpr std::size_t N = 2;
@@ -148,7 +166,7 @@ public:
     /**
      * @brief The size of the vector
      */
-    consteval auto size()
+    consteval auto size() const
     {
         return N;
     }
@@ -182,13 +200,33 @@ public:
         : e{value_type{values}...} {};
 
     /**
+     * @brief Use std::array to fill the array.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::array<T, N> &array)
+    {
+        std::copy(array.begin(), array.end(), this->begin());
+    };
+
+    /**
+     * @brief Use pointer to fill the vector.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::size_t n, const T *ptr)
+        requires(n == N)
+    {
+        std::copy_n(ptr, n, this->begin());
+    };
+
+    /**
      * @brief Index the vector. Can throw runtime_error.
      */
     T &operator[](std::size_t i)
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -199,8 +237,7 @@ public:
     const T &operator[](std::size_t i) const
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -238,7 +275,7 @@ public:
     /**
      * @brief Get the value pointer
      */
-    const T *get_value_ptr()
+    const T *get_value_ptr() const
     {
         return std::decay(this->e);
     }
@@ -260,11 +297,10 @@ public:
 };
 
 /**
- * @brief Specialized 3-sized base vector. Swizzled combinations of {x, y, z} of
- * max size 3 can be accessed as a class member.
+ * @brief Specialized 3-sized base vector. Swizzled combinations of {x, y, z}
+ * and {r, g, b} of max size 3 can be accessed as a class member.
  */
 template <template <std::size_t, typename> class Vec, typename T>
-    requires(std::is_arithmetic_v<T>)
 class VecBase<Vec, 3, T> {
 private:
     static constexpr std::size_t N = 3;
@@ -278,7 +314,7 @@ public:
     /**
      * @brief The size of the vector
      */
-    consteval auto size()
+    consteval auto size() const
     {
         return N;
     }
@@ -312,13 +348,33 @@ public:
         : e{value_type{values}...} {};
 
     /**
+     * @brief Use std::array to fill the array.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::array<T, N> &array)
+    {
+        std::copy(array.begin(), array.end(), this->begin());
+    };
+
+    /**
+     * @brief Use pointer to fill the vector.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::size_t n, const T *ptr)
+        requires(n == N)
+    {
+        std::copy_n(ptr, n, this->begin());
+    };
+
+    /**
      * @brief Index the vector. Can throw runtime_error.
      */
     T &operator[](std::size_t i)
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -329,8 +385,7 @@ public:
     const T &operator[](std::size_t i) const
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -368,7 +423,7 @@ public:
     /**
      * @brief Get the value pointer
      */
-    const T *get_value_ptr()
+    const T *get_value_ptr() const
     {
         return std::decay(this->e);
     }
@@ -425,10 +480,9 @@ public:
 
 /**
  * @brief Specialized 4-sized base vector. Swizzled combinations of {x, y, z, w}
- * of max size 4 can be accessed as a class member.
+ * and {r, g, b, a} of max size 4 can be accessed as a class member.
  */
 template <template <std::size_t, typename> class Vec, typename T>
-    requires(std::is_arithmetic_v<T>)
 class VecBase<Vec, 4, T> {
 private:
     static constexpr std::size_t N = 4;
@@ -442,7 +496,7 @@ public:
     /**
      * @brief The size of the vector
      */
-    consteval auto size()
+    consteval auto size() const
     {
         return N;
     }
@@ -476,13 +530,33 @@ public:
         : e{value_type{values}...} {};
 
     /**
+     * @brief Use std::array to fill the array.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::array<T, N> &array)
+    {
+        std::copy(array.begin(), array.end(), this->begin());
+    };
+
+    /**
+     * @brief Use pointer to fill the vector.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<value_type, U>)
+    VecBase(const std::size_t n, const T *ptr)
+        requires(n == N)
+    {
+        std::copy_n(ptr, n, this->begin());
+    };
+
+    /**
      * @brief Index the vector. Can throw runtime_error.
      */
     T &operator[](std::size_t i)
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -493,8 +567,7 @@ public:
     const T &operator[](std::size_t i) const
     {
         if (i >= N) {
-            throw std::runtime_error(
-                "asciirast::math::VecBase<N,T>::operator[]");
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
         }
         return this->e[i];
     }
@@ -532,7 +605,7 @@ public:
     /**
      * @brief Get the value pointer
      */
-    const T *get_value_ptr()
+    const T *get_value_ptr() const
     {
         return std::decay(this->e);
     }
