@@ -11,19 +11,19 @@ Example: A linear transformation:
 ```
 The matrix encoding:
 ``` math
-\begin{matrix}
+\begin{bmatrix}
     x' \\
     y'
-\end{matrix}
+\end{bmatrix}
 =
-\begin{matrix}
+\begin{bmatrix}
     A & B \\
     C & D
-\end{matrix}
-\begin{matrix}
+\end{bmatrix}
+\begin{bmatrix}
     x \\
     y
-\end{matrix}
+\end{bmatrix}
 ```
 
 A notational trick? Not quite. The power of matrices come from the plethora of
