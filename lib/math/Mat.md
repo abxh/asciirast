@@ -11,19 +11,19 @@ Example: A linear transformation:
 ```
 The matrix encoding:
 ``` math
-\begin{matrix}
+\begin{bmatrix}
     x' \\
     y'
-\end{matrix}
+\end{bmatrix}
 =
-\begin{matrix}
+\begin{bmatrix}
     A & B \\
     C & D
-\end{matrix}
-\begin{matrix}
+\end{bmatrix}
+\begin{bmatrix}
     x \\
     y
-\end{matrix}
+\end{bmatrix}
 ```
 
 A notational trick? Not quite. The power of matrices come from the plethora of
@@ -42,6 +42,7 @@ have geometric meaning. This is powerful for several reasons:
   You can subdivide the parts of the matrix, and recalculate the changed subdivisions. You can use tricks
   involving inverse matrices to revert transformations.
 
-- If you use 3d vectors for 2d, you have an encoding for most desired units of operations (translation, rotation,
-  scaling, sheering). And similarly using 4d vectors for 3d. In practice, the same operation is done in
-  the hardware. That means pipelining and other fancy tricks can be leveraged. 
+- If you use 3d matrices for 2d, you have an encoding for most desired units of transformations
+ (translation, rotation, scaling, sheering). You cannot translate 2d vectors with a 2d matrix. And similarly
+  using 4d vectors for 3d. In practice, the same operation is done, and the hardware is built to perform 
+  matrix multiplication really quickly using simd, pipelining and other fancy tricks.
