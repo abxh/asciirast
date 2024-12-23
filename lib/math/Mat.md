@@ -44,5 +44,5 @@ have geometric meaning. This is powerful for several reasons:
 
 - If you use 3d matrices for 2d, you have an encoding for most desired units of transformations
  (translation, rotation, scaling, sheering). You cannot translate 2d vectors with a 2d matrix. And similarly
-  using 4d vectors for 3d. In practice, the same operation is done in the hardware. That means pipelining
-  and other fancy tricks can be leveraged. 
+  using 4d vectors for 3d. In practice, the same operation is done, and the hardware is built to perform 
+  matrix multiplication really quickly using simd, pipelining and other fancy tricks.
