@@ -2,8 +2,11 @@
  * @file VecBase.h
  * @brief Vector base class supporting swizzled components.
  *
- * Swizzling class idea from <a
- * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">source</a>
+ * Swizzling class idea from
+ * <a
+ * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">
+ * source
+ * </a>
  */
 
 #pragma once
@@ -15,14 +18,16 @@ namespace asciirast::math {
 /**
  * @brief Class to create swizzled N-dimensional vectors.
  *
- * @tparam VecClass The vector class to convert to (e.g., instansiated as
+ * @tparam VecClass The vector class to convert to (e.g., instantiated as
  * `VecClass<3, float>`).
  * @tparam N The size of the vector.
  * @tparam T The type of the vector components (e.g., `float`).
  * @tparam Indicies The indices of the swizzled components.
  */
-template <template <std::size_t, typename> class VecClass, std::size_t N,
-          typename T, std::size_t... Indicies>
+template <template <std::size_t, typename> class VecClass,
+          std::size_t N,
+          typename T,
+          std::size_t... Indicies>
 class SwizzledComponents {
 private:
     using Vec = VecClass<sizeof...(Indicies), T>;
@@ -34,24 +39,17 @@ public:
     /**
      * @brief Get the swizzled components as a vector.
      */
-    Vec value() const
-    {
-        return Vec{m_components[Indicies]...};
-    }
+    Vec value() const { return Vec{m_components[Indicies]...}; }
 
     /**
      * @brief Implicit conversion to a vector.
      */
-    operator Vec() const
-    {
-        return this->value();
-    }
+    operator Vec() const { return this->value(); }
 
     /**
      * @brief Implicit assignment from a vector.
      */
-    Vec &operator=(const Vec &rhs)
-    {
+    Vec& operator=(const Vec& rhs) {
         const size_t indices[] = {Indicies...};
         for (size_t i = 0; i < N; i++) {
             m_components[indices[i]] = rhs[i];
@@ -63,14 +61,16 @@ public:
 /**
  * @brief Specialized class to create swizzled 1-dimensional vectors.
  *
- * @tparam VecClass The vector class to convert to (e.g., instansiated as
+ * @tparam VecClass The vector class to convert to (e.g., instantiated as
  * `VecClass<1, float>`).
  * @tparam N The size of the vector.
  * @tparam T The type of the vector component (e.g., `float`).
  * @tparam index The index of the swizzled component.
  */
-template <template <std::size_t, typename> class VecClass, std::size_t N,
-          typename T, std::size_t index>
+template <template <std::size_t, typename> class VecClass,
+          std::size_t N,
+          typename T,
+          std::size_t index>
 class SwizzledComponents<VecClass, N, T, index> {
 private:
     T m_components[N];
@@ -79,26 +79,17 @@ public:
     /**
      * @brief Get the value as a number.
      */
-    T value() const
-    {
-        return m_components[index];
-    }
+    T value() const { return m_components[index]; }
 
     /**
      * @brief Implicit conversion to number.
      */
-    operator T() const
-    {
-        return this->value();
-    }
+    operator T() const { return this->value(); }
 
     /**
      * @brief Implicit assignment to number.
      */
-    T &operator=(const T &value)
-    {
-        return (m_components[index] = value);
-    }
+    T& operator=(const T& value) { return (m_components[index] = value); }
 };
 
 /**
@@ -109,12 +100,13 @@ public:
  * @tparam N The size of the vector.
  * @tparam T The type of the vector components (e.g., `float`).
  */
-template <template <std::size_t, typename> class VecClass, std::size_t N,
+template <template <std::size_t, typename> class VecClass,
+          std::size_t N,
           typename T>
     requires(N > 0)
 class VecBase {
 public:
-    T m_components[N]; ///< Array holding the vector components.
+    T m_components[N];  ///< Array holding the vector components.
 };
 
 /**
@@ -664,4 +656,4 @@ public:
     };
 };
 
-} // namespace asciirast::math
+}  // namespace asciirast::math

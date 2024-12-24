@@ -7,12 +7,10 @@ int main()
 {
     using namespace asciirast::math;
 
-    auto v = Vec<3, int>(Vec<2, int>(1,2), 3);
+    auto v = Vec<3, float>(Vec<2, float>(1.f, 2.f), 3.f);
+    auto w = Vec<3, float>(Vec<2, float>(5.f, 0.f), 0.f);
 
-    for (const auto x : v) {
-        std::cout << x << ", ";
-    }
-    std::cout << std::endl;
+    // std::cout << v.angle() << std::endl;
 
     //
     // // std::cout << v;
