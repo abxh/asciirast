@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <iomanip>
 #include <numeric>
 #include <ostream>
 #include <type_traits>
@@ -20,7 +21,7 @@ namespace asciirast::math {
  * @brief N-dimensional math vector
  */
 template <std::size_t N, typename T>
-    requires(N > 1 && std::is_arithmetic_v<T>)
+    requires(N > 0 && std::is_arithmetic_v<T>)
 class Vec;
 
 /**
@@ -42,24 +43,10 @@ template <typename T>
 using Vec4 = Vec<4, T>;
 
 template <std::size_t N, typename T>
-    requires(N > 1 && std::is_arithmetic_v<T>)
+    requires(N > 0 && std::is_arithmetic_v<T>)
 class Vec : public VecBase<Vec, N, T> {
 private:
     using Base = VecBase<Vec, N, T>;
-
-public:
-    /**
-     * @brief The value type.
-     */
-    using value_type = T;
-
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
 
     /**
      * @brief Zero identity of type
@@ -77,6 +64,15 @@ public:
         return T{1};
     }
 
+public:
+    /**
+     * @brief The size of the vector
+     */
+    constexpr auto size() const
+    {
+        return N;
+    }
+
     /**
      * @brief Default constructor. Set all values to 0.
      */
@@ -87,15 +83,15 @@ public:
      * @brief Use initial value to fill the entire vector.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    Vec(const U &initial_value)
+        requires(utils::non_narrowing_conv<T, U>)
+    explicit Vec(const U &initial_value)
         : Base{initial_value} {};
 
     /**
      * @brief Initiate a 2-dimensional vector
      */
     template <typename U1, typename U2>
-        requires(utils::non_narrowing_conv<value_type, U1, U2>)
+        requires(utils::non_narrowing_conv<T, U1, U2>)
     Vec(const U1 &x, const U2 &y)
         requires(N == 2)
         : Base{x, y} {};
@@ -104,36 +100,45 @@ public:
      * @brief Initiate a 3-dimensional vector
      */
     template <typename U1, typename U2, typename U3>
-        requires(utils::non_narrowing_conv<value_type, U1, U2, U3>)
+        requires(utils::non_narrowing_conv<T, U1, U2, U3>)
     Vec(const U1 &x, const U2 &y, const U3 &z)
         requires(N == 3)
         : Base{x, y, z} {};
+
+    /**
+     * @brief Initiate a N-dimensional vector with a M-dimensional
+     * vector where M < N. The rest of the values are set to 0.
+     */
+    template <std::size_t M>
+    Vec(const Vec<M, T> &v)
+        requires(M < N)
+        : Base{v.begin(), M} {};
 
     /**
      * @brief Initiate a 3-dimensional vector with a value and a 2-dimensional
      * vector
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     Vec(const U &l, const Vec<2, T> &r)
         requires(N == 3)
-        : Base{l, r[0], r[1]} {};
+        : Base{l, r.index(0), r.index(1)} {};
 
     /**
      * @brief Initiate a 3-dimensional vector with a 2-dimensional vector and
      * value
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     Vec(const Vec<2, T> &l, const U &r)
         requires(N == 3)
-        : Base{l[0], l[1], r} {};
+        : Base{l.index(0), l.index(1), r} {};
 
     /**
      * @brief Initiate a 4-dimensional vector
      */
     template <typename U1, typename U2, typename U3, typename U4>
-        requires(utils::non_narrowing_conv<value_type, U1, U2, U3, U4>)
+        requires(utils::non_narrowing_conv<T, U1, U2, U3, U4>)
     Vec(const U1 &x, const U2 &y, const U3 &z, const U4 &w)
         requires(N == 4)
         : Base{x, y, z, w} {};
@@ -142,20 +147,20 @@ public:
      * @brief Initiate a 4-dimensional vector with two 2-dimensional vectors
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     Vec(const U &l, const Vec<3, T> &r)
         requires(N == 4)
-        : Base{l, r[0], r[1], r[2]} {};
+        : Base{l, r.index(0), r.index(1), r.index(2)} {};
 
     /**
      * @brief Initiate a 4-dimensional vector with a 3-dimensional vector and
      * value
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     Vec(const Vec<3, T> &l, const U &r)
         requires(N == 4)
-        : Base{l[0], l[1], l[2], r} {};
+        : Base{l.index(0), l.index(1), l.index(2), r} {};
 
     /**
      * @brief Initiate a 4-dimensional vector with a value and 3-dimensional
@@ -163,54 +168,62 @@ public:
      */
     Vec(const Vec<2, T> &l, const Vec<2, T> &r)
         requires(N == 4)
-        : Base{l[0], l[1], r[0], r[1]} {};
+        : Base{l.index(0), l.index(1), r.index(0), r.index(1)} {};
 
     /**
      * @brief Initiate a 4-dimensional vector with two values and 2-dimensional
      * vector
      */
     template <typename U1, typename U2>
-        requires(utils::non_narrowing_conv<value_type, U1, U2>)
+        requires(utils::non_narrowing_conv<T, U1, U2>)
     Vec(const U1 &l, const Vec<2, T> &m, const U2 &r)
         requires(N == 4)
-        : Base{l, m[0], m[1], r} {};
+        : Base{l, m.index(0), m.index(1), r} {};
 
     /**
      * @brief Initiate a N-dimensional vector
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<value_type, Us...>)
+        requires(utils::non_narrowing_conv<T, Us...>)
     Vec(const Us &...values)
         requires(4 < N && N == sizeof...(values))
         : Base{values...} {};
 
     /**
-     * @brief Use array to fill the vector.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    Vec(const std::array<T, N> &array)
-        : Base{array} {};
+    template <std::input_iterator Iterator>
+        requires(std::same_as<std::iter_value_t<Iterator>, T>)
+    Vec(Iterator begin)
+        : Base{begin} {};
 
     /**
-     * @brief Use pointer to fill the vector.
+     * @brief Print using specific print width.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    Vec(const std::size_t n, const T *ptr)
-        : Base{n, ptr} {};
+    static std::ostream &print(std::ostream &out, const Vec &v,
+                               std::size_t fill_width = 10, char fill = ' ',
+                               std::string_view start_char = "[",
+                               std::string_view end_char = "]")
+    {
+        const auto formatted_print = [&](const auto t) {
+            out << std::right << std::setw(fill_width) << std::setfill(fill)
+                << t;
+        };
+
+        out << start_char;
+        for (std::size_t i = 0; i < N; i++) {
+            formatted_print(v[i]);
+        }
+        out << end_char;
+        return out;
+    }
 
     /**
-     * @brief Print the vector
+     * @brief Print operator override.
      */
     friend std::ostream &operator<<(std::ostream &out, const Vec &v)
     {
-        out << "[" << v[0];
-        for (std::size_t i = 1; i < N; i++) {
-            out << "," << (v[i] >= zero() ? " " : "") << v[i];
-        }
-        out << "]";
-        return out;
+        return Vec::print(out, v);
     }
 
     /**
@@ -345,7 +358,7 @@ public:
      * @brief Multiply vector with scalar from left-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     friend Vec operator*(const U &scalar, const Vec &vec)
     {
         Vec res;
@@ -359,7 +372,7 @@ public:
      * @brief Multiply vector with scalar from right-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     friend Vec operator*(const Vec &vec, const U &scalar)
     {
         Vec res;
@@ -373,7 +386,7 @@ public:
      * @brief Multiply vector with inverse scalar from right-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     friend Vec operator/(const Vec &vec, const U &scalar)
         requires(std::is_floating_point_v<T>)
     {

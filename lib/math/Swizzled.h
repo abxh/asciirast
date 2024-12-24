@@ -12,38 +12,39 @@
 
 namespace asciirast::math {
 
-/**
+/*
+*
  * @brief Class to create swizzled vectors.
  */
 template <template <std::size_t, typename> class Vec, std::size_t NTotal,
           typename T, std::size_t... Indicies>
 class Swizzled {
 private:
-    static constexpr std::size_t N = sizeof...(Indicies);
+    static constexpr std::size_t M = sizeof...(Indicies);
     T e[NTotal];
 
 public:
     /**
      * @brief Explicitly convert to vector.
      */
-    Vec<N, T> as_vec() const
+    Vec<M, T> as_vector() const
     {
-        return Vec<N, T>{this->e[Indicies]...};
+        return Vec<M, T>{this->e[Indicies]...};
     }
     /**
      * @brief Implicitly convert to vector when the context is clear.
      */
-    operator Vec<N, T>() const
+    operator Vec<M, T>() const
     {
-        return this->as_vec();
+        return this->as_vector();
     }
     /**
      * @brief Set using vector.
      */
-    Swizzled &operator=(const Vec<N, T> &rhs)
+    Swizzled &operator=(const Vec<M, T> &rhs)
     {
         std::size_t indicies[] = {Indicies...};
-        for (std::size_t i = 0; i < N; i++) {
+        for (std::size_t i = 0; i < M; i++) {
             this->e[indicies[i]] = rhs.e[i];
         }
         return *this;

@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
-#include <type_traits>
 
 namespace asciirast::math {
 
@@ -18,18 +17,13 @@ namespace asciirast::math {
  * @brief Base vector.
  */
 template <template <std::size_t, typename> class Vec, std::size_t N, typename T>
-    requires(N > 1)
+    requires(N > 0)
 class VecBase {
 public:
     /**
-     * @brief The value type.
-     */
-    using value_type = T;
-
-    /**
      * @brief The size of the vector
      */
-    consteval auto size() const
+    constexpr auto size() const
     {
         return N;
     }
@@ -40,53 +34,69 @@ public:
      */
     VecBase()
     {
-        std::fill(this->begin(), this->end(), value_type{});
+        std::fill(this->begin(), this->end(), T{});
     }
 
     /**
      * @brief Use initial value to fill the entire array.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     VecBase(const U &intital_value)
     {
-        std::fill(this->begin(), this->end(), value_type{intital_value});
+        std::fill(this->begin(), this->end(), T{intital_value});
     }
 
     /**
      * @brief Use N values to fill the N-sized array.
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<value_type, Us...>)
+        requires(utils::non_narrowing_conv<T, Us...>)
     VecBase(const Us &...values)
         requires(N == sizeof...(Us))
-        : e{value_type{values}...} {};
+        : e{T{values}...} {};
 
     /**
-     * @brief Use std::array to fill the array.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::array<T, N> &array)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin)
     {
-        std::copy(array.begin(), array.end(), this->begin());
+        std::copy_n(begin, N, this->begin());
     };
 
     /**
-     * @brief Use pointer to fill the vector.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::size_t n, const T *ptr)
-        requires(n == N)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin, std::size_t M)
     {
-        std::copy_n(ptr, n, this->begin());
+        std::fill(this->begin(), this->end(), T{});
+        std::copy_n(begin, std::min(M, N), this->begin());
     };
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    T &index(const std::size_t i) noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    const T &index(const std::size_t i) const noexcept
+    {
+        return this->e[i];
+    }
 
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    T &operator[](std::size_t i)
+    T &operator[](const std::size_t i)
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -97,7 +107,147 @@ public:
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    const T &operator[](std::size_t i) const
+    const T &operator[](const std::size_t i) const
+    {
+        if (i >= N) {
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
+        }
+        return this->e[i];
+    }
+
+    /**
+     * @brief Vector begin iterator. To be used with higher-level functions
+     */
+    auto begin()
+    {
+        return &this->e[0];
+    }
+    /**
+     * @brief Vector begin const iterator. To be used with higher-level
+     * functions
+     */
+    auto begin() const
+    {
+        return &this->e[0];
+    }
+    /**
+     * @brief Vector end iterator. To be used with higher-level functions
+     */
+    auto end()
+    {
+        return &this->e[N];
+    }
+    /**
+     * @brief Vector end const iterator. To be used with higher-level functions
+     */
+    auto end() const
+    {
+        return &this->e[N];
+    }
+
+public:
+    /// @cond DO_NO_DOCUMENT
+    T e[N];
+    /// @endcond
+};
+
+/**
+ * @brief Specialized 1-sized base vector.
+ */
+template <template <std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 1, T> {
+private:
+    static constexpr std::size_t N = 1;
+
+public:
+    /**
+     * @brief The size of the vector
+     */
+    constexpr auto size() const
+    {
+        return N;
+    }
+
+    /**
+     * @brief Default constructor. Fill all values in vector with default value
+     * constructor.
+     */
+    VecBase()
+    {
+        std::fill(this->begin(), this->end(), T{});
+    }
+
+    /**
+     * @brief Use initial value to fill the entire array.
+     */
+    template <typename U>
+        requires(utils::non_narrowing_conv<T, U>)
+    VecBase(const U &intital_value)
+    {
+        std::fill(this->begin(), this->end(), T{intital_value});
+    }
+
+    /**
+     * @brief Use N values to fill the N-sized array.
+     */
+    template <typename... Us>
+        requires(utils::non_narrowing_conv<T, Us...>)
+    VecBase(const Us &...values)
+        requires(N == sizeof...(Us))
+        : e{T{values}...} {};
+
+    /**
+     * @brief Use iterator to fill the vector.
+     */
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin)
+    {
+        std::copy_n(begin, N, this->begin());
+    };
+
+    /**
+     * @brief Use iterator to fill the vector.
+     */
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin, std::size_t M)
+    {
+        std::fill(this->begin(), this->end(), T{});
+        std::copy_n(begin, std::min(M, N), this->begin());
+    };
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    T &index(const std::size_t i) noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    const T &index(const std::size_t i) const noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. Can throw runtime_error.
+     */
+    T &operator[](const std::size_t i)
+    {
+        if (i >= N) {
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
+        }
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. Can throw runtime_error.
+     */
+    const T &operator[](const std::size_t i) const
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -135,16 +285,19 @@ public:
         return &this->e[N];
     }
     /**
-     * @brief Get the value pointer
+     * @brief Implicitly convert to number when the context is clear.
      */
-    const T *get_value_ptr() const
+    operator T() const
     {
-        return std::decay(this->e);
+        return this->e[0];
     }
 
 public:
     /// @cond DO_NO_DOCUMENT
-    T e[N];
+    union {
+        T e[N];
+        Swizzled<Vec, N, T, 0> x;
+    };
     /// @endcond
 };
 
@@ -159,14 +312,9 @@ private:
 
 public:
     /**
-     * @brief The value type.
-     */
-    using value_type = T;
-
-    /**
      * @brief The size of the vector
      */
-    consteval auto size() const
+    constexpr auto size() const
     {
         return N;
     }
@@ -177,53 +325,69 @@ public:
      */
     VecBase()
     {
-        std::fill(this->begin(), this->end(), value_type{});
+        std::fill(this->begin(), this->end(), T{});
     }
 
     /**
      * @brief Use initial value to fill the entire array.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     VecBase(const U &intital_value)
     {
-        std::fill(this->begin(), this->end(), value_type{intital_value});
+        std::fill(this->begin(), this->end(), T{intital_value});
     }
 
     /**
      * @brief Use N values to fill the N-sized array.
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<value_type, Us...>)
+        requires(utils::non_narrowing_conv<T, Us...>)
     VecBase(const Us &...values)
         requires(N == sizeof...(Us))
-        : e{value_type{values}...} {};
+        : e{T{values}...} {};
 
     /**
-     * @brief Use std::array to fill the array.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::array<T, N> &array)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin)
     {
-        std::copy(array.begin(), array.end(), this->begin());
+        std::copy_n(begin, N, this->begin());
     };
 
     /**
-     * @brief Use pointer to fill the vector.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::size_t n, const T *ptr)
-        requires(n == N)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin, std::size_t M)
     {
-        std::copy_n(ptr, n, this->begin());
+        std::fill(this->begin(), this->end(), T{});
+        std::copy_n(begin, std::min(M, N), this->begin());
     };
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    T &index(const std::size_t i) noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    const T &index(const std::size_t i) const noexcept
+    {
+        return this->e[i];
+    }
 
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    T &operator[](std::size_t i)
+    T &operator[](const std::size_t i)
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -234,7 +398,7 @@ public:
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    const T &operator[](std::size_t i) const
+    const T &operator[](const std::size_t i) const
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -270,14 +434,6 @@ public:
     auto end() const
     {
         return &this->e[N];
-    }
-
-    /**
-     * @brief Get the value pointer
-     */
-    const T *get_value_ptr() const
-    {
-        return std::decay(this->e);
     }
 
 public:
@@ -307,14 +463,9 @@ private:
 
 public:
     /**
-     * @brief The value type.
-     */
-    using value_type = T;
-
-    /**
      * @brief The size of the vector
      */
-    consteval auto size() const
+    constexpr auto size() const
     {
         return N;
     }
@@ -325,53 +476,69 @@ public:
      */
     VecBase()
     {
-        std::fill(this->begin(), this->end(), value_type{});
+        std::fill(this->begin(), this->end(), T{});
     }
 
     /**
      * @brief Use initial value to fill the entire array.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     VecBase(const U &intital_value)
     {
-        std::fill(this->begin(), this->end(), value_type{intital_value});
+        std::fill(this->begin(), this->end(), T{intital_value});
     }
 
     /**
      * @brief Use N values to fill the N-sized array.
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<value_type, Us...>)
+        requires(utils::non_narrowing_conv<T, Us...>)
     VecBase(const Us &...values)
         requires(N == sizeof...(Us))
-        : e{value_type{values}...} {};
+        : e{T{values}...} {};
 
     /**
-     * @brief Use std::array to fill the array.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::array<T, N> &array)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin)
     {
-        std::copy(array.begin(), array.end(), this->begin());
+        std::copy_n(begin, N, this->begin());
     };
 
     /**
-     * @brief Use pointer to fill the vector.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::size_t n, const T *ptr)
-        requires(n == N)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin, std::size_t M)
     {
-        std::copy_n(ptr, n, this->begin());
+        std::fill(this->begin(), this->end(), T{});
+        std::copy_n(begin, std::min(M, N), this->begin());
     };
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    T &index(const std::size_t i) noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    const T &index(const std::size_t i) const noexcept
+    {
+        return this->e[i];
+    }
 
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    T &operator[](std::size_t i)
+    T &operator[](const std::size_t i)
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -382,7 +549,7 @@ public:
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    const T &operator[](std::size_t i) const
+    const T &operator[](const std::size_t i) const
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -418,14 +585,6 @@ public:
     auto end() const
     {
         return &this->e[N];
-    }
-
-    /**
-     * @brief Get the value pointer
-     */
-    const T *get_value_ptr() const
-    {
-        return std::decay(this->e);
     }
 
 public:
@@ -489,14 +648,9 @@ private:
 
 public:
     /**
-     * @brief The value type.
-     */
-    using value_type = T;
-
-    /**
      * @brief The size of the vector
      */
-    consteval auto size() const
+    constexpr auto size() const
     {
         return N;
     }
@@ -507,53 +661,69 @@ public:
      */
     VecBase()
     {
-        std::fill(this->begin(), this->end(), value_type{});
+        std::fill(this->begin(), this->end(), T{});
     }
 
     /**
      * @brief Use initial value to fill the entire array.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
+        requires(utils::non_narrowing_conv<T, U>)
     VecBase(const U &intital_value)
     {
-        std::fill(this->begin(), this->end(), value_type{intital_value});
+        std::fill(this->begin(), this->end(), T{intital_value});
     }
 
     /**
      * @brief Use N values to fill the N-sized array.
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<value_type, Us...>)
+        requires(utils::non_narrowing_conv<T, Us...>)
     VecBase(const Us &...values)
         requires(N == sizeof...(Us))
-        : e{value_type{values}...} {};
+        : e{T{values}...} {};
 
     /**
-     * @brief Use std::array to fill the array.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::array<T, N> &array)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin)
     {
-        std::copy(array.begin(), array.end(), this->begin());
+        std::copy_n(begin, N, this->begin());
     };
 
     /**
-     * @brief Use pointer to fill the vector.
+     * @brief Use iterator to fill the vector.
      */
-    template <typename U>
-        requires(utils::non_narrowing_conv<value_type, U>)
-    VecBase(const std::size_t n, const T *ptr)
-        requires(n == N)
+    template <std::input_iterator Iterator>
+        requires std::same_as<std::iter_value_t<Iterator>, T>
+    VecBase(Iterator begin, std::size_t M)
     {
-        std::copy_n(ptr, n, this->begin());
+        std::fill(this->begin(), this->end(), T{});
+        std::copy_n(begin, std::min(M, N), this->begin());
     };
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    T &index(const std::size_t i) noexcept
+    {
+        return this->e[i];
+    }
+
+    /**
+     * @brief Index the vector. With no OOB checking.
+     */
+    const T &index(const std::size_t i) const noexcept
+    {
+        return this->e[i];
+    }
 
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    T &operator[](std::size_t i)
+    T &operator[](const std::size_t i)
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -564,7 +734,7 @@ public:
     /**
      * @brief Index the vector. Can throw runtime_error.
      */
-    const T &operator[](std::size_t i) const
+    const T &operator[](const std::size_t i) const
     {
         if (i >= N) {
             throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
@@ -600,14 +770,6 @@ public:
     auto end() const
     {
         return &this->e[N];
-    }
-
-    /**
-     * @brief Get the value pointer
-     */
-    const T *get_value_ptr() const
-    {
-        return std::decay(this->e);
     }
 
 public:
