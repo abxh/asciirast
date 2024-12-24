@@ -5,17 +5,22 @@
 
 #pragma once
 
-#include "VecBase.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <iomanip>
 #include <numeric>
-#include <ostream>
+#include <ranges>
 #include <type_traits>
 
+#include "VecBase.h"
+
 namespace asciirast::math {
+
+/**
+ * @brief Trait to check narrowing conversion
+ */
+template <typename To, typename... From>
+concept non_narrowing_conversion = (requires(From f) { To{f}; } && ...);
 
 /**
  * @brief N-dimensional math vector
@@ -45,187 +50,246 @@ using Vec4 = Vec<4, T>;
 template <std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
 class Vec : public VecBase<Vec, N, T> {
-private:
-    using Base = VecBase<Vec, N, T>;
-
+public:
     /**
-     * @brief Zero identity of type
+     * @brief Initiate vector from initial value
      */
-    static constexpr T zero()
+    template <typename U>
+        requires(non_narrowing_conversion<T, U>)
+    constexpr static void init(Vec &vec, const U &initial_value)
     {
-        return T{0};
+        std::fill(vec.begin(), vec.end(), initial_value);
     }
 
     /**
-     * @brief One identity of type
+     * @brief Initiate vector from list of values. Fill the rest with zero.
      */
-    static constexpr T one()
+    template <typename... Us>
+        requires(non_narrowing_conversion<T, Us...>)
+    constexpr static void init(Vec &vec, const Us &...values)
+        requires(1 < sizeof...(values) && sizeof...(values) <= N)
     {
-        return T{1};
+        const auto value_list = {values...};
+        const auto indicies = std::views::iota(0);
+
+        for (auto [i, value] : std::views::zip(indicies, value_list)) {
+            vec.m_components[i] = value;
+        }
+    }
+
+    /**
+     * @brief Initiate vector from another (potentially smaller) vector.
+     */
+    template <std::size_t M>
+    constexpr static void init(Vec &vec, const Vec<M, T> &other)
+        requires(M <= N)
+    {
+        std::copy(other.begin(), other.end(), vec.begin());
     }
 
 public:
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
+    using VecBase<Vec, N, T>::m_components;
+    using value_type = T;
+    constexpr static std::size_t size = N;
 
     /**
-     * @brief Default constructor. Set all values to 0.
+     * @brief Default constructor. Fill the values as zero.
      */
-    Vec()
-        : Base{zero()} {};
+    constexpr Vec()
+    {
+        Vec::init(*this, T{});
+    };
 
     /**
      * @brief Use initial value to fill the entire vector.
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    explicit Vec(const U &initial_value)
-        : Base{initial_value} {};
+        requires(non_narrowing_conversion<T, U>)
+    constexpr explicit Vec(const U &initial_value)
+    {
+        Vec::init(*this, initial_value);
+    };
 
     /**
      * @brief Initiate a 2-dimensional vector
      */
     template <typename U1, typename U2>
-        requires(utils::non_narrowing_conv<T, U1, U2>)
-    Vec(const U1 &x, const U2 &y)
+        requires(non_narrowing_conversion<T, U1, U2>)
+    constexpr Vec(const U1 &x, const U2 &y)
         requires(N == 2)
-        : Base{x, y} {};
+    {
+        Vec::init(*this, x, y);
+    };
 
     /**
      * @brief Initiate a 3-dimensional vector
      */
     template <typename U1, typename U2, typename U3>
-        requires(utils::non_narrowing_conv<T, U1, U2, U3>)
-    Vec(const U1 &x, const U2 &y, const U3 &z)
+        requires(non_narrowing_conversion<T, U1, U2, U3>)
+    constexpr Vec(const U1 &x, const U2 &y, const U3 &z)
         requires(N == 3)
-        : Base{x, y, z} {};
+    {
+        Vec::init(*this, x, y, z);
+    };
 
     /**
-     * @brief Initiate a N-dimensional vector with a M-dimensional
-     * vector where M < N. The rest of the values are set to 0.
+     * @brief Initiate a N-dimensional vector with a M-dimensional vector where
+     * M < N. The rest of the values are set to 0.
      */
     template <std::size_t M>
-    Vec(const Vec<M, T> &v)
+    constexpr Vec(const Vec<M, T> &that)
         requires(M < N)
-        : Base{v.begin(), M} {};
+    {
+        Vec::init(*this, that);
+    };
 
     /**
      * @brief Initiate a 3-dimensional vector with a value and a 2-dimensional
      * vector
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    Vec(const U &l, const Vec<2, T> &r)
+        requires(non_narrowing_conversion<T, U>)
+    constexpr Vec(const U &l, const Vec<2, T> &r)
         requires(N == 3)
-        : Base{l, r.index(0), r.index(1)} {};
+    {
+        const auto x = l;
+        const auto [y, z] = r.m_components;
+        Vec::init(*this, x, y, z);
+    };
 
     /**
      * @brief Initiate a 3-dimensional vector with a 2-dimensional vector and
      * value
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    Vec(const Vec<2, T> &l, const U &r)
+        requires(non_narrowing_conversion<T, U>)
+    constexpr Vec(const Vec<2, T> &l, const U &r)
         requires(N == 3)
-        : Base{l.index(0), l.index(1), r} {};
+    {
+        const auto [x, y] = l.m_components;
+        const auto z = r;
+        Vec::init(*this, x, y, z);
+    };
 
     /**
      * @brief Initiate a 4-dimensional vector
      */
     template <typename U1, typename U2, typename U3, typename U4>
-        requires(utils::non_narrowing_conv<T, U1, U2, U3, U4>)
-    Vec(const U1 &x, const U2 &y, const U3 &z, const U4 &w)
+        requires(non_narrowing_conversion<T, U1, U2, U3, U4>)
+    constexpr Vec(const U1 &x, const U2 &y, const U3 &z, const U4 &w)
         requires(N == 4)
-        : Base{x, y, z, w} {};
+    {
+        Vec::init(*this, x, y, z, w);
+    };
 
     /**
      * @brief Initiate a 4-dimensional vector with two 2-dimensional vectors
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    Vec(const U &l, const Vec<3, T> &r)
+        requires(non_narrowing_conversion<T, U>)
+    constexpr Vec(const U &l, const Vec<3, T> &r)
         requires(N == 4)
-        : Base{l, r.index(0), r.index(1), r.index(2)} {};
+    {
+        const auto x = l;
+        const auto [y, z, w] = r.m_components;
+        Vec::init(*this, x, y, z, w);
+    };
 
     /**
      * @brief Initiate a 4-dimensional vector with a 3-dimensional vector and
      * value
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    Vec(const Vec<3, T> &l, const U &r)
+        requires(non_narrowing_conversion<T, U>)
+    constexpr Vec(const Vec<3, T> &l, const U &r)
         requires(N == 4)
-        : Base{l.index(0), l.index(1), l.index(2), r} {};
+    {
+        const auto [x, y, z] = l.m_components;
+        const auto w = r;
+        Vec::init(*this, x, y, z, w);
+    };
 
     /**
      * @brief Initiate a 4-dimensional vector with a value and 3-dimensional
      * vector
      */
-    Vec(const Vec<2, T> &l, const Vec<2, T> &r)
+    constexpr Vec(const Vec<2, T> &l, const Vec<2, T> &r)
         requires(N == 4)
-        : Base{l.index(0), l.index(1), r.index(0), r.index(1)} {};
+    {
+        const auto [x, y] = l.m_components;
+        const auto [z, w] = r.m_components;
+        Vec::init(*this, x, y, z, w);
+    };
 
     /**
      * @brief Initiate a 4-dimensional vector with two values and 2-dimensional
      * vector
      */
     template <typename U1, typename U2>
-        requires(utils::non_narrowing_conv<T, U1, U2>)
-    Vec(const U1 &l, const Vec<2, T> &m, const U2 &r)
+        requires(non_narrowing_conversion<T, U1, U2>)
+    constexpr Vec(const U1 &l, const Vec<2, T> &m, const U2 &r)
         requires(N == 4)
-        : Base{l, m.index(0), m.index(1), r} {};
+    {
+        const auto x = l;
+        const auto [y, z] = m.m_components;
+        const auto w = r;
+        Vec::init(*this, x, y, z, w);
+    };
 
     /**
      * @brief Initiate a N-dimensional vector
      */
     template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    Vec(const Us &...values)
+        requires(non_narrowing_conversion<T, Us...>)
+    constexpr Vec(const Us &...values)
         requires(4 < N && N == sizeof...(values))
-        : Base{values...} {};
+    {
+        Vec::init(*this, values...);
+    };
 
     /**
      * @brief Use iterator to fill the vector.
      */
     template <std::input_iterator Iterator>
         requires(std::same_as<std::iter_value_t<Iterator>, T>)
-    Vec(Iterator begin)
-        : Base{begin} {};
+    constexpr Vec(Iterator begin)
+    {
+        std::copy_n(begin, N, this->begin());
+    };
 
     /**
-     * @brief Print using specific print width.
+     * @brief Begin iterator
      */
-    static std::ostream &print(std::ostream &out, const Vec &v,
-                               std::size_t fill_width = 10, char fill = ' ',
-                               std::string_view start_char = "[",
-                               std::string_view end_char = "]")
+    constexpr auto begin()
     {
-        const auto formatted_print = [&](const auto t) {
-            out << std::right << std::setw(fill_width) << std::setfill(fill)
-                << t;
-        };
-
-        out << start_char;
-        for (std::size_t i = 0; i < N; i++) {
-            formatted_print(v[i]);
-        }
-        out << end_char;
-        return out;
+        return &m_components[0];
     }
 
     /**
-     * @brief Print operator override.
+     * @brief End iterator
      */
-    friend std::ostream &operator<<(std::ostream &out, const Vec &v)
+    constexpr auto end()
     {
-        return Vec::print(out, v);
+        return &m_components[N];
     }
 
+    /**
+     * @brief Begin const-iterator
+     */
+    constexpr auto begin() const
+    {
+        return const_cast<Vec &>(*this).begin();
+    }
+
+    /**
+     * @brief End const-iterator
+     */
+    constexpr auto end() const
+    {
+        return const_cast<Vec &>(*this).end();
+    }
+
+public:
     /**
      * @brief Check if exactly equal to another vector in terms of bitwise
      * equality.
@@ -358,7 +422,7 @@ public:
      * @brief Multiply vector with scalar from left-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
+        requires(non_narrowing_conversion<T, U>)
     friend Vec operator*(const U &scalar, const Vec &vec)
     {
         Vec res;
@@ -372,7 +436,7 @@ public:
      * @brief Multiply vector with scalar from right-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
+        requires(non_narrowing_conversion<T, U>)
     friend Vec operator*(const Vec &vec, const U &scalar)
     {
         Vec res;
@@ -386,7 +450,7 @@ public:
      * @brief Multiply vector with inverse scalar from right-hand-side
      */
     template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
+        requires(non_narrowing_conversion<T, U>)
     friend Vec operator/(const Vec &vec, const U &scalar)
         requires(std::is_floating_point_v<T>)
     {
@@ -415,7 +479,7 @@ public:
     T dot(const Vec &rhs) const
     {
         return std::transform_reduce(
-            this->begin(), this->end(), rhs.begin(), zero(),
+            this->begin(), this->end(), rhs.begin(), T{},
             [](const auto &lterm, const auto &rterm) {
                 return lterm + rterm;
             },
@@ -538,7 +602,7 @@ public:
      * @brief Calculate the signed angle ranging from -pi and pi
      */
     T angle(const Vec<N, T> &rhs,
-            const Vec<N, T> &up = Vec<N, T>{zero(), zero(), one()},
+            const Vec<N, T> &up = Vec<N, T>{T{}, T{}, T{1}},
             const bool up_is_normalized = true) const
         requires(N == 3 && std::is_floating_point_v<T>)
     {
@@ -571,7 +635,8 @@ public:
     friend Vec lerp(const Vec a, const Vec b, const T &t)
         requires(std::is_floating_point_v<T>)
     {
-        return a * (one() - t) + b * t;
+        return a * (T{1} - t) + b * t;
     }
 };
+
 } // namespace asciirast::math

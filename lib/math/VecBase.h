@@ -1,1133 +1,667 @@
 /**
  * @file VecBase.h
- * @brief Vector base class. Here are the members defined.
+ * @brief Vector base class supporting swizzled components.
+ *
+ * Swizzling class idea from <a
+ * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">source</a>
  */
+
 #pragma once
 
-#include "Swizzled.h"
-#include "utils/non_narrowing_conv.h"
-
-#include <algorithm>
 #include <cstddef>
-#include <stdexcept>
 
 namespace asciirast::math {
 
 /**
- * @brief Base vector.
+ * @brief Class to create swizzled N-dimensional vectors.
+ *
+ * @tparam VecClass The vector class to convert to (e.g., instansiated as
+ * `VecClass<3, float>`).
+ * @tparam N The size of the vector.
+ * @tparam T The type of the vector components (e.g., `float`).
+ * @tparam Indicies The indices of the swizzled components.
  */
-template <template <std::size_t, typename> class Vec, std::size_t N, typename T>
-    requires(N > 0)
-class VecBase {
-public:
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
+template <template <std::size_t, typename> class VecClass, std::size_t N,
+          typename T, std::size_t... Indicies>
+class SwizzledComponents {
+private:
+    using Vec = VecClass<sizeof...(Indicies), T>;
 
-    /**
-     * @brief Default constructor. Fill all values in vector with default value
-     * constructor.
-     */
-    VecBase()
-    {
-        std::fill(this->begin(), this->end(), T{});
-    }
-
-    /**
-     * @brief Use initial value to fill the entire array.
-     */
-    template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    VecBase(const U &intital_value)
-    {
-        std::fill(this->begin(), this->end(), T{intital_value});
-    }
-
-    /**
-     * @brief Use N values to fill the N-sized array.
-     */
-    template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    VecBase(const Us &...values)
-        requires(N == sizeof...(Us))
-        : e{T{values}...} {};
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin)
-    {
-        std::copy_n(begin, N, this->begin());
-    };
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin, std::size_t M)
-    {
-        std::fill(this->begin(), this->end(), T{});
-        std::copy_n(begin, std::min(M, N), this->begin());
-    };
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    T &index(const std::size_t i) noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    const T &index(const std::size_t i) const noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    T &operator[](const std::size_t i)
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    const T &operator[](const std::size_t i) const
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Vector begin iterator. To be used with higher-level functions
-     */
-    auto begin()
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector begin const iterator. To be used with higher-level
-     * functions
-     */
-    auto begin() const
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector end iterator. To be used with higher-level functions
-     */
-    auto end()
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Vector end const iterator. To be used with higher-level functions
-     */
-    auto end() const
-    {
-        return &this->e[N];
-    }
+private:
+    T m_components[N];
 
 public:
-    /// @cond DO_NO_DOCUMENT
-    T e[N];
-    /// @endcond
+    /**
+     * @brief Get the swizzled components as a vector.
+     */
+    Vec value() const
+    {
+        return Vec{m_components[Indicies]...};
+    }
+
+    /**
+     * @brief Implicit conversion to a vector.
+     */
+    operator Vec() const
+    {
+        return this->value();
+    }
+
+    /**
+     * @brief Implicit assignment from a vector.
+     */
+    Vec &operator=(const Vec &rhs)
+    {
+        const size_t indices[] = {Indicies...};
+        for (size_t i = 0; i < N; i++) {
+            m_components[indices[i]] = rhs[i];
+        }
+        return *this;
+    }
 };
 
 /**
- * @brief Specialized 1-sized base vector.
+ * @brief Specialized class to create swizzled 1-dimensional vectors.
+ *
+ * @tparam VecClass The vector class to convert to (e.g., instansiated as
+ * `VecClass<1, float>`).
+ * @tparam N The size of the vector.
+ * @tparam T The type of the vector component (e.g., `float`).
+ * @tparam index The index of the swizzled component.
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 1, T> {
+template <template <std::size_t, typename> class VecClass, std::size_t N,
+          typename T, std::size_t index>
+class SwizzledComponents<VecClass, N, T, index> {
 private:
-    static constexpr std::size_t N = 1;
+    T m_components[N];
 
 public:
     /**
-     * @brief The size of the vector
+     * @brief Get the value as a number.
      */
-    constexpr auto size() const
+    T value() const
     {
-        return N;
+        return m_components[index];
     }
 
     /**
-     * @brief Default constructor. Fill all values in vector with default value
-     * constructor.
-     */
-    VecBase()
-    {
-        std::fill(this->begin(), this->end(), T{});
-    }
-
-    /**
-     * @brief Use initial value to fill the entire array.
-     */
-    template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    VecBase(const U &intital_value)
-    {
-        std::fill(this->begin(), this->end(), T{intital_value});
-    }
-
-    /**
-     * @brief Use N values to fill the N-sized array.
-     */
-    template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    VecBase(const Us &...values)
-        requires(N == sizeof...(Us))
-        : e{T{values}...} {};
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin)
-    {
-        std::copy_n(begin, N, this->begin());
-    };
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin, std::size_t M)
-    {
-        std::fill(this->begin(), this->end(), T{});
-        std::copy_n(begin, std::min(M, N), this->begin());
-    };
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    T &index(const std::size_t i) noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    const T &index(const std::size_t i) const noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    T &operator[](const std::size_t i)
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    const T &operator[](const std::size_t i) const
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Vector begin iterator. To be used with higher-level functions
-     */
-    auto begin()
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector begin const iterator. To be used with higher-level
-     * functions
-     */
-    auto begin() const
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector end iterator. To be used with higher-level functions
-     */
-    auto end()
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Vector end const iterator. To be used with higher-level functions
-     */
-    auto end() const
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Implicitly convert to number when the context is clear.
+     * @brief Implicit conversion to number.
      */
     operator T() const
     {
-        return this->e[0];
+        return this->value();
     }
 
-public:
-    /// @cond DO_NO_DOCUMENT
-    union {
-        T e[N];
-        Swizzled<Vec, N, T, 0> x;
-    };
-    /// @endcond
+    /**
+     * @brief Implicit assignment to number.
+     */
+    T &operator=(const T &value)
+    {
+        return (m_components[index] = value);
+    }
 };
 
 /**
- * @brief Specialized 2-sized base vector. Swizzled combinations of {x, y} of
- * max size 2 can be accessed as a class member.
+ * @brief N-dimensional vector base class.
+ *
+ * @tparam VecClass The vector class for the swizzled components to convert to
+ * (e.g., `VecClass<float, 3>`).
+ * @tparam N The size of the vector.
+ * @tparam T The type of the vector components (e.g., `float`).
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 2, T> {
+template <template <std::size_t, typename> class VecClass, std::size_t N,
+          typename T>
+    requires(N > 0)
+class VecBase {
+public:
+    T m_components[N]; ///< Array holding the vector components.
+};
+
+/**
+ * @brief Specialized 1-dimensional vector base class supporting swizzling {x}
+ * components as class members.
+ *
+ * @tparam VecClass The vector class for the swizzled components to convert to
+ * (e.g., `VecClass<1, float>`).
+ * @tparam T The type of the vector component (e.g., `float`).
+ */
+template <template <std::size_t, typename> class VecClass, typename T>
+class VecBase<VecClass, 1, T> {
+private:
+    static constexpr std::size_t N = 1;
+
+    template <std::size_t... Indicies>
+    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
+
+public:
+    /**
+     * @brief Union of vector components and swizzled components.
+     */
+    union {
+        /**
+         * @brief C-style array over components.
+         */
+        T m_components[N];
+
+        /**
+         * @name SwizzledComponents
+         * @{
+         * Combinations of {x} with a maximum size of 1 as class members.
+         */
+        /// @cond DO_NO_DOCUMENT
+        Component<0> x;
+        /// @endcond
+        /// @}
+    };
+};
+
+/**
+ * @brief Specialized 2-dimensional vector base class supporting swizzling {x,
+ * y} components as class members.
+ *
+ * @tparam VecClass The vector class for the swizzled components to convert to
+ * (e.g., `VecClass<2, float>`).
+ * @tparam T The type of the vector component (e.g., `float`).
+ */
+template <template <std::size_t, typename> class VecClass, typename T>
+class VecBase<VecClass, 2, T> {
 private:
     static constexpr std::size_t N = 2;
 
-public:
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
-
-    /**
-     * @brief Default constructor. Fill all values in vector with default value
-     * constructor.
-     */
-    VecBase()
-    {
-        std::fill(this->begin(), this->end(), T{});
-    }
-
-    /**
-     * @brief Use initial value to fill the entire array.
-     */
-    template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    VecBase(const U &intital_value)
-    {
-        std::fill(this->begin(), this->end(), T{intital_value});
-    }
-
-    /**
-     * @brief Use N values to fill the N-sized array.
-     */
-    template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    VecBase(const Us &...values)
-        requires(N == sizeof...(Us))
-        : e{T{values}...} {};
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin)
-    {
-        std::copy_n(begin, N, this->begin());
-    };
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin, std::size_t M)
-    {
-        std::fill(this->begin(), this->end(), T{});
-        std::copy_n(begin, std::min(M, N), this->begin());
-    };
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    T &index(const std::size_t i) noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    const T &index(const std::size_t i) const noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    T &operator[](const std::size_t i)
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    const T &operator[](const std::size_t i) const
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Vector begin iterator. To be used with higher-level functions
-     */
-    auto begin()
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector begin const iterator. To be used with higher-level
-     * functions
-     */
-    auto begin() const
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector end iterator. To be used with higher-level functions
-     */
-    auto end()
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Vector end const iterator. To be used with higher-level functions
-     */
-    auto end() const
-    {
-        return &this->e[N];
-    }
+    template <std::size_t... Indicies>
+    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
 
 public:
-    /// @cond DO_NO_DOCUMENT
+    /**
+     * @brief Union between an array of components and swizzled components.
+     */
     union {
-        T e[N];
+        /**
+         * @brief C-style array over components.
+         */
+        T m_components[N];
 
-        Swizzled<Vec, N, T, 0> x;
-        Swizzled<Vec, N, T, 1> y;
+        /**
+         * @name SwizzledComponents
+         * @{
+         * Combinations of {x, y} with a maximum size of 2 as class members.
+         */
+        /// @cond DO_NO_DOCUMENT
+        Component<0> x;
+        Component<1> y;
 
-        Swizzled<Vec, N, T, 0, 0> xx;
-        Swizzled<Vec, N, T, 0, 1> xy;
-        Swizzled<Vec, N, T, 1, 0> yx;
-        Swizzled<Vec, N, T, 1, 1> yy;
+        Component<0, 0> xx;
+        Component<0, 1> xy;
+        Component<1, 0> yx;
+        Component<1, 1> yy;
+        /// @endcond
+        ///@}
     };
-    /// @endcond
 };
 
 /**
- * @brief Specialized 3-sized base vector. Swizzled combinations of {x, y, z}
- * and {r, g, b} of max size 3 can be accessed as a class member.
+ * @brief Specialized 3-dimensional vector base class supporting swizzling {x,
+ * y, z} components as class members.
+ *
+ * @tparam VecClass The vector class for the swizzled components to convert to
+ * (e.g., `VecClass<3, float>`).
+ * @tparam T The type of the vector component (e.g., `float`).
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 3, T> {
+template <template <std::size_t, typename> class VecClass, typename T>
+class VecBase<VecClass, 3, T> {
 private:
     static constexpr std::size_t N = 3;
 
-public:
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
-
-    /**
-     * @brief Default constructor. Fill all values in vector with default value
-     * constructor.
-     */
-    VecBase()
-    {
-        std::fill(this->begin(), this->end(), T{});
-    }
-
-    /**
-     * @brief Use initial value to fill the entire array.
-     */
-    template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    VecBase(const U &intital_value)
-    {
-        std::fill(this->begin(), this->end(), T{intital_value});
-    }
-
-    /**
-     * @brief Use N values to fill the N-sized array.
-     */
-    template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    VecBase(const Us &...values)
-        requires(N == sizeof...(Us))
-        : e{T{values}...} {};
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin)
-    {
-        std::copy_n(begin, N, this->begin());
-    };
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin, std::size_t M)
-    {
-        std::fill(this->begin(), this->end(), T{});
-        std::copy_n(begin, std::min(M, N), this->begin());
-    };
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    T &index(const std::size_t i) noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    const T &index(const std::size_t i) const noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    T &operator[](const std::size_t i)
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    const T &operator[](const std::size_t i) const
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Vector begin iterator. To be used with higher-level functions
-     */
-    auto begin()
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector begin const iterator. To be used with higher-level
-     * functions
-     */
-    auto begin() const
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector end iterator. To be used with higher-level functions
-     */
-    auto end()
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Vector end const iterator. To be used with higher-level functions
-     */
-    auto end() const
-    {
-        return &this->e[N];
-    }
+    template <std::size_t... Indicies>
+    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
 
 public:
-    /// @cond DO_NO_DOCUMENT
+    /**
+     * @brief Union between an array of components and swizzled components.
+     */
     union {
-        T e[N];
+        /**
+         * @brief C-style array over components.
+         */
+        T m_components[N];
 
-        Swizzled<Vec, N, T, 0> x;
-        Swizzled<Vec, N, T, 1> y;
-        Swizzled<Vec, N, T, 2> z;
+        /**
+         * @name SwizzledComponents
+         * @{
+         * Combinations of {x, y, z} with a maximum size of 3 as class members.
+         */
+        /// @cond DO_NO_DOCUMENT
+        Component<0> x;
+        Component<1> y;
+        Component<2> z;
 
-        Swizzled<Vec, N, T, 0, 0> xx;
-        Swizzled<Vec, N, T, 0, 1> xy;
-        Swizzled<Vec, N, T, 0, 2> xz;
-        Swizzled<Vec, N, T, 1, 0> yx;
-        Swizzled<Vec, N, T, 1, 1> yy;
-        Swizzled<Vec, N, T, 1, 2> yz;
-        Swizzled<Vec, N, T, 2, 0> zx;
-        Swizzled<Vec, N, T, 2, 1> zy;
-        Swizzled<Vec, N, T, 2, 2> zz;
+        Component<0, 0> xx;
+        Component<0, 1> xy;
+        Component<0, 2> xz;
+        Component<1, 0> yx;
+        Component<1, 1> yy;
+        Component<1, 2> yz;
+        Component<2, 0> zx;
+        Component<2, 1> zy;
+        Component<2, 2> zz;
 
-        Swizzled<Vec, N, T, 0, 0, 0> xxx;
-        Swizzled<Vec, N, T, 0, 0, 1> xxy;
-        Swizzled<Vec, N, T, 0, 0, 2> xxz;
-        Swizzled<Vec, N, T, 0, 1, 0> xyx;
-        Swizzled<Vec, N, T, 0, 1, 1> xyy;
-        Swizzled<Vec, N, T, 0, 1, 2> xyz;
-        Swizzled<Vec, N, T, 0, 2, 0> xzx;
-        Swizzled<Vec, N, T, 0, 2, 1> xzy;
-        Swizzled<Vec, N, T, 0, 2, 2> xzz;
-        Swizzled<Vec, N, T, 1, 0, 0> yxx;
-        Swizzled<Vec, N, T, 1, 0, 1> yxy;
-        Swizzled<Vec, N, T, 1, 0, 2> yxz;
-        Swizzled<Vec, N, T, 1, 1, 0> yyx;
-        Swizzled<Vec, N, T, 1, 1, 1> yyy;
-        Swizzled<Vec, N, T, 1, 1, 2> yyz;
-        Swizzled<Vec, N, T, 1, 2, 0> yzx;
-        Swizzled<Vec, N, T, 1, 2, 1> yzy;
-        Swizzled<Vec, N, T, 1, 2, 2> yzz;
-        Swizzled<Vec, N, T, 2, 0, 0> zxx;
-        Swizzled<Vec, N, T, 2, 0, 1> zxy;
-        Swizzled<Vec, N, T, 2, 0, 2> zxz;
-        Swizzled<Vec, N, T, 2, 1, 0> zyx;
-        Swizzled<Vec, N, T, 2, 1, 1> zyy;
-        Swizzled<Vec, N, T, 2, 1, 2> zyz;
-        Swizzled<Vec, N, T, 2, 2, 0> zzx;
-        Swizzled<Vec, N, T, 2, 2, 1> zzy;
-        Swizzled<Vec, N, T, 2, 2, 2> zzz;
+        Component<0, 0, 0> xxx;
+        Component<0, 0, 1> xxy;
+        Component<0, 0, 2> xxz;
+        Component<0, 1, 0> xyx;
+        Component<0, 1, 1> xyy;
+        Component<0, 1, 2> xyz;
+        Component<0, 2, 0> xzx;
+        Component<0, 2, 1> xzy;
+        Component<0, 2, 2> xzz;
+        Component<1, 0, 0> yxx;
+        Component<1, 0, 1> yxy;
+        Component<1, 0, 2> yxz;
+        Component<1, 1, 0> yyx;
+        Component<1, 1, 1> yyy;
+        Component<1, 1, 2> yyz;
+        Component<1, 2, 0> yzx;
+        Component<1, 2, 1> yzy;
+        Component<1, 2, 2> yzz;
+        Component<2, 0, 0> zxx;
+        Component<2, 0, 1> zxy;
+        Component<2, 0, 2> zxz;
+        Component<2, 1, 0> zyx;
+        Component<2, 1, 1> zyy;
+        Component<2, 1, 2> zyz;
+        Component<2, 2, 0> zzx;
+        Component<2, 2, 1> zzy;
+        Component<2, 2, 2> zzz;
+        /// @endcond
+        ///@}
     };
-    /// @endcond
 };
 
 /**
- * @brief Specialized 4-sized base vector. Swizzled combinations of {x, y, z, w}
- * and {r, g, b, a} of max size 4 can be accessed as a class member.
+ * @brief Specialized 4-dimensional vector base class supporting swizzling {x,
+ * y, z, w} components as class members.
+ *
+ * @tparam VecClass The vector class for the swizzled components to convert to
+ * (e.g., `VecClass<4, float>`).
+ * @tparam T The type of the vector component (e.g., `float`).
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 4, T> {
+template <template <std::size_t, typename> class VecClass, typename T>
+class VecBase<VecClass, 4, T> {
 private:
     static constexpr std::size_t N = 4;
 
-public:
-    /**
-     * @brief The size of the vector
-     */
-    constexpr auto size() const
-    {
-        return N;
-    }
-
-    /**
-     * @brief Default constructor. Fill all values in vector with default value
-     * constructor.
-     */
-    VecBase()
-    {
-        std::fill(this->begin(), this->end(), T{});
-    }
-
-    /**
-     * @brief Use initial value to fill the entire array.
-     */
-    template <typename U>
-        requires(utils::non_narrowing_conv<T, U>)
-    VecBase(const U &intital_value)
-    {
-        std::fill(this->begin(), this->end(), T{intital_value});
-    }
-
-    /**
-     * @brief Use N values to fill the N-sized array.
-     */
-    template <typename... Us>
-        requires(utils::non_narrowing_conv<T, Us...>)
-    VecBase(const Us &...values)
-        requires(N == sizeof...(Us))
-        : e{T{values}...} {};
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin)
-    {
-        std::copy_n(begin, N, this->begin());
-    };
-
-    /**
-     * @brief Use iterator to fill the vector.
-     */
-    template <std::input_iterator Iterator>
-        requires std::same_as<std::iter_value_t<Iterator>, T>
-    VecBase(Iterator begin, std::size_t M)
-    {
-        std::fill(this->begin(), this->end(), T{});
-        std::copy_n(begin, std::min(M, N), this->begin());
-    };
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    T &index(const std::size_t i) noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. With no OOB checking.
-     */
-    const T &index(const std::size_t i) const noexcept
-    {
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    T &operator[](const std::size_t i)
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Index the vector. Can throw runtime_error.
-     */
-    const T &operator[](const std::size_t i) const
-    {
-        if (i >= N) {
-            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
-        }
-        return this->e[i];
-    }
-
-    /**
-     * @brief Vector begin iterator. To be used with higher-level functions
-     */
-    auto begin()
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector begin const iterator. To be used with higher-level
-     * functions
-     */
-    auto begin() const
-    {
-        return &this->e[0];
-    }
-    /**
-     * @brief Vector end iterator. To be used with higher-level functions
-     */
-    auto end()
-    {
-        return &this->e[N];
-    }
-    /**
-     * @brief Vector end const iterator. To be used with higher-level functions
-     */
-    auto end() const
-    {
-        return &this->e[N];
-    }
+    template <std::size_t... Indicies>
+    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
 
 public:
-    /// @cond DO_NO_DOCUMENT
+    /**
+     * @brief Union between an array of components and swizzled components.
+     */
     union {
-        T e[N];
+        /**
+         * @brief C-style array over components.
+         */
+        T m_components[N];
 
-        Swizzled<Vec, N, T, 0> x;
-        Swizzled<Vec, N, T, 1> y;
-        Swizzled<Vec, N, T, 2> z;
-        Swizzled<Vec, N, T, 3> w;
+        /**
+         * @name SwizzledComponents
+         * @{
+         * Combinations of {x, y, z, w} with a maximum size of 4 as class
+         * members.
+         */
+        /// @cond DO_NO_DOCUMENT
+        Component<0> x;
+        Component<1> y;
+        Component<2> z;
+        Component<3> w;
 
-        Swizzled<Vec, N, T, 0, 0> xx;
-        Swizzled<Vec, N, T, 0, 1> xy;
-        Swizzled<Vec, N, T, 0, 2> xz;
-        Swizzled<Vec, N, T, 0, 3> xw;
-        Swizzled<Vec, N, T, 1, 0> yx;
-        Swizzled<Vec, N, T, 1, 1> yy;
-        Swizzled<Vec, N, T, 1, 2> yz;
-        Swizzled<Vec, N, T, 1, 3> yw;
-        Swizzled<Vec, N, T, 2, 0> zx;
-        Swizzled<Vec, N, T, 2, 1> zy;
-        Swizzled<Vec, N, T, 2, 2> zz;
-        Swizzled<Vec, N, T, 2, 3> zw;
-        Swizzled<Vec, N, T, 3, 0> wx;
-        Swizzled<Vec, N, T, 3, 1> wy;
-        Swizzled<Vec, N, T, 3, 2> wz;
-        Swizzled<Vec, N, T, 3, 3> ww;
+        Component<0, 0> xx;
+        Component<0, 1> xy;
+        Component<0, 2> xz;
+        Component<0, 3> xw;
+        Component<1, 0> yx;
+        Component<1, 1> yy;
+        Component<1, 2> yz;
+        Component<1, 3> yw;
+        Component<2, 0> zx;
+        Component<2, 1> zy;
+        Component<2, 2> zz;
+        Component<2, 3> zw;
+        Component<3, 0> wx;
+        Component<3, 1> wy;
+        Component<3, 2> wz;
+        Component<3, 3> ww;
 
-        Swizzled<Vec, N, T, 0, 0, 0> xxx;
-        Swizzled<Vec, N, T, 0, 0, 1> xxy;
-        Swizzled<Vec, N, T, 0, 0, 2> xxz;
-        Swizzled<Vec, N, T, 0, 0, 3> xxw;
-        Swizzled<Vec, N, T, 0, 1, 0> xyx;
-        Swizzled<Vec, N, T, 0, 1, 1> xyy;
-        Swizzled<Vec, N, T, 0, 1, 2> xyz;
-        Swizzled<Vec, N, T, 0, 1, 3> xyw;
-        Swizzled<Vec, N, T, 0, 2, 0> xzx;
-        Swizzled<Vec, N, T, 0, 2, 1> xzy;
-        Swizzled<Vec, N, T, 0, 2, 2> xzz;
-        Swizzled<Vec, N, T, 0, 2, 3> xzw;
-        Swizzled<Vec, N, T, 0, 3, 0> xwx;
-        Swizzled<Vec, N, T, 0, 3, 1> xwy;
-        Swizzled<Vec, N, T, 0, 3, 2> xwz;
-        Swizzled<Vec, N, T, 0, 3, 3> xww;
-        Swizzled<Vec, N, T, 1, 0, 0> yxx;
-        Swizzled<Vec, N, T, 1, 0, 1> yxy;
-        Swizzled<Vec, N, T, 1, 0, 2> yxz;
-        Swizzled<Vec, N, T, 1, 0, 3> yxw;
-        Swizzled<Vec, N, T, 1, 1, 0> yyx;
-        Swizzled<Vec, N, T, 1, 1, 1> yyy;
-        Swizzled<Vec, N, T, 1, 1, 2> yyz;
-        Swizzled<Vec, N, T, 1, 1, 3> yyw;
-        Swizzled<Vec, N, T, 1, 2, 0> yzx;
-        Swizzled<Vec, N, T, 1, 2, 1> yzy;
-        Swizzled<Vec, N, T, 1, 2, 2> yzz;
-        Swizzled<Vec, N, T, 1, 2, 3> yzw;
-        Swizzled<Vec, N, T, 1, 3, 0> ywx;
-        Swizzled<Vec, N, T, 1, 3, 1> ywy;
-        Swizzled<Vec, N, T, 1, 3, 2> ywz;
-        Swizzled<Vec, N, T, 1, 3, 3> yww;
-        Swizzled<Vec, N, T, 2, 0, 0> zxx;
-        Swizzled<Vec, N, T, 2, 0, 1> zxy;
-        Swizzled<Vec, N, T, 2, 0, 2> zxz;
-        Swizzled<Vec, N, T, 2, 0, 3> zxw;
-        Swizzled<Vec, N, T, 2, 1, 0> zyx;
-        Swizzled<Vec, N, T, 2, 1, 1> zyy;
-        Swizzled<Vec, N, T, 2, 1, 2> zyz;
-        Swizzled<Vec, N, T, 2, 1, 3> zyw;
-        Swizzled<Vec, N, T, 2, 2, 0> zzx;
-        Swizzled<Vec, N, T, 2, 2, 1> zzy;
-        Swizzled<Vec, N, T, 2, 2, 2> zzz;
-        Swizzled<Vec, N, T, 2, 2, 3> zzw;
-        Swizzled<Vec, N, T, 2, 3, 0> zwx;
-        Swizzled<Vec, N, T, 2, 3, 1> zwy;
-        Swizzled<Vec, N, T, 2, 3, 2> zwz;
-        Swizzled<Vec, N, T, 2, 3, 3> zww;
-        Swizzled<Vec, N, T, 3, 0, 0> wxx;
-        Swizzled<Vec, N, T, 3, 0, 1> wxy;
-        Swizzled<Vec, N, T, 3, 0, 2> wxz;
-        Swizzled<Vec, N, T, 3, 0, 3> wxw;
-        Swizzled<Vec, N, T, 3, 1, 0> wyx;
-        Swizzled<Vec, N, T, 3, 1, 1> wyy;
-        Swizzled<Vec, N, T, 3, 1, 2> wyz;
-        Swizzled<Vec, N, T, 3, 1, 3> wyw;
-        Swizzled<Vec, N, T, 3, 2, 0> wzx;
-        Swizzled<Vec, N, T, 3, 2, 1> wzy;
-        Swizzled<Vec, N, T, 3, 2, 2> wzz;
-        Swizzled<Vec, N, T, 3, 2, 3> wzw;
-        Swizzled<Vec, N, T, 3, 3, 0> wwx;
-        Swizzled<Vec, N, T, 3, 3, 1> wwy;
-        Swizzled<Vec, N, T, 3, 3, 2> wwz;
-        Swizzled<Vec, N, T, 3, 3, 3> www;
+        Component<0, 0, 0> xxx;
+        Component<0, 0, 1> xxy;
+        Component<0, 0, 2> xxz;
+        Component<0, 0, 3> xxw;
+        Component<0, 1, 0> xyx;
+        Component<0, 1, 1> xyy;
+        Component<0, 1, 2> xyz;
+        Component<0, 1, 3> xyw;
+        Component<0, 2, 0> xzx;
+        Component<0, 2, 1> xzy;
+        Component<0, 2, 2> xzz;
+        Component<0, 2, 3> xzw;
+        Component<0, 3, 0> xwx;
+        Component<0, 3, 1> xwy;
+        Component<0, 3, 2> xwz;
+        Component<0, 3, 3> xww;
+        Component<1, 0, 0> yxx;
+        Component<1, 0, 1> yxy;
+        Component<1, 0, 2> yxz;
+        Component<1, 0, 3> yxw;
+        Component<1, 1, 0> yyx;
+        Component<1, 1, 1> yyy;
+        Component<1, 1, 2> yyz;
+        Component<1, 1, 3> yyw;
+        Component<1, 2, 0> yzx;
+        Component<1, 2, 1> yzy;
+        Component<1, 2, 2> yzz;
+        Component<1, 2, 3> yzw;
+        Component<1, 3, 0> ywx;
+        Component<1, 3, 1> ywy;
+        Component<1, 3, 2> ywz;
+        Component<1, 3, 3> yww;
+        Component<2, 0, 0> zxx;
+        Component<2, 0, 1> zxy;
+        Component<2, 0, 2> zxz;
+        Component<2, 0, 3> zxw;
+        Component<2, 1, 0> zyx;
+        Component<2, 1, 1> zyy;
+        Component<2, 1, 2> zyz;
+        Component<2, 1, 3> zyw;
+        Component<2, 2, 0> zzx;
+        Component<2, 2, 1> zzy;
+        Component<2, 2, 2> zzz;
+        Component<2, 2, 3> zzw;
+        Component<2, 3, 0> zwx;
+        Component<2, 3, 1> zwy;
+        Component<2, 3, 2> zwz;
+        Component<2, 3, 3> zww;
+        Component<3, 0, 0> wxx;
+        Component<3, 0, 1> wxy;
+        Component<3, 0, 2> wxz;
+        Component<3, 0, 3> wxw;
+        Component<3, 1, 0> wyx;
+        Component<3, 1, 1> wyy;
+        Component<3, 1, 2> wyz;
+        Component<3, 1, 3> wyw;
+        Component<3, 2, 0> wzx;
+        Component<3, 2, 1> wzy;
+        Component<3, 2, 2> wzz;
+        Component<3, 2, 3> wzw;
+        Component<3, 3, 0> wwx;
+        Component<3, 3, 1> wwy;
+        Component<3, 3, 2> wwz;
+        Component<3, 3, 3> www;
 
-        Swizzled<Vec, N, T, 0, 0, 0, 0> xxxx;
-        Swizzled<Vec, N, T, 0, 0, 0, 1> xxxy;
-        Swizzled<Vec, N, T, 0, 0, 0, 2> xxxz;
-        Swizzled<Vec, N, T, 0, 0, 0, 3> xxxw;
-        Swizzled<Vec, N, T, 0, 0, 1, 0> xxyx;
-        Swizzled<Vec, N, T, 0, 0, 1, 1> xxyy;
-        Swizzled<Vec, N, T, 0, 0, 1, 2> xxyz;
-        Swizzled<Vec, N, T, 0, 0, 1, 3> xxyw;
-        Swizzled<Vec, N, T, 0, 0, 2, 0> xxzx;
-        Swizzled<Vec, N, T, 0, 0, 2, 1> xxzy;
-        Swizzled<Vec, N, T, 0, 0, 2, 2> xxzz;
-        Swizzled<Vec, N, T, 0, 0, 2, 3> xxzw;
-        Swizzled<Vec, N, T, 0, 0, 3, 0> xxwx;
-        Swizzled<Vec, N, T, 0, 0, 3, 1> xxwy;
-        Swizzled<Vec, N, T, 0, 0, 3, 2> xxwz;
-        Swizzled<Vec, N, T, 0, 0, 3, 3> xxww;
-        Swizzled<Vec, N, T, 0, 1, 0, 0> xyxx;
-        Swizzled<Vec, N, T, 0, 1, 0, 1> xyxy;
-        Swizzled<Vec, N, T, 0, 1, 0, 2> xyxz;
-        Swizzled<Vec, N, T, 0, 1, 0, 3> xyxw;
-        Swizzled<Vec, N, T, 0, 1, 1, 0> xyyx;
-        Swizzled<Vec, N, T, 0, 1, 1, 1> xyyy;
-        Swizzled<Vec, N, T, 0, 1, 1, 2> xyyz;
-        Swizzled<Vec, N, T, 0, 1, 1, 3> xyyw;
-        Swizzled<Vec, N, T, 0, 1, 2, 0> xyzx;
-        Swizzled<Vec, N, T, 0, 1, 2, 1> xyzy;
-        Swizzled<Vec, N, T, 0, 1, 2, 2> xyzz;
-        Swizzled<Vec, N, T, 0, 1, 2, 3> xyzw;
-        Swizzled<Vec, N, T, 0, 1, 3, 0> xywx;
-        Swizzled<Vec, N, T, 0, 1, 3, 1> xywy;
-        Swizzled<Vec, N, T, 0, 1, 3, 2> xywz;
-        Swizzled<Vec, N, T, 0, 1, 3, 3> xyww;
-        Swizzled<Vec, N, T, 0, 2, 0, 0> xzxx;
-        Swizzled<Vec, N, T, 0, 2, 0, 1> xzxy;
-        Swizzled<Vec, N, T, 0, 2, 0, 2> xzxz;
-        Swizzled<Vec, N, T, 0, 2, 0, 3> xzxw;
-        Swizzled<Vec, N, T, 0, 2, 1, 0> xzyx;
-        Swizzled<Vec, N, T, 0, 2, 1, 1> xzyy;
-        Swizzled<Vec, N, T, 0, 2, 1, 2> xzyz;
-        Swizzled<Vec, N, T, 0, 2, 1, 3> xzyw;
-        Swizzled<Vec, N, T, 0, 2, 2, 0> xzzx;
-        Swizzled<Vec, N, T, 0, 2, 2, 1> xzzy;
-        Swizzled<Vec, N, T, 0, 2, 2, 2> xzzz;
-        Swizzled<Vec, N, T, 0, 2, 2, 3> xzzw;
-        Swizzled<Vec, N, T, 0, 2, 3, 0> xzwx;
-        Swizzled<Vec, N, T, 0, 2, 3, 1> xzwy;
-        Swizzled<Vec, N, T, 0, 2, 3, 2> xzwz;
-        Swizzled<Vec, N, T, 0, 2, 3, 3> xzww;
-        Swizzled<Vec, N, T, 0, 3, 0, 0> xwxx;
-        Swizzled<Vec, N, T, 0, 3, 0, 1> xwxy;
-        Swizzled<Vec, N, T, 0, 3, 0, 2> xwxz;
-        Swizzled<Vec, N, T, 0, 3, 0, 3> xwxw;
-        Swizzled<Vec, N, T, 0, 3, 1, 0> xwyx;
-        Swizzled<Vec, N, T, 0, 3, 1, 1> xwyy;
-        Swizzled<Vec, N, T, 0, 3, 1, 2> xwyz;
-        Swizzled<Vec, N, T, 0, 3, 1, 3> xwyw;
-        Swizzled<Vec, N, T, 0, 3, 2, 0> xwzx;
-        Swizzled<Vec, N, T, 0, 3, 2, 1> xwzy;
-        Swizzled<Vec, N, T, 0, 3, 2, 2> xwzz;
-        Swizzled<Vec, N, T, 0, 3, 2, 3> xwzw;
-        Swizzled<Vec, N, T, 0, 3, 3, 0> xwwx;
-        Swizzled<Vec, N, T, 0, 3, 3, 1> xwwy;
-        Swizzled<Vec, N, T, 0, 3, 3, 2> xwwz;
-        Swizzled<Vec, N, T, 0, 3, 3, 3> xwww;
+        Component<0, 0, 0, 0> xxxx;
+        Component<0, 0, 0, 1> xxxy;
+        Component<0, 0, 0, 2> xxxz;
+        Component<0, 0, 0, 3> xxxw;
+        Component<0, 0, 1, 0> xxyx;
+        Component<0, 0, 1, 1> xxyy;
+        Component<0, 0, 1, 2> xxyz;
+        Component<0, 0, 1, 3> xxyw;
+        Component<0, 0, 2, 0> xxzx;
+        Component<0, 0, 2, 1> xxzy;
+        Component<0, 0, 2, 2> xxzz;
+        Component<0, 0, 2, 3> xxzw;
+        Component<0, 0, 3, 0> xxwx;
+        Component<0, 0, 3, 1> xxwy;
+        Component<0, 0, 3, 2> xxwz;
+        Component<0, 0, 3, 3> xxww;
+        Component<0, 1, 0, 0> xyxx;
+        Component<0, 1, 0, 1> xyxy;
+        Component<0, 1, 0, 2> xyxz;
+        Component<0, 1, 0, 3> xyxw;
+        Component<0, 1, 1, 0> xyyx;
+        Component<0, 1, 1, 1> xyyy;
+        Component<0, 1, 1, 2> xyyz;
+        Component<0, 1, 1, 3> xyyw;
+        Component<0, 1, 2, 0> xyzx;
+        Component<0, 1, 2, 1> xyzy;
+        Component<0, 1, 2, 2> xyzz;
+        Component<0, 1, 2, 3> xyzw;
+        Component<0, 1, 3, 0> xywx;
+        Component<0, 1, 3, 1> xywy;
+        Component<0, 1, 3, 2> xywz;
+        Component<0, 1, 3, 3> xyww;
+        Component<0, 2, 0, 0> xzxx;
+        Component<0, 2, 0, 1> xzxy;
+        Component<0, 2, 0, 2> xzxz;
+        Component<0, 2, 0, 3> xzxw;
+        Component<0, 2, 1, 0> xzyx;
+        Component<0, 2, 1, 1> xzyy;
+        Component<0, 2, 1, 2> xzyz;
+        Component<0, 2, 1, 3> xzyw;
+        Component<0, 2, 2, 0> xzzx;
+        Component<0, 2, 2, 1> xzzy;
+        Component<0, 2, 2, 2> xzzz;
+        Component<0, 2, 2, 3> xzzw;
+        Component<0, 2, 3, 0> xzwx;
+        Component<0, 2, 3, 1> xzwy;
+        Component<0, 2, 3, 2> xzwz;
+        Component<0, 2, 3, 3> xzww;
+        Component<0, 3, 0, 0> xwxx;
+        Component<0, 3, 0, 1> xwxy;
+        Component<0, 3, 0, 2> xwxz;
+        Component<0, 3, 0, 3> xwxw;
+        Component<0, 3, 1, 0> xwyx;
+        Component<0, 3, 1, 1> xwyy;
+        Component<0, 3, 1, 2> xwyz;
+        Component<0, 3, 1, 3> xwyw;
+        Component<0, 3, 2, 0> xwzx;
+        Component<0, 3, 2, 1> xwzy;
+        Component<0, 3, 2, 2> xwzz;
+        Component<0, 3, 2, 3> xwzw;
+        Component<0, 3, 3, 0> xwwx;
+        Component<0, 3, 3, 1> xwwy;
+        Component<0, 3, 3, 2> xwwz;
+        Component<0, 3, 3, 3> xwww;
 
-        // copy of above:
-        Swizzled<Vec, N, T, 1, 0, 0, 0> yxxx;
-        Swizzled<Vec, N, T, 1, 0, 0, 1> yxxy;
-        Swizzled<Vec, N, T, 1, 0, 0, 2> yxxz;
-        Swizzled<Vec, N, T, 1, 0, 0, 3> yxxw;
-        Swizzled<Vec, N, T, 1, 0, 1, 0> yxyx;
-        Swizzled<Vec, N, T, 1, 0, 1, 1> yxyy;
-        Swizzled<Vec, N, T, 1, 0, 1, 2> yxyz;
-        Swizzled<Vec, N, T, 1, 0, 1, 3> yxyw;
-        Swizzled<Vec, N, T, 1, 0, 2, 0> yxzx;
-        Swizzled<Vec, N, T, 1, 0, 2, 1> yxzy;
-        Swizzled<Vec, N, T, 1, 0, 2, 2> yxzz;
-        Swizzled<Vec, N, T, 1, 0, 2, 3> yxzw;
-        Swizzled<Vec, N, T, 1, 0, 3, 0> yxwx;
-        Swizzled<Vec, N, T, 1, 0, 3, 1> yxwy;
-        Swizzled<Vec, N, T, 1, 0, 3, 2> yxwz;
-        Swizzled<Vec, N, T, 1, 0, 3, 3> yxww;
-        Swizzled<Vec, N, T, 1, 1, 0, 0> yyxx;
-        Swizzled<Vec, N, T, 1, 1, 0, 1> yyxy;
-        Swizzled<Vec, N, T, 1, 1, 0, 2> yyxz;
-        Swizzled<Vec, N, T, 1, 1, 0, 3> yyxw;
-        Swizzled<Vec, N, T, 1, 1, 1, 0> yyyx;
-        Swizzled<Vec, N, T, 1, 1, 1, 1> yyyy;
-        Swizzled<Vec, N, T, 1, 1, 1, 2> yyyz;
-        Swizzled<Vec, N, T, 1, 1, 1, 3> yyyw;
-        Swizzled<Vec, N, T, 1, 1, 2, 0> yyzx;
-        Swizzled<Vec, N, T, 1, 1, 2, 1> yyzy;
-        Swizzled<Vec, N, T, 1, 1, 2, 2> yyzz;
-        Swizzled<Vec, N, T, 1, 1, 2, 3> yyzw;
-        Swizzled<Vec, N, T, 1, 1, 3, 0> yywx;
-        Swizzled<Vec, N, T, 1, 1, 3, 1> yywy;
-        Swizzled<Vec, N, T, 1, 1, 3, 2> yywz;
-        Swizzled<Vec, N, T, 1, 1, 3, 3> yyww;
-        Swizzled<Vec, N, T, 1, 2, 0, 0> yzxx;
-        Swizzled<Vec, N, T, 1, 2, 0, 1> yzxy;
-        Swizzled<Vec, N, T, 1, 2, 0, 2> yzxz;
-        Swizzled<Vec, N, T, 1, 2, 0, 3> yzxw;
-        Swizzled<Vec, N, T, 1, 2, 1, 0> yzyx;
-        Swizzled<Vec, N, T, 1, 2, 1, 1> yzyy;
-        Swizzled<Vec, N, T, 1, 2, 1, 2> yzyz;
-        Swizzled<Vec, N, T, 1, 2, 1, 3> yzyw;
-        Swizzled<Vec, N, T, 1, 2, 2, 0> yzzx;
-        Swizzled<Vec, N, T, 1, 2, 2, 1> yzzy;
-        Swizzled<Vec, N, T, 1, 2, 2, 2> yzzz;
-        Swizzled<Vec, N, T, 1, 2, 2, 3> yzzw;
-        Swizzled<Vec, N, T, 1, 2, 3, 0> yzwx;
-        Swizzled<Vec, N, T, 1, 2, 3, 1> yzwy;
-        Swizzled<Vec, N, T, 1, 2, 3, 2> yzwz;
-        Swizzled<Vec, N, T, 1, 2, 3, 3> yzww;
-        Swizzled<Vec, N, T, 1, 3, 0, 0> ywxx;
-        Swizzled<Vec, N, T, 1, 3, 0, 1> ywxy;
-        Swizzled<Vec, N, T, 1, 3, 0, 2> ywxz;
-        Swizzled<Vec, N, T, 1, 3, 0, 3> ywxw;
-        Swizzled<Vec, N, T, 1, 3, 1, 0> ywyx;
-        Swizzled<Vec, N, T, 1, 3, 1, 1> ywyy;
-        Swizzled<Vec, N, T, 1, 3, 1, 2> ywyz;
-        Swizzled<Vec, N, T, 1, 3, 1, 3> ywyw;
-        Swizzled<Vec, N, T, 1, 3, 2, 0> ywzx;
-        Swizzled<Vec, N, T, 1, 3, 2, 1> ywzy;
-        Swizzled<Vec, N, T, 1, 3, 2, 2> ywzz;
-        Swizzled<Vec, N, T, 1, 3, 2, 3> ywzw;
-        Swizzled<Vec, N, T, 1, 3, 3, 0> ywwx;
-        Swizzled<Vec, N, T, 1, 3, 3, 1> ywwy;
-        Swizzled<Vec, N, T, 1, 3, 3, 2> ywwz;
-        Swizzled<Vec, N, T, 1, 3, 3, 3> ywww;
+        // copy of above with slight change:
+        Component<1, 0, 0, 0> yxxx;
+        Component<1, 0, 0, 1> yxxy;
+        Component<1, 0, 0, 2> yxxz;
+        Component<1, 0, 0, 3> yxxw;
+        Component<1, 0, 1, 0> yxyx;
+        Component<1, 0, 1, 1> yxyy;
+        Component<1, 0, 1, 2> yxyz;
+        Component<1, 0, 1, 3> yxyw;
+        Component<1, 0, 2, 0> yxzx;
+        Component<1, 0, 2, 1> yxzy;
+        Component<1, 0, 2, 2> yxzz;
+        Component<1, 0, 2, 3> yxzw;
+        Component<1, 0, 3, 0> yxwx;
+        Component<1, 0, 3, 1> yxwy;
+        Component<1, 0, 3, 2> yxwz;
+        Component<1, 0, 3, 3> yxww;
+        Component<1, 1, 0, 0> yyxx;
+        Component<1, 1, 0, 1> yyxy;
+        Component<1, 1, 0, 2> yyxz;
+        Component<1, 1, 0, 3> yyxw;
+        Component<1, 1, 1, 0> yyyx;
+        Component<1, 1, 1, 1> yyyy;
+        Component<1, 1, 1, 2> yyyz;
+        Component<1, 1, 1, 3> yyyw;
+        Component<1, 1, 2, 0> yyzx;
+        Component<1, 1, 2, 1> yyzy;
+        Component<1, 1, 2, 2> yyzz;
+        Component<1, 1, 2, 3> yyzw;
+        Component<1, 1, 3, 0> yywx;
+        Component<1, 1, 3, 1> yywy;
+        Component<1, 1, 3, 2> yywz;
+        Component<1, 1, 3, 3> yyww;
+        Component<1, 2, 0, 0> yzxx;
+        Component<1, 2, 0, 1> yzxy;
+        Component<1, 2, 0, 2> yzxz;
+        Component<1, 2, 0, 3> yzxw;
+        Component<1, 2, 1, 0> yzyx;
+        Component<1, 2, 1, 1> yzyy;
+        Component<1, 2, 1, 2> yzyz;
+        Component<1, 2, 1, 3> yzyw;
+        Component<1, 2, 2, 0> yzzx;
+        Component<1, 2, 2, 1> yzzy;
+        Component<1, 2, 2, 2> yzzz;
+        Component<1, 2, 2, 3> yzzw;
+        Component<1, 2, 3, 0> yzwx;
+        Component<1, 2, 3, 1> yzwy;
+        Component<1, 2, 3, 2> yzwz;
+        Component<1, 2, 3, 3> yzww;
+        Component<1, 3, 0, 0> ywxx;
+        Component<1, 3, 0, 1> ywxy;
+        Component<1, 3, 0, 2> ywxz;
+        Component<1, 3, 0, 3> ywxw;
+        Component<1, 3, 1, 0> ywyx;
+        Component<1, 3, 1, 1> ywyy;
+        Component<1, 3, 1, 2> ywyz;
+        Component<1, 3, 1, 3> ywyw;
+        Component<1, 3, 2, 0> ywzx;
+        Component<1, 3, 2, 1> ywzy;
+        Component<1, 3, 2, 2> ywzz;
+        Component<1, 3, 2, 3> ywzw;
+        Component<1, 3, 3, 0> ywwx;
+        Component<1, 3, 3, 1> ywwy;
+        Component<1, 3, 3, 2> ywwz;
+        Component<1, 3, 3, 3> ywww;
 
-        // copy of above:
-        Swizzled<Vec, N, T, 2, 0, 0, 0> zxxx;
-        Swizzled<Vec, N, T, 2, 0, 0, 1> zxxy;
-        Swizzled<Vec, N, T, 2, 0, 0, 2> zxxz;
-        Swizzled<Vec, N, T, 2, 0, 0, 3> zxxw;
-        Swizzled<Vec, N, T, 2, 0, 1, 0> zxyx;
-        Swizzled<Vec, N, T, 2, 0, 1, 1> zxyy;
-        Swizzled<Vec, N, T, 2, 0, 1, 2> zxyz;
-        Swizzled<Vec, N, T, 2, 0, 1, 3> zxyw;
-        Swizzled<Vec, N, T, 2, 0, 2, 0> zxzx;
-        Swizzled<Vec, N, T, 2, 0, 2, 1> zxzy;
-        Swizzled<Vec, N, T, 2, 0, 2, 2> zxzz;
-        Swizzled<Vec, N, T, 2, 0, 2, 3> zxzw;
-        Swizzled<Vec, N, T, 2, 0, 3, 0> zxwx;
-        Swizzled<Vec, N, T, 2, 0, 3, 1> zxwy;
-        Swizzled<Vec, N, T, 2, 0, 3, 2> zxwz;
-        Swizzled<Vec, N, T, 2, 0, 3, 3> zxww;
-        Swizzled<Vec, N, T, 2, 1, 0, 0> zyxx;
-        Swizzled<Vec, N, T, 2, 1, 0, 1> zyxy;
-        Swizzled<Vec, N, T, 2, 1, 0, 2> zyxz;
-        Swizzled<Vec, N, T, 2, 1, 0, 3> zyxw;
-        Swizzled<Vec, N, T, 2, 1, 1, 0> zyyx;
-        Swizzled<Vec, N, T, 2, 1, 1, 1> zyyy;
-        Swizzled<Vec, N, T, 2, 1, 1, 2> zyyz;
-        Swizzled<Vec, N, T, 2, 1, 1, 3> zyyw;
-        Swizzled<Vec, N, T, 2, 1, 2, 0> zyzx;
-        Swizzled<Vec, N, T, 2, 1, 2, 1> zyzy;
-        Swizzled<Vec, N, T, 2, 1, 2, 2> zyzz;
-        Swizzled<Vec, N, T, 2, 1, 2, 3> zyzw;
-        Swizzled<Vec, N, T, 2, 1, 3, 0> zywx;
-        Swizzled<Vec, N, T, 2, 1, 3, 1> zywy;
-        Swizzled<Vec, N, T, 2, 1, 3, 2> zywz;
-        Swizzled<Vec, N, T, 2, 1, 3, 3> zyww;
-        Swizzled<Vec, N, T, 2, 2, 0, 0> zzxx;
-        Swizzled<Vec, N, T, 2, 2, 0, 1> zzxy;
-        Swizzled<Vec, N, T, 2, 2, 0, 2> zzxz;
-        Swizzled<Vec, N, T, 2, 2, 0, 3> zzxw;
-        Swizzled<Vec, N, T, 2, 2, 1, 0> zzyx;
-        Swizzled<Vec, N, T, 2, 2, 1, 1> zzyy;
-        Swizzled<Vec, N, T, 2, 2, 1, 2> zzyz;
-        Swizzled<Vec, N, T, 2, 2, 1, 3> zzyw;
-        Swizzled<Vec, N, T, 2, 2, 2, 0> zzzx;
-        Swizzled<Vec, N, T, 2, 2, 2, 1> zzzy;
-        Swizzled<Vec, N, T, 2, 2, 2, 2> zzzz;
-        Swizzled<Vec, N, T, 2, 2, 2, 3> zzzw;
-        Swizzled<Vec, N, T, 2, 2, 3, 0> zzwx;
-        Swizzled<Vec, N, T, 2, 2, 3, 1> zzwy;
-        Swizzled<Vec, N, T, 2, 2, 3, 2> zzwz;
-        Swizzled<Vec, N, T, 2, 2, 3, 3> zzww;
-        Swizzled<Vec, N, T, 2, 3, 0, 0> zwxx;
-        Swizzled<Vec, N, T, 2, 3, 0, 1> zwxy;
-        Swizzled<Vec, N, T, 2, 3, 0, 2> zwxz;
-        Swizzled<Vec, N, T, 2, 3, 0, 3> zwxw;
-        Swizzled<Vec, N, T, 2, 3, 1, 0> zwyx;
-        Swizzled<Vec, N, T, 2, 3, 1, 1> zwyy;
-        Swizzled<Vec, N, T, 2, 3, 1, 2> zwyz;
-        Swizzled<Vec, N, T, 2, 3, 1, 3> zwyw;
-        Swizzled<Vec, N, T, 2, 3, 2, 0> zwzx;
-        Swizzled<Vec, N, T, 2, 3, 2, 1> zwzy;
-        Swizzled<Vec, N, T, 2, 3, 2, 2> zwzz;
-        Swizzled<Vec, N, T, 2, 3, 2, 3> zwzw;
-        Swizzled<Vec, N, T, 2, 3, 3, 0> zwwx;
-        Swizzled<Vec, N, T, 2, 3, 3, 1> zwwy;
-        Swizzled<Vec, N, T, 2, 3, 3, 2> zwwz;
-        Swizzled<Vec, N, T, 2, 3, 3, 3> zwww;
+        // copy of above with slight change:
+        Component<2, 0, 0, 0> zxxx;
+        Component<2, 0, 0, 1> zxxy;
+        Component<2, 0, 0, 2> zxxz;
+        Component<2, 0, 0, 3> zxxw;
+        Component<2, 0, 1, 0> zxyx;
+        Component<2, 0, 1, 1> zxyy;
+        Component<2, 0, 1, 2> zxyz;
+        Component<2, 0, 1, 3> zxyw;
+        Component<2, 0, 2, 0> zxzx;
+        Component<2, 0, 2, 1> zxzy;
+        Component<2, 0, 2, 2> zxzz;
+        Component<2, 0, 2, 3> zxzw;
+        Component<2, 0, 3, 0> zxwx;
+        Component<2, 0, 3, 1> zxwy;
+        Component<2, 0, 3, 2> zxwz;
+        Component<2, 0, 3, 3> zxww;
+        Component<2, 1, 0, 0> zyxx;
+        Component<2, 1, 0, 1> zyxy;
+        Component<2, 1, 0, 2> zyxz;
+        Component<2, 1, 0, 3> zyxw;
+        Component<2, 1, 1, 0> zyyx;
+        Component<2, 1, 1, 1> zyyy;
+        Component<2, 1, 1, 2> zyyz;
+        Component<2, 1, 1, 3> zyyw;
+        Component<2, 1, 2, 0> zyzx;
+        Component<2, 1, 2, 1> zyzy;
+        Component<2, 1, 2, 2> zyzz;
+        Component<2, 1, 2, 3> zyzw;
+        Component<2, 1, 3, 0> zywx;
+        Component<2, 1, 3, 1> zywy;
+        Component<2, 1, 3, 2> zywz;
+        Component<2, 1, 3, 3> zyww;
+        Component<2, 2, 0, 0> zzxx;
+        Component<2, 2, 0, 1> zzxy;
+        Component<2, 2, 0, 2> zzxz;
+        Component<2, 2, 0, 3> zzxw;
+        Component<2, 2, 1, 0> zzyx;
+        Component<2, 2, 1, 1> zzyy;
+        Component<2, 2, 1, 2> zzyz;
+        Component<2, 2, 1, 3> zzyw;
+        Component<2, 2, 2, 0> zzzx;
+        Component<2, 2, 2, 1> zzzy;
+        Component<2, 2, 2, 2> zzzz;
+        Component<2, 2, 2, 3> zzzw;
+        Component<2, 2, 3, 0> zzwx;
+        Component<2, 2, 3, 1> zzwy;
+        Component<2, 2, 3, 2> zzwz;
+        Component<2, 2, 3, 3> zzww;
+        Component<2, 3, 0, 0> zwxx;
+        Component<2, 3, 0, 1> zwxy;
+        Component<2, 3, 0, 2> zwxz;
+        Component<2, 3, 0, 3> zwxw;
+        Component<2, 3, 1, 0> zwyx;
+        Component<2, 3, 1, 1> zwyy;
+        Component<2, 3, 1, 2> zwyz;
+        Component<2, 3, 1, 3> zwyw;
+        Component<2, 3, 2, 0> zwzx;
+        Component<2, 3, 2, 1> zwzy;
+        Component<2, 3, 2, 2> zwzz;
+        Component<2, 3, 2, 3> zwzw;
+        Component<2, 3, 3, 0> zwwx;
+        Component<2, 3, 3, 1> zwwy;
+        Component<2, 3, 3, 2> zwwz;
+        Component<2, 3, 3, 3> zwww;
 
-        // copy of above:
-        Swizzled<Vec, N, T, 3, 0, 0, 0> wxxx;
-        Swizzled<Vec, N, T, 3, 0, 0, 1> wxxy;
-        Swizzled<Vec, N, T, 3, 0, 0, 2> wxxz;
-        Swizzled<Vec, N, T, 3, 0, 0, 3> wxxw;
-        Swizzled<Vec, N, T, 3, 0, 1, 0> wxyx;
-        Swizzled<Vec, N, T, 3, 0, 1, 1> wxyy;
-        Swizzled<Vec, N, T, 3, 0, 1, 2> wxyz;
-        Swizzled<Vec, N, T, 3, 0, 1, 3> wxyw;
-        Swizzled<Vec, N, T, 3, 0, 2, 0> wxzx;
-        Swizzled<Vec, N, T, 3, 0, 2, 1> wxzy;
-        Swizzled<Vec, N, T, 3, 0, 2, 2> wxzz;
-        Swizzled<Vec, N, T, 3, 0, 2, 3> wxzw;
-        Swizzled<Vec, N, T, 3, 0, 3, 0> wxwx;
-        Swizzled<Vec, N, T, 3, 0, 3, 1> wxwy;
-        Swizzled<Vec, N, T, 3, 0, 3, 2> wxwz;
-        Swizzled<Vec, N, T, 3, 0, 3, 3> wxww;
-        Swizzled<Vec, N, T, 3, 1, 0, 0> wyxx;
-        Swizzled<Vec, N, T, 3, 1, 0, 1> wyxy;
-        Swizzled<Vec, N, T, 3, 1, 0, 2> wyxz;
-        Swizzled<Vec, N, T, 3, 1, 0, 3> wyxw;
-        Swizzled<Vec, N, T, 3, 1, 1, 0> wyyx;
-        Swizzled<Vec, N, T, 3, 1, 1, 1> wyyy;
-        Swizzled<Vec, N, T, 3, 1, 1, 2> wyyz;
-        Swizzled<Vec, N, T, 3, 1, 1, 3> wyyw;
-        Swizzled<Vec, N, T, 3, 1, 2, 0> wyzx;
-        Swizzled<Vec, N, T, 3, 1, 2, 1> wyzy;
-        Swizzled<Vec, N, T, 3, 1, 2, 2> wyzz;
-        Swizzled<Vec, N, T, 3, 1, 2, 3> wyzw;
-        Swizzled<Vec, N, T, 3, 1, 3, 0> wywx;
-        Swizzled<Vec, N, T, 3, 1, 3, 1> wywy;
-        Swizzled<Vec, N, T, 3, 1, 3, 2> wywz;
-        Swizzled<Vec, N, T, 3, 1, 3, 3> wyww;
-        Swizzled<Vec, N, T, 3, 2, 0, 0> wzxx;
-        Swizzled<Vec, N, T, 3, 2, 0, 1> wzxy;
-        Swizzled<Vec, N, T, 3, 2, 0, 2> wzxz;
-        Swizzled<Vec, N, T, 3, 2, 0, 3> wzxw;
-        Swizzled<Vec, N, T, 3, 2, 1, 0> wzyx;
-        Swizzled<Vec, N, T, 3, 2, 1, 1> wzyy;
-        Swizzled<Vec, N, T, 3, 2, 1, 2> wzyz;
-        Swizzled<Vec, N, T, 3, 2, 1, 3> wzyw;
-        Swizzled<Vec, N, T, 3, 2, 2, 0> wzzx;
-        Swizzled<Vec, N, T, 3, 2, 2, 1> wzzy;
-        Swizzled<Vec, N, T, 3, 2, 2, 2> wzzz;
-        Swizzled<Vec, N, T, 3, 2, 2, 3> wzzw;
-        Swizzled<Vec, N, T, 3, 2, 3, 0> wzwx;
-        Swizzled<Vec, N, T, 3, 2, 3, 1> wzwy;
-        Swizzled<Vec, N, T, 3, 2, 3, 2> wzwz;
-        Swizzled<Vec, N, T, 3, 2, 3, 3> wzww;
-        Swizzled<Vec, N, T, 3, 3, 0, 0> wwxx;
-        Swizzled<Vec, N, T, 3, 3, 0, 1> wwxy;
-        Swizzled<Vec, N, T, 3, 3, 0, 2> wwxz;
-        Swizzled<Vec, N, T, 3, 3, 0, 3> wwxw;
-        Swizzled<Vec, N, T, 3, 3, 1, 0> wwyx;
-        Swizzled<Vec, N, T, 3, 3, 1, 1> wwyy;
-        Swizzled<Vec, N, T, 3, 3, 1, 2> wwyz;
-        Swizzled<Vec, N, T, 3, 3, 1, 3> wwyw;
-        Swizzled<Vec, N, T, 3, 3, 2, 0> wwzx;
-        Swizzled<Vec, N, T, 3, 3, 2, 1> wwzy;
-        Swizzled<Vec, N, T, 3, 3, 2, 2> wwzz;
-        Swizzled<Vec, N, T, 3, 3, 2, 3> wwzw;
-        Swizzled<Vec, N, T, 3, 3, 3, 0> wwwx;
-        Swizzled<Vec, N, T, 3, 3, 3, 1> wwwy;
-        Swizzled<Vec, N, T, 3, 3, 3, 2> wwwz;
-        Swizzled<Vec, N, T, 3, 3, 3, 3> wwww;
+        // copy of above with slight change:
+        Component<3, 0, 0, 0> wxxx;
+        Component<3, 0, 0, 1> wxxy;
+        Component<3, 0, 0, 2> wxxz;
+        Component<3, 0, 0, 3> wxxw;
+        Component<3, 0, 1, 0> wxyx;
+        Component<3, 0, 1, 1> wxyy;
+        Component<3, 0, 1, 2> wxyz;
+        Component<3, 0, 1, 3> wxyw;
+        Component<3, 0, 2, 0> wxzx;
+        Component<3, 0, 2, 1> wxzy;
+        Component<3, 0, 2, 2> wxzz;
+        Component<3, 0, 2, 3> wxzw;
+        Component<3, 0, 3, 0> wxwx;
+        Component<3, 0, 3, 1> wxwy;
+        Component<3, 0, 3, 2> wxwz;
+        Component<3, 0, 3, 3> wxww;
+        Component<3, 1, 0, 0> wyxx;
+        Component<3, 1, 0, 1> wyxy;
+        Component<3, 1, 0, 2> wyxz;
+        Component<3, 1, 0, 3> wyxw;
+        Component<3, 1, 1, 0> wyyx;
+        Component<3, 1, 1, 1> wyyy;
+        Component<3, 1, 1, 2> wyyz;
+        Component<3, 1, 1, 3> wyyw;
+        Component<3, 1, 2, 0> wyzx;
+        Component<3, 1, 2, 1> wyzy;
+        Component<3, 1, 2, 2> wyzz;
+        Component<3, 1, 2, 3> wyzw;
+        Component<3, 1, 3, 0> wywx;
+        Component<3, 1, 3, 1> wywy;
+        Component<3, 1, 3, 2> wywz;
+        Component<3, 1, 3, 3> wyww;
+        Component<3, 2, 0, 0> wzxx;
+        Component<3, 2, 0, 1> wzxy;
+        Component<3, 2, 0, 2> wzxz;
+        Component<3, 2, 0, 3> wzxw;
+        Component<3, 2, 1, 0> wzyx;
+        Component<3, 2, 1, 1> wzyy;
+        Component<3, 2, 1, 2> wzyz;
+        Component<3, 2, 1, 3> wzyw;
+        Component<3, 2, 2, 0> wzzx;
+        Component<3, 2, 2, 1> wzzy;
+        Component<3, 2, 2, 2> wzzz;
+        Component<3, 2, 2, 3> wzzw;
+        Component<3, 2, 3, 0> wzwx;
+        Component<3, 2, 3, 1> wzwy;
+        Component<3, 2, 3, 2> wzwz;
+        Component<3, 2, 3, 3> wzww;
+        Component<3, 3, 0, 0> wwxx;
+        Component<3, 3, 0, 1> wwxy;
+        Component<3, 3, 0, 2> wwxz;
+        Component<3, 3, 0, 3> wwxw;
+        Component<3, 3, 1, 0> wwyx;
+        Component<3, 3, 1, 1> wwyy;
+        Component<3, 3, 1, 2> wwyz;
+        Component<3, 3, 1, 3> wwyw;
+        Component<3, 3, 2, 0> wwzx;
+        Component<3, 3, 2, 1> wwzy;
+        Component<3, 3, 2, 2> wwzz;
+        Component<3, 3, 2, 3> wwzw;
+        Component<3, 3, 3, 0> wwwx;
+        Component<3, 3, 3, 1> wwwy;
+        Component<3, 3, 3, 2> wwwz;
+        Component<3, 3, 3, 3> wwww;
+        /// @endcond
+        ///@}
     };
-    /// @endcond
 };
 
 } // namespace asciirast::math
