@@ -2,11 +2,8 @@
  * @file VecBase.h
  * @brief Vector base class supporting swizzled components.
  *
- * Swizzling class idea from
- * <a
- * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">
- * source
- * </a>
+ * Swizzling class idea from:
+ * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
  */
 
 #pragma once
@@ -17,12 +14,6 @@ namespace asciirast::math {
 
 /**
  * @brief Class to create swizzled N-dimensional vectors.
- *
- * @tparam VecClass The vector class to convert to (e.g., instantiated as
- * `VecClass<3, float>`).
- * @tparam N The size of the vector.
- * @tparam T The type of the vector components (e.g., `float`).
- * @tparam Indicies The indices of the swizzled components.
  */
 template <template <std::size_t, typename> class VecClass,
           std::size_t N,
@@ -60,12 +51,6 @@ public:
 
 /**
  * @brief Specialized class to create swizzled 1-dimensional vectors.
- *
- * @tparam VecClass The vector class to convert to (e.g., instantiated as
- * `VecClass<1, float>`).
- * @tparam N The size of the vector.
- * @tparam T The type of the vector component (e.g., `float`).
- * @tparam index The index of the swizzled component.
  */
 template <template <std::size_t, typename> class VecClass,
           std::size_t N,
@@ -94,11 +79,6 @@ public:
 
 /**
  * @brief N-dimensional vector base class.
- *
- * @tparam VecClass The vector class for the swizzled components to convert to
- * (e.g., `VecClass<float, 3>`).
- * @tparam N The size of the vector.
- * @tparam T The type of the vector components (e.g., `float`).
  */
 template <template <std::size_t, typename> class VecClass,
           std::size_t N,
@@ -106,16 +86,12 @@ template <template <std::size_t, typename> class VecClass,
     requires(N > 0)
 class VecBase {
 public:
-    T m_components[N];  ///< Array holding the vector components.
+    T m_components[N];  ///< Array storing the vector components.
 };
 
 /**
  * @brief Specialized 1-dimensional vector base class supporting swizzling {x}
  * components as class members.
- *
- * @tparam VecClass The vector class for the swizzled components to convert to
- * (e.g., `VecClass<1, float>`).
- * @tparam T The type of the vector component (e.g., `float`).
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 1, T> {
@@ -150,10 +126,6 @@ public:
 /**
  * @brief Specialized 2-dimensional vector base class supporting swizzling {x,
  * y} components as class members.
- *
- * @tparam VecClass The vector class for the swizzled components to convert to
- * (e.g., `VecClass<2, float>`).
- * @tparam T The type of the vector component (e.g., `float`).
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 2, T> {
@@ -194,10 +166,6 @@ public:
 /**
  * @brief Specialized 3-dimensional vector base class supporting swizzling {x,
  * y, z} components as class members.
- *
- * @tparam VecClass The vector class for the swizzled components to convert to
- * (e.g., `VecClass<3, float>`).
- * @tparam T The type of the vector component (e.g., `float`).
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 3, T> {
@@ -272,10 +240,6 @@ public:
 /**
  * @brief Specialized 4-dimensional vector base class supporting swizzling {x,
  * y, z, w} components as class members.
- *
- * @tparam VecClass The vector class for the swizzled components to convert to
- * (e.g., `VecClass<4, float>`).
- * @tparam T The type of the vector component (e.g., `float`).
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 4, T> {

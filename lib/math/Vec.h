@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <numeric>
 #include <ranges>
 #include <type_traits>
@@ -30,22 +31,29 @@ template <std::size_t N, typename T>
 class Vec;
 
 /**
- * @brief 2-dimensional math vector
+ * @brief 2-dimensional float vector
  */
-template <typename T>
-using Vec2 = Vec<2, T>;
+using Vec2f = Vec<2, float>;
 
 /**
- * @brief 3-dimensional math vector
+ * @brief 2-dimensional integer vector
  */
-template <typename T>
-using Vec3 = Vec<3, T>;
+using Vec2i = Vec<2, std::int32_t>;
 
 /**
- * @brief 4-dimensional math vector
+ * @brief 3-dimensional float vector
  */
-template <typename T>
-using Vec4 = Vec<4, T>;
+using Vec3f = Vec<3, float>;
+
+/**
+ * @brief 3-dimensional integer vector
+ */
+using Vec3i = Vec<3, std::int32_t>;
+
+/**
+ * @brief 4-dimensional float vector
+ */
+using Vec4f = Vec<4, float>;
 
 template <std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
@@ -56,7 +64,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr static void init(Vec& vec, const U& initial_value) {
+    static void init(Vec& vec, const U& initial_value) {
         std::fill(vec.begin(), vec.end(), initial_value);
     }
 
@@ -65,7 +73,7 @@ public:
      */
     template <typename... Us>
         requires(non_narrowing_conversion<T, Us...>)
-    constexpr static void init(Vec& vec, const Us&... values)
+    static void init(Vec& vec, const Us&... values)
         requires(1 < sizeof...(values) && sizeof...(values) <= N)
     {
         const auto value_list = {values...};
@@ -80,7 +88,7 @@ public:
      * @brief Initiate vector from another (potentially smaller) vector.
      */
     template <std::size_t M>
-    constexpr static void init(Vec& vec, const Vec<M, T>& other)
+    static void init(Vec& vec, const Vec<M, T>& other)
         requires(M <= N)
     {
         std::copy(other.begin(), other.end(), vec.begin());
@@ -88,21 +96,23 @@ public:
 
 public:
     using VecBase<Vec, N, T>::m_components;
-    using value_type = T;
 
+    /**
+     * @brief Vector size.
+     */
     constexpr auto size() const { return N; }
 
     /**
      * @brief Default constructor. Fill the values as zero.
      */
-    constexpr Vec() { Vec::init(*this, T{0}); };
+    Vec() { Vec::init(*this, T{0}); };
 
     /**
      * @brief Use initial value to fill the entire vector.
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr explicit Vec(const U& initial_value) {
+    explicit Vec(const U& initial_value) {
         Vec::init(*this, initial_value);
     };
 
@@ -111,7 +121,7 @@ public:
      */
     template <typename U1, typename U2>
         requires(non_narrowing_conversion<T, U1, U2>)
-    constexpr Vec(const U1& x, const U2& y)
+    Vec(const U1& x, const U2& y)
         requires(N == 2)
     {
         Vec::init(*this, x, y);
@@ -122,7 +132,7 @@ public:
      */
     template <typename U1, typename U2, typename U3>
         requires(non_narrowing_conversion<T, U1, U2, U3>)
-    constexpr Vec(const U1& x, const U2& y, const U3& z)
+    Vec(const U1& x, const U2& y, const U3& z)
         requires(N == 3)
     {
         Vec::init(*this, x, y, z);
@@ -133,7 +143,7 @@ public:
      * M < N. The rest of the values are set to 0.
      */
     template <std::size_t M>
-    constexpr Vec(const Vec<M, T>& that)
+    Vec(const Vec<M, T>& that)
         requires(M < N)
     {
         Vec::init(*this, that);
@@ -145,7 +155,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr Vec(const U& l, const Vec<2, T>& r)
+    Vec(const U& l, const Vec<2, T>& r)
         requires(N == 3)
     {
         const auto x = l;
@@ -159,7 +169,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr Vec(const Vec<2, T>& l, const U& r)
+    Vec(const Vec<2, T>& l, const U& r)
         requires(N == 3)
     {
         const auto [x, y] = l.m_components;
@@ -172,7 +182,7 @@ public:
      */
     template <typename U1, typename U2, typename U3, typename U4>
         requires(non_narrowing_conversion<T, U1, U2, U3, U4>)
-    constexpr Vec(const U1& x, const U2& y, const U3& z, const U4& w)
+    Vec(const U1& x, const U2& y, const U3& z, const U4& w)
         requires(N == 4)
     {
         Vec::init(*this, x, y, z, w);
@@ -183,7 +193,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr Vec(const U& l, const Vec<3, T>& r)
+    Vec(const U& l, const Vec<3, T>& r)
         requires(N == 4)
     {
         const auto x = l;
@@ -197,7 +207,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conversion<T, U>)
-    constexpr Vec(const Vec<3, T>& l, const U& r)
+    Vec(const Vec<3, T>& l, const U& r)
         requires(N == 4)
     {
         const auto [x, y, z] = l.m_components;
@@ -209,7 +219,7 @@ public:
      * @brief Initiate a 4-dimensional vector with a value and 3-dimensional
      * vector
      */
-    constexpr Vec(const Vec<2, T>& l, const Vec<2, T>& r)
+    Vec(const Vec<2, T>& l, const Vec<2, T>& r)
         requires(N == 4)
     {
         const auto [x, y] = l.m_components;
@@ -223,7 +233,7 @@ public:
      */
     template <typename U1, typename U2>
         requires(non_narrowing_conversion<T, U1, U2>)
-    constexpr Vec(const U1& l, const Vec<2, T>& m, const U2& r)
+    Vec(const U1& l, const Vec<2, T>& m, const U2& r)
         requires(N == 4)
     {
         const auto x = l;
@@ -237,42 +247,50 @@ public:
      */
     template <typename... Us>
         requires(non_narrowing_conversion<T, Us...>)
-    constexpr Vec(const Us&... values)
+    Vec(const Us&... values)
         requires(4 < N && N == sizeof...(values))
     {
         Vec::init(*this, values...);
     };
 
     /**
-     * @brief Use iterator to fill the vector.
+     * @brief Basic iterator support
+     * @{
      */
     template <std::input_iterator Iterator>
         requires(std::same_as<std::iter_value_t<Iterator>, T>)
-    constexpr Vec(Iterator begin) {
+    Vec(Iterator begin) {
         std::copy_n(begin, N, this->begin());
     };
-
-    /**
-     * @brief Begin iterator
-     */
-    constexpr auto begin() { return &m_components[0]; }
-
-    /**
-     * @brief End iterator
-     */
-    constexpr auto end() { return &m_components[N]; }
-
-    /**
-     * @brief Begin const-iterator
-     */
-    constexpr auto begin() const { return const_cast<Vec&>(*this).begin(); }
-
-    /**
-     * @brief End const-iterator
-     */
-    constexpr auto end() const { return const_cast<Vec&>(*this).end(); }
+    auto begin() { return &m_components[0]; }
+    auto begin() const { return &m_components[0]; }
+    auto end() { return &m_components[N]; }
+    auto end() const { return &m_components[N]; }
+    ///@}
 
 public:
+    /**
+     * @brief Index the vector with bounds checking
+     * @throws std::runtime_error if indicies are out of bounds.
+     */
+    T& operator[](std::size_t i) {
+        if (i >= N) {
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
+        }
+        return this->m_components[i];
+    }
+
+    /**
+     * @brief Index the vector with bounds checking
+     * @throws std::runtime_error if indicies are out of bounds.
+     */
+    const T& operator[](std::size_t i) const {
+        if (i >= N) {
+            throw std::runtime_error("asciirast::math::VecBase<>::operator[]");
+        }
+        return this->m_components[i];
+    }
+
     /**
      * @brief Check if exactly equal to another vector in terms of bitwise
      * equality.
@@ -304,7 +322,7 @@ public:
     bool equals_almost(const Vec<N, T>& other, const unsigned ulps) const
         requires(std::is_floating_point_v<T>)
     {
-        const auto n = static_cast<float>(ulps);
+        const auto n = static_cast<T>(ulps);
         return std::equal(
                 this->begin(), this->end(), other.begin(), other.end(),
                 [&](const T& x, const T& y) {
@@ -603,8 +621,7 @@ public:
 
     /**
      * @brief Linearly interpolate the values of two vectors with a parameter
-     * value with t ranging from 0 to 1. Is implemented so when t == 1, returns
-     * b.
+     * value with t ranging from 0 to 1.
      *
      * See:
      * https://www.youtube.com/watch?v=NzjF1pdlK7Y (Freya Holmer's talk)

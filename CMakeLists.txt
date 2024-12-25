@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 project(asciirast VERSION 0.1)
 
-# set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 set(CMAKE_CXX_STANDARD 23)
