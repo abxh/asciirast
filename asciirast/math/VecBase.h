@@ -1,56 +1,85 @@
 /**
  * @file VecBase.h
- * @brief Vector base class supporting swizzled components.
- *
- * Swizzling class idea from:
- * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
+ * @brief Vector base class with support for swizzled components.
  */
 
 #pragma once
 
+#include <array>
 #include <cstddef>
+#include <ranges>
 
 namespace asciirast::math {
 
 /**
- * @brief Class to create swizzled N-dimensional vectors.
+ * @brief Swizzled component to be converted to a vector.
+ *
+ * The idea comes from this <a
+ * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">source</a>.
+ * The idea of this class is to pass the to-be-converted-to vector as a template
+ * parameter to this class, using a sort of dependency injection to allow user
+ * conversions, and make members of this class be a part of a union, together
+ * with the vector component array. This class accepts a list of indicies at
+ * compile-time and will generate a vector with the values at the indicies (not
+ * neccesarily only 0,1,...) when asked.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<4, float>.
+ * @tparam NTotal   The total number of components the vector has.
+ * @tparam T        Vector value type.
+ * @tparam Indicies The indicies of the swizzled component.
  */
 template <template <std::size_t, typename> class VecClass,
-          std::size_t N,
+          std::size_t NTotal,
           typename T,
           std::size_t... Indicies>
 class SwizzledComponents {
 private:
-    using Vec = VecClass<sizeof...(Indicies), T>;
+    static constexpr std::array indicies = {Indicies...};
+    using Vec = VecClass<indicies.size(), T>;
+
+    using This = SwizzledComponents;
+
+    template <std::size_t... Indicies1>
+    using Other = SwizzledComponents<VecClass, NTotal, T, Indicies1...>;
 
 private:
-    T m_components[N];
+    std::array<T, NTotal> m_components;
 
 public:
     /**
-     * @brief Get the swizzled components as a vector.
+     * @brief Explicit conversion to vector
+     * @returns A copy of the vector corresponding to the swizzled components.
      */
-    Vec value() const { return Vec{m_components[Indicies]...}; }
+    Vec as_vec() const { return Vec{m_components[Indicies]...}; }
 
     /**
-     * @brief Implicit conversion to a vector.
+     * @brief Implicit conversion to vector
+     * @returns A copy of the vector corresponding to the swizzled components.
      */
-    operator Vec() const { return this->value(); }
+    operator Vec() const { return this->as_vec(); }
 
     /**
      * @brief Implicit assignment from a vector.
+     * @param rhs Vector rvalue from which to set the swizzled components.
+     * @returns this as reference
      */
-    Vec& operator=(const Vec& rhs) {
-        const size_t indices[] = {Indicies...};
-        for (size_t i = 0; i < N; i++) {
-            m_components[indices[i]] = rhs[i];
+    auto& operator=(const Vec& rhs) {
+        for (auto [l, r] : std::views::zip(indicies, std::views::iota(0U))) {
+            m_components[l] = rhs[r];
         }
         return *this;
     }
 };
 
 /**
- * @brief Specialized class to create swizzled 1-dimensional vectors.
+ * @brief 1d-swizzled component to be converted to a value.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<4, float>.
+ * @tparam NTotal   The total number of components the vector has.
+ * @tparam T        Vector value type.
+ * @tparam Indicies The indicies of the swizzled component.
  */
 template <template <std::size_t, typename> class VecClass,
           std::size_t N,
@@ -58,27 +87,39 @@ template <template <std::size_t, typename> class VecClass,
           std::size_t index>
 class SwizzledComponents<VecClass, N, T, index> {
 private:
-    T m_components[N];
+    std::array<T, N> m_components;
 
 public:
     /**
-     * @brief Get the value as a number.
+     * @brief Explicit conversion to value type.
+     * @returns A copy of the value corresponding to the swizzled component.
      */
-    T value() const { return m_components[index]; }
+    T as_val() const { return m_components[index]; }
 
     /**
-     * @brief Implicit conversion to number.
+     * @brief Implicit conversion to value type.
+     * @returns A copy of the value corresponding to the swizzled component.
      */
-    operator T() const { return this->value(); }
+    operator T() const { return this->as_val(); }
 
     /**
-     * @brief Implicit assignment to number.
+     * @brief Implicit assignment from other value.
+     * @param value Value rvalue from which to set the swizzled component.
+     * @returns this as reference
      */
-    T& operator=(const T& value) { return (m_components[index] = value); }
+    auto& operator=(const T& value) {
+        m_components[index] = value;
+        return *this;
+    }
 };
 
 /**
- * @brief N-dimensional vector base class.
+ * @brief Vector base class.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<4, float>.
+ * @tparam N        The total number of components the vector has.
+ * @tparam T        Vector value type.
  */
 template <template <std::size_t, typename> class VecClass,
           std::size_t N,
@@ -86,12 +127,16 @@ template <template <std::size_t, typename> class VecClass,
     requires(N > 0)
 class VecBase {
 public:
-    T m_components[N];  ///< Array storing the vector components.
+    std::array<T, N> m_components;  ///< vector component array
 };
 
 /**
- * @brief Specialized 1-dimensional vector base class supporting swizzling {x}
- * components as class members.
+ * @brief One-dimensional specialization of vector base class with support for
+ * {x} component.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<1, float>.
+ * @tparam T Vector value type.
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 1, T> {
@@ -103,29 +148,29 @@ private:
 
 public:
     /**
-     * @brief Union of vector components and swizzled components.
+     * @brief Anomymous union between an array of components and swizzled
+     * components.
      */
     union {
-        /**
-         * @brief C-style array over components.
-         */
-        T m_components[N];
+        std::array<T, N> m_components;  ///< vector component array
 
         /**
-         * @name SwizzledComponents
+         * @name Swizzled components
          * @{
          * Combinations of {x} with a maximum size of 1 as class members.
          */
-        /// @cond DO_NO_DOCUMENT
         Component<0> x;
-        /// @endcond
         /// @}
     };
 };
 
 /**
- * @brief Specialized 2-dimensional vector base class supporting swizzling {x,
- * y} components as class members.
+ * @brief Two-dimensional specialization of vector base class with support for
+ * swizzled {x, y} components.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<2, float>.
+ * @tparam T Vector value type.
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 2, T> {
@@ -137,35 +182,39 @@ private:
 
 public:
     /**
-     * @brief Union between an array of components and swizzled components.
+     * @brief Anonymous union between an array of components and swizzled
+     * components.
      */
     union {
-        /**
-         * @brief C-style array over components.
-         */
-        T m_components[N];
+        std::array<T, N> m_components;  ///< Vector component array
 
         /**
-         * @name SwizzledComponents
+         * @name Swizzled components
          * @{
          * Combinations of {x, y} with a maximum size of 2 as class members.
          */
-        /// @cond DO_NO_DOCUMENT
         Component<0> x;
         Component<1> y;
 
+        // the rest are not documented to spare doxygen of generating redundant
+        // documentation
+        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<1, 0> yx;
         Component<1, 1> yy;
         /// @endcond
-        ///@}
+        /// @}
     };
 };
 
 /**
- * @brief Specialized 3-dimensional vector base class supporting swizzling {x,
- * y, z} components as class members.
+ * @brief Three-dimensional specialization of  vector base class with support
+ * for swizzled {x, y, z} components.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<3, float>.
+ * @tparam T Vector value type.
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 3, T> {
@@ -177,24 +226,24 @@ private:
 
 public:
     /**
-     * @brief Union between an array of components and swizzled components.
+     * @brief Anonymous union between an array of components and swizzled
+     * components
      */
     union {
-        /**
-         * @brief C-style array over components.
-         */
-        T m_components[N];
+        std::array<T, N> m_components;  ///< vector component array
 
         /**
-         * @name SwizzledComponents
+         * @name Swizzled components
          * @{
          * Combinations of {x, y, z} with a maximum size of 3 as class members.
          */
-        /// @cond DO_NO_DOCUMENT
         Component<0> x;
         Component<1> y;
         Component<2> z;
 
+        // the rest are not documented to spare doxygen of generating redundant
+        // documentation
+        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<0, 2> xz;
@@ -238,8 +287,12 @@ public:
 };
 
 /**
- * @brief Specialized 4-dimensional vector base class supporting swizzling {x,
- * y, z, w} components as class members.
+ * @brief Four-dimensional vector base class with support for swizzled {x, y, z,
+ * w} components.
+ *
+ * @tparam VecClass The vector class to convert to. It will be instansiated as
+ *                  e.g. VecClass<2, float>.
+ * @tparam T Vector value type.
  */
 template <template <std::size_t, typename> class VecClass, typename T>
 class VecBase<VecClass, 4, T> {
@@ -251,26 +304,26 @@ private:
 
 public:
     /**
-     * @brief Union between an array of components and swizzled components.
+     * @brief Anonymous union between an array of components and swizzled
+     * components.
      */
     union {
-        /**
-         * @brief C-style array over components.
-         */
-        T m_components[N];
+        std::array<T, N> m_components;  ///< vector component array
 
         /**
-         * @name SwizzledComponents
+         * @name Swizzled components
          * @{
          * Combinations of {x, y, z, w} with a maximum size of 4 as class
          * members.
          */
-        /// @cond DO_NO_DOCUMENT
         Component<0> x;
         Component<1> y;
         Component<2> z;
         Component<3> w;
 
+        // the rest are not documented to spare doxygen of generating redundant
+        // documentation
+        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<0, 2> xz;
