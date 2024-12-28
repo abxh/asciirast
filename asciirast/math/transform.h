@@ -8,10 +8,9 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "Mat.h"
 #include "types.h"
 
-namespace asciirast::math::transform {
+namespace asciirast::math {
 
 static inline Mat3x3f translation(float delta_x, float delta_y) {
     const auto v = Vec<3, float>{delta_x, delta_y, 1.0f};

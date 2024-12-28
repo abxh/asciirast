@@ -16,7 +16,6 @@
 #include <type_traits>
 
 #include "Vec.h"
-#include "types.h"
 
 namespace asciirast::math {
 
@@ -498,7 +497,7 @@ public:
 
 template <size_t M_y, size_t N_x, typename T>
     requires((M_y + N_x) > 1 && std::is_arithmetic_v<T>)
-std::ostream& operator<<(std::ostream& out, const Mat<M_y, N_x, T>& mat)
+inline std::ostream& operator<<(std::ostream& out, const Mat<M_y, N_x, T>& mat)
     requires(Mat<M_y, N_x, T>::is_column_major == false)
 {
     std::stringstream s{};
@@ -541,7 +540,7 @@ std::ostream& operator<<(std::ostream& out, const Mat<M_y, N_x, T>& mat)
 
 template <size_t M_y, size_t N_x, typename T>
     requires((M_y + N_x) > 1 && std::is_arithmetic_v<T>)
-std::ostream& operator<<(std::ostream& out, const Mat<M_y, N_x, T>& mat)
+inline std::ostream& operator<<(std::ostream& out, const Mat<M_y, N_x, T>& mat)
     requires(Mat<M_y, N_x, T>::is_column_major == true)
 {
     std::stringstream s{};

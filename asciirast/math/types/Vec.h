@@ -13,22 +13,12 @@
 #include <stdexcept>
 
 #include "VecBase.h"
-#include "types.h"
 
 namespace asciirast::math {
 
 template <size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
 class Vec;
-
-/**
- * @brief Non narrowing converison concept
- *
- * Accepting anything that can be brace initialized as user input, e.g.
- * double{1.f}, rather than only checking type equality.
- */
-template <typename From, typename To>
-concept non_narrowing_conv = (requires(From f) { To{f}; });
 
 /**
  * @brief Vector information trait
@@ -64,7 +54,7 @@ constexpr bool is_conv_vec_v =
  */
 template <size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-class Vec : public VecBase<Vec, N, T> {
+class Vec : public VecBase<N, T> {
 public:
     /**
      * @brief Value type
@@ -101,7 +91,7 @@ private:
     }
 
 public:
-    using VecBase<Vec, N, T>::m_components;
+    using VecBase<N, T>::m_components;
 
     /**
      * @brief Default constructor. Set all values to 0
@@ -339,6 +329,18 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conv<U, T>)
+    Vec& operator*=(const U& scalar) {
+        const T& scalar_{scalar};
+        std::transform(this->begin(), this->end(), this->begin(),
+                       [&](const T& x) { return x * scalar_; });
+        return *this;
+    }
+
+    /**
+     * @brief Multiply vector with scalar from right-hand-side
+     */
+    template <typename U>
+        requires(non_narrowing_conv<U, T>)
     friend Vec operator*(const Vec& vec, const U& scalar) {
         Vec res{};
         const T& scalar_{scalar};
@@ -352,8 +354,19 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conv<U, T>)
+    Vec& operator/=(const U& scalar) {
+        const T& scalar_{scalar};
+        std::transform(this->begin(), this->end(), this->begin(),
+                       [&](const T& x) { return x / scalar_; });
+        return *this;
+    }
+
+    /**
+     * @brief Multiply vector with inverse scalar from right-hand-side
+     */
+    template <typename U>
+        requires(non_narrowing_conv<U, T>)
     friend Vec operator/(const Vec& vec, const U& scalar)
-        requires(std::is_floating_point_v<T>)
     {
         Vec res{};
         const T& scalar_{scalar};

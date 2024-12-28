@@ -2,17 +2,11 @@
 
 #include <cstddef>
 #include <numbers>
-#include <type_traits>
+
+#include "types/Mat.h"
+#include "types/Vec.h"
 
 namespace asciirast::math {
-
-template <size_t M_y, size_t N_x, typename T>
-    requires((M_y + N_x) > 1 && std::is_arithmetic_v<T>)
-class Mat;
-
-template <size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
-class Vec;
 
 using size_t = std::size_t;
 

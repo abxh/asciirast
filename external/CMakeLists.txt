@@ -1,1 +1,1 @@
-add_subdirectory(terminal-app)
+add_subdirectory(terminal)

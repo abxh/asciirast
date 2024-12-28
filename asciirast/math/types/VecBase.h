@@ -6,70 +6,174 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <ranges>
 
 namespace asciirast::math {
 
 /**
+ * @brief Non narrowing converison concept
+ *
+ * Accepting anything that can be brace initialized as user input, e.g.
+ * double{1.f}, rather than only checking type equality.
+ */
+template <typename From, typename To>
+concept non_narrowing_conv = (requires(From f) { To{f}; });
+
+template <size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+class Vec;
+
+/**
  * @brief Swizzled component to be converted to a vector.
  *
- * The idea comes from this <a
- * href="https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/">source</a>.
- * The idea of this class is to pass the to-be-converted-to vector as a template
- * parameter to this class, using a sort of dependency injection to allow user
- * conversions, and make members of this class be a part of a union, together
- * with the vector component array. This class accepts a list of indicies at
- * compile-time and will generate a vector with the values at the indicies (not
- * neccesarily only 0,1,...) when asked.
- *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<4, float>.
- * @tparam NTotal   The total number of components the vector has.
+ * @tparam N        The total number of components the vector has.
  * @tparam T        Vector value type.
  * @tparam Indicies The indicies of the swizzled component.
  */
-template <template <std::size_t, typename> class VecClass,
-          std::size_t NTotal,
-          typename T,
-          std::size_t... Indicies>
+template <size_t N, typename T, size_t... Indicies>
 class SwizzledComponents {
-private:
+    std::array<T, N> m_components;
     static constexpr std::array indicies = {Indicies...};
-    using Vec = VecClass<indicies.size(), T>;
+
+    template <std::size_t M, typename U, std::size_t... Js>
+    friend class SwizzledComponents;
+
+    template <size_t M, typename U>
+        requires(M > 0 && std::is_arithmetic_v<U>)
+    friend class Vec;
 
     using This = SwizzledComponents;
+    template <std::size_t M, std::size_t... Js>
+    using Other = SwizzledComponents<M, T, Js...>;
+    using VecRes = Vec<sizeof...(Indicies), T>;
 
-    template <std::size_t... Indicies1>
-    using Other = SwizzledComponents<VecClass, NTotal, T, Indicies1...>;
+public:
+    /**
+     * @brief Value type
+     */
+    using value_type = T;
 
-private:
-    std::array<T, NTotal> m_components;
+    /**
+     * @brief Number of components
+     */
+    static constexpr size_t size() { return sizeof...(Indicies); }
 
 public:
     /**
      * @brief Explicit conversion to vector
      * @returns A copy of the vector corresponding to the swizzled components.
      */
-    Vec as_vec() const { return Vec{m_components[Indicies]...}; }
+    VecRes to_vec() const {
+        return Vec<sizeof...(Indicies), T>{this->m_components[Indicies]...};
+    }
 
     /**
      * @brief Implicit conversion to vector
      * @returns A copy of the vector corresponding to the swizzled components.
      */
-    operator Vec() const { return this->as_vec(); }
+    operator VecRes() const { return this->to_vec(); }
 
     /**
-     * @brief Implicit assignment from a vector.
+     * @brief Assignment from a vector.
      * @param rhs Vector rvalue from which to set the swizzled components.
      * @returns this as reference
      */
-    auto& operator=(const Vec& rhs) {
+    SwizzledComponents& operator=(const VecRes& rhs) {
         for (auto [l, r] : std::views::zip(indicies, std::views::iota(0U))) {
-            m_components[l] = rhs[r];
+            this->m_components[l] = rhs.m_components[r];
         }
         return *this;
     }
+
+    /**
+     * @name vec like operator support
+     * @{
+     */
+    friend std::ostream& operator<<(std::ostream& out, const This& v) {
+        return out << VecRes{v};
+    }
+    T& operator[](size_t i) {
+        if (i >= N) {
+            throw std::out_of_range(
+                    "asciirast::math::SwizzledComponents::operator[]");
+        }
+        return m_components[indicies[i]];
+    }
+    const T& operator[](size_t i) const {
+        if (i >= N) {
+            throw std::out_of_range(
+                    "asciirast::math::SwizzledComponents::operator[]");
+        }
+        return m_components[indicies[i]];
+    }
+    template <std::size_t M, std::size_t... Js>
+        requires(sizeof...(Indicies) == sizeof...(Js))
+    auto& operator=(const Other<M, Js...>& rhs) {
+        auto other_indicies = Other<M, Js...>::indicies;
+        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
+            this->m_components[l] = rhs.m_components[r];
+        }
+        return *this;
+    }
+    template <std::size_t M, std::size_t... Js>
+        requires(sizeof...(Indicies) == sizeof...(Js))
+    auto& operator+=(const Other<M, Js...>& rhs) {
+        auto other_indicies = Other<M, Js...>::indicies;
+        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
+            this->m_components[l] += rhs.m_components[r];
+        }
+        return *this;
+    }
+    template <std::size_t M, std::size_t... Js>
+        requires(sizeof...(Indicies) == sizeof...(Js))
+    auto& operator-=(const Other<M, Js...>& rhs) {
+        auto other_indicies = Other<M, Js...>::indicies;
+        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
+            this->m_components[l] -= rhs.m_components[r];
+        }
+        return *this;
+    }
+    template <std::size_t M, std::size_t... Js>
+        requires(sizeof...(Indicies) == sizeof...(Js))
+    auto& operator*=(const Other<M, Js...>& rhs) {
+        auto other_indicies = Other<M, Js...>::indicies;
+        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
+            this->m_components[l] -= rhs.m_components[r];
+        }
+        return *this;
+    }
+    template <typename U>
+        requires(non_narrowing_conv<T, U>)
+    auto& operator*=(const U& rhs) {
+        auto scalar = T{rhs};
+        for (auto i : indicies) {
+            this->m_components[i] *= scalar;
+        }
+        return *this;
+    }
+    template <typename U>
+        requires(non_narrowing_conv<T, U>)
+    auto& operator/=(const U& rhs) {
+        auto scalar = T{rhs};
+        for (auto i : indicies) {
+            this->m_components[i] /= scalar;
+        }
+        return *this;
+    }
+    // clang-format off
+    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator*(const U& scalar, const This& v) { return scalar * VecRes{v}; }
+    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator*(const This& v, const U& scalar) { return VecRes{v} * scalar; }
+    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator/(const This& v, const U& scalar) { return VecRes{v} / scalar; }
+    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
+    friend VecRes operator+(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} + VecRes{rhs}; }
+    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
+    friend VecRes operator-(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} - VecRes{rhs}; }
+    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
+    friend VecRes operator*(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} * VecRes{rhs}; }
+    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
+    friend VecRes operator==(const This& lhs, const Other<M, Js...>& rhs) requires(std::is_integral_v<T>) { return VecRes{lhs} == VecRes{rhs}; }
+    // clang-format on
+    /// @}
 };
 
 /**
@@ -81,49 +185,39 @@ public:
  * @tparam T        Vector value type.
  * @tparam Indicies The indicies of the swizzled component.
  */
-template <template <std::size_t, typename> class VecClass,
-          std::size_t N,
-          typename T,
-          std::size_t index>
-class SwizzledComponents<VecClass, N, T, index> {
+template <size_t N, typename T, size_t index>
+class SwizzledComponents<N, T, index> {
 private:
     std::array<T, N> m_components;
 
 public:
     /**
-     * @brief Explicit conversion to value type.
+     * @brief Implicit conversion to value type.
      * @returns A copy of the value corresponding to the swizzled component.
      */
-    T as_val() const { return m_components[index]; }
+    operator T() const { return m_components[index]; }
 
     /**
      * @brief Implicit conversion to value type.
      * @returns A copy of the value corresponding to the swizzled component.
      */
-    operator T() const { return this->as_val(); }
+    operator T&() { return m_components[index]; }
 
     /**
      * @brief Implicit assignment from other value.
      * @param value Value rvalue from which to set the swizzled component.
      * @returns this as reference
      */
-    auto& operator=(const T& value) {
-        m_components[index] = value;
-        return *this;
-    }
+    auto& operator=(const T& value) { return (m_components[index] = value); }
 };
 
 /**
  * @brief Vector base class.
  *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<4, float>.
  * @tparam N        The total number of components the vector has.
  * @tparam T        Vector value type.
  */
-template <template <std::size_t, typename> class VecClass,
-          std::size_t N,
-          typename T>
+template <size_t N, typename T>
     requires(N > 0)
 class VecBase {
 public:
@@ -134,17 +228,15 @@ public:
  * @brief One-dimensional specialization of vector base class with support for
  * {x} component.
  *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<1, float>.
  * @tparam T Vector value type.
  */
-template <template <std::size_t, typename> class VecClass, typename T>
-class VecBase<VecClass, 1, T> {
+template <typename T>
+class VecBase<1, T> {
 private:
-    static constexpr std::size_t N = 1;
+    static constexpr size_t N = 1;
 
-    template <std::size_t... Indicies>
-    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
+    template <size_t... Indicies>
+    using Component = SwizzledComponents<N, T, Indicies...>;
 
 public:
     /**
@@ -157,9 +249,12 @@ public:
         /**
          * @name Swizzled components
          * @{
-         * Combinations of {x} with a maximum size of 1 as class members.
+         * Combinations of {x} with a maximum size of 4 as class members.
          */
         Component<0> x;
+        Component<0, 0> xx;
+        Component<0, 0, 0> xxx;
+        Component<0, 0, 0, 0> xxxx;
         /// @}
     };
 };
@@ -168,17 +263,15 @@ public:
  * @brief Two-dimensional specialization of vector base class with support for
  * swizzled {x, y} components.
  *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<2, float>.
  * @tparam T Vector value type.
  */
-template <template <std::size_t, typename> class VecClass, typename T>
-class VecBase<VecClass, 2, T> {
+template <typename T>
+class VecBase<2, T> {
 private:
-    static constexpr std::size_t N = 2;
+    static constexpr size_t N = 2;
 
-    template <std::size_t... Indicies>
-    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
+    template <size_t... Indicies>
+    using Component = SwizzledComponents<N, T, Indicies...>;
 
 public:
     /**
@@ -191,7 +284,7 @@ public:
         /**
          * @name Swizzled components
          * @{
-         * Combinations of {x, y} with a maximum size of 2 as class members.
+         * Combinations of {x, y} with a maximum size of 4 as class members.
          */
         Component<0> x;
         Component<1> y;
@@ -203,6 +296,34 @@ public:
         Component<0, 1> xy;
         Component<1, 0> yx;
         Component<1, 1> yy;
+
+        Component<0, 0, 0> xxx;
+        Component<0, 0, 1> xxy;
+        Component<0, 1, 0> xyx;
+        Component<0, 1, 1> xyy;
+        Component<1, 0, 0> yxx;
+        Component<1, 0, 1> yxy;
+        Component<1, 1, 0> yyx;
+        Component<1, 1, 1> yyy;
+
+        Component<0, 0, 0, 0> xxxx;
+        Component<0, 0, 0, 1> xxxy;
+        Component<0, 0, 1, 0> xxyx;
+        Component<0, 0, 1, 1> xxyy;
+        Component<0, 1, 0, 0> xyxx;
+        Component<0, 1, 0, 1> xyxy;
+        Component<0, 1, 1, 0> xyyx;
+        Component<0, 1, 1, 1> xyyy;
+
+        // copy of above with slight change:
+        Component<1, 0, 0, 0> yxxx;
+        Component<1, 0, 0, 1> yxxy;
+        Component<1, 0, 1, 0> yxyx;
+        Component<1, 0, 1, 1> yxyy;
+        Component<1, 1, 0, 0> yyxx;
+        Component<1, 1, 0, 1> yyxy;
+        Component<1, 1, 1, 0> yyyx;
+        Component<1, 1, 1, 1> yyyy;
         /// @endcond
         /// @}
     };
@@ -212,17 +333,15 @@ public:
  * @brief Three-dimensional specialization of  vector base class with support
  * for swizzled {x, y, z} components.
  *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<3, float>.
  * @tparam T Vector value type.
  */
-template <template <std::size_t, typename> class VecClass, typename T>
-class VecBase<VecClass, 3, T> {
+template <typename T>
+class VecBase<3, T> {
 private:
-    static constexpr std::size_t N = 3;
+    static constexpr size_t N = 3;
 
-    template <std::size_t... Indicies>
-    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
+    template <size_t... Indicies>
+    using Component = SwizzledComponents<N, T, Indicies...>;
 
 public:
     /**
@@ -235,7 +354,7 @@ public:
         /**
          * @name Swizzled components
          * @{
-         * Combinations of {x, y, z} with a maximum size of 3 as class members.
+         * Combinations of {x, y, z} with a maximum size of 4 as class members.
          */
         Component<0> x;
         Component<1> y;
@@ -281,6 +400,93 @@ public:
         Component<2, 2, 0> zzx;
         Component<2, 2, 1> zzy;
         Component<2, 2, 2> zzz;
+
+        // copy of above with slight change:
+        Component<0, 0, 0, 0> xxxx;
+        Component<0, 0, 0, 1> xxxy;
+        Component<0, 0, 0, 2> xxxz;
+        Component<0, 0, 1, 0> xxyx;
+        Component<0, 0, 1, 1> xxyy;
+        Component<0, 0, 1, 2> xxyz;
+        Component<0, 0, 2, 0> xxzx;
+        Component<0, 0, 2, 1> xxzy;
+        Component<0, 0, 2, 2> xxzz;
+        Component<0, 1, 0, 0> xyxx;
+        Component<0, 1, 0, 1> xyxy;
+        Component<0, 1, 0, 2> xyxz;
+        Component<0, 1, 1, 0> xyyx;
+        Component<0, 1, 1, 1> xyyy;
+        Component<0, 1, 1, 2> xyyz;
+        Component<0, 1, 2, 0> xyzx;
+        Component<0, 1, 2, 1> xyzy;
+        Component<0, 1, 2, 2> xyzz;
+        Component<0, 2, 0, 0> xzxx;
+        Component<0, 2, 0, 1> xzxy;
+        Component<0, 2, 0, 2> xzxz;
+        Component<0, 2, 1, 0> xzyx;
+        Component<0, 2, 1, 1> xzyy;
+        Component<0, 2, 1, 2> xzyz;
+        Component<0, 2, 2, 0> xzzx;
+        Component<0, 2, 2, 1> xzzy;
+        Component<0, 2, 2, 2> xzzz;
+
+        // copy of above with slight change:
+        Component<1, 0, 0, 0> yxxx;
+        Component<1, 0, 0, 1> yxxy;
+        Component<1, 0, 0, 2> yxxz;
+        Component<1, 0, 1, 0> yxyx;
+        Component<1, 0, 1, 1> yxyy;
+        Component<1, 0, 1, 2> yxyz;
+        Component<1, 0, 2, 0> yxzx;
+        Component<1, 0, 2, 1> yxzy;
+        Component<1, 0, 2, 2> yxzz;
+        Component<1, 1, 0, 0> yyxx;
+        Component<1, 1, 0, 1> yyxy;
+        Component<1, 1, 0, 2> yyxz;
+        Component<1, 1, 1, 0> yyyx;
+        Component<1, 1, 1, 1> yyyy;
+        Component<1, 1, 1, 2> yyyz;
+        Component<1, 1, 2, 0> yyzx;
+        Component<1, 1, 2, 1> yyzy;
+        Component<1, 1, 2, 2> yyzz;
+        Component<1, 2, 0, 0> yzxx;
+        Component<1, 2, 0, 1> yzxy;
+        Component<1, 2, 0, 2> yzxz;
+        Component<1, 2, 1, 0> yzyx;
+        Component<1, 2, 1, 1> yzyy;
+        Component<1, 2, 1, 2> yzyz;
+        Component<1, 2, 2, 0> yzzx;
+        Component<1, 2, 2, 1> yzzy;
+        Component<1, 2, 2, 2> yzzz;
+
+        // copy of above with slight change:
+        Component<2, 0, 0, 0> zxxx;
+        Component<2, 0, 0, 1> zxxy;
+        Component<2, 0, 0, 2> zxxz;
+        Component<2, 0, 1, 0> zxyx;
+        Component<2, 0, 1, 1> zxyy;
+        Component<2, 0, 1, 2> zxyz;
+        Component<2, 0, 2, 0> zxzx;
+        Component<2, 0, 2, 1> zxzy;
+        Component<2, 0, 2, 2> zxzz;
+        Component<2, 1, 0, 0> zyxx;
+        Component<2, 1, 0, 1> zyxy;
+        Component<2, 1, 0, 2> zyxz;
+        Component<2, 1, 1, 0> zyyx;
+        Component<2, 1, 1, 1> zyyy;
+        Component<2, 1, 1, 2> zyyz;
+        Component<2, 1, 2, 0> zyzx;
+        Component<2, 1, 2, 1> zyzy;
+        Component<2, 1, 2, 2> zyzz;
+        Component<2, 2, 0, 0> zzxx;
+        Component<2, 2, 0, 1> zzxy;
+        Component<2, 2, 0, 2> zzxz;
+        Component<2, 2, 1, 0> zzyx;
+        Component<2, 2, 1, 1> zzyy;
+        Component<2, 2, 1, 2> zzyz;
+        Component<2, 2, 2, 0> zzzx;
+        Component<2, 2, 2, 1> zzzy;
+        Component<2, 2, 2, 2> zzzz;
         /// @endcond
         ///@}
     };
@@ -290,17 +496,15 @@ public:
  * @brief Four-dimensional vector base class with support for swizzled {x, y, z,
  * w} components.
  *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<2, float>.
  * @tparam T Vector value type.
  */
-template <template <std::size_t, typename> class VecClass, typename T>
-class VecBase<VecClass, 4, T> {
+template <typename T>
+class VecBase<4, T> {
 private:
-    static constexpr std::size_t N = 4;
+    static constexpr size_t N = 4;
 
-    template <std::size_t... Indicies>
-    using Component = SwizzledComponents<VecClass, N, T, Indicies...>;
+    template <size_t... Indicies>
+    using Component = SwizzledComponents<N, T, Indicies...>;
 
 public:
     /**
