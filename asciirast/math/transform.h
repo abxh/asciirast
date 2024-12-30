@@ -10,16 +10,12 @@
 
 #include "types.h"
 
-namespace asciirast::math {
+namespace asciirast::math::transform {
 
 static inline Mat3x3f translation(float delta_x, float delta_y) {
-    const auto v = Vec<3, float>{delta_x, delta_y, 1.0f};
+    auto v = Vec<3, float>{delta_x, delta_y, 1.0f};
 
-    if (Mat3x3f::is_column_major) {
-        return Mat3x3f::identity().column_set(2, v);
-    } else {
-        return Mat3x3f::identity().row_set(2, v);
-    }
+    return Mat3x3f::identity().column_set(2, v);
 }
 
 static inline Mat3x3f translation_inv(float delta_x, float delta_y) {
@@ -27,13 +23,9 @@ static inline Mat3x3f translation_inv(float delta_x, float delta_y) {
 }
 
 static inline Mat4x4f translation(float delta_x, float delta_y, float delta_z) {
-    const auto v = Vec<4, float>{delta_x, delta_y, delta_z, 1.0f};
+    auto v = Vec<4, float>{delta_x, delta_y, delta_z, 1.0f};
 
-    if (Mat4x4f::is_column_major) {
-        return Mat4x4f::identity().column_set(3, v);
-    } else {
-        return Mat4x4f::identity().row_set(3, v);
-    }
+    return Mat4x4f::identity().column_set(3, v);
 }
 
 static inline Mat3x3f scaling(float scale_x, float scale_y) {
@@ -65,21 +57,6 @@ static inline Mat4x4f scaling_inv(float scale_x, float scale_y, float scale_z) {
         throw std::overflow_error("asciirast::math::mat3_scaling_inv()");
     }
     return scaling(1.f / scale_x, 1.f / scale_y, 1.f / scale_z);
-}
-
-static inline Mat3x3f rotation(float angle) {
-    auto cos_ = std::cos(angle);
-    auto sin_ = std::sin(angle);
-
-    auto a = Vec3f{+cos_, -sin_, 0.f};
-    auto b = Vec3f{+sin_, +cos_, 0.f};
-    auto c = Vec3f{0.00f, 0.00f, 1.f};
-
-    return Mat3x3f::from_rows(a, b, c);
-}
-
-static inline Mat3x3f rotation_inv(float angle) {
-    return rotation(-angle);
 }
 
 static inline Mat3x3f shearX(float sh_x) {
@@ -143,6 +120,21 @@ static inline Mat4x4f shearYZ(float sh_y, float sh_z) {
 
 static inline Mat4x4f shearYZ_inv(float sh_y, float sh_z) {
     return shearYZ(-sh_y, -sh_z);
+}
+
+static inline Mat3x3f rotation(float angle) {
+    auto cos_ = std::cos(angle);
+    auto sin_ = std::sin(angle);
+
+    auto a = Vec3f{+cos_, -sin_, 0.f};
+    auto b = Vec3f{+sin_, +cos_, 0.f};
+    auto c = Vec3f{0.00f, 0.00f, 1.f};
+
+    return Mat3x3f::from_rows(a, b, c);
+}
+
+static inline Mat3x3f rotation_inv(float angle) {
+    return rotation(-angle);
 }
 
 }  // namespace asciirast::math::transform

@@ -38,10 +38,6 @@ class SwizzledComponents {
     template <std::size_t M, typename U, std::size_t... Js>
     friend class SwizzledComponents;
 
-    template <size_t M, typename U>
-        requires(M > 0 && std::is_arithmetic_v<U>)
-    friend class Vec;
-
     using This = SwizzledComponents;
     template <std::size_t M, std::size_t... Js>
     using Other = SwizzledComponents<M, T, Js...>;
@@ -92,20 +88,8 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const This& v) {
         return out << VecRes{v};
     }
-    T& operator[](size_t i) {
-        if (i >= N) {
-            throw std::out_of_range(
-                    "asciirast::math::SwizzledComponents::operator[]");
-        }
-        return m_components[indicies[i]];
-    }
-    const T& operator[](size_t i) const {
-        if (i >= N) {
-            throw std::out_of_range(
-                    "asciirast::math::SwizzledComponents::operator[]");
-        }
-        return m_components[indicies[i]];
-    }
+    T& operator[](size_t i) { return m_components[indicies[i]]; }
+    const T& operator[](size_t i) const { return m_components[indicies[i]]; }
     template <std::size_t M, std::size_t... Js>
         requires(sizeof...(Indicies) == sizeof...(Js))
     auto& operator=(const Other<M, Js...>& rhs) {
@@ -138,7 +122,7 @@ public:
     auto& operator*=(const Other<M, Js...>& rhs) {
         auto other_indicies = Other<M, Js...>::indicies;
         for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
-            this->m_components[l] -= rhs.m_components[r];
+            this->m_components[l] *= rhs.m_components[r];
         }
         return *this;
     }

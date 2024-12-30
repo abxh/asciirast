@@ -82,21 +82,25 @@ public:
 
     template <typename... Vs>
         requires(is_conv_vec_v<Vs, T> && ...)
-    static inline Mat from_columns(const Vs&... vecs) {
-        if (is_column_major == true) {
-            return Mat{vecs...};
+    static inline Mat<M_y, N_x, T> from_columns(const Vs&... vecs)
+        requires((sizeof...(Vs) <= N_x) && ((vec_info<Vs>::size <= M_y) && ...))
+    {
+        if constexpr (is_column_major) {
+            return Mat<M_y, N_x, T>{vecs...};
         } else {
-            return Mat{vecs...}.transposed();
+            return Mat<N_x, M_y, T>{vecs...}.transposed();
         }
     }
 
     template <typename... Vs>
         requires(is_conv_vec_v<Vs, T> && ...)
-    static inline Mat from_rows(const Vs&... vecs) {
-        if (is_column_major == false) {
-            return Mat{vecs...};
+    static inline Mat<M_y, N_x, T> from_rows(const Vs&... vecs)
+        requires((sizeof...(Vs) <= M_y) && ((vec_info<Vs>::size <= N_x) && ...))
+    {
+        if constexpr (is_column_major) {
+            return Mat<N_x, M_y, T>{vecs...}.transposed();
         } else {
-            return Mat{vecs...}.transposed();
+            return Mat<M_y, N_x, T>{vecs...};
         }
     }
 
@@ -143,33 +147,33 @@ public:
     }
 
 private:
-    void set_elements_from_args(size_t& idx, Mat& out) {};
+    static void set_elements_from_args(size_t& idx, Mat& out) {};
 
     template <size_t M, typename U, typename... Args>
-    void set_elements_from_args(size_t& idx,
-                                Mat& out,
-                                const Vec<M, U>& vector,
-                                Args... args) {
-        if constexpr (is_column_major) {
-            out.column_set(idx++, Vec<M_y, T>{vector});
+    static void set_elements_from_args(size_t& idx,
+                                                 Mat& out,
+                                                 const Vec<M, U>& vector,
+                                                 Args... args) {
+        if (is_column_major) {
+            out.column_set_unsafe(idx++, Vec<M_y, T>{vector});
         } else {
-            out.row_set(idx++, Vec<N_x, T>{vector});
+            out.row_set_unsafe(idx++, Vec<N_x, T>{vector});
         }
         set_elements_from_args(idx, out, args...);
     };
 
     template <size_t M1_y, size_t N1_x, typename U, typename... Args>
-    void set_elements_from_args(size_t& idx,
-                                Mat& out,
-                                const Mat<M1_y, N1_x, U>& mat,
-                                Args... args) {
+    static void set_elements_from_args(size_t& idx,
+                                                 Mat& out,
+                                                 const Mat<M1_y, N1_x, U>& mat,
+                                                 Args... args) {
         if constexpr (is_column_major) {
             for (const auto& vector : mat.column_vectors()) {
-                out.column_set(idx++, Vec<M_y, T>{vector});
+                out.column_set_unsafe(idx++, Vec<M_y, T>{vector});
             }
         } else {
             for (const auto& vector : mat.row_vectors()) {
-                out.row_set(idx++, Vec<N_x, T>{vector});
+                out.row_set_unsafe(idx++, Vec<N_x, T>{vector});
             }
         }
         set_elements_from_args(idx, out, args...);
@@ -194,7 +198,7 @@ public:
         requires(non_narrowing_conv<T, U>)
     explicit Mat(const U& diagonal_element) {
         auto f = [this, &diagonal_element](size_t y, size_t x) {
-            m_elements[map_index(y, x)] = (x == y) ? T{diagonal_element} : T{0};
+            (*this)(y, x) = (x == y) ? T{diagonal_element} : T{0};
         };
         Mat::apply_on_indicies(f);
     }
@@ -218,11 +222,11 @@ public:
         set_elements_from_args(idx, *this, args...);
         if constexpr (is_column_major) {
             for (size_t x = idx; x < N_x; x++) {
-                this->column_set(x, Vec<M_y, T>{T{0}});
+                this->column_set_unsafe(x, Vec<M_y, T>{T{0}});
             }
         } else {
             for (size_t y = idx; y < M_y; y++) {
-                this->row_set(y, Vec<N_x, T>{T{0}});
+                this->row_set_unsafe(y, Vec<N_x, T>{T{0}});
             }
         }
     }
@@ -274,7 +278,7 @@ public:
      * @brief Index the matrix with bounds checking
      * @throws out_of_range if indicies are out of bounds.
      */
-    T& operator()(size_t y, size_t x) {
+    T& at(size_t y, size_t x) {
         if (y >= M_y || x >= N_x) {
             throw std::out_of_range("asciirast::math::Mat::operator()");
         }
@@ -285,7 +289,7 @@ public:
      * @brief Index the matrix with bounds checking
      * @throws out_of_range if indicies are out of bounds.
      */
-    const T& operator()(size_t y, size_t x) const {
+    const T& at(size_t y, size_t x) const {
         if (y >= M_y || x >= N_x) {
             throw std::out_of_range("asciirast::math::Mat::operator()");
         }
@@ -293,41 +297,81 @@ public:
     }
 
     /**
-     * @brief Get x'th column with bounds checking
-     * @throws out_of_range if indicies are out of bounds.
+     * @brief Index the matrix with no bounds checking
      */
-    Vec<M_y, T> column_get(size_t x) const {
-        if (x >= N_x) {
-            throw std::out_of_range("asciirast::math::Mat::column_get()");
-        }
+    T& operator()(size_t y, size_t x) { return m_elements[map_index(y, x)]; }
+
+    /**
+     * @brief Index the matrix with no bounds checking
+     */
+    const T& operator()(size_t y, size_t x) const {
+        return m_elements[map_index(y, x)];
+    }
+
+    /**
+     * @brief Get x'th column without bounds checking
+     */
+    Vec<M_y, T> column_get_unsafe(size_t x) const {
         if constexpr (is_column_major) {
             return Vec<M_y, T>(&m_elements[M_y * x]);
         } else {
-            auto view = std::ranges::iota_view(0U, M_y) |
-                        std::views::transform([this, &x](auto y) {
-                            return m_elements[map_index(y, x)];
-                        });
-            return Vec<M_y, T>(view.begin());
+            auto r0 = std::ranges::iota_view(0U, M_y);
+            auto r1 = std::views::transform(
+                    r0, [this, &x](auto y) { return (*this)(y, x); });
+
+            return Vec<M_y, T>(r1.begin());
+        }
+    }
+
+    /**
+     * @brief Get x'th column with bounds checking
+     * @throws out_of_range if index are out of bounds.
+     */
+    Vec<M_y, T> column_get(size_t x) {
+        if (x >= N_x) {
+            throw std::out_of_range("asciirast::math::Mat::column_get()");
+        }
+        return column_get_unsafe(x);
+    }
+
+    /**
+     * @brief Get y'th row with no bounds checking
+     */
+    Vec<N_x, T> row_get_unsafe(size_t y) const {
+        if constexpr (!is_column_major) {
+            return Vec<N_x, T>(&m_elements[N_x * y]);
+        } else {
+            auto r0 = std::ranges::iota_view(0U, M_y);
+            auto r1 = std::views::transform(
+                    [this, &y](auto x) { return (*this)(y, x); });
+
+            return Vec<N_x, T>(r1.begin());
         }
     }
 
     /**
      * @brief Get y'th row with bounds checking
-     * @throws out_of_range if indicies are out of bounds.
+     * @throws out_of_range if index are out of bounds.
      */
     Vec<N_x, T> row_get(size_t y) const {
         if (y >= M_y) {
             throw std::out_of_range("asciirast::math::Mat::row_get()");
         }
-        if constexpr (!is_column_major) {
-            return Vec<N_x, T>(&m_elements[N_x * y]);
+        return column_get_unsafe(y);
+    }
+
+    /**
+     * @brief Set x'th column without bounds checking
+     */
+    Mat& column_set_unsafe(size_t x, const Vec<M_y, T>& v) {
+        if constexpr (is_column_major) {
+            std::copy(v.begin(), v.end(), &m_elements[M_y * x]);
         } else {
-            auto view = std::ranges::iota_view(0U, M_y) |
-                        std::views::transform([this, &y](auto x) {
-                            return m_elements[map_index(y, x)];
-                        });
-            return Vec<N_x, T>(view.begin());
+            for (size_t y = 0; y < M_y; y++) {
+                (*this)(y, x) = v[y];
+            }
         }
+        return *this;
     }
 
     /**
@@ -338,11 +382,18 @@ public:
         if (x >= N_x) {
             throw std::out_of_range("asciirast::math::Mat::column_set()");
         }
-        if constexpr (is_column_major) {
-            std::copy(v.begin(), v.end(), &m_elements[M_y * x]);
+        return column_set_unsafe(x, v);
+    }
+
+    /**
+     * @brief Set y'th row without bounds checking
+     */
+    Mat& row_set_unsafe(size_t y, const Vec<N_x, T>& v) {
+        if constexpr (!is_column_major) {
+            std::copy(v.begin(), v.end(), &m_elements[N_x * y]);
         } else {
-            for (size_t y = 0; y < M_y; y++) {
-                m_elements[map_index(y, x)] = v.m_components[y];
+            for (size_t x = 0; x < N_x; x++) {
+                (*this)(y, x) = v[x];
             }
         }
         return *this;
@@ -356,14 +407,7 @@ public:
         if (y >= M_y) {
             throw std::out_of_range("asciirast::math::Mat::row_set()");
         }
-        if constexpr (!is_column_major) {
-            std::copy(v.begin(), v.end(), &m_elements[N_x * y]);
-        } else {
-            for (size_t x = 0; x < N_x; x++) {
-                m_elements[map_index(y, x)] = v.m_components[x];
-            }
-        }
-        return *this;
+        return row_set_unsafe(y, v);
     }
 
     /**
@@ -371,7 +415,8 @@ public:
      */
     auto row_vectors() const {
         return std::ranges::iota_view(0U, M_y) |
-               std::views::transform([this](auto x) { return row_get(x); });
+               std::views::transform(
+                       [this](auto x) { return row_get_unsafe(x); });
     }
 
     /**
@@ -379,7 +424,8 @@ public:
      */
     auto column_vectors() const {
         return std::ranges::iota_view(0U, N_x) |
-               std::views::transform([this](auto y) { return column_get(y); });
+               std::views::transform(
+                       [this](auto y) { return column_get_unsafe(y); });
     }
 
     /**
@@ -390,14 +436,8 @@ public:
         using OrigMat = Mat;
 
         auto res = TranMat{};
-        auto f = [this, &res](auto y, auto x) {
-            auto tran_i = TranMat::map_index(y, x);
-            auto orig_i = OrigMat::map_index(x, y);
-
-            res.m_elements[tran_i] = this->m_elements[orig_i];
-        };
-        TranMat::apply_on_indicies(f);
-
+        TranMat::apply_on_indicies(
+                [&](auto y, auto x) { res(y, x) = (*this)(x, y); });
         return res;
     }
 
@@ -482,13 +522,14 @@ public:
             auto cols = lhs.column_vectors();
             auto view = std::views::zip_transform(std::multiplies(), cols, rhs);
 
-            return std::accumulate(view.begin(), view.end(), Vec<M_y, T>{});
-
+            return std::accumulate(view.begin(), view.end(), Vec<M_y, T>{T{0}});
         } else {
-            auto rows = lhs.row_vectors();
-            Vec<M_y, T> res{0};
+            Vec<M_y, T> res{T{0}};
             for (size_t y = 0; y < M_y; y++) {
-                res.m_components[y] = rows[y].dot(rhs);
+                res.m_components[y] = std::transform_reduce(
+                        &lhs.m_elements[N_x * (y + 0)],
+                        &lhs.m_elements[N_x * (y + 1)], rhs.begin(), T{0},
+                        std::plus(), std::multiplies());
             }
             return res;
         }

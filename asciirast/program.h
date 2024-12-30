@@ -6,7 +6,8 @@
  * https://github.com/nikolausrauch/software-rasterizer/
  */
 
-#include "math/types.h"
+#include "color/color.h"
+#include "framebuffer.h"
 
 namespace asciirast {
 
@@ -16,7 +17,11 @@ concept is_interpolable = requires(VertexAttributes v) {
     v * (-1.f);
 };
 
-template <typename Uniform, typename VertexAttributes, typename PixelAttributes>
+template <typename Uniform,
+          typename VertexAttributes,
+          typename PixelAttributes,
+          Framebuffer,
+          typename... Outputs>
     requires(is_interpolable<PixelAttributes>)
 class Program {
 public:
@@ -27,8 +32,8 @@ public:
                            PixelAttributes& out) = 0;
 
     virtual void on_pixel(const Uniform& uniform,
-                          const PixelAttributes& in,
-                          math::Vec4f& out) = 0;
+                          const PixelAttributes& in_attr,
+                          math::Vec4f out) = 0;
 };
 
 }  // namespace asciirast

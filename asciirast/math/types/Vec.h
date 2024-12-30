@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <numeric>
 #include <ostream>
+#include <ranges>
 #include <stdexcept>
 
 #include "VecBase.h"
@@ -67,25 +68,25 @@ public:
     static constexpr size_t size() { return N; }
 
 private:
-    void set_components_from_args(size_t& idx, Vec& out) {};
+    static constexpr void set_components_from_args(size_t& idx, Vec& out) {};
 
     template <typename... Args, typename U>
         requires(!vec_info<U>::is_vec)
-    void set_components_from_args(size_t& idx,
-                                  Vec& out,
-                                  const U& value,
-                                  Args... args) {
-        out.m_components[idx++] = T{value};
+    static constexpr void set_components_from_args(size_t& idx,
+                                                   Vec& out,
+                                                   const U& value,
+                                                   Args... args) {
+        out[idx++] = T{value};
         set_components_from_args(idx, out, args...);
     }
 
     template <size_t M, typename U, typename... Args>
-    void set_components_from_args(size_t& idx,
-                                  Vec& out,
-                                  const Vec<M, U>& vector,
-                                  Args... args) {
+    static constexpr void set_components_from_args(size_t& idx,
+                                                   Vec& out,
+                                                   const Vec<M, U>& vector,
+                                                   Args... args) {
         for (size_t i = 0; i < M; i++) {
-            out.m_components[idx++] = T{vector.m_components[i]};
+            out[idx++] = T{vector[i]};
         }
         set_components_from_args(idx, out, args...);
     }
@@ -179,12 +180,22 @@ public:
         return out;
     }
 
+    /**
+     * @brief Apply transformation to vector and get a view
+     */
+    template <typename Callable>
+        requires(std::is_invocable_v<Callable, T>)
+    auto transform(Callable f) {
+        return std::views::transform(
+                std::ranges::subrange(this->begin(), this->end()), f);
+    }
+
 public:
     /**
      * @brief Index the vector with bounds checking
      * @throws std::out_of_range if index is out of bounds.
      */
-    T& operator[](size_t i) {
+    T& at(size_t i) {
         if (i >= N) {
             throw std::out_of_range("asciirast::math::Vec::operator[]");
         }
@@ -195,12 +206,22 @@ public:
      * @brief Index the vector with bounds checking
      * @throws std::out_of_range if index is out of bounds.
      */
-    const T& operator[](size_t i) const {
+    const T& at(size_t i) const {
         if (i >= N) {
             throw std::out_of_range("asciirast::math::Vec::operator[]");
         }
         return m_components[i];
     }
+
+    /**
+     * @brief Index the vector with no bounds checking
+     */
+    T& operator[](size_t i) { return m_components[i]; }
+
+    /**
+     * @brief Index the vector with no bounds checking
+     */
+    const T& operator[](size_t i) const { return m_components[i]; }
 
     /**
      * @brief Check if exactly equal to another vector in terms of bitwise
@@ -366,8 +387,7 @@ public:
      */
     template <typename U>
         requires(non_narrowing_conv<U, T>)
-    friend Vec operator/(const Vec& vec, const U& scalar)
-    {
+    friend Vec operator/(const Vec& vec, const U& scalar) {
         Vec res{};
         const T& scalar_{scalar};
         std::transform(vec.begin(), vec.end(), res.begin(),
