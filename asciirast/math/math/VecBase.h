@@ -1,207 +1,21 @@
 /**
  * @file VecBase.h
- * @brief Vector base class with support for swizzled components.
+ * @brief Vector base class with support for swizzled components for 1,2,3 and 4
+ * dimensional vectors.
  */
 
 #pragma once
 
 #include <array>
-#include <ranges>
+
+#include "Swizzled.h"
 
 namespace asciirast::math {
 
 /**
- * @brief Non narrowing converison concept
- *
- * Accepting anything that can be brace initialized as user input, e.g.
- * double{1.f}, rather than only checking type equality.
- */
-template <typename From, typename To>
-concept non_narrowing_conv = (requires(From f) { To{f}; });
-
-template <size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
-class Vec;
-
-/**
- * @brief Swizzled component to be converted to a vector.
- *
- * @tparam N        The total number of components the vector has.
- * @tparam T        Vector value type.
- * @tparam Indicies The indicies of the swizzled component.
- */
-template <size_t N, typename T, size_t... Indicies>
-class SwizzledComponents {
-    std::array<T, N> m_components;
-    static constexpr std::array indicies = {Indicies...};
-
-    template <std::size_t M, typename U, std::size_t... Js>
-    friend class SwizzledComponents;
-
-    using This = SwizzledComponents;
-    template <std::size_t M, std::size_t... Js>
-    using Other = SwizzledComponents<M, T, Js...>;
-    using VecRes = Vec<sizeof...(Indicies), T>;
-
-public:
-    /**
-     * @brief Value type
-     */
-    using value_type = T;
-
-    /**
-     * @brief Number of components
-     */
-    static constexpr size_t size() { return sizeof...(Indicies); }
-
-public:
-    /**
-     * @brief Explicit conversion to vector
-     * @returns A copy of the vector corresponding to the swizzled components.
-     */
-    VecRes to_vec() const {
-        return Vec<sizeof...(Indicies), T>{this->m_components[Indicies]...};
-    }
-
-    /**
-     * @brief Implicit conversion to vector
-     * @returns A copy of the vector corresponding to the swizzled components.
-     */
-    operator VecRes() const { return this->to_vec(); }
-
-    /**
-     * @brief Assignment from a vector.
-     * @param rhs Vector rvalue from which to set the swizzled components.
-     * @returns this as reference
-     */
-    SwizzledComponents& operator=(const VecRes& rhs) {
-        for (auto [l, r] : std::views::zip(indicies, std::views::iota(0U))) {
-            this->m_components[l] = rhs.m_components[r];
-        }
-        return *this;
-    }
-
-    /**
-     * @name vec like operator support
-     * @{
-     */
-    friend std::ostream& operator<<(std::ostream& out, const This& v) {
-        return out << VecRes{v};
-    }
-    T& operator[](size_t i) { return m_components[indicies[i]]; }
-    const T& operator[](size_t i) const { return m_components[indicies[i]]; }
-    template <std::size_t M, std::size_t... Js>
-        requires(sizeof...(Indicies) == sizeof...(Js))
-    auto& operator=(const Other<M, Js...>& rhs) {
-        auto other_indicies = Other<M, Js...>::indicies;
-        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
-            this->m_components[l] = rhs.m_components[r];
-        }
-        return *this;
-    }
-    template <std::size_t M, std::size_t... Js>
-        requires(sizeof...(Indicies) == sizeof...(Js))
-    auto& operator+=(const Other<M, Js...>& rhs) {
-        auto other_indicies = Other<M, Js...>::indicies;
-        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
-            this->m_components[l] += rhs.m_components[r];
-        }
-        return *this;
-    }
-    template <std::size_t M, std::size_t... Js>
-        requires(sizeof...(Indicies) == sizeof...(Js))
-    auto& operator-=(const Other<M, Js...>& rhs) {
-        auto other_indicies = Other<M, Js...>::indicies;
-        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
-            this->m_components[l] -= rhs.m_components[r];
-        }
-        return *this;
-    }
-    template <std::size_t M, std::size_t... Js>
-        requires(sizeof...(Indicies) == sizeof...(Js))
-    auto& operator*=(const Other<M, Js...>& rhs) {
-        auto other_indicies = Other<M, Js...>::indicies;
-        for (auto [l, r] : std::views::zip(indicies, other_indicies)) {
-            this->m_components[l] *= rhs.m_components[r];
-        }
-        return *this;
-    }
-    template <typename U>
-        requires(non_narrowing_conv<T, U>)
-    auto& operator*=(const U& rhs) {
-        auto scalar = T{rhs};
-        for (auto i : indicies) {
-            this->m_components[i] *= scalar;
-        }
-        return *this;
-    }
-    template <typename U>
-        requires(non_narrowing_conv<T, U>)
-    auto& operator/=(const U& rhs) {
-        auto scalar = T{rhs};
-        for (auto i : indicies) {
-            this->m_components[i] /= scalar;
-        }
-        return *this;
-    }
-    // clang-format off
-    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator*(const U& scalar, const This& v) { return scalar * VecRes{v}; }
-    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator*(const This& v, const U& scalar) { return VecRes{v} * scalar; }
-    template <typename U> requires(non_narrowing_conv<U, T>) friend VecRes operator/(const This& v, const U& scalar) { return VecRes{v} / scalar; }
-    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
-    friend VecRes operator+(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} + VecRes{rhs}; }
-    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
-    friend VecRes operator-(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} - VecRes{rhs}; }
-    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
-    friend VecRes operator*(const This& lhs, const Other<M, Js...>& rhs) { return VecRes{lhs} * VecRes{rhs}; }
-    template <std::size_t M, std::size_t... Js> requires(sizeof...(Indicies) == sizeof...(Js))
-    friend VecRes operator==(const This& lhs, const Other<M, Js...>& rhs) requires(std::is_integral_v<T>) { return VecRes{lhs} == VecRes{rhs}; }
-    // clang-format on
-    /// @}
-};
-
-/**
- * @brief 1d-swizzled component to be converted to a value.
- *
- * @tparam VecClass The vector class to convert to. It will be instansiated as
- *                  e.g. VecClass<4, float>.
- * @tparam NTotal   The total number of components the vector has.
- * @tparam T        Vector value type.
- * @tparam Indicies The indicies of the swizzled component.
- */
-template <size_t N, typename T, size_t index>
-class SwizzledComponents<N, T, index> {
-private:
-    std::array<T, N> m_components;
-
-public:
-    /**
-     * @brief Implicit conversion to value type.
-     * @returns A copy of the value corresponding to the swizzled component.
-     */
-    operator T() const { return m_components[index]; }
-
-    /**
-     * @brief Implicit conversion to value type.
-     * @returns A copy of the value corresponding to the swizzled component.
-     */
-    operator T&() { return m_components[index]; }
-
-    /**
-     * @brief Implicit assignment from other value.
-     * @param value Value rvalue from which to set the swizzled component.
-     * @returns this as reference
-     */
-    auto& operator=(const T& value) { return (m_components[index] = value); }
-};
-
-/**
  * @brief Vector base class.
- *
- * @tparam N        The total number of components the vector has.
- * @tparam T        Vector value type.
  */
-template <size_t N, typename T>
+template <template <int, typename> typename VecClass, int N, typename T>
     requires(N > 0)
 class VecBase {
 public:
@@ -211,16 +25,14 @@ public:
 /**
  * @brief One-dimensional specialization of vector base class with support for
  * {x} component.
- *
- * @tparam T Vector value type.
  */
-template <typename T>
-class VecBase<1, T> {
+template <template <int, typename> typename VecClass, typename T>
+class VecBase<VecClass, 1, T> {
 private:
-    static constexpr size_t N = 1;
+    static constexpr int N = 1;
 
-    template <size_t... Indicies>
-    using Component = SwizzledComponents<N, T, Indicies...>;
+    template <int... Indicies>
+    using Component = Swizzled<VecClass, N, T, Indicies...>;
 
 public:
     /**
@@ -246,16 +58,14 @@ public:
 /**
  * @brief Two-dimensional specialization of vector base class with support for
  * swizzled {x, y} components.
- *
- * @tparam T Vector value type.
  */
-template <typename T>
-class VecBase<2, T> {
+template <template <int, typename> typename VecClass, typename T>
+class VecBase<VecClass, 2, T> {
 private:
-    static constexpr size_t N = 2;
+    static constexpr int N = 2;
 
-    template <size_t... Indicies>
-    using Component = SwizzledComponents<N, T, Indicies...>;
+    template <int... Indicies>
+    using Component = Swizzled<VecClass, N, T, Indicies...>;
 
 public:
     /**
@@ -316,16 +126,14 @@ public:
 /**
  * @brief Three-dimensional specialization of  vector base class with support
  * for swizzled {x, y, z} components.
- *
- * @tparam T Vector value type.
  */
-template <typename T>
-class VecBase<3, T> {
+template <template <int, typename> typename VecClass, typename T>
+class VecBase<VecClass, 3, T> {
 private:
-    static constexpr size_t N = 3;
+    static constexpr int N = 3;
 
-    template <size_t... Indicies>
-    using Component = SwizzledComponents<N, T, Indicies...>;
+    template <int... Indicies>
+    using Component = Swizzled<VecClass, N, T, Indicies...>;
 
 public:
     /**
@@ -479,16 +287,14 @@ public:
 /**
  * @brief Four-dimensional vector base class with support for swizzled {x, y, z,
  * w} components.
- *
- * @tparam T Vector value type.
  */
-template <typename T>
-class VecBase<4, T> {
+template <template <int, typename> typename VecClass, typename T>
+class VecBase<VecClass, 4, T> {
 private:
-    static constexpr size_t N = 4;
+    static constexpr int N = 4;
 
-    template <size_t... Indicies>
-    using Component = SwizzledComponents<N, T, Indicies...>;
+    template <int... Indicies>
+    using Component = Swizzled<VecClass, N, T, Indicies...>;
 
 public:
     /**
