@@ -7,7 +7,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <functional>
 #include <iomanip>
+#include <numeric>
 #include <ostream>
 #include <sstream>
 
@@ -138,7 +141,7 @@ public:
      */
     constexpr Mat() {
         for (int i = 0; i < Mat::size(); i++) {
-            this->m_elements[i] = T{0};
+            (*this)[i] = T{0};
         }
     }
 
@@ -146,18 +149,18 @@ public:
      * @brief Initiate diagonal elements to some value
      */
     template <typename U>
-        requires(non_narrowing_conversion<T, U>)
-    constexpr explicit Mat(const U& diagonal_element) {
-        auto f = [=](const Mat& mat, int y, int x) {
-            mat(y, x) = (x == y) ? T{diagonal_element} : T{0};
+        requires(non_narrowing_conversion<U, T>)
+    constexpr explicit Mat(const U diagonal_element) {
+        auto f = [&](int y, int x) {
+            (*this)(y, x) = (x == y) ? T{diagonal_element} : T{0};
         };
-        this->apply_on_indicies(f);
+        Mat::for_each_indicies(f);
     }
 
     /**
      * @brief Initiate matrix from a mix of vectors and matrices. *Depending on
      * storage order*, sets either the column or row vectors. Fills out the rest
-     * of the elements to zero.
+     * of the elements to zero, and diagonal elements to one.
      */
     template <typename... Args>
         requires((is_convertible_vec_v<Args, T> ||
@@ -173,96 +176,17 @@ public:
         set_from(idx, *this, args...);
         if constexpr (is_column_major) {
             for (int x = idx; x < N_x; x++) {
-                this->column_set(x, Vec<M_y, T>{T{0}});
+                for (int y = 0; y < M_y; y++) {
+                    (*this)(y, x) = (x == y) ? T{1} : T{0};
+                }
             }
         } else {
             for (int y = idx; y < M_y; y++) {
-                this->row_set(y, Vec<N_x, T>{T{0}});
+                for (int x = 0; x < N_x; x++) {
+                    (*this)(y, x) = (x == y) ? T{1} : T{0};
+                }
             }
         }
-    }
-
-public:
-    /**
-     * @brief Index the matrix with no bounds checking
-     */
-    constexpr T operator()(int y, int x) const {
-        return this->m_elements[map_index(y, x)];
-    }
-
-    /**
-     * @brief Index the matrix with no bounds checking
-     */
-    constexpr T& operator()(int y, int x) {
-        return this->m_elements[map_index(y, x)];
-    }
-
-    /**
-     * @brief Get the transposed matrix
-     */
-    constexpr Mat<N_x, M_y, T> transposed() const {
-        auto f = [this](const Mat<N_x, M_y, T>& mat, auto y, auto x) {
-            mat(y, x) = (*this)(x, y);
-        };
-        return Mat<N_x, M_y, T>{}.apply_on_indicies(f);
-    }
-
-    /**
-     * @brief Get x'th column without bounds checking
-     */
-    constexpr Vec<M_y, T> column_get(int x) const {
-        Vec<M_y, T> res{};
-        if constexpr (is_column_major == true) {
-            std::copy(this->column_begin(x), this->column_end(x), res.begin());
-        } else {
-            for (int y = 0; y < M_y; y++) {
-                res[y] = (*this)(y, x);
-            }
-        }
-        return res;
-    }
-
-    /**
-     * @brief Get x'th column without bounds checking
-     */
-    constexpr Mat column_set(int x, const Vec<M_y, T>& v) {
-        if constexpr (is_column_major == true) {
-            std::copy(v.begin(), v.end(), this->column_begin(x));
-        } else {
-            for (int y = 0; y < M_y; y++) {
-                (*this)(y, x) = v[y];
-            }
-        }
-        return *this;
-    }
-
-    /**
-     * @brief Get y'th row without bounds checking
-     */
-    constexpr Vec<N_x, T> row_get(int y) const {
-        Vec<N_x, T> res{};
-        if constexpr (is_column_major == false) {
-            std::copy(this->row_begin(y), this->row_end(y), res.begin());
-        } else {
-            for (int x = 0; x < M_y; x++) {
-                res[x] = (*this)(y, x);
-            }
-        }
-        return res;
-    }
-
-    /**
-     * @brief Set y'th row without bounds checking
-     */
-    constexpr Mat row_set(int y, const Vec<N_x, T>& v) {
-        if constexpr (is_column_major == false) {
-            std::copy(v.begin(), v.end(), this->row_begin(y));
-        } else {
-            for (int x = 0; x < M_y; x++) {
-                (*this)(y, x) = v[x];
-            }
-        }
-        return *this;
     }
 
 public:
@@ -298,27 +222,297 @@ public:
     const_iterator end() const { return m_elements.end(); }
     ///@}
 
+public:
+    /**
+     * @brief Index the array
+     */
+    constexpr T operator[](int i) const { return this->m_elements[i]; }
+
+    /**
+     * @brief Index the array
+     */
+    constexpr T& operator[](int i) { return this->m_elements[i]; }
+
+    /**
+     * @brief Index the matrix
+     */
+    constexpr T operator()(int y, int x) const {
+        assert(0 <= y && y < M_y);
+        assert(0 <= x && x < N_x);
+        return this->m_elements[map_index(y, x)];
+    }
+
+    /**
+     * @brief Index the matrix
+     */
+    constexpr T& operator()(int y, int x) {
+        assert(0 <= y && y < M_y);
+        assert(0 <= x && x < N_x);
+        return this->m_elements[map_index(y, x)];
+    }
+
+    /**
+     * @brief Get the transposed matrix
+     */
+    constexpr Mat<N_x, M_y, T> transposed() const {
+        Mat<N_x, M_y, T> res{};
+        auto f = [&](auto y, auto x) { res(y, x) = (*this)(x, y); };
+        Mat<N_x, M_y, T>::for_each_indicies(f);
+        return res;
+    }
+
+    /**
+     * @brief Get x'th column
+     */
+    constexpr Vec<M_y, T> column_get(int x) const {
+        assert(0 <= x && x < N_x);
+        Vec<M_y, T> res{};
+        if constexpr (is_column_major == true) {
+            std::copy(this->column_begin(x), this->column_end(x), res.begin());
+        } else {
+            for (int y = 0; y < M_y; y++) {
+                res[y] = (*this)(y, x);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * @brief Get x'th column
+     */
+    constexpr Mat column_set(int x, const Vec<M_y, T>& v) {
+        assert(0 <= x && x < N_x);
+        if constexpr (is_column_major == true) {
+            std::copy(v.begin(), v.end(), this->column_begin(x));
+        } else {
+            for (int y = 0; y < M_y; y++) {
+                (*this)(y, x) = v[y];
+            }
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Get y'th row
+     */
+    constexpr Vec<N_x, T> row_get(int y) const {
+        assert(0 <= y && y < M_y);
+        Vec<N_x, T> res{};
+        if constexpr (is_column_major == false) {
+            std::copy(this->row_begin(y), this->row_end(y), res.begin());
+        } else {
+            for (int x = 0; x < M_y; x++) {
+                res[x] = (*this)(y, x);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * @brief Set y'th row
+     */
+    constexpr Mat row_set(int y, const Vec<N_x, T>& v) {
+        assert(0 <= y && y < M_y);
+        if constexpr (is_column_major == false) {
+            std::copy(v.begin(), v.end(), this->row_begin(y));
+        } else {
+            for (int x = 0; x < M_y; x++) {
+                (*this)(y, x) = v[x];
+            }
+        }
+        return *this;
+    }
+
+public:
+    /**
+     * @brief Perform matrix-matrix multiplication.
+     *
+     * Does a small optimisation of using the transposed matrix for
+     * optimal access. But the transposed matrix does take extra time to create.
+     */
+    friend Mat<M_y, M_y, T> operator*(const Mat<M_y, N_x, T>& lhs,
+                                      const Mat<N_x, M_y, T>& rhs) {
+        Mat<M_y, M_y, T> res{};
+        if constexpr (is_column_major) {
+            const auto lhs_transposed = lhs.transposed();
+            size_t idx = 0;
+            for (int i = 0; i < rhs.column_count(); i++) {
+                for (int j = 0; j < lhs_transposed.column_count(); j++) {
+                    res[idx++] = std::transform_reduce(
+                            rhs.column_begin(i), rhs.column_end(i),
+                            lhs_transposed.column_begin(j), T{0}, std::plus(),
+                            std::multiplies());
+                }
+            }
+        } else {
+            const auto rhs_transposed = rhs.transposed();
+            size_t idx = 0;
+            for (int i = 0; i < lhs.row_count(); i++) {
+                for (int j = 0; j < rhs_transposed.row_count(); j++) {
+                    res[idx++] = std::transform_reduce(
+                            lhs.row_get(i), rhs.row_end(i),
+                            rhs_transposed.row_begin(j), T{0}, std::plus(),
+                            std::multiplies());
+                }
+            }
+        }
+        return res;
+    }
+
+    /**
+     * @brief Perform matrix-vector multiplication
+     */
+    friend Vec<M_y, T> operator*(const Mat<M_y, N_x, T>& lhs,
+                                 const Vec<N_x, T>& rhs) {
+        Vec<M_y, T> res{T{0}};
+        if constexpr (is_column_major) {
+            size_t idx = 0;
+            for (int x = 0; x < N_x; x++) {
+                for (int y = 0; y < M_y; y++) {
+                    res[y] += lhs[idx++] * rhs[x];
+                }
+            }
+        } else {
+            for (size_t y = 0; y < M_y; y++) {
+                res[y] = std::transform_reduce(lhs.row_begin(y), lhs.row_end(y),
+                                               rhs.begin(), T{0}, std::plus(),
+                                               std::multiplies());
+            }
+        }
+        return res;
+    }
+
+public:
+    /**
+     * @brief Add with another matrix
+     */
+    Mat operator+=(const Mat& that) {
+        for (int i = 0; i < Mat::size(); i++) {
+            (*this)[i] += that[i];
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Matrix-matrix addition
+     */
+    friend Mat operator+(const Mat& lhs, const Mat& rhs) {
+        Mat res{};
+        for (int i = 0; i < Mat::size(); i++) {
+            res[i] = lhs[i] + rhs[i];
+        }
+        return res;
+    }
+
+    /**
+     * @brief Subtract with another matrix
+     */
+    Mat operator-=(const Mat& that) {
+        for (int i = 0; i < Mat::size(); i++) {
+            (*this)[i] -= that[i];
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Matrix-matrix subtraction
+     */
+    friend Mat operator-(const Mat& lhs, const Mat& rhs) {
+        Mat res{};
+        for (int i = 0; i < Mat::size(); i++) {
+            res[i] = lhs[i] - rhs[i];
+        }
+        return res;
+    }
+
+    /**
+     * @brief Multiply with a scalar
+     */
+    template <typename U>
+        requires(non_narrowing_conversion<U, T>)
+    Mat operator*=(const U scalar) {
+        for (int i = 0; i < Mat::size(); i++) {
+            (*this)[i] *= scalar;
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Matrix-scalar multiplication
+     */
+    template <typename U>
+        requires(non_narrowing_conversion<U, T>)
+    friend Mat operator*(const U scalar, const Mat& mat) {
+        Mat res{};
+        for (int i = 0; i < Mat::size(); i++) {
+            res[i] = scalar * mat[i];
+        }
+        return res;
+    }
+
+    /**
+     * @brief Matrix-scalar multiplication
+     */
+    template <typename U>
+        requires(non_narrowing_conversion<U, T>)
+    friend Mat operator*(const Mat& mat, const U scalar) {
+        Mat res{};
+        for (int i = 0; i < Mat::size(); i++) {
+            res[i] = mat[i] * scalar;
+        }
+        return res;
+    }
+
+    /**
+     * @brief Multiply with a inverse scalar
+     */
+    template <typename U>
+        requires(non_narrowing_conversion<U, T>)
+    Mat operator/=(const U scalar) {
+        assert(scalar != T{0});
+        for (int i = 0; i < Mat::size(); i++) {
+            (*this)[i] /= scalar;
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Matrix-inverse scalar multiplication
+     */
+    template <typename U>
+        requires(non_narrowing_conversion<U, T>)
+    friend Mat operator/(const Mat& mat, const U scalar) {
+        Mat res{};
+        for (int i = 0; i < Mat::size(); i++) {
+            res[i] = mat[i] / scalar;
+        }
+        return res;
+    }
+
 private:
+    template <int M1_y, int N1_x, typename T1>
+        requires(M1_y > 0 && N1_x > 0 && std::is_arithmetic_v<T1>)
+    friend class Mat;
+
     /**
      * @brief Apply function to indicies in the optimal order
      */
     template <typename Callable>
-        requires(std::is_invocable_v<Callable, const Mat&, int, int>)
-    constexpr Mat apply_on_indicies(Callable f) {
+        requires(std::is_invocable_v<Callable, int, int>)
+    static constexpr void for_each_indicies(Callable f) {
         if constexpr (is_column_major) {
             for (int x = 0; x < N_x; x++) {
                 for (int y = 0; y < M_y; y++) {
-                    f(*this, y, x);
+                    f(y, x);
                 }
             }
         } else {
             for (int y = 0; y < M_y; y++) {
                 for (int x = 0; x < N_x; x++) {
-                    f(*this, y, x);
+                    f(y, x);
                 }
             }
         }
-        return *this;
     }
 
     // Major-specific iterators

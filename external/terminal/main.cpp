@@ -2,8 +2,8 @@
 // #include "math/types.h"
 // #include "program.h"
 
-#include "math/math/Mat.h"
-#include "math/math/Vec.h"
+#include "math/types/Mat.h"
+#include "math/types/Vec.h"
 
 #include <iostream>
 
@@ -16,9 +16,7 @@ extern void just_fix_windows_console(bool revert);
 int main() {
     just_fix_windows_console(true);
 
-    auto v = Vec<3, float>{1.f, 2.f, 3.f};
-
-    v.xyz = v.zyx.to_vec();
+    auto v = Vec<4, float>{1.f, 2.f, 3.f, 4.f};
 
     std::cout << v.xyz << "\n";
 
@@ -26,7 +24,8 @@ int main() {
     // v.y += v.y;
 
     auto m = Mat<4, 3, float>::from_columns(v, v, v);
-    std::cout << m << "\n\n";
+    std::cout << Mat<3, 3, float>{Mat<2, 2, float>::identity()} << "\n\n";
+
     // std::cout << m * 5.f * v << "\n\n";
 
     // Vec<2, int> w = v.xy;

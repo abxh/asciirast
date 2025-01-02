@@ -2,7 +2,9 @@
  * @file VecLike.h
  * @brief Vector-like interface
  *
- * TODO: Check for exceptions in shader thing
+ * TODO:
+ * - Check for exceptions in shader thing.
+ * - Note asserts are used.
  *
  * Achieving vector-swizzle polymorphism with CRTP, effectively achieving the
  * benefits of virtual functions without the performance cost.
@@ -18,9 +20,9 @@
 
 #pragma once
 
+#include <cassert>
 #include <cmath>
 #include <ostream>
-#include <stdexcept>
 #include <type_traits>
 
 namespace asciirast::math {
@@ -40,37 +42,19 @@ template <typename V, typename Res, int N, typename T>
 class VecLike {
 public:
     /**
-     * @brief Index the vector with no bounds checking
+     * @brief Index the vector
      */
-    constexpr T& operator[](int i) { return static_cast<V*>(this)->index(i); }
+    constexpr T& operator[](int i) {
+        assert(0 <= i && i < N);
+        return static_cast<V*>(this)->index(i);
+    }
 
     /**
      * @brief Index the vector with no bounds checking
      */
     constexpr T operator[](int i) const {
+        assert(0 <= i && i < N);
         return static_cast<const V*>(this)->index(i);
-    }
-
-    /**
-     * @brief Index the vector with bounds checking
-     * @throws std::out_of_range if i < 0 or N <= i.
-     */
-    T& at(int i) {
-        if (i < 0 || N <= i) {
-            throw std::out_of_range("VecLike::operator[]");
-        }
-        return (*this)[i];
-    }
-
-    /**
-     * @brief Index the vector with bounds checking
-     * @throws std::out_of_range if i < 0 or N <= i.
-     */
-    T at(int i) const {
-        if (i < 0 || N <= i) {
-            throw std::out_of_range("VecLike::operator[]");
-        }
-        return (*this)[i];
     }
 
     /**
@@ -197,18 +181,35 @@ public:
 
     /**
      * @brief Multiply vector with inverse scalar from right-hand-side
-     * @throws std::overflow_error If T is not floating type and scalar is zero.
      */
     template <typename U>
         requires(non_narrowing_conversion<U, T>)
     VecLike& operator/=(const U scalar) {
-        if constexpr (!std::is_floating_point_v<T>) {
-            if (scalar == U{0}) {
-                throw std::overflow_error("division by zero");
-            }
-        }
+        assert(scalar != T{0});
         for (int i = 0; i < N; i++) {
             (*this)[i] /= T{scalar};
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Unary addition operator
+     */
+    Res& operator+() {
+        Res res{};
+        for (int i = 0; i < N; i++) {
+            res[i] = this[i];
+        }
+        return res;
+    }
+
+    /**
+     * @brief Unary subtraction operator
+     */
+    Res& operator-() {
+        Res res{};
+        for (int i = 0; i < N; i++) {
+            this[i] = -this[i];
         }
         return *this;
     }
@@ -283,16 +284,11 @@ public:
 
     /**
      * @brief Multiply vector with inverse scalar from right-hand-side
-     * @throws std::overflow_error If T is not floating type and scalar is zero.
      */
     template <typename U>
         requires(non_narrowing_conversion<U, T>)
     friend Res operator/(const VecLike<V, Res, N, T>& vec, const U scalar) {
-        if constexpr (!std::is_floating_point_v<T>) {
-            if (scalar == U{0}) {
-                throw std::overflow_error("division by zero");
-            }
-        }
+        assert(scalar != T{0});
         Res res{};
         for (int i = 0; i < N; i++) {
             res[i] = vec[i] / T{scalar};
