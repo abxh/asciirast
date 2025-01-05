@@ -28,17 +28,10 @@
 namespace asciirast::math {
 
 /**
- * @brief Restraint to check types that do not narrow in precision when
- * converted
- */
-template <typename From, typename To>
-concept non_narrowing_conversion = (requires(From f) { To{f}; });
-
-/**
  * @brief Compile-time Vector-like interface
  */
 template <typename V, typename Res, int N, typename T>
-    requires(N > 0)
+    requires(N > 0 && std::is_arithmetic_v<T>)
 class VecLike {
 public:
     /**
@@ -170,11 +163,9 @@ public:
     /**
      * @brief Multiply vector with scalar from right-hand-side
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    VecLike& operator*=(const U scalar) {
+    VecLike& operator*=(const T scalar) {
         for (int i = 0; i < N; i++) {
-            (*this)[i] *= T{scalar};
+            (*this)[i] *= scalar;
         }
         return *this;
     }
@@ -182,36 +173,23 @@ public:
     /**
      * @brief Multiply vector with inverse scalar from right-hand-side
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    VecLike& operator/=(const U scalar) {
+    VecLike& operator/=(const T scalar) {
         assert(scalar != T{0});
         for (int i = 0; i < N; i++) {
-            (*this)[i] /= T{scalar};
+            (*this)[i] /= scalar;
         }
         return *this;
-    }
-
-    /**
-     * @brief Unary addition operator
-     */
-    Res& operator+() {
-        Res res{};
-        for (int i = 0; i < N; i++) {
-            res[i] = this[i];
-        }
-        return res;
     }
 
     /**
      * @brief Unary subtraction operator
      */
-    Res& operator-() {
+    Res& operator-() const {
         Res res{};
         for (int i = 0; i < N; i++) {
-            this[i] = -this[i];
+            res[i] = -this[i];
         }
-        return *this;
+        return res;
     }
 
     /**
@@ -259,12 +237,10 @@ public:
     /**
      * @brief Multiply vector with scalar from left-hand-side
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Res operator*(const U scalar, const VecLike<V, Res, N, T>& vec) {
+    friend Res operator*(const T scalar, const VecLike<V, Res, N, T>& vec) {
         Res res{};
         for (int i = 0; i < N; i++) {
-            res[i] = T{scalar} * vec[i];
+            res[i] = scalar * vec[i];
         }
         return res;
     }
@@ -272,12 +248,10 @@ public:
     /**
      * @brief Multiply vector with scalar from right-hand-side
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Res operator*(const VecLike<V, Res, N, T>& vec, const U scalar) {
+    friend Res operator*(const VecLike<V, Res, N, T>& vec, const T scalar) {
         Res res{};
         for (int i = 0; i < N; i++) {
-            res[i] = vec[i] * T{scalar};
+            res[i] = vec[i] * scalar;
         }
         return res;
     }
@@ -285,13 +259,11 @@ public:
     /**
      * @brief Multiply vector with inverse scalar from right-hand-side
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Res operator/(const VecLike<V, Res, N, T>& vec, const U scalar) {
+    friend Res operator/(const VecLike<V, Res, N, T>& vec, const T scalar) {
         assert(scalar != T{0});
         Res res{};
         for (int i = 0; i < N; i++) {
-            res[i] = vec[i] / T{scalar};
+            res[i] = vec[i] / scalar;
         }
         return res;
     }
@@ -539,14 +511,13 @@ public:
      * To pique your interest:
      * https://www.youtube.com/watch?v=NzjF1pdlK7Y (Freya Holmer's talk)
      */
-    template <typename W, typename U>
-        requires(non_narrowing_conversion<U, T>)
+    template <typename W>
     static Res lerp(const VecLike<V, Res, N, T>& a,
                     const VecLike<W, Res, N, T>& b,
-                    const U t)
+                    const T t)
         requires(std::is_floating_point_v<T>)
     {
-        return a * (T{1} - T{t}) + b * T{t};
+        return a * (T{1} - t) + b * t;
     }
 };
 

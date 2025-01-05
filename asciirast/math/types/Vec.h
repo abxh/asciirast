@@ -35,15 +35,6 @@ struct vec_info<Vec<M, T>> {
 };
 
 /**
- * @brief Is convertible vector trait.
- * E.g. Vec<2, float> is convertible to Vec<2, double>.
- */
-template <typename TT, typename U>
-constexpr bool is_convertible_vec_v =
-        vec_info<TT>::is_vec &&
-        non_narrowing_conversion<typename vec_info<TT>::value_type, U>;
-
-/**
  * @brief math vector class
  */
 template <int N, typename T>
@@ -65,11 +56,9 @@ public:
     /**
      * @brief Set all values to initial value
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    constexpr explicit Vec(const U initial_value) {
+    constexpr explicit Vec(const T initial_value) {
         for (int i = 0; i < N; i++) {
-            m_components[i] = T{initial_value};
+            m_components[i] = initial_value;
         }
     };
 
@@ -78,9 +67,7 @@ public:
      * filled with zero.
      */
     template <typename... Args>
-        requires((non_narrowing_conversion<Args, T> ||
-                  is_convertible_vec_v<Args, T>) &&
-                 ...)
+        requires((std::is_convertible_v<Args, T> || vec_info<Args>::is_vec) && ...)
     constexpr explicit Vec(const Args&... args)
         requires((vec_info<Args>::size + ...) <= N)
     {
@@ -94,9 +81,9 @@ public:
     /**
      * @brief Truncate larger vector and make into into a smaller vector.
      */
-    template <int M, typename U>
-        requires(M > N && non_narrowing_conversion<U, T>)
-    constexpr explicit Vec(const Vec<M, U>& larger_vec) {
+    template <int M>
+        requires(M > N)
+    constexpr explicit Vec(const Vec<M, T>& larger_vec) {
         for (int i = 0; i < N; i++) {
             m_components[i] = larger_vec.m_components[i];
         }
@@ -118,7 +105,7 @@ public:
 
 private:
     template <typename W, typename Res, int M, typename U>
-        requires(M > 0)
+        requires(M > 0 && std::is_arithmetic_v<U>)
     friend class VecLike;
 
     constexpr T& index(int i) { return m_components[i]; }
@@ -126,23 +113,22 @@ private:
 
     static void set_using(int& idx, Vec& out) {};
 
-    template <typename... Args, typename U>
-        requires(!vec_info<U>::is_vec)
+    template <typename... Args>
     static constexpr void set_using(int& idx,
                                     Vec& out,
-                                    const U& val,
+                                    const T& val,
                                     const Args&... args) {
-        out.index(idx++) = T{val};
+        out.index(idx++) = val;
         set_using(idx, out, args...);
     }
 
-    template <int M, typename U, typename... Args>
+    template <int M, typename... Args>
     static constexpr void set_using(int& idx,
                                     Vec& out,
-                                    const Vec<M, U>& vec,
+                                    const Vec<M, T>& vec,
                                     const Args&... args) {
         for (int i = 0; i < M; i++) {
-            out.index(idx++) = T{vec[i]};
+            out.index(idx++) = vec[i];
         }
         set_using(idx, out, args...);
     }

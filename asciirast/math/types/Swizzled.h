@@ -48,7 +48,7 @@ private:
     friend class Swizzled;
 
     template <typename W, typename Res, int M, typename U>
-        requires(M > 0)
+        requires(M > 0 && std::is_arithmetic_v<U>)
     friend class VecLike;
 
     constexpr T index(int i) const { return this->m_components[indicies[i]]; }

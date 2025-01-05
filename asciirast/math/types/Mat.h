@@ -45,17 +45,6 @@ struct mat_info<Mat<M_y, N_x, T>, is_col_major> {
 };
 
 /**
- * @brief Is convertible matrix trait.
- * E.g. Mat<2, 2, float> is convertible to Mat<2, 2, double>.
- */
-template <typename TT, typename U, bool is_col_major>
-constexpr bool is_conv_mat_v =
-        mat_info<TT, is_col_major>::is_mat &&
-        non_narrowing_conversion<
-                typename mat_info<TT, is_col_major>::value_type,
-                U>;
-
-/**
  * @brief MxN dimensional matrix.
  */
 template <int M_y, int N_x, typename T>
@@ -105,7 +94,7 @@ public:
      * @brief Create matrix columns
      */
     template <typename... Vecs>
-        requires(is_convertible_vec_v<Vecs, T> && ...)
+        requires(vec_info<Vecs>::is_vec && ...)
     static constexpr Mat<M_y, N_x, T> from_columns(const Vecs&... vecs)
         requires((sizeof...(Vecs) <= N_x) &&
                  ((vec_info<Vecs>::size <= M_y) && ...))
@@ -121,7 +110,7 @@ public:
      * @brief Create matrix from rows
      */
     template <typename... Vecs>
-        requires(is_convertible_vec_v<Vecs, T> && ...)
+        requires(vec_info<Vecs>::is_vec && ...)
     static constexpr Mat<M_y, N_x, T> from_rows(const Vecs&... vecs)
         requires((sizeof...(Vecs) <= M_y) &&
                  ((vec_info<Vecs>::size <= N_x) && ...))
@@ -137,7 +126,7 @@ public:
     std::array<T, Mat::size()> m_elements;  ///< Linear array of elements
 
     /**
-     * @brief Default constructor. Set values to zero.
+     * @brief Default constructor. Set all values to zero.
      */
     constexpr Mat() {
         for (int i = 0; i < Mat::size(); i++) {
@@ -148,11 +137,9 @@ public:
     /**
      * @brief Initiate diagonal elements to some value
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    constexpr explicit Mat(const U diagonal_element) {
+    constexpr explicit Mat(const T diagonal_element) {
         auto f = [&](int y, int x) {
-            (*this)(y, x) = (x == y) ? T{diagonal_element} : T{0};
+            (*this)(y, x) = (x == y) ? diagonal_element : T{0};
         };
         Mat::for_each_indicies(f);
     }
@@ -163,8 +150,8 @@ public:
      * of the elements to zero, and diagonal elements to one.
      */
     template <typename... Args>
-        requires((is_convertible_vec_v<Args, T> ||
-                  is_conv_mat_v<Args, T, is_column_major>) &&
+        requires((vec_info<Args>::is_vec ||
+                  mat_info<Args, is_column_major>::is_mat) &&
                  ...)
     constexpr explicit Mat(const Args&... args)
         requires((mat_info<Args, is_column_major>::rows + ...) <= M_y &&
@@ -428,9 +415,7 @@ public:
     /**
      * @brief Multiply with a scalar
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    Mat operator*=(const U scalar) {
+    Mat operator*=(const T scalar) {
         for (int i = 0; i < Mat::size(); i++) {
             (*this)[i] *= scalar;
         }
@@ -440,9 +425,7 @@ public:
     /**
      * @brief Matrix-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Mat operator*(const U scalar, const Mat& mat) {
+    friend Mat operator*(const T scalar, const Mat& mat) {
         Mat res{};
         for (int i = 0; i < Mat::size(); i++) {
             res[i] = scalar * mat[i];
@@ -453,9 +436,7 @@ public:
     /**
      * @brief Matrix-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Mat operator*(const Mat& mat, const U scalar) {
+    friend Mat operator*(const Mat& mat, const T scalar) {
         Mat res{};
         for (int i = 0; i < Mat::size(); i++) {
             res[i] = mat[i] * scalar;
@@ -466,9 +447,7 @@ public:
     /**
      * @brief Multiply with a inverse scalar
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    Mat operator/=(const U scalar) {
+    Mat operator/=(const T scalar) {
         assert(scalar != T{0});
         for (int i = 0; i < Mat::size(); i++) {
             (*this)[i] /= scalar;
@@ -479,9 +458,7 @@ public:
     /**
      * @brief Matrix-inverse scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing_conversion<U, T>)
-    friend Mat operator/(const Mat& mat, const U scalar) {
+    friend Mat operator/(const Mat& mat, const T scalar) {
         Mat res{};
         for (int i = 0; i < Mat::size(); i++) {
             res[i] = mat[i] / scalar;
@@ -530,10 +507,10 @@ private:
 
     static constexpr void set_from(int& idx, Mat& out) {};
 
-    template <int M, typename U, typename... Args>
+    template <int M, typename... Args>
     static constexpr void set_from(int& idx,
                                    Mat& out,
-                                   const Vec<M, U>& vec,
+                                   const Vec<M, T>& vec,
                                    const Args&... args) {
         if (is_column_major) {
             out.column_set(idx++, Vec<M_y, T>{vec});
@@ -543,10 +520,10 @@ private:
         set_from(idx, out, args...);
     };
 
-    template <int M1_y, int N1_x, typename U, typename... Args>
+    template <int M1_y, int N1_x, typename... Args>
     static constexpr void set_from(int& idx,
                                    Mat& out,
-                                   const Mat<M1_y, N1_x, U>& mat,
+                                   const Mat<M1_y, N1_x, T>& mat,
                                    const Args&... args) {
         if constexpr (is_column_major) {
             for (int x = 0; x < N1_x; x++) {

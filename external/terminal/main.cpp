@@ -18,13 +18,19 @@ int main() {
 
     auto v = Vec<4, float>{1.f, 2.f, 3.f, 4.f};
 
+    auto v1 = Vec<3, float>{1.f, 2.f, 3.f};
+    auto v2 = Vec<4, float>{1.f, 2.f, 3.f};
+
     std::cout << v.xyz << "\n";
 
     // v.xyz = v.xyz + v.xyz;
     // v.y += v.y;
 
-    auto m = Mat<4, 3, float>::from_columns(v, v, v);
-    std::cout << Mat<3, 3, float>{Mat<2, 2, float>::identity()} << "\n\n";
+    // auto m = Mat<4, 3, float>::from_columns(v, v, v);
+    // std::cout << Mat<3, 3, float>{Mat<2, 2, float>::identity()} << "\n\n";
+
+    // auto t = Transform2D();
+    // t.translate(0, 0).rotate_clockwise(1).scale(1, 2);
 
     // std::cout << m * 5.f * v << "\n\n";
 
