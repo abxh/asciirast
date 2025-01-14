@@ -1,7 +1,7 @@
 /**
  * @file VecBase.h
- * @brief Vector base class with support for swizzled components for 1,2,3 and 4
- * dimensional vectors.
+ * @brief File with definitions of the generic and specialized vector base
+ * classes
  */
 
 #pragma once
@@ -13,79 +13,89 @@
 namespace asciirast::math {
 
 /**
- * @brief Vector base class.
+ * @brief Generic vector base class
+ *
+ * Takes a Vec type that accepts size_t and type as parameters. This is passed
+ * along to the Swizzled class.
+ *
+ * @tparam Vec  The vector class as a type, unintansiated.
+ * @tparam N    Number of components in the vector
+ * @tparam T    Type of components
  */
-template <template <int, typename> typename VecClass, int N, typename T>
-    requires(N > 0)
+template <template <std::size_t, typename> class Vec, std::size_t N, typename T>
 class VecBase {
 public:
-    std::array<T, N> m_components;  ///< vector component array
+    std::array<T, N> m_components;  ///< array of components
 };
 
 /**
- * @brief One-dimensional specialization of vector base class with support for
- * {x} component.
+ * @brief Specialized 1D vector base class.
+ *
+ * Takes a Vec type that accepts size_t and type as parameters. This is passed
+ * along to the Swizzled class.
+ *
+ * @tparam Vec  The vector class as a type, unintansiated.
+ * @tparam T    Type of components
  */
-template <template <int, typename> typename VecClass, typename T>
-class VecBase<VecClass, 1, T> {
+template <template <std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 1, T> {
 private:
-    static constexpr int N = 1;
+    static constexpr std::size_t N = 1;
 
-    template <int... Indicies>
-    using Component = Swizzled<VecClass, N, T, Indicies...>;
+    template <std::size_t... Indicies>
+    using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    /**
-     * @brief Anomymous union between an array of components and swizzled
-     * components.
-     */
     union {
-        std::array<T, N> m_components;  ///< vector component array
+        std::array<T, N> m_components;  ///< array of components
 
         /**
-         * @name Swizzled components
+         * @name Swizzled permutatons of {x} of max size 4 as members.
+         *
+         * E.g. x, xx, xxx, xxxx
          * @{
-         * Combinations of {x} with a maximum size of 4 as class members.
          */
+        /// @cond DO_NOT_DOCUMENT
         Component<0> x;
         Component<0, 0> xx;
         Component<0, 0, 0> xxx;
         Component<0, 0, 0, 0> xxxx;
+        /// @endcond
         /// @}
     };
 };
 
 /**
- * @brief Two-dimensional specialization of vector base class with support for
- * swizzled {x, y} components.
+ * @brief Specialized 2D vector base class.
+ *
+ * Takes a Vec type that accepts size_t and type as parameters. This is passed
+ * along to the Swizzled class.
+ *
+ * @tparam Vec  The vector class as a type, unintansiated.
+ * @tparam T    Type of components
  */
-template <template <int, typename> typename VecClass, typename T>
-class VecBase<VecClass, 2, T> {
+template <template <std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 2, T> {
 private:
-    static constexpr int N = 2;
+    static constexpr std::size_t N = 2;
 
-    template <int... Indicies>
-    using Component = Swizzled<VecClass, N, T, Indicies...>;
+    template <std::size_t... Indicies>
+    using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    /**
-     * @brief Anonymous union between an array of components and swizzled
-     * components.
-     */
     union {
-        std::array<T, N> m_components;  ///< Vector component array
+        std::array<T, N> m_components;  ///< array of components
 
         /**
-         * @name Swizzled components
+         * @name Swizzled permutatons of {x, y} of max size 4 as members.
+         *
+         * E.g. x, y, xx, ..., xxx, ..., xxxx, ..., yyyy.
          * @{
-         * Combinations of {x, y} with a maximum size of 4 as class members.
          */
+        /// @cond DO_NOT_DOCUMENT
         Component<0> x;
         Component<1> y;
 
-        // the rest are not documented to spare doxygen of generating redundant
-        // documentation
-        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<1, 0> yx;
@@ -109,7 +119,6 @@ public:
         Component<0, 1, 1, 0> xyyx;
         Component<0, 1, 1, 1> xyyy;
 
-        // copy of above with slight change:
         Component<1, 0, 0, 0> yxxx;
         Component<1, 0, 0, 1> yxxy;
         Component<1, 0, 1, 0> yxyx;
@@ -124,37 +133,37 @@ public:
 };
 
 /**
- * @brief Three-dimensional specialization of  vector base class with support
- * for swizzled {x, y, z} components.
+ * @brief Specialized 3D vector base class.
+ *
+ * Takes a Vec type that accepts size_t and type as parameters. This is passed
+ * along to the Swizzled class.
+ *
+ * @tparam Vec  The vector class as a type, unintansiated.
+ * @tparam T    Type of components
  */
-template <template <int, typename> typename VecClass, typename T>
-class VecBase<VecClass, 3, T> {
+template <template <std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 3, T> {
 private:
-    static constexpr int N = 3;
+    static constexpr std::size_t N = 3;
 
-    template <int... Indicies>
-    using Component = Swizzled<VecClass, N, T, Indicies...>;
+    template <std::size_t... Indicies>
+    using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    /**
-     * @brief Anonymous union between an array of components and swizzled
-     * components
-     */
     union {
-        std::array<T, N> m_components;  ///< vector component array
+        std::array<T, N> m_components;  ///< array of components
 
         /**
-         * @name Swizzled components
+         * @name Swizzled permutatons of {x, y, z} of max size 4 as members.
+         *
+         * E.g. x, y, z, xx, ..., xxx, ..., xxxx, ..., zzzz.
          * @{
-         * Combinations of {x, y, z} with a maximum size of 4 as class members.
          */
+        /// @cond DO_NOT_DOCUMENT
         Component<0> x;
         Component<1> y;
         Component<2> z;
 
-        // the rest are not documented to spare doxygen of generating redundant
-        // documentation
-        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<0, 2> xz;
@@ -193,7 +202,6 @@ public:
         Component<2, 2, 1> zzy;
         Component<2, 2, 2> zzz;
 
-        // copy of above with slight change:
         Component<0, 0, 0, 0> xxxx;
         Component<0, 0, 0, 1> xxxy;
         Component<0, 0, 0, 2> xxxz;
@@ -222,7 +230,6 @@ public:
         Component<0, 2, 2, 1> xzzy;
         Component<0, 2, 2, 2> xzzz;
 
-        // copy of above with slight change:
         Component<1, 0, 0, 0> yxxx;
         Component<1, 0, 0, 1> yxxy;
         Component<1, 0, 0, 2> yxxz;
@@ -251,7 +258,6 @@ public:
         Component<1, 2, 2, 1> yzzy;
         Component<1, 2, 2, 2> yzzz;
 
-        // copy of above with slight change:
         Component<2, 0, 0, 0> zxxx;
         Component<2, 0, 0, 1> zxxy;
         Component<2, 0, 0, 2> zxxz;
@@ -280,44 +286,43 @@ public:
         Component<2, 2, 2, 1> zzzy;
         Component<2, 2, 2, 2> zzzz;
         /// @endcond
-        ///@}
+        /// @}
     };
 };
 
 /**
- * @brief Four-dimensional vector base class with support for swizzled {x, y, z,
- * w} components.
+ * @brief Specialized 4D vector base class.
+ *
+ * Takes a Vec type that accepts size_t and type as parameters. This is passed
+ * along to the Swizzled class.
+ *
+ * @tparam Vec  The vector class as a type, unintansiated.
+ * @tparam T    Type of components
  */
-template <template <int, typename> typename VecClass, typename T>
-class VecBase<VecClass, 4, T> {
+template <template <std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 4, T> {
 private:
-    static constexpr int N = 4;
+    static constexpr std::size_t N = 4;
 
-    template <int... Indicies>
-    using Component = Swizzled<VecClass, N, T, Indicies...>;
+    template <std::size_t... Indicies>
+    using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    /**
-     * @brief Anonymous union between an array of components and swizzled
-     * components.
-     */
     union {
-        std::array<T, N> m_components;  ///< vector component array
+        std::array<T, N> m_components;  ///< array of components
 
         /**
-         * @name Swizzled components
+         * @name Swizzled permutatons of {x, y, z, w} of max size 4.
+         *
+         * E.g. x, y, z, w, xx, ..., xxx, ..., xxxx, ..., wwww.
          * @{
-         * Combinations of {x, y, z, w} with a maximum size of 4 as class
-         * members.
          */
+        /// @cond DO_NOT_DOCUMENT
         Component<0> x;
         Component<1> y;
         Component<2> z;
         Component<3> w;
 
-        // the rest are not documented to spare doxygen of generating redundant
-        // documentation
-        /// @cond DO_NO_DOCUMENT
         Component<0, 0> xx;
         Component<0, 1> xy;
         Component<0, 2> xz;
@@ -465,7 +470,6 @@ public:
         Component<0, 3, 3, 2> xwwz;
         Component<0, 3, 3, 3> xwww;
 
-        // copy of above with slight change:
         Component<1, 0, 0, 0> yxxx;
         Component<1, 0, 0, 1> yxxy;
         Component<1, 0, 0, 2> yxxz;
@@ -531,7 +535,6 @@ public:
         Component<1, 3, 3, 2> ywwz;
         Component<1, 3, 3, 3> ywww;
 
-        // copy of above with slight change:
         Component<2, 0, 0, 0> zxxx;
         Component<2, 0, 0, 1> zxxy;
         Component<2, 0, 0, 2> zxxz;
@@ -597,7 +600,6 @@ public:
         Component<2, 3, 3, 2> zwwz;
         Component<2, 3, 3, 3> zwww;
 
-        // copy of above with slight change:
         Component<3, 0, 0, 0> wxxx;
         Component<3, 0, 0, 1> wxxy;
         Component<3, 0, 0, 2> wxxz;
@@ -663,7 +665,7 @@ public:
         Component<3, 3, 3, 2> wwwz;
         Component<3, 3, 3, 3> wwww;
         /// @endcond
-        ///@}
+        /// @}
     };
 };
 

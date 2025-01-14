@@ -1,8 +1,7 @@
 PROJECT_NAME = "asciirast"
 
 RECURSIVE = YES
-INPUT     = "./lib"
-INPUT    += "./include"
+INPUT     = "./asciirast"
 
 INPUT                 += readme.md
 USE_MDFILE_AS_MAINPAGE = readme.md

@@ -1,33 +1,18 @@
-// #include "math/transform.h"
-// #include "math/types.h"
-// #include "program.h"
-
-#include "math/types/Mat.h"
-#include "math/types/Vec.h"
 
 #include <iostream>
 
-using namespace asciirast;
+#include "math/types/Vec.h"
+
 using namespace asciirast::math;
 
-extern void get_terminal_size(int& out_width, int& out_height);
-extern void just_fix_windows_console(bool revert);
-
 int main() {
-    just_fix_windows_console(true);
+    auto v = Vec<2, float>{1.f, 1.f};
+    auto n = Vec<2, float>{-1.f, -1.f};
 
-    auto v = Vec<4, float>{1.f, 2.f, 3.f, 4.f};
-
-    auto v1 = Vec<3, float>{1.f, 2.f, 3.f};
-    auto v2 = Vec<4, float>{1.f, 2.f, 3.f};
-
-    std::cout << v.xyz << "\n";
-
-    // v.xyz = v.xyz + v.xyz;
-    // v.y += v.y;
+    std::cout << v.reflect(n) << "\n";
 
     // auto m = Mat<4, 3, float>::from_columns(v, v, v);
-    // std::cout << Mat<3, 3, float>{Mat<2, 2, float>::identity()} << "\n\n";
+    // std::cout << m << "\n\n";
 
     // auto t = Transform2D();
     // t.translate(0, 0).rotate_clockwise(1).scale(1, 2);
@@ -55,6 +40,4 @@ int main() {
     //                   const Attr& in,
     //                   math::Vec4f& out) override {}
     // };
-
-    just_fix_windows_console(false);
 }
