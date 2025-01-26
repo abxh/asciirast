@@ -73,7 +73,7 @@ public:
      * @brief Construct vector with default value for all components.
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     explicit Vec(const U initial_value) {
         for (auto x : this->range()) {
             x = T{initial_value};
@@ -275,7 +275,7 @@ public:
      * @brief In-place vector-scalar multiplication
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     Vec& operator*=(const U scalar) {
         for (auto x : this->range()) {
             x *= T{scalar};
@@ -287,7 +287,7 @@ public:
      * @brief In-place vector-scalar division
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     Vec& operator/=(const U scalar) {
         assert(T{scalar} != T{0} && "non-zero division");
         for (auto x : this->range()) {
@@ -325,7 +325,7 @@ public:
      * @brief Scalar-vector multiplication
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     friend Vec operator*(const U scalar, const Vec& rhs) {
         return Vec{std::views::transform(
                 rhs.range(), [=](const T x) { return T{scalar} * x; })};
@@ -335,7 +335,7 @@ public:
      * @brief Vector-scalar multiplication
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     friend Vec operator*(const Vec& lhs, const U scalar) {
         return Vec{std::views::transform(
                 lhs.range(), [=](const T x) { return x * T{scalar}; })};
@@ -345,7 +345,7 @@ public:
      * @brief Vector-scalar division
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     friend Vec operator/(const Vec& lhs, const U scalar) {
         assert(T{scalar} != T{0} && "non-zero division");
         return Vec{std::views::transform(
@@ -544,7 +544,7 @@ public:
      * @brief Explicitly construct 1d-vector with value
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     explicit Vec(const U initial_value) {
         m_components[0] = T{initial_value};
     };
@@ -587,9 +587,9 @@ template <std::size_t N, typename T, typename... Args>
 struct vec_constructible_from {
 private:
     static constexpr bool accepted_types =
-            ((non_narrowing_v<Args, T> || vec_info<Args>::value) && ...);
+            ((non_narrowing<Args, T> || vec_info<Args>::value) && ...);
     static constexpr std::size_t num_values =
-            ((non_narrowing_v<Args, T> ? 1 : 0) + ...);
+            ((non_narrowing<Args, T> ? 1 : 0) + ...);
     static constexpr bool total_size_in_bounds =
             (N >= num_values + (vec_info<Args>::size + ...));
 
@@ -627,7 +627,7 @@ private:
     }
 
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     static constexpr void init_from_inner(std::size_t& idx,
                                           Vec<N, T>& out,
                                           const U& arg,

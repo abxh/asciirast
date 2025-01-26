@@ -9,4 +9,4 @@
 #pragma once
 
 template <typename From, typename To>
-concept non_narrowing_v = requires(From f) { To{f}; };
+concept non_narrowing = requires(From f) { To{f}; };

@@ -182,7 +182,7 @@ public:
      * @brief In-place scalar multiplication
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     Swizzled operator*=(const U scalar) {
         for (auto x : this->range()) {
             x *= T{scalar};
@@ -194,7 +194,7 @@ public:
      * @brief In-place scalar division
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     Swizzled operator/=(const U scalar) {
         assert(T{scalar} != T{0} && "non-zero division");
         for (auto x : this->range()) {
@@ -234,7 +234,7 @@ public:
      * @brief Assignment from number
      */
     template <typename U>
-        requires(non_narrowing_v<U, T>)
+        requires(non_narrowing<U, T>)
     T& operator=(const U value) {
         return (m_components[index] = T{value});
     }
