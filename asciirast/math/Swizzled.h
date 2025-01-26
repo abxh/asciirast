@@ -49,6 +49,11 @@ private:
 
 public:
     /**
+     * @brief Size of swizzled component
+     */
+    std::size_t size() const { return indicies.size(); }
+
+    /**
      * @brief Convert this to a temporary vector copy
      */
     V vec() const { return V{*this}; }
@@ -56,12 +61,16 @@ public:
     /**
      * @brief Index the swizzled component.
      */
-    T& operator[](std::size_t i) noexcept { return m_components[indicies[i]]; }
+    T& operator[](const std::size_t i) {
+        assert(i < this->size() && "index is inside bounds");
+        return m_components[indicies[i]];
+    }
 
     /**
      * @brief Index the swizzled component.
      */
-    T operator[](std::size_t i) const noexcept {
+    T operator[](const std::size_t i) const {
+        assert(i < this->size() && "index is inside bounds");
         return m_components[indicies[i]];
     }
 

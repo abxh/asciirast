@@ -117,18 +117,28 @@ public:
 
 public:
     /**
+     * @brief Get number of components
+     */
+    static constexpr std::size_t size() { return N; }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    T* data() { return &m_components[0]; }
+
+    /**
      * @brief Index the vector.
      */
-    T& operator[](std::size_t i) {
-        assert(i < N && "index is inside bounds");
+    T& operator[](const std::size_t i) {
+        assert(i < this->size() && "index is inside bounds");
         return m_components[i];
     }
 
     /**
      * @brief Index the vector.
      */
-    T operator[](std::size_t i) const {
-        assert(i < N && "index is inside bounds");
+    T operator[](const std::size_t i) const {
+        assert(i < this->size() && "index is inside bounds");
         return m_components[i];
     }
 
@@ -150,10 +160,13 @@ public:
      * @brief Print the vector
      */
     friend std::ostream& operator<<(std::ostream& out, const Vec& v) {
-        auto view = std::views::pairwise(v.range());
+        auto view = v.range();
         out << "[";
-        for (auto [l, r] : view) {
-            out << l << ", " << r;
+        for (auto it = view.begin(); it != view.end(); ++it) {
+            out << *it;
+            if (std::next(it) != view.end()) {
+                out << ", ";
+            }
         }
         out << "]" << std::endl;
         return out;
@@ -211,12 +224,12 @@ public:
         requires(std::is_floating_point_v<T>)
     {
         const T n = static_cast<T>(ulps);
-        auto pred = [=](const T x, const T y) {
-            T m = std::min(std::fabs(x), std::fabs(y));
+        auto pred = [=](const T x, const T y) -> bool {
+            auto m = std::min(std::fabs(x), std::fabs(y));
 
-            int exp = m < std::numeric_limits<T>::min()
-                              ? std::numeric_limits<T>::min_exponent - 1
-                              : std::ilogb(m);
+            auto exp = m < std::numeric_limits<T>::min()
+                               ? std::numeric_limits<T>::min_exponent - 1
+                               : std::ilogb(m);
 
             auto epsilon = std::numeric_limits<T>::epsilon();
             auto lhs = std::fabs(x - y);
@@ -259,7 +272,7 @@ public:
     }
 
     /**
-     * @brief In-place scalar multiplication
+     * @brief In-place vector-scalar multiplication
      */
     template <typename U>
         requires(non_narrowing_v<U, T>)
@@ -271,7 +284,7 @@ public:
     }
 
     /**
-     * @brief In-place scalar division
+     * @brief In-place vector-scalar division
      */
     template <typename U>
         requires(non_narrowing_v<U, T>)
@@ -542,43 +555,46 @@ public:
     operator T() { return m_components[0]; }
 };
 
+/**
+ * @brief Vector information trait
+ */
+template <typename TT>
+struct vec_info {
+    static constexpr bool value = false;    ///< whether the type is vector like
+    static constexpr std::size_t size = 0;  ///< vector size
+};
+
+/**
+ * @brief Vector information trait
+ */
+template <std::size_t M, typename U>
+struct vec_info<Vec<M, U>> {
+    static constexpr bool value = true;     ///< whether the type is vector like
+    static constexpr std::size_t size = M;  ///< vector size
+};
+
+/**
+ * @brief Vector information trait
+ */
+template <std::size_t M, typename T, std::size_t... Is>
+    requires(sizeof...(Is) > 1)
+struct vec_info<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>> {
+    static constexpr bool value = true;  ///< whether the type is vector like
+    static constexpr std::size_t size = sizeof...(Is);  ///< vector size
+};
+
 template <std::size_t N, typename T, typename... Args>
 struct vec_constructible_from {
 private:
-    template <typename TT>
-    struct vec_info {
-        static constexpr bool value = false;
-        static constexpr std::size_t size = 0;
-    };
-
-    template <std::size_t M, typename U>
-    struct vec_info<Vec<M, U>> {
-        static constexpr bool value = true;
-        static constexpr std::size_t size = M;
-    };
-
-    template <std::size_t M, typename U, std::size_t... Is>
-        requires(sizeof...(Is) > 1)
-    struct vec_info<Swizzled<Vec<sizeof...(Is), T>, M, U, Is...>> {
-        static constexpr bool value = true;
-        static constexpr std::size_t size = sizeof...(Is);
-    };
-
-    template <typename TT>
-    static constexpr bool is_vec_like_v = vec_info<TT>::value;
-
-    template <typename TT>
-    static constexpr std::size_t conditional_vec_size = vec_info<TT>::size;
-
     static constexpr bool accepted_types =
-            ((non_narrowing_v<Args, T> || is_vec_like_v<Args>) && ...);
+            ((non_narrowing_v<Args, T> || vec_info<Args>::value) && ...);
     static constexpr std::size_t num_values =
             ((non_narrowing_v<Args, T> ? 1 : 0) + ...);
     static constexpr bool total_size_in_bounds =
-            (N >= num_values + (conditional_vec_size<Args> + ...));
+            (N >= num_values + (vec_info<Args>::size + ...));
 
 public:
-    static const constexpr bool value =
+    static constexpr bool value =
             accepted_types &&
             total_size_in_bounds;  ///< whether the arguments are of acceptable
                                    ///< types and total size is inside bounds
