@@ -21,8 +21,6 @@
 #include <cassert>
 #include <ranges>
 
-#include "non_narrowing.h"
-
 namespace asciirast::math {
 
 /**
@@ -181,11 +179,9 @@ public:
     /**
      * @brief In-place scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Swizzled operator*=(const U scalar) {
+    Swizzled operator*=(const T scalar) {
         for (auto x : this->range()) {
-            x *= T{scalar};
+            x *= scalar;
         }
         return *this;
     }
@@ -193,12 +189,10 @@ public:
     /**
      * @brief In-place scalar division
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Swizzled operator/=(const U scalar) {
-        assert(T{scalar} != T{0} && "non-zero division");
+    Swizzled operator/=(const T scalar) {
+        assert(scalar != 0 && "non-zero division");
         for (auto x : this->range()) {
-            x /= T{scalar};
+            x /= scalar;
         }
         return *this;
     }
@@ -233,10 +227,8 @@ public:
     /**
      * @brief Assignment from number
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    T& operator=(const U value) {
-        return (m_components[index] = T{value});
+    T& operator=(const T value) {
+        return (m_components[index] = value);
     }
 };
 

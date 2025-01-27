@@ -12,7 +12,6 @@
 #include <type_traits>
 
 #include "VecBase.h"
-#include "non_narrowing.h"
 
 namespace asciirast::math {
 
@@ -72,11 +71,9 @@ public:
     /**
      * @brief Construct vector with default value for all components.
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    explicit Vec(const U initial_value) {
+    explicit Vec(const T initial_value) {
         for (auto x : this->range()) {
-            x = T{initial_value};
+            x = initial_value;
         }
     };
 
@@ -274,11 +271,9 @@ public:
     /**
      * @brief In-place vector-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Vec& operator*=(const U scalar) {
+    Vec& operator*=(const T scalar) {
         for (auto x : this->range()) {
-            x *= T{scalar};
+            x *= scalar;
         }
         return *this;
     }
@@ -286,12 +281,10 @@ public:
     /**
      * @brief In-place vector-scalar division
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Vec& operator/=(const U scalar) {
-        assert(T{scalar} != T{0} && "non-zero division");
+    Vec& operator/=(const T scalar) {
+        assert(T{scalar} != 0 && "non-zero division");
         for (auto x : this->range()) {
-            x /= T{scalar};
+            x /= scalar;
         }
         return *this;
     }
@@ -324,32 +317,26 @@ public:
     /**
      * @brief Scalar-vector multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Vec operator*(const U scalar, const Vec& rhs) {
+    friend Vec operator*(const T scalar, const Vec& rhs) {
         return Vec{std::views::transform(
-                rhs.range(), [=](const T x) { return T{scalar} * x; })};
+                rhs.range(), [=](const T x) { return scalar * x; })};
     }
 
     /**
      * @brief Vector-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Vec operator*(const Vec& lhs, const U scalar) {
+    friend Vec operator*(const Vec& lhs, const T scalar) {
         return Vec{std::views::transform(
-                lhs.range(), [=](const T x) { return x * T{scalar}; })};
+                lhs.range(), [=](const T x) { return x * scalar; })};
     }
 
     /**
      * @brief Vector-scalar division
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Vec operator/(const Vec& lhs, const U scalar) {
-        assert(T{scalar} != T{0} && "non-zero division");
+    friend Vec operator/(const Vec& lhs, const T scalar) {
+        assert(T{scalar} != 0 && "non-zero division");
         return Vec{std::views::transform(
-                lhs.range(), [=](const T x) { return x / T{scalar}; })};
+                lhs.range(), [=](const T x) { return x / scalar; })};
     }
 
 public:
@@ -543,11 +530,7 @@ public:
     /**
      * @brief Explicitly construct 1d-vector with value
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    explicit Vec(const U initial_value) {
-        m_components[0] = T{initial_value};
-    };
+    explicit Vec(const T initial_value) { m_components[0] = initial_value; };
 
     /**
      * @brief Implicitly convert to number
@@ -587,9 +570,9 @@ template <std::size_t N, typename T, typename... Args>
 struct vec_constructible_from {
 private:
     static constexpr bool accepted_types =
-            ((non_narrowing<Args, T> || vec_info<Args>::value) && ...);
+            ((std::convertible_to<Args, T> || vec_info<Args>::value) && ...);
     static constexpr std::size_t num_values =
-            ((non_narrowing<Args, T> ? 1 : 0) + ...);
+            ((std::convertible_to<Args, T> ? 1 : 0) + ...);
     static constexpr bool total_size_in_bounds =
             (N >= num_values + (vec_info<Args>::size + ...));
 
@@ -626,11 +609,9 @@ private:
         (void)(out);
     }
 
-    template <typename U>
-        requires(non_narrowing<U, T>)
     static constexpr void init_from_inner(std::size_t& idx,
                                           Vec<N, T>& out,
-                                          const U& arg,
+                                          const T& arg,
                                           const auto&... rest) {
         out[idx] = T{arg};
         idx += 1;

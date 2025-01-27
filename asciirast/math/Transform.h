@@ -73,9 +73,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x + delta_x, y + delta_y)
      */
-    template <typename U1, typename U2>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float>)
-    Transform2D translate(U1 delta_x, U2 delta_y) {
+    Transform2D translate(const float delta_x, const float delta_y) {
         const auto v = Vec3f{delta_x, delta_y, 1.f};
         const auto mr = Mat3x3f::identity().column_set(2, v);
 
@@ -111,9 +109,7 @@ public:
     /**
      * Rotate by `angle_x` radians in clockwise direction
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform2D rotate_clockwise(U angle_x) {
+    Transform2D rotate_clockwise(const float angle_x) {
         const auto x = std::cos(angle_x);
         const auto y = std::sin(angle_x);
 
@@ -123,9 +119,7 @@ public:
     /**
      * Rotate by `angle_x` radians in counter-clockwise direction
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform2D rotate_counterclockwise(U angle_x) {
+    Transform2D rotate_counterclockwise(const float angle_x) {
         return this->rotate_clockwise(-angle_x);
     }
 
@@ -133,9 +127,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (scale_x * x, scale_y * y) assuming scale_x * scale_y != 0
      */
-    template <typename U1, typename U2>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float>)
-    Transform2D scale(U1 scale_x, U2 scale_y) {
+    Transform2D scale(const float scale_x, const float scale_y) {
         assert(scale_x != 0.f);
         assert(scale_y != 0.f);
 
@@ -164,9 +156,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x + sh_x * y, y)
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform2D shearX(U sh_x) {
+    Transform2D shearX(const float sh_x) {
         const auto a = Vec3f{1.0f, sh_x, 0.0f};
         const auto b = Vec3f{0.0f, 1.0f, 0.0f};
         const auto c = Vec3f{0.0f, 0.0f, 1.0f};
@@ -182,9 +172,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x, y + sh_y * x)
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform2D shearY(U sh_y) {
+    Transform2D shearY(const float sh_y) {
         const auto a = Vec3f{1.0f, 0.f, 0.f};
         const auto b = Vec3f{sh_y, 1.f, 0.f};
         const auto c = Vec3f{0.0f, 0.f, 1.f};
@@ -249,10 +237,9 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
      */
-    template <typename U1, typename U2, typename U3>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float> &&
-                 non_narrowing<U3, float>)
-    Transform3D translate(U1 delta_x, U2 delta_y, U3 delta_z) {
+    Transform3D translate(const float delta_x,
+                          const float delta_y,
+                          const float delta_z) {
         const auto v = Vec4f{delta_x, delta_y, delta_z, 1.f};
         const auto mr = Mat4x4f::identity().column_set(3, v);
 
@@ -299,9 +286,7 @@ private:
     /**
      * Rotate by `angle_x` radians measured from RIGHT towards FORWARD
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform3D rotateX(U angle_x) {
+    Transform3D rotateX(const float angle_x) {
         const auto up_dir_y = std::cos(angle_x);
         const auto up_dir_z = std::sin(angle_x);
         const auto forward_y = -up_dir_z;
@@ -314,9 +299,7 @@ private:
     /**
      * Rotate by `angle_y` radians measured from UP towards FORWARD
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform3D rotateY(U angle_y) {
+    Transform3D rotateY(const float angle_y) {
         const auto up_dir = UP;
         const auto forward_x = std::cos(angle_y);
         const auto forward_z = std::sin(angle_y);
@@ -327,9 +310,7 @@ private:
     /**
      * Rotate by `angle_z` radians measured from RIGHT towards UP
      */
-    template <typename U>
-        requires(non_narrowing<U, float>)
-    Transform3D rotateZ(U angle_z) {
+    Transform3D rotateZ(const float angle_z) {
         const auto forward = FORWARD;
         const auto up_dir_x = std::cos(angle_z);
         const auto up_dir_y = std::sin(angle_z);
@@ -342,10 +323,9 @@ private:
      * (x', y', z') = (scale_x * x, scale_y * y, scale_z * z) assuming
      * scale_x * scale_y * scale_z != 0
      */
-    template <typename U1, typename U2, typename U3>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float> &&
-                 non_narrowing<U3, float>)
-    Transform3D scale(U1 scale_x, U2 scale_y, U3 scale_z) {
+    Transform3D scale(const float scale_x,
+                      const float scale_y,
+                      const float scale_z) {
         assert(scale_x != 0.f);
         assert(scale_y != 0.f);
         assert(scale_z != 0.f);
@@ -378,9 +358,7 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + sh_x * z, y + sh_y * z, z)
      */
-    template <typename U1, typename U2>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float>)
-    Transform3D shearXY(U1 sh_x, U2 sh_y) {
+    Transform3D shearXY(const float sh_x, const float sh_y) {
         auto a = Vec4f{1.f, 0.f, sh_x, 0.f};
         auto b = Vec4f{0.f, 1.f, sh_y, 0.f};
         auto c = Vec4f{0.f, 0.f, 1.0f, 0.f};
@@ -399,9 +377,7 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + sh_x * y, y, z + sh_z * y)
      */
-    template <typename U1, typename U2>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float>)
-    Transform3D shearXZ(U1 sh_x, U2 sh_z) {
+    Transform3D shearXZ(const float sh_x, const float sh_z) {
         auto a = Vec4f{1.f, sh_x, 0.f, 0.f};
         auto b = Vec4f{0.f, 1.0f, 0.f, 0.f};
         auto c = Vec4f{0.f, sh_z, 1.f, 0.f};
@@ -420,9 +396,7 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x, y + sh_y * x, z + sh_z * x)
      */
-    template <typename U1, typename U2>
-        requires(non_narrowing<U1, float> && non_narrowing<U2, float>)
-    Transform3D shearYZ(U1 sh_y, U2 sh_z) {
+    Transform3D shearYZ(const float sh_y, const float sh_z) {
         auto a = Vec4f{1.0f, 0.f, 0.f, 0.f};
         auto b = Vec4f{sh_y, 1.f, 0.f, 0.f};
         auto c = Vec4f{sh_z, 0.f, 1.f, 0.f};

@@ -18,7 +18,6 @@
 #include <type_traits>
 
 #include "Vec.h"
-#include "non_narrowing.h"
 
 namespace asciirast::math {
 
@@ -141,11 +140,9 @@ public:
     /**
      * @brief Initiate diagonal elements to some value
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    explicit Mat(const U diagonal_element) {
+    explicit Mat(const T diagonal_element) {
         for (auto& x : this->diagonal_range()) {
-            x = T{diagonal_element};
+            x = diagonal_element;
         }
     }
 
@@ -530,11 +527,9 @@ public:
     /**
      * @brief In-place matrix-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Mat& operator*=(const U scalar) {
+    Mat& operator*=(const T scalar) {
         for (auto x : this->range()) {
-            x *= T{scalar};
+            x *= scalar;
         }
         return *this;
     }
@@ -542,12 +537,10 @@ public:
     /**
      * @brief In-place matrix-scalar division
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    Mat& operator/=(const U scalar) {
-        assert(T{scalar} != T{0} && "non-zero division");
+    Mat& operator/=(const T scalar) {
+        assert(scalar != 0 && "non-zero division");
         for (auto x : this->range()) {
-            x /= T{scalar};
+            x /= scalar;
         }
         return *this;
     }
@@ -572,32 +565,26 @@ public:
     /**
      * @brief Scalar-matrix multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Mat operator*(const U scalar, const Mat& rhs) {
+    friend Mat operator*(const T scalar, const Mat& rhs) {
         return Mat{std::views::transform(
-                rhs.range(), [=](const T x) { return T{scalar} * x; })};
+                rhs.range(), [=](const T x) { return scalar * x; })};
     }
 
     /**
      * @brief Matrix-scalar multiplication
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Mat operator*(const Mat& lhs, const U scalar) {
+    friend Mat operator*(const Mat& lhs, const T scalar) {
         return Mat{std::views::transform(
-                lhs.range(), [=](const T x) { return x * T{scalar}; })};
+                lhs.range(), [=](const T x) { return x * scalar; })};
     }
 
     /**
      * @brief Matrix-scalar division
      */
-    template <typename U>
-        requires(non_narrowing<U, T>)
-    friend Mat operator/(const Mat& lhs, const U scalar) {
-        assert(T{scalar} != T{0} && "non-zero division");
+    friend Mat operator/(const Mat& lhs, const T scalar) {
+        assert(scalar != 0 && "non-zero division");
         return Mat{std::views::transform(
-                lhs.range(), [=](const T x) { return x / T{scalar}; })};
+                lhs.range(), [=](const T x) { return x / scalar; })};
     }
 
 public:
