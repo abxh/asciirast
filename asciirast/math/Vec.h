@@ -11,9 +11,39 @@
 #include <ostream>
 #include <type_traits>
 
+#include "Angle.h"
+#include "Vec.h"
 #include "VecBase.h"
 
 namespace asciirast::math {
+
+/**
+ * @brief Check if equal to floating type value, given a precision for ulps
+ * (units in last place).
+ *
+ * The lower, the more precise --- desirable for small floats.
+ * The higher, the less precise --- desirable for large floats
+ *
+ * Based on:
+ * https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
+ */
+template <typename T>
+bool almost_equals(const T& x, const T& y, const unsigned ulps)
+    requires(std::is_floating_point_v<T>)
+{
+    auto n = static_cast<T>(ulps);
+    auto m = std::min(std::fabs(x), std::fabs(y));
+
+    auto exp = m < std::numeric_limits<T>::min()
+                       ? std::numeric_limits<T>::min_exponent - 1
+                       : std::ilogb(m);
+
+    auto epsilon = std::numeric_limits<T>::epsilon();
+    auto lhs = std::fabs(x - y);
+    auto rhs = n * std::ldexp(epsilon, exp);
+
+    return lhs <= rhs;
+}
 
 /**
  * @brief Trait to check if vector can constructed from arguments.
@@ -41,6 +71,19 @@ struct vec_initializer;
  * @tparam N    Number of components in the vector
  * @tparam T    Type of components
  */
+template <std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+class Vec;
+
+template <typename T>
+using Vec2 = Vec<2, T>;  ///< 2D float math vector
+
+template <typename T>
+using Vec3 = Vec<3, T>;  ///< 3D float math vector
+
+template <typename T>
+using Vec4 = Vec<4, T>;  ///< 4D float math vector
+
 template <std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
 class Vec : public VecBase<Vec, N, T> {
@@ -211,33 +254,21 @@ public:
      *
      * The lower, the more precise --- desirable for small floats.
      * The higher, the less precise --- desirable for large floats
-     *
-     * Based on:
-     * https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
      */
     friend bool almost_equals(const Vec& lhs,
                               const Vec& rhs,
                               const unsigned ulps)
         requires(std::is_floating_point_v<T>)
     {
-        const T n = static_cast<T>(ulps);
-        auto pred = [=](const T x, const T y) -> bool {
-            auto m = std::min(std::fabs(x), std::fabs(y));
-
-            auto exp = m < std::numeric_limits<T>::min()
-                               ? std::numeric_limits<T>::min_exponent - 1
-                               : std::ilogb(m);
-
-            auto epsilon = std::numeric_limits<T>::epsilon();
-            auto lhs = std::fabs(x - y);
-            auto rhs = n * std::ldexp(epsilon, exp);
-
-            return lhs <= rhs;
-        };
-        return std::ranges::equal(lhs.range(), rhs.range(), pred);
+        return std::ranges::equal(lhs.range(), rhs.range(), almost_equals);
     }
 
 public:
+    /**
+     * @brief Unary minus vector operator
+     */
+    Vec operator-() const { return T{-1} * (*this); }
+
     /**
      * @brief In-place component-wise addition with vector
      */
@@ -478,28 +509,29 @@ public:
     }
 
     /**
-     * @brief Vector signed angle ranging from -pi and pi
+     * @brief Vector signed angle ranging from -pi and pi radians
      */
-    friend T angle(const Vec& lhs, const Vec& rhs)
+    friend Angle<T> angle(const Vec& lhs, const Vec& rhs)
         requires(N == 2 && std::is_floating_point_v<T>)
     {
-        return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
+        return Angle<T>::from_rad(std::atan2(cross(lhs, rhs), dot(lhs, rhs)));
     }
 
     /**
-     * @brief Vector signed angle ranging from -pi and pi
+     * @brief Vector signed angle ranging from -pi and pi radians
      */
-    friend T angle(const Vec& lhs,
-                   const Vec& rhs,
-                   const Vec& up,
-                   const bool up_is_normalized)
+    friend Angle<T> angle(const Vec& lhs,
+                          const Vec& rhs,
+                          const Vec& up,
+                          const bool up_is_normalized)
         requires(N == 3 && std::is_floating_point_v<T>)
     {
         if (up_is_normalized) {
-            return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
+            return Angle<T>::from_rad(
+                    std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs)));
         } else {
-            return std::atan2(dot(cross(lhs, rhs), up.normalized()),
-                              dot(lhs, rhs));
+            return Angle<T>::from_rad(std::atan2(
+                    dot(cross(lhs, rhs), up.normalized()), dot(lhs, rhs)));
         }
     }
 

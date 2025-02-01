@@ -1,62 +1,51 @@
 /**
  * @file Transform.h
- * @brief Class for stacking primitive transformations on top of each other
- * @todo Write rotation matrices more idiomatically and check code
- *
- * Using OpenGL conventions for the coordinate systems. Just multiply
- * by the UP / RIGHT / FORWARD basis vectors to be coordinate system agnostic.
+ * @brief Class for stacking primitive invertible transformations on top of each other
  */
 
 #pragma once
 
 #include <cassert>
 
+#include "Complex.h"
 #include "Mat.h"
 
 namespace asciirast::math {
 
-using Mat2x2f = Mat<2, 2, float, true>;  ///< 2x2 float column-major matrix
-using Mat3x3f = Mat<3, 3, float, true>;  ///< 3x3 float column-major matrix
-using Mat4x4f = Mat<4, 4, float, true>;  ///< 4x4 float column-major matrix
-
-using Vec2f = Vec<2, float>;  ///< 2D float math vector
-using Vec3f = Vec<3, float>;  ///< 3D float math vector
-using Vec4f = Vec<4, float>;  ///< 4D float math vector
-
 /**
  * @brief 2D transformation class
  */
+template <typename T>
+    requires(std::is_floating_point_v<T>)
 class Transform2D {
 public:
-    static inline const Vec2f RIGHT = Vec2f{1.f, 0.f};  ///< screen right
-    static inline const Vec2f UP = Vec2f{0.f, -1.f};    ///< screen up
-
-public:
-    Mat3x3f m_mat;      ///< underlying matrix
-    Mat3x3f m_mat_inv;  ///< underlying inverse matrix
+    Mat3x3<T> m_mat;      ///< underlying matrix
+    Mat3x3<T> m_mat_inv;  ///< underlying inverse matrix
 
     /**
      * Create a new transform object
      */
     Transform2D()
-            : m_mat{Mat3x3f::identity()}, m_mat_inv{Mat3x3f::identity()} {}
+            : m_mat{Mat3x3<T>::identity()}, m_mat_inv{Mat3x3<T>::identity()} {}
 
     /**
      * Apply transformation to a 2D Vector
      */
-    Vec2f apply(const Vec2f& v) const { return Vec2f{m_mat * Vec3f{v, 1.f}}; }
+    Vec2<T> apply(const Vec2<T>& v) const {
+        return Vec2<T>{m_mat * Vec3<T>{v, 1}};
+    }
 
     /**
      * Invert the transformation applied to a 2D Vector
      */
-    Vec2f invert(const Vec2f& v) const {
-        return Vec2f{m_mat_inv * Vec3f{v, 1.f}};
+    Vec2<T> invert(const Vec2<T>& v) const {
+        return Vec2<T>{m_mat_inv * Vec3<T>{v, 1}};
     }
 
     /**
      * Stack a new transformation matrix and it's inverse on top
      */
-    Transform2D stack(const Mat3x3f& mat, const Mat3x3f& inv_mat) {
+    Transform2D stack(const Mat3x3<T>& mat, const Mat3x3<T>& inv_mat) {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
@@ -73,12 +62,12 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x + delta_x, y + delta_y)
      */
-    Transform2D translate(const float delta_x, const float delta_y) {
-        const auto v = Vec3f{delta_x, delta_y, 1.f};
-        const auto mr = Mat3x3f::identity().column_set(2, v);
+    Transform2D translate(const T delta_x, const T delta_y) {
+        const auto vr = Vec3<T>{delta_x, delta_y, 1};
+        const auto vi = Vec3<T>{-delta_x, -delta_y, 1};
 
-        const auto vi = Vec3f{-delta_x, -delta_y, 1.f};
-        const auto mi = Mat3x3f::identity().column_set(2, vi);
+        const auto mr = Mat3x3<T>::identity().column_set(2, vr);
+        const auto mi = Mat3x3<T>::identity().column_set(2, vi);
 
         return this->stack(mr, mi);
     }
@@ -87,59 +76,67 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x + delta.x, y + delta.y)
      */
-    Transform2D translate(const Vec2f& delta) {
+    Transform2D translate(const Vec2<T>& delta) {
         return this->translate(delta.x, delta.y);
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = [right | up] * (x, y) with up = (-right.y, right.x)
+     * Stack the transformation which aligns the x-axis with v
      */
-    Transform2D rotate(const Vec2f& right_, bool is_normalized = false) {
-        const auto right = is_normalized ? right_ : right_.normalized();
+    Transform2D rotate(const Complex<T>& v, bool is_normalized = false) {
+        const auto x_basis_c = is_normalized ? v : v.normalized();
+        const auto y_basis_c = Complex<T>{0, 1} * x_basis_c;
 
-        const auto up =
-                Vec2f{-right.y, right.x};  // counterclockwise 90 degrees
-        const auto mr = Mat3x3f::from_rows(right, up, Vec3f{0.f, 0.f, 1.f});
-        const auto mi = mr.transposed();
+        const auto x_basis = x_basis_c.m_vec;
+        const auto y_basis = y_basis_c.m_vec;
+        const auto z_basis = Vec3<T>{0, 0, 1};
+
+        const Mat3x3<T> mr{x_basis, y_basis, z_basis};
+        const Mat3x3<T> mi = mr.transposed();
 
         return this->stack(mr, mi);
     }
 
     /**
-     * Rotate by `angle_x` radians in clockwise direction
+     * Stack the transformation which aligns the x-axis with v
      */
-    Transform2D rotate_clockwise(const float angle_x) {
-        const auto x = std::cos(angle_x);
-        const auto y = std::sin(angle_x);
-
-        return this->rotate(Vec2f{x, y}, true);
+    Transform2D rotate(const Vec2<T>& v, bool is_normalized = false) {
+        return rotate(Complex<T>{v}, is_normalized);
     }
 
     /**
-     * Rotate by `angle_x` radians in counter-clockwise direction
+     * Stack the transformation which performs a rotation of `theta` radians in
+     * counterclockwise direction
      */
-    Transform2D rotate_counterclockwise(const float angle_x) {
-        return this->rotate_clockwise(-angle_x);
+    Transform2D rotate_counterclockwise(const Angle<T> theta) {
+        return this->rotate(Complex<T>::from_angle(theta), true);
+    }
+
+    /**
+     * Stack the transformation which performs a rotation of `theta` radians in
+     * clockwise direction
+     */
+    Transform2D rotate_clockwise(const Angle<T> theta) {
+        return this->rotate(Complex<T>::from_angle(-theta), true);
     }
 
     /**
      * Stack the transformation equivalent to:
      * (x', y') = (scale_x * x, scale_y * y) assuming scale_x * scale_y != 0
      */
-    Transform2D scale(const float scale_x, const float scale_y) {
-        assert(scale_x != 0.f);
-        assert(scale_y != 0.f);
+    Transform2D scale(const T scale_x, const T scale_y) {
+        assert(scale_x != 0);
+        assert(scale_y != 0);
 
-        Mat3x3f mr{}, mi{};
+        Mat3x3<T> mr{}, mi{};
 
         mr(0, 0) = scale_x;
         mr(1, 1) = scale_y;
-        mr(2, 2) = 1.f;
+        mr(2, 2) = 1;
 
-        mi(0, 0) = 1.f / scale_x;
-        mi(1, 1) = 1.f / scale_y;
-        mi(2, 2) = 1.f;
+        mi(0, 0) = 1 / scale_x;
+        mi(1, 1) = 1 / scale_y;
+        mi(2, 2) = 1;
 
         return this->stack(mr, mi);
     }
@@ -148,38 +145,38 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (scale.x * x, scale.y * y) assuming scale.x * scale.y != 0
      */
-    Transform2D scale(const Vec2f& scale) {
+    Transform2D scale(const Vec2<T>& scale) {
         return this->scale(scale.x, scale.y);
     }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y') = (x + sh_x * y, y)
+     * (x', y') = (x + t * y, y)
      */
-    Transform2D shearX(const float sh_x) {
-        const auto a = Vec3f{1.0f, sh_x, 0.0f};
-        const auto b = Vec3f{0.0f, 1.0f, 0.0f};
-        const auto c = Vec3f{0.0f, 0.0f, 1.0f};
-        const auto mr = Mat3x3f::from_rows(a, b, c);
+    Transform2D shearX(const T t) {
+        const auto a = Vec3<T>{1, t, 0};
+        const auto b = Vec3<T>{0, 1, 0};
+        const auto c = Vec3<T>{0, 0, 1};
+        const auto mr = Mat3x3<T>::from_rows(a, b, c);
 
-        auto mi = Mat3x3f{mr};
-        mi(0, 1) = -sh_x;
+        auto mi = Mat3x3<T>{mr};
+        mi(0, 1) *= -1;
 
         return this->stack(mr, mi);
     }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y') = (x, y + sh_y * x)
+     * (x', y') = (x, y + t * x)
      */
-    Transform2D shearY(const float sh_y) {
-        const auto a = Vec3f{1.0f, 0.f, 0.f};
-        const auto b = Vec3f{sh_y, 1.f, 0.f};
-        const auto c = Vec3f{0.0f, 0.f, 1.f};
-        const auto mr = Mat3x3f::from_rows(a, b, c);
+    Transform2D shearY(const T t) {
+        const auto a = Vec3<T>{1, 0, 0};
+        const auto b = Vec3<T>{t, 1, 0};
+        const auto c = Vec3<T>{0, 0, 1};
+        const auto mr = Mat3x3<T>::from_rows(a, b, c);
 
-        auto mi = Mat3x3f{mr};
-        mi(1, 0) = -sh_y;
+        auto mi = Mat3x3<T>{mr};
+        mi(1, 0) *= -1;
 
         return this->stack(mr, mi);
     }
@@ -188,39 +185,37 @@ public:
 /**
  * @brief 3D transformation class
  */
+template <typename T>
+    requires(std::is_floating_point_v<T>)
 class Transform3D {
-public:
-    static inline const Vec3f RIGHT = Vec3f{1.f, 0.f, 0.f};  ///< world right
-    static inline const Vec3f UP = Vec3f{0.f, 1.f, 0.f};     ///< world up
-    static inline const Vec3f FORWARD =
-            Vec3f{0.f, 0.f, -1.f};  ///< world forward
-
 private:
-    Mat4x4f m_mat;      ///< underlying matrix
-    Mat4x4f m_mat_inv;  ///< underlying inverse matrix
+    Mat4x4<T> m_mat;      ///< underlying matrix
+    Mat4x4<T> m_mat_inv;  ///< underlying inverse matrix
 
     /**
      * Create a new transform object
      */
     Transform3D()
-            : m_mat{Mat4x4f::identity()}, m_mat_inv{Mat4x4f::identity()} {}
+            : m_mat{Mat4x4<T>::identity()}, m_mat_inv{Mat4x4<T>::identity()} {}
 
     /**
      * Apply transformation to a 3D Vector
      */
-    Vec3f apply(const Vec3f& v) const { return Vec3f{m_mat * Vec4f{v, 1.f}}; }
+    Vec3<T> apply(const Vec3<T>& v) const {
+        return Vec3<T>{m_mat * Vec4<T>{v, 1}};
+    }
 
     /**
      * Invert the transformation applied to a 3D Vector
      */
-    Vec3f invert(const Vec3f& v) const {
-        return Vec3f{m_mat_inv * Vec4f{v, 1.f}};
+    Vec3<T> invert(const Vec3<T>& v) const {
+        return Vec3<T>{m_mat_inv * Vec4<T>{v, 1}};
     }
 
     /**
      * Stack a new transformation matrix and it's inverse on top
      */
-    Transform3D stack(const Mat4x4f& mat, const Mat4x4f& inv_mat) {
+    Transform3D stack(const Mat4x4<T>& mat, const Mat4x4<T>& inv_mat) {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
@@ -237,14 +232,12 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
      */
-    Transform3D translate(const float delta_x,
-                          const float delta_y,
-                          const float delta_z) {
-        const auto v = Vec4f{delta_x, delta_y, delta_z, 1.f};
-        const auto mr = Mat4x4f::identity().column_set(3, v);
+    Transform3D translate(const T delta_x, const T delta_y, const T delta_z) {
+        const auto v = Vec4<T>{delta_x, delta_y, delta_z, 1};
+        const auto mr = Mat4x4<T>::identity().column_set(3, v);
 
-        const auto vi = Vec4f{-delta_x, -delta_y, -delta_z, 1.f};
-        const auto mi = Mat4x4f::identity().column_set(3, vi);
+        const auto vi = Vec4<T>{-delta_x, -delta_y, -delta_z, 1};
+        const auto mi = Mat4x4<T>::identity().column_set(3, vi);
 
         return this->stack(mr, mi);
     }
@@ -253,94 +246,95 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + delta.x, y + delta.y, z + delta.z)
      */
-    Transform3D translate(const Vec3f& delta) {
+    Transform3D translate(const Vec3<T>& delta) {
         return this->translate(delta.x, delta.y, delta.z);
     }
 
-    /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = [right | up | forward] * (x, y, z) with:
-     * - right   = up_dir x forward
-     * - up      = forward x right
-     * following right-hand-rule.
-     *
-     * @note With OpenGL conventions, camera forward should be -FORWARD by
-     * default.
-     */
-    Transform3D rotate(const Vec3f& forward_,
-                       const Vec3f& up_dir_,
-                       bool is_normalized = false) {
-        const auto up_dir = is_normalized ? up_dir_ : up_dir_.normalized();
-        const auto forward = is_normalized ? forward_ : forward_.normalized();
-
-        const auto right = cross(up_dir, forward);
-        const auto up = cross(forward, right);
-
-        const auto mr = Mat4x4f{Mat3x3f::from_rows(right, up, forward),
-                                Vec4f{0.f, 0.f, 0.f, 1.f}};
-        const auto mi = mr.transposed();
-
-        return this->stack(mr, mi);
-    }
-
-    /**
-     * Rotate by `angle_x` radians measured from RIGHT towards FORWARD
-     */
-    Transform3D rotateX(const float angle_x) {
-        const auto up_dir_y = std::cos(angle_x);
-        const auto up_dir_z = std::sin(angle_x);
-        const auto forward_y = -up_dir_z;
-        const auto forward_z = up_dir_y;
-
-        return this->rotate(Vec3f{0.f, forward_y, forward_z},
-                            Vec3f{0.f, up_dir_y, up_dir_z}, true);
-    }
-
-    /**
-     * Rotate by `angle_y` radians measured from UP towards FORWARD
-     */
-    Transform3D rotateY(const float angle_y) {
-        const auto up_dir = UP;
-        const auto forward_x = std::cos(angle_y);
-        const auto forward_z = std::sin(angle_y);
-
-        return this->rotate(Vec3f{forward_x, 0.f, forward_z}, up_dir, true);
-    }
-
-    /**
-     * Rotate by `angle_z` radians measured from RIGHT towards UP
-     */
-    Transform3D rotateZ(const float angle_z) {
-        const auto forward = FORWARD;
-        const auto up_dir_x = std::cos(angle_z);
-        const auto up_dir_y = std::sin(angle_z);
-
-        return this->rotate(forward, Vec3f{up_dir_x, up_dir_y, 0.f}, true);
-    }
+    // /**
+    //  * Stack the transformation equivalent to:
+    //  * (x', y', z') = [right | up | forward] * (x, y, z) with:
+    //  * - right   = up_dir x forward
+    //  * - up      = forward x right
+    //  * following right-hand-rule.
+    //  *
+    //  * @note With OpenGL conventions, camera forward should be -FORWARD by
+    //  * default.
+    //  */
+    // Transform3D rotate(const Vec3<T>& forward_,
+    //                    const Vec3<T>& up_dir_,
+    //                    bool is_normalized = false) {
+    //     const auto up_dir = is_normalized ? up_dir_ : up_dir_.normalized();
+    //     const auto forward = is_normalized ? forward_ :
+    //     forward_.normalized();
+    //
+    //     const auto right = cross(up_dir, forward);
+    //     const auto up = cross(forward, right);
+    //
+    //     const auto mr = Mat4x4<T>{Mat3x3<T>::from_rows(right, up, forward),
+    //                               Vec4<T>{0, 0, 0, 1}};
+    //     const auto mi = mr.transposed();
+    //
+    //     return this->stack(mr, mi);
+    // }
+    //
+    // /**
+    //  * Rotate by `angle_x` radians measured from RIGHT towards FORWARD
+    //  */
+    // Transform3D rotateX(const T angle_x) {
+    //     const auto up_dir_y = std::cos(angle_x);
+    //     const auto up_dir_z = std::sin(angle_x);
+    //     const auto forward_y = -up_dir_z;
+    //     const auto forward_z = up_dir_y;
+    //
+    //     return this->rotate(Vec3<T>{0, forward_y, forward_z},
+    //                         Vec3<T>{0, up_dir_y, up_dir_z}, true);
+    // }
+    //
+    // /**
+    //  * Rotate by `angle_y` radians measured from UP towards FORWARD
+    //  */
+    // Transform3D rotateY(const T angle_y) {
+    //     const auto up_dir = UP;
+    //     const auto forward_x = std::cos(angle_y);
+    //     const auto forward_z = std::sin(angle_y);
+    //
+    //     return this->rotate(Vec3<T>{forward_x, 0, forward_z}, up_dir,
+    //     true);
+    // }
+    //
+    // /**
+    //  * Rotate by `angle_z` radians measured from RIGHT towards UP
+    //  */
+    // Transform3D rotateZ(const T angle_z) {
+    //     const auto forward = FORWARD;
+    //     const auto up_dir_x = std::cos(angle_z);
+    //     const auto up_dir_y = std::sin(angle_z);
+    //
+    //     return this->rotate(forward, Vec3<T>{up_dir_x, up_dir_y, 0},
+    //     true);
+    // }
 
     /**
      * Stack the transformation equivalent to:
      * (x', y', z') = (scale_x * x, scale_y * y, scale_z * z) assuming
      * scale_x * scale_y * scale_z != 0
      */
-    Transform3D scale(const float scale_x,
-                      const float scale_y,
-                      const float scale_z) {
-        assert(scale_x != 0.f);
-        assert(scale_y != 0.f);
-        assert(scale_z != 0.f);
+    Transform3D scale(const T scale_x, const T scale_y, const T scale_z) {
+        assert(scale_x != 0);
+        assert(scale_y != 0);
+        assert(scale_z != 0);
 
-        Mat4x4f mr{}, mi{};
+        Mat4x4<T> mr{}, mi{};
 
         mr(0, 0) = scale_x;
         mr(1, 1) = scale_y;
         mr(2, 2) = scale_z;
-        mr(3, 3) = 1.f;
+        mr(3, 3) = 1;
 
-        mi(0, 0) = 1.f / scale_x;
-        mi(1, 1) = 1.f / scale_y;
-        mi(2, 2) = 1.f / scale_z;
-        mi(3, 3) = 1.f;
+        mi(0, 0) = 1 / scale_x;
+        mi(1, 1) = 1 / scale_y;
+        mi(2, 2) = 1 / scale_z;
+        mi(3, 3) = 1;
 
         return this->stack(mr, mi);
     }
@@ -350,63 +344,60 @@ private:
      * (x', y', z') = (scale.x * x, scale.y * y, scale.z * z) assuming
      * scale.x * scale.y * scale.z != 0
      */
-    Transform3D scale(const Vec3f& scale) {
+    Transform3D scale(const Vec3<T>& scale) {
         return this->scale(scale.x, scale.y, scale.z);
     }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y', z') = (x + sh_x * z, y + sh_y * z, z)
+     * (x', y', z') = (x + s * z, y + t * z, z)
      */
-    Transform3D shearXY(const float sh_x, const float sh_y) {
-        auto a = Vec4f{1.f, 0.f, sh_x, 0.f};
-        auto b = Vec4f{0.f, 1.f, sh_y, 0.f};
-        auto c = Vec4f{0.f, 0.f, 1.0f, 0.f};
-        auto d = Vec4f{0.f, 0.f, 0.0f, 1.f};
+    Transform3D shearXY(const T s, const T t) {
+        const auto a = Vec4<T>{1, 0, s, 0};
+        const auto b = Vec4<T>{0, 1, t, 0};
+        const auto c = Vec4<T>{0, 0, 1, 0};
+        const auto d = Vec4<T>{0, 0, 0, 1};
+        const auto mr = Mat4x4<T>::from_rows(a, b, c, d);
 
-        auto mr = Mat4x4f::from_rows(a, b, c, d);
-
-        auto mi = Mat4x4f{mr};
-        mi(0, 2) = -sh_x;
-        mi(1, 2) = -sh_y;
+        auto mi = Mat4x4<T>{mr};
+        mi(0, 2) *= -1;
+        mi(1, 2) *= -1;
 
         return this->stack(mr, mi);
     }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y', z') = (x + sh_x * y, y, z + sh_z * y)
+     * (x', y', z') = (x + s * y, y, z + t * y)
      */
-    Transform3D shearXZ(const float sh_x, const float sh_z) {
-        auto a = Vec4f{1.f, sh_x, 0.f, 0.f};
-        auto b = Vec4f{0.f, 1.0f, 0.f, 0.f};
-        auto c = Vec4f{0.f, sh_z, 1.f, 0.f};
-        auto d = Vec4f{0.f, 0.0f, 0.f, 1.f};
+    Transform3D shearXZ(const T s, const T t) {
+        const auto a = Vec4<T>{1, s, 0, 0};
+        const auto b = Vec4<T>{0, 1, 0, 0};
+        const auto c = Vec4<T>{0, t, 1, 0};
+        const auto d = Vec4<T>{0, 0, 0, 1};
+        const auto mr = Mat4x4<T>::from_rows(a, b, c, d);
 
-        auto mr = Mat4x4f::from_rows(a, b, c, d);
-
-        auto mi = Mat4x4f{mr};
-        mi(0, 1) = -sh_x;
-        mi(2, 1) = -sh_z;
+        auto mi = Mat4x4<T>{mr};
+        mi(0, 1) *= -1;
+        mi(2, 1) *= -1;
 
         return this->stack(mr, mi);
     }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y', z') = (x, y + sh_y * x, z + sh_z * x)
+     * (x', y', z') = (x, y + s * x, z + t * x)
      */
-    Transform3D shearYZ(const float sh_y, const float sh_z) {
-        auto a = Vec4f{1.0f, 0.f, 0.f, 0.f};
-        auto b = Vec4f{sh_y, 1.f, 0.f, 0.f};
-        auto c = Vec4f{sh_z, 0.f, 1.f, 0.f};
-        auto d = Vec4f{0.0f, 0.f, 0.f, 1.f};
+    Transform3D shearYZ(const T s, const T t) {
+        const auto a = Vec4<T>{1, 0, 0, 0};
+        const auto b = Vec4<T>{s, 1, 0, 0};
+        const auto c = Vec4<T>{t, 0, 1, 0};
+        const auto d = Vec4<T>{0, 0, 0, 1};
+        const auto mr = Mat4x4<T>::from_rows(a, b, c, d);
 
-        auto mr = Mat4x4f::from_rows(a, b, c, d);
-
-        auto mi = Mat4x4f{mr};
-        mi(1, 0) = -sh_y;
-        mi(2, 0) = -sh_z;
+        auto mi = Mat4x4<T>{mr};
+        mi(1, 0) *= -1;
+        mi(2, 0) *= -1;
 
         return this->stack(mr, mi);
     }

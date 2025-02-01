@@ -1,24 +1,36 @@
 
 #include <iostream>
 
+#include "math/Complex.h"
 #include "math/Transform.h"
 
 using namespace asciirast::math;
 
 int main() {
-    auto v = Vec<4, float>{1.f, 2.f, 3.f, 4.f};
+    Transform2D<float> t{};
+    t.rotate_counterclockwise(Angle<float>::from_deg(45));
+    t.rotate_counterclockwise(Angle<float>::from_deg(45));
+    t.rotate_counterclockwise(Angle<float>::from_deg(45));
+    t.rotate_counterclockwise(Angle<float>::from_deg(45));
+    t.rotate_counterclockwise(Angle<float>::from_deg(45));
 
-    // std::cout << Vec<3, float>{m.column_range(0)} << "\n";
-    // std::cout << m.column_get(1) << "\n";
-    // std::cout << m.column_get(2) << "\n";
+    auto v = Vec2<float>{1.f, 0.f};
 
-    auto m = Mat<4, 4, float, true>::from_columns(v, v, v);
-    std::cout << m << "\n\n";
+    std::cout << t.apply(v);
 
-    auto t = Transform2D();
-    t.translate(0, 0).rotate_clockwise(1).scale(1, 2);
-
-    std::cout << (m * 5.f) * v << "\n\n";
+    // auto v = Vec<4, float>{1.f, 2.f, 3.f, 4.f};
+    //
+    // // std::cout << Vec<3, float>{m.column_range(0)} << "\n";
+    // // std::cout << m.column_get(1) << "\n";
+    // // std::cout << m.column_get(2) << "\n";
+    //
+    // auto m = Mat<4, 4, float, true>::from_columns(v, v, v);
+    // std::cout << m << "\n\n";
+    //
+    // auto t = Transform2D();
+    // t.translate(0, 0).rotate_clockwise(1).scale(1, 2);
+    //
+    // std::cout << (m * 5.f) * v << "\n\n";
 
     // Vec<2, int> w = v.xy;
 

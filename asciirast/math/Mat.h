@@ -68,6 +68,22 @@ struct mat_printer;
  * @tparam T                Type of elements
  * @tparam is_column_major  Whether the matrix is in column major
  */
+template <std::size_t M_y,
+          std::size_t N_x,
+          typename T,
+          bool is_column_major = true>
+    requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
+class Mat;
+
+template <typename T>
+using Mat2x2 = Mat<2, 2, T, true>;      ///< 2x2 column-major matrix
+
+template <typename T>
+using Mat3x3 = Mat<3, 3, T, true>;  ///< 3x3 float column-major matrix
+
+template <typename T>
+using Mat4x4 = Mat<4, 4, float, true>;  ///< 4x4 float column-major matrix
+
 template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
     requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
 class Mat {

@@ -54,7 +54,12 @@ public:
     /**
      * @brief Convert this to a temporary vector copy
      */
-    V vec() const { return V{*this}; }
+    V as_vec() const { return V{*this}; }
+
+    /**
+     * @brief Unary minus vector operator
+     */
+    V operator-() const { return T{-1} * as_vec(); }
 
     /**
      * @brief Index the swizzled component.
@@ -227,9 +232,7 @@ public:
     /**
      * @brief Assignment from number
      */
-    T& operator=(const T value) {
-        return (m_components[index] = value);
-    }
+    T& operator=(const T value) { return (m_components[index] = value); }
 };
 
 }  // namespace asciirast::math
