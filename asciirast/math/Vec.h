@@ -491,21 +491,22 @@ public:
         requires(N == 3)
     {
         /*
-            Quick verification:
-            det([[lhs.x, [rhs.x, [x,        det([[lhs.x, [rhs.x,
-                  lhs.y,  rhs.y,  y,  = (+)       lhs.y], rhs.y]])
-                  lhs.z], rhs.z], z]]
-                                        (-) det([[lhs.x, [rhs.x,
-                                                  lhs.z], rhs.z]])
-
-                                        (+) det([[lhs.x, [rhs.x,
-                                                  lhs.y]  rhs.y]])
+            det([   YZ,    ZX,    XY],
+                [lhs.x, lhs.y, lhs.z],
+                [rhs.x, rhs.y, rhs.z]])
+            =
+                YZ det([lhs.y, lhs.z],
+                       [rhs.y, rhs.z])
+              - ZX det([lhs.x, lhs.z],
+                       [rhs.x, rhs.z])
+              + XY det([lhs.x, lhs.y],
+                       [lhs.x, rhs.y])
         */
-        const T x = lhs.x * rhs.y - lhs.y * rhs.x;
-        const T y = lhs.z * rhs.x - lhs.x * rhs.z;
-        const T z = lhs.x * rhs.y - lhs.x * rhs.y;
+        const T YZ_magnitude = lhs.y * rhs.z - lhs.y * rhs.z;
+        const T ZX_magnitude = lhs.z * rhs.x - lhs.x * rhs.z;
+        const T XY_magnitude = lhs.x * rhs.y - lhs.x * rhs.y;
 
-        return Vec{x, y, z};
+        return Vec{YZ_magnitude, ZX_magnitude, XY_magnitude};
     }
 
     /**
@@ -514,6 +515,12 @@ public:
     friend Angle<T> angle(const Vec& lhs, const Vec& rhs)
         requires(N == 2 && std::is_floating_point_v<T>)
     {
+        /*
+            atan2(x,y)        = tan^-1(x/y) [with sign corrections]
+            theta             = angle between lhs and rhs
+            cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
+            dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
+        */
         return Angle<T>::from_rad(std::atan2(cross(lhs, rhs), dot(lhs, rhs)));
     }
 
