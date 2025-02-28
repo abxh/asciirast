@@ -22,10 +22,11 @@ namespace asciirast::math {
  * @tparam N    Number of components in the vector
  * @tparam T    Type of components
  */
-template <template <std::size_t, typename> class Vec, std::size_t N, typename T>
-class VecBase {
+template<template<std::size_t, typename> class Vec, std::size_t N, typename T>
+class VecBase
+{
 public:
-    std::array<T, N> m_components;  ///< array of components
+    std::array<T, N> m_components; ///< array of components
 };
 
 /**
@@ -37,17 +38,19 @@ public:
  * @tparam Vec  The vector class as a type, unintansiated.
  * @tparam T    Type of components
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 1, T> {
+template<template<std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 1, T>
+{
 private:
     static constexpr std::size_t N = 1;
 
-    template <std::size_t... Indicies>
+    template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    union {
-        std::array<T, N> m_components;  ///< array of components
+    union
+    {
+        std::array<T, N> m_components; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x} of max size 4 as members.
@@ -74,17 +77,19 @@ public:
  * @tparam Vec  The vector class as a type, unintansiated.
  * @tparam T    Type of components
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 2, T> {
+template<template<std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 2, T>
+{
 private:
     static constexpr std::size_t N = 2;
 
-    template <std::size_t... Indicies>
+    template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    union {
-        std::array<T, N> m_components;  ///< array of components
+    union
+    {
+        std::array<T, N> m_components; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y} of max size 4 as members.
@@ -141,17 +146,19 @@ public:
  * @tparam Vec  The vector class as a type, unintansiated.
  * @tparam T    Type of components
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 3, T> {
+template<template<std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 3, T>
+{
 private:
     static constexpr std::size_t N = 3;
 
-    template <std::size_t... Indicies>
+    template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    union {
-        std::array<T, N> m_components;  ///< array of components
+    union
+    {
+        std::array<T, N> m_components; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y, z} of max size 4 as members.
@@ -299,17 +306,19 @@ public:
  * @tparam Vec  The vector class as a type, unintansiated.
  * @tparam T    Type of components
  */
-template <template <std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 4, T> {
+template<template<std::size_t, typename> class Vec, typename T>
+class VecBase<Vec, 4, T>
+{
 private:
     static constexpr std::size_t N = 4;
 
-    template <std::size_t... Indicies>
+    template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
-    union {
-        std::array<T, N> m_components;  ///< array of components
+    union
+    {
+        std::array<T, N> m_components; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y, z, w} of max size 4.
@@ -669,4 +678,4 @@ public:
     };
 };
 
-}  // namespace asciirast::math
+} // namespace asciirast::math

@@ -1,9 +1,6 @@
 /**
  * @file Mat.h
- * @brief File with definition of the (basic) matrix class
- *
- * To learn more about the difference between row-major and column major, see:
- * https://en.wikipedia.org/wiki/row-_and_column-major_order
+ * @brief File with definition of a (basic) matrix class
  */
 
 #pragma once
@@ -31,11 +28,11 @@ namespace asciirast::math {
  * @tparam Args             Arguments consisting of vectors and smaller
  * matrices.
  */
-template <std::size_t M_y,
-          std::size_t N_x,
-          typename T,
-          bool is_column_major,
-          typename... Args>
+template<std::size_t M_y,
+         std::size_t N_x,
+         typename T,
+         bool is_column_major,
+         typename... Args>
 struct mat_constructible_from;
 
 /**
@@ -46,7 +43,7 @@ struct mat_constructible_from;
  * @tparam T                Type of elements
  * @tparam is_column_major  Whether the matrix is in column major
  */
-template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
 struct mat_initializer;
 
 /**
@@ -57,7 +54,7 @@ struct mat_initializer;
  * @tparam T                Type of elements
  * @tparam is_column_major  Whether the matrix is in column major
  */
-template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
 struct mat_printer;
 
 /**
@@ -68,33 +65,19 @@ struct mat_printer;
  * @tparam T                Type of elements
  * @tparam is_column_major  Whether the matrix is in column major
  */
-template <std::size_t M_y,
-          std::size_t N_x,
-          typename T,
-          bool is_column_major = true>
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
     requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
-class Mat;
-
-template <typename T>
-using Mat2x2 = Mat<2, 2, T, true>;      ///< 2x2 column-major matrix
-
-template <typename T>
-using Mat3x3 = Mat<3, 3, T, true>;  ///< 3x3 float column-major matrix
-
-template <typename T>
-using Mat4x4 = Mat<4, 4, float, true>;  ///< 4x4 float column-major matrix
-
-template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
-    requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
-class Mat {
+class Mat
+{
 protected:
-    std::array<T, M_y * N_x> m_elements;  ///< 1D array of elements
+    std::array<T, M_y * N_x> m_elements; ///< 1D array of elements
 
 public:
     /**
      * @brief Map a 2d matrix index to a 1d array index.
      */
-    static std::size_t map_2d_index(const std::size_t y, const std::size_t x) {
+    static std::size_t map_2d_index(const std::size_t y, const std::size_t x)
+    {
         if constexpr (is_column_major) {
             return M_y * x + y;
         } else {
@@ -108,38 +91,38 @@ public:
     static Mat identity()
         requires(N_x == M_y)
     {
-        return Mat{T{1}};
+        return Mat{ T{ 1 } };
     }
 
     /**
      * @brief Create matrix from columns
      */
-    template <typename... Args>
+    template<typename... Args>
         requires(vec_info<Args>::value && ...)
     static Mat from_columns(const Args&... args)
         requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) &&
                  ((vec_info<Args>::size <= M_y) && ...))
     {
         if constexpr (is_column_major) {
-            return Mat<M_y, N_x, T, is_column_major>{args...};
+            return Mat<M_y, N_x, T, is_column_major>{ args... };
         } else {
-            return Mat<N_x, M_y, T, is_column_major>{args...}.transposed();
+            return Mat<N_x, M_y, T, is_column_major>{ args... }.transposed();
         }
     }
 
     /**
      * @brief Create matrix from rows
      */
-    template <typename... Args>
+    template<typename... Args>
         requires(vec_info<Args>::value && ...)
     static Mat from_rows(const Args&... args)
         requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) &&
                  ((vec_info<Args>::size <= N_x) && ...))
     {
         if constexpr (is_column_major) {
-            return Mat<N_x, M_y, T, is_column_major>{args...}.transposed();
+            return Mat<N_x, M_y, T, is_column_major>{ args... }.transposed();
         } else {
-            return Mat<M_y, N_x, T, is_column_major>{args...};
+            return Mat<M_y, N_x, T, is_column_major>{ args... };
         }
     }
 
@@ -147,16 +130,18 @@ public:
     /**
      * @brief Default constructor. Set all values to zero.
      */
-    constexpr Mat() {
+    constexpr Mat()
+    {
         for (auto& x : this->range()) {
-            x = T{0};
+            x = T{ 0 };
         }
     }
 
     /**
      * @brief Initiate diagonal elements to some value
      */
-    explicit Mat(const T diagonal_element) {
+    explicit Mat(const T diagonal_element)
+    {
         for (auto& x : this->diagonal_range()) {
             x = diagonal_element;
         }
@@ -166,8 +151,8 @@ public:
      * @brief Construct vector from a mix of values and (smaller) vectors,
      * padding the rest of the vector with zeroes.
      */
-    template <typename... Args>
-        requires(sizeof...(Args) > 0)
+    template<typename... Args>
+        requires(sizeof...(Args) > 1)
     explicit Mat(const Args&... args)
         requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::
                          value)
@@ -179,10 +164,10 @@ public:
     /**
      * @brief Construct matrix from input range.
      */
-    explicit Mat(std::ranges::input_range auto it) {
-        for (auto x : this->range()) {
-            x = T{0};
-        }
+    explicit Mat(std::ranges::input_range auto&& it)
+    {
+        assert(this->size() == std::ranges::distance(it) &&
+               "range size is same as matrix size");
         for (auto [x, y] : std::views::zip(this->range(), it)) {
             x = y;
         }
@@ -212,7 +197,8 @@ public:
     /**
      * @brief Index the underlying array
      */
-    T& operator[](const std::size_t i) {
+    T& operator[](const std::size_t i)
+    {
         assert(i < this->size() && "index is inside bounds");
         return m_elements[i];
     }
@@ -220,44 +206,54 @@ public:
     /**
      * @brief Index the underlying array
      */
-    T operator[](const std::size_t i) const {
+    T operator[](const std::size_t i) const
+    {
         assert(i < this->size() && "index is inside bounds");
+
         return m_elements[i];
     }
 
     /**
      * @brief Index the matrix
      */
-    T& operator()(const std::size_t y, const std::size_t x) {
+    T& operator()(const std::size_t y, const std::size_t x)
+    {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
+
         return m_elements[map_2d_index(y, x)];
     }
 
     /**
      * @brief Index the matrix
      */
-    T operator()(const std::size_t y, const std::size_t x) const {
+    T operator()(const std::size_t y, const std::size_t x) const
+    {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
+
         return m_elements[map_2d_index(y, x)];
     }
 
     /**
      * @brief Print the matrix
      */
-    friend std::ostream& operator<<(std::ostream& out, const Mat& m) {
+    friend std::ostream& operator<<(std::ostream& out, const Mat& m)
+    {
         return mat_printer<M_y, N_x, T, is_column_major>::print(out, m);
     }
 
     /**
      * @brief Get the transpose of the matrix
      */
-    Mat<N_x, M_y, T, is_column_major> transposed() const {
-        auto r = std::views::cartesian_product(std::views::iota(0U, M_y),
-                                               std::views::iota(0U, N_x));
+    Mat<N_x, M_y, T, is_column_major> transposed() const
+    {
         Mat<N_x, M_y, T, is_column_major> out{};
-        for (auto [y, x] : r) {
+
+        auto indicies = std::views::cartesian_product(
+                std::views::iota(0U, M_y), std::views::iota(0U, N_x));
+
+        for (auto [y, x] : indicies) {
             out(x, y) = (*this)(y, x);
         }
         return out;
@@ -266,14 +262,16 @@ public:
     /**
      * @brief Get range over matrix elements in the current storage order.
      */
-    std::ranges::view auto range() {
+    std::ranges::view auto range()
+    {
         return std::ranges::views::all(m_elements);
     }
 
     /**
      * @brief Get range over matrix elements in the current storage order.
      */
-    std::ranges::view auto range() const {
+    std::ranges::view auto range() const
+    {
         return std::ranges::views::all(m_elements);
     }
 
@@ -284,11 +282,13 @@ public:
         requires(is_column_major)
     {
         assert(y < this->row_count() && "index is inside bounds");
+
+        auto func = [this, y](const std::size_t x) -> T& {
+            return m_elements[map_2d_index(y, x)];
+        };
+
         return std::ranges::views::iota(0U, N_x) |
-               std::ranges::views::transform(
-                       [this, y](const std::size_t x) -> T& {
-                           return m_elements[map_2d_index(y, x)];
-                       });
+               std::ranges::views::transform(func);
     }
 
     /**
@@ -298,11 +298,13 @@ public:
         requires(is_column_major)
     {
         assert(y < this->row_count() && "index is inside bounds");
+
+        auto func = [this, y](const std::size_t x) -> T {
+            return m_elements[map_2d_index(y, x)];
+        };
+
         return std::ranges::views::iota(0U, N_x) |
-               std::ranges::views::transform(
-                       [this, y](const std::size_t x) -> T {
-                           return m_elements[map_2d_index(y, x)];
-                       });
+               std::ranges::views::transform(func);
     }
 
     /**
@@ -312,7 +314,8 @@ public:
         requires(!is_column_major)
     {
         assert(y < this->row_count() && "index is inside bounds");
-        return this->range() | std::ranges::views::drop(N_x * y) |
+
+        return std::ranges::views::drop(this->range(), N_x * y) |
                std::ranges::views::take(N_x);
     }
 
@@ -323,7 +326,8 @@ public:
         requires(!is_column_major)
     {
         assert(y < this->row_count() && "index is inside bounds");
-        return this->range() | std::ranges::views::drop(N_x * y) |
+
+        return std::ranges::views::drop(this->range(), N_x * y) |
                std::ranges::views::take(N_x);
     }
 
@@ -334,11 +338,13 @@ public:
         requires(!is_column_major)
     {
         assert(x < this->column_count() && "index is inside bounds");
+
+        auto func = [this, x](const std::size_t y) -> T& {
+            return m_elements[map_2d_index(y, x)];
+        };
+
         return std::ranges::views::iota(0U, M_y) |
-               std::ranges::views::transform(
-                       [this, x](const std::size_t y) -> T& {
-                           return m_elements[map_2d_index(y, x)];
-                       });
+               std::ranges::views::transform(func);
     }
 
     /**
@@ -348,11 +354,13 @@ public:
         requires(!is_column_major)
     {
         assert(x < this->column_count() && "index is inside bounds");
+
+        auto func = [this, x](const std::size_t y) -> T {
+            return m_elements[map_2d_index(y, x)];
+        };
+
         return std::ranges::views::iota(0U, M_y) |
-               std::ranges::views::transform(
-                       [this, x](const std::size_t y) -> T {
-                           return m_elements[map_2d_index(y, x)];
-                       });
+               std::ranges::views::transform(func);
     }
 
     /**
@@ -362,7 +370,8 @@ public:
         requires(is_column_major)
     {
         assert(x < this->column_count() && "index is inside bounds");
-        return this->range() | std::ranges::views::drop(M_y * x) |
+
+        return std::ranges::views::drop(this->range(), M_y * x) |
                std::ranges::views::take(M_y);
     }
 
@@ -373,7 +382,8 @@ public:
         requires(is_column_major)
     {
         assert(x < this->column_count() && "index is inside bounds");
-        return this->range() | std::ranges::views::drop(M_y * x) |
+
+        return std::ranges::views::drop(this->range(), M_y * x) |
                std::ranges::views::take(M_y);
     }
 
@@ -381,39 +391,50 @@ public:
      * @brief Get range over diagonal elements.
      * @todo Support other diagonals than the main diagonal?
      */
-    std::ranges::view auto diagonal_range() {
+    std::ranges::view auto diagonal_range()
+    {
+        auto func = [this](const std::size_t i) -> T& {
+            return m_elements[map_2d_index(i, i)];
+        };
+
         return std::ranges::views::iota(0U, std::min(N_x, M_y)) |
-               std::ranges::views::transform([this](const std::size_t i) -> T& {
-                   return m_elements[map_2d_index(i, i)];
-               });
+               std::ranges::views::transform(func);
     }
 
     /**
      * @brief Get range over diagonal elements.
      */
-    std::ranges::view auto diagonal_range() const {
+    std::ranges::view auto diagonal_range() const
+    {
+        auto func = [this](const std::size_t i) -> T {
+            return m_elements[map_2d_index(i, i)];
+        };
+
         return std::ranges::views::iota(0U, std::min(N_x, M_y)) |
-               std::ranges::views::transform([this](const std::size_t i) -> T {
-                   return m_elements[map_2d_index(i, i)];
-               });
+               std::ranges::views::transform(func);
     }
 
 public:
     /**
      * @brief Get y'th row
      */
-    Vec<N_x, T> row_get(const std::size_t y) const {
+    Vec<N_x, T> row_get(const std::size_t y) const
+    {
         assert(y < M_y && "index is inside bounds");
-        return Vec<N_x, T>{this->row_range(y)};
+
+        return Vec<N_x, T>{ this->row_range(y) };
     }
 
     /**
      * @brief Set y'th row
      */
-    Mat row_set(const std::size_t y, const Vec<N_x, T>& v) {
+    Mat row_set(const std::size_t y, const Vec<N_x, T>& v)
+    {
         assert(y < M_y && "index is inside bounds");
-        for (std::tuple<T&, const T> t :
-             std::views::zip(this->row_range(y), v.range())) {
+
+        auto view = std::views::zip(this->row_range(y), v.range());
+
+        for (std::tuple<T&, const T> t : view) {
             auto [a, b] = t;
             a = b;
         }
@@ -423,18 +444,23 @@ public:
     /**
      * @brief Get x'th column
      */
-    Vec<M_y, T> column_get(const std::size_t x) const {
+    Vec<M_y, T> column_get(const std::size_t x) const
+    {
         assert(x < N_x && "index is inside bounds");
-        return Vec<M_y, T>{this->column_range(x)};
+
+        return Vec<M_y, T>{ this->column_range(x) };
     }
 
     /**
      * @brief Set x'th column
      */
-    Mat column_set(const std::size_t x, const Vec<M_y, T>& v) {
+    Mat column_set(const std::size_t x, const Vec<M_y, T>& v)
+    {
         assert(x < M_y && "index is inside bounds");
-        for (std::tuple<T&, const T> t :
-             std::views::zip(this->column_range(x), v.range())) {
+
+        auto view = std::views::zip(this->column_range(x), v.range());
+
+        for (std::tuple<T&, const T> t : view) {
             auto [a, b] = t;
             a = b;
         }
@@ -443,77 +469,52 @@ public:
 
 public:
     /**
-     * @brief Compare lexigraphically with other matrix
+     * @brief Check if equal to other matrix
      */
-    friend bool operator<(const Mat& lhs, const Mat& rhs) {
-        return std::ranges::lexicographical_compare(lhs.range(), rhs.range());
-    }
-
-    /**
-     * @brief Compare lexigraphically with other matrix
-     */
-    friend bool operator>(const Mat& lhs, const Mat& rhs) {
-        return std::ranges::lexicographical_compare(rhs.range(), lhs.range());
-    }
-
-    /**
-     * @brief Compare lexigraphically with other matrix
-     */
-    friend bool operator<=(const Mat& lhs, const Mat& rhs) {
-        return !(lhs > rhs);
-    }
-
-    /**
-     * @brief Compare lexigraphically with other matrix
-     */
-    friend bool operator>=(const Mat& lhs, const Mat& rhs) {
-        return !(lhs < rhs);
-    }
-
-    /**
-     * @brief Check if equal to another matrix in terms of bitwise equality.
-     */
-    friend bool operator==(const Mat& lhs, const Mat& rhs) {
+    friend bool operator==(const Mat& lhs, const Mat& rhs)
+        requires(std::is_integral_v<T>)
+    {
         return std::ranges::equal(lhs.range(), rhs.range());
     }
 
     /**
-     * @brief Check if equal to floating type matrix, given a precision for ulps
-     * (units in last place).
-     *
-     * The lower, the more precise --- desirable for small floats.
-     * The higher, the less precise --- desirable for large floats
-     *
-     * Based on:
-     * https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
+     * @brief Check if approximately equal to other matrix
      */
-    friend bool almost_equals(const Mat& lhs,
-                              const Mat& rhs,
-                              const unsigned ulps)
-        requires(std::is_floating_point_v<T>)
+    friend bool operator==(const Mat& lhs, const Mat& rhs)
+        requires(std::is_same_v<T, float>)
     {
-        const T n = static_cast<T>(ulps);
-        auto pred = [=](const T x, const T y) -> bool {
-            T m = std::min(std::fabs(x), std::fabs(y));
-
-            std::size_t exp = m < std::numeric_limits<T>::min()
-                                      ? std::numeric_limits<T>::min_exponent - 1
-                                      : std::ilogb(m);
-
-            auto epsilon = std::numeric_limits<T>::epsilon();
-            auto lhs = std::fabs(x - y);
-            auto rhs = n * std::ldexp(epsilon, exp);
-
-            return lhs <= rhs;
+        auto func = [](const T lhs, const T rhs) -> bool {
+            return almost_equals(lhs, rhs, 9);
         };
-        return std::ranges::equal(lhs.range(), rhs.range(), pred);
+        return std::ranges::equal(lhs.range(), rhs.range(), func);
+    }
+
+    /**
+     * @brief Check if approximately equal to other matrix
+     */
+    friend bool operator==(const Mat& lhs, const Mat& rhs)
+        requires(std::is_same_v<T, double>)
+    {
+        auto func = [](const T lhs, const T rhs) -> bool {
+            return almost_equals(lhs, rhs, 17);
+        };
+        return std::ranges::equal(lhs.range(), rhs.range(), func);
+    }
+
+    /**
+     * @brief Check if approximately not equal to other matrix
+     */
+    friend bool operator!=(const Mat& lhs, const Mat& rhs)
+    {
+        return !(lhs == rhs);
     }
 
 public:
     /**
      * @brief In-place component-wise addition with matrix
      */
-    Mat& operator+=(const Mat& that) {
+    Mat& operator+=(const Mat& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x += y;
         }
@@ -523,7 +524,8 @@ public:
     /**
      * @brief In-place component-wise subtraction with matrix
      */
-    Mat& operator-=(const Mat& that) {
+    Mat& operator-=(const Mat& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x -= y;
         }
@@ -533,7 +535,8 @@ public:
     /**
      * @brief In-place component-wise multiplication with matrix
      */
-    Mat& operator*=(const Mat& that) {
+    Mat& operator*=(const Mat& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x *= y;
         }
@@ -543,8 +546,9 @@ public:
     /**
      * @brief In-place matrix-scalar multiplication
      */
-    Mat& operator*=(const T scalar) {
-        for (auto x : this->range()) {
+    Mat& operator*=(const T scalar)
+    {
+        for (auto& x : this->range()) {
             x *= scalar;
         }
         return *this;
@@ -553,9 +557,11 @@ public:
     /**
      * @brief In-place matrix-scalar division
      */
-    Mat& operator/=(const T scalar) {
+    Mat& operator/=(const T scalar)
+    {
         assert(scalar != 0 && "non-zero division");
-        for (auto x : this->range()) {
+
+        for (auto& x : this->range()) {
             x /= scalar;
         }
         return *this;
@@ -563,44 +569,71 @@ public:
 
 public:
     /**
+     * @brief Unary minus matrix operator
+     */
+    Mat operator-() const
+    {
+        auto func = [](const T x) -> T { return -x; };
+        auto view = std::ranges::views::transform(this->range(), func);
+
+        return Mat{ view };
+    }
+
+    /**
      * @brief Matrix-matrix component-wise addition
      */
-    friend Mat operator+(const Mat& lhs, const Mat& rhs) {
-        return Mat{std::views::zip_transform(std::plus(), lhs.range(),
-                                             rhs.range())};
+    friend Mat operator+(const Mat& lhs, const Mat& rhs)
+    {
+        auto func = std::plus();
+        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+        return Mat{ view };
     }
 
     /**
      * @brief Matrix-matrix component-wise subtraction
      */
-    friend Mat operator-(const Mat& lhs, const Mat& rhs) {
-        return Mat{std::views::zip_transform(std::minus(), lhs.range(),
-                                             rhs.range())};
+    friend Mat operator-(const Mat& lhs, const Mat& rhs)
+    {
+        auto func = std::minus();
+        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+        return Mat{ view };
     }
 
     /**
      * @brief Scalar-matrix multiplication
      */
-    friend Mat operator*(const T scalar, const Mat& rhs) {
-        return Mat{std::views::transform(
-                rhs.range(), [=](const T x) { return scalar * x; })};
+    friend Mat operator*(const T scalar, const Mat& rhs)
+    {
+        auto func = [=](const T x) -> T { return scalar * x; };
+        auto view = std::views::transform(rhs.range(), func);
+
+        return Mat{ view };
     }
 
     /**
      * @brief Matrix-scalar multiplication
      */
-    friend Mat operator*(const Mat& lhs, const T scalar) {
-        return Mat{std::views::transform(
-                lhs.range(), [=](const T x) { return x * scalar; })};
+    friend Mat operator*(const Mat& lhs, const T scalar)
+    {
+        auto func = [=](const T x) { return x * scalar; };
+        auto view = std::views::transform(lhs.range(), func);
+
+        return Mat{ view };
     }
 
     /**
      * @brief Matrix-scalar division
      */
-    friend Mat operator/(const Mat& lhs, const T scalar) {
+    friend Mat operator/(const Mat& lhs, const T scalar)
+    {
         assert(scalar != 0 && "non-zero division");
-        return Mat{std::views::transform(
-                lhs.range(), [=](const T x) { return x / scalar; })};
+
+        auto func = [=](const T x) { return x / scalar; };
+        auto view = std::views::transform(lhs.range(), func);
+
+        return Mat{ view };
     }
 
 public:
@@ -612,31 +645,38 @@ public:
      */
     friend Mat<M_y, M_y, T, is_column_major> operator*(
             const Mat<M_y, N_x, T, is_column_major>& lhs,
-            const Mat<N_x, M_y, T, is_column_major>& rhs) {
+            const Mat<N_x, M_y, T, is_column_major>& rhs)
+    {
         Mat<M_y, M_y, T, is_column_major> res{};
+
         if constexpr (is_column_major) {
-            const auto lhs_transposed = lhs.transposed();
+            const auto lhs_T = lhs.transposed();
+
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.column_count(); i++) {
-                for (std::size_t j = 0; j < lhs_transposed.column_count();
-                     j++) {
-                    auto prod = std::ranges::views::zip_transform(
-                            std::multiplies(), rhs.column_range(i),
-                            lhs_transposed.column_range(j));
-                    auto acc = std::ranges::fold_left(prod, T{0}, std::plus());
-                    res[idx++] = acc;
+                for (std::size_t j = 0; j < lhs_T.column_count(); j++) {
+                    res[idx++] = std::ranges::fold_left(
+                            std::ranges::views::zip_transform(
+                                    std::multiplies(),
+                                    rhs.column_range(i),
+                                    lhs_T.column_range(j)),
+                            T{ 0 },
+                            std::plus());
                 }
             }
         } else {
-            const auto rhs_transposed = rhs.transposed();
+            const auto rhs_T = rhs.transposed();
+
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
-                for (std::size_t j = 0; j < rhs_transposed.row_count(); j++) {
-                    auto prod = std::ranges::views::zip_transform(
-                            std::multiplies(), lhs.row_range(i),
-                            rhs_transposed.row_range(j));
-                    auto acc = std::ranges::fold_left(prod, T{0}, std::plus());
-                    res[idx++] = acc;
+                for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
+                    res[idx++] = std::ranges::fold_left(
+                            std::ranges::views::zip_transform(
+                                    std::multiplies(),
+                                    lhs.row_range(i),
+                                    rhs_T.row_range(j)),
+                            T{ 0 },
+                            std::plus());
                 }
             }
         }
@@ -646,22 +686,26 @@ public:
     /**
      * @brief Perform matrix-vector multiplication
      */
-    friend Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_column_major>& lhs,
-                                 const Vec<N_x, T>& rhs) {
+    friend Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_column_major>& mat,
+                                 const Vec<N_x, T>& vec)
+    {
         Vec<M_y, T> res{};
+
         if constexpr (is_column_major) {
             std::size_t idx = 0;
-            for (size_t x = 0; x < N_x; x++) {
-                for (size_t y = 0; y < M_y; y++) {
-                    res[y] += lhs[idx++] * rhs[x];
+            for (std::size_t x = 0; x < N_x; x++) {
+                for (std::size_t y = 0; y < M_y; y++) {
+                    res[y] += mat[idx++] * vec[x];
                 }
             }
         } else {
-            for (size_t y = 0; y < lhs.row_count(); y++) {
-                auto prod = std::ranges::views::zip_transform(
-                        std::multiplies(), lhs.row_range(y), rhs.range());
-                auto acc = std::ranges::fold_left(prod, T{0}, std::plus());
-                res[y] = acc;
+            for (std::size_t y = 0; y < mat.row_count(); y++) {
+                res[y] = std::ranges::fold_left(
+                        std::ranges::views::zip_transform(std::multiplies(),
+                                                          mat.row_range(y),
+                                                          vec.range()),
+                        T{ 0 },
+                        std::plus());
             }
         }
         return res;
@@ -671,45 +715,53 @@ public:
 /**
  * @brief Matrix information trait
  */
-template <typename TT>
-struct mat_info {
-    using value_type = void;                  ///< value type
-    static constexpr bool value = false;      ///< whether the type is a matrix
-    static constexpr std::size_t height = 0;  ///< matrix height
-    static constexpr std::size_t width = 0;   ///< matrix width
+template<typename TT>
+struct mat_info
+{
+    using value_type = void;                 ///< value type
+    static constexpr bool value = false;     ///< whether the type is a matrix
+    static constexpr std::size_t height = 0; ///< matrix height
+    static constexpr std::size_t width = 0;  ///< matrix width
 };
 
 /**
  * @brief Matrix information trait
  */
-template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
-struct mat_info<Mat<M_y, N_x, T, is_column_major>> {
-    using value_type = T;                ///< value type
-    static constexpr bool value = true;  ///< whether the type is a matrix
-    static constexpr std::size_t height = M_y;  ///< matrix height
-    static constexpr std::size_t width = N_x;   ///< matrix width
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
+struct mat_info<Mat<M_y, N_x, T, is_column_major>>
+{
+    using value_type = T;                      ///< value type
+    static constexpr bool value = true;        ///< whether the type is a matrix
+    static constexpr std::size_t height = M_y; ///< matrix height
+    static constexpr std::size_t width = N_x;  ///< matrix width
 };
 
 /**
  * @brief Trait to check if matrix can constructed from arguments.
  */
-template <std::size_t M_y,
-          std::size_t N_x,
-          typename T,
-          bool is_column_major,
-          typename... Args>
-struct mat_constructible_from {
+template<std::size_t M_y,
+         std::size_t N_x,
+         typename T,
+         bool is_column_major,
+         typename... Args>
+struct mat_constructible_from
+{
 private:
     static constexpr bool accepted_types =
             ((vec_info<Args>::value || mat_info<Args>::value) && ...);
+
     static constexpr std::size_t num_vecs =
             ((vec_info<Args>::value ? 1 : 0) + ...);
+
     static constexpr std::size_t vec_max_length =
-            std::max({vec_info<Args>::size...});
+            std::max({ vec_info<Args>::size... });
+
     static constexpr std::size_t mat_max_width =
-            std::max({mat_info<Args>::width...});
+            std::max({ mat_info<Args>::width... });
+
     static constexpr std::size_t mat_max_height =
-            std::max({mat_info<Args>::height...});
+            std::max({ mat_info<Args>::height... });
+
     static constexpr bool total_area_in_bounds =
             (is_column_major &&
              (std::max(vec_max_length, mat_max_height) <= M_y) &&
@@ -721,12 +773,13 @@ private:
 public:
     static constexpr bool value =
             accepted_types &&
-            total_area_in_bounds;  ///< whether the arguments are of acceptable
-                                   ///< types and total area is inside bounds
+            total_area_in_bounds; ///< whether the arguments are of acceptable
+                                  ///< types and total area is inside bounds
 };
 
-template <std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
-struct mat_initializer {
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
+struct mat_initializer
+{
 public:
     /**
      * @brief Initialize matrix from arguments
@@ -734,7 +787,7 @@ public:
      * @param out   The matrix to initialize
      * @param args  The arguments
      */
-    template <typename... Args>
+    template<typename... Args>
     static constexpr void init_from(Mat<M_y, N_x, T, is_column_major>& out,
                                     const Args&... args)
         requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::
@@ -744,11 +797,11 @@ public:
         init_from_inner(idx, out, args...);
         if constexpr (is_column_major) {
             for (auto i : std::views::iota(idx, out.column_count())) {
-                out.column_set(i, Vec<M_y, T>{T{0}});
+                out.column_set(i, Vec<M_y, T>{ T{ 0 } });
             }
         } else {
             for (auto i : std::views::iota(idx, out.row_count())) {
-                out.row_set(i, Vec<N_x, T>{T{0}});
+                out.row_set(i, Vec<N_x, T>{ T{ 0 } });
             }
         }
     }
@@ -756,53 +809,57 @@ public:
 private:
     static constexpr void init_from_inner(
             std::size_t& idx,
-            Mat<M_y, N_x, T, is_column_major>& out) {
+            Mat<M_y, N_x, T, is_column_major>& out)
+    {
         (void)(idx);
         (void)(out);
     }
-    template <std::size_t M>
+    template<std::size_t M, typename U>
     static constexpr void init_from_inner(
             std::size_t& idx,
             Mat<M_y, N_x, T, is_column_major>& out,
-            const Vec<M, T>& arg,
-            const auto&... rest) {
+            const Vec<M, U>& arg,
+            const auto&... rest)
+    {
         if constexpr (is_column_major) {
-            out.column_set(idx++, Vec<M_y, T>{arg});
+            out.column_set(idx++, Vec<M_y, T>{ arg });
         } else {
-            out.row_set(idx++, Vec<N_x, T>{arg});
+            out.row_set(idx++, Vec<N_x, T>{ arg });
         }
         init_from_inner(idx, out, rest...);
     }
 
-    template <std::size_t M, std::size_t... Is>
+    template<std::size_t M, std::size_t... Is>
         requires(sizeof...(Is) > 1)
     static constexpr void init_from_inner(
             std::size_t& idx,
             Mat<M_y, N_x, T, is_column_major>& out,
             const Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>& arg,
-            const auto&... rest) {
+            const auto&... rest)
+    {
         if constexpr (is_column_major) {
-            out.column_set(idx++, Vec<M_y, T>{arg});
+            out.column_set(idx++, Vec<M_y, T>{ arg });
         } else {
-            out.row_set(idx++, Vec<N_x, T>{arg});
+            out.row_set(idx++, Vec<N_x, T>{ arg });
         }
         init_from_inner(idx, out, rest...);
     }
 
-    template <std::size_t M1_y, std::size_t N1_x>
+    template<std::size_t M1_y, std::size_t N1_x>
     static constexpr void init_from_inner(
             std::size_t& idx,
             Mat<M_y, N_x, T, is_column_major>& out,
             const Mat<M1_y, N1_x, T, is_column_major>& arg,
-            const auto&... rest) {
+            const auto&... rest)
+    {
         if constexpr (is_column_major) {
             for (auto i : std::ranges::views::iota(0U, arg.column_count())) {
-                out.column_set(idx + i, Vec<M_y, T>{arg.column_get(i)});
+                out.column_set(idx + i, Vec<M_y, T>{ arg.column_get(i) });
             }
             idx += arg.column_count();
         } else {
             for (auto i : std::ranges::views::iota(0U, arg.row_count())) {
-                out.row_set(idx + i, Vec<N_x, T>{arg.row_get(i)});
+                out.row_set(idx + i, Vec<N_x, T>{ arg.row_get(i) });
             }
             idx += arg.row_count();
         }
@@ -810,13 +867,15 @@ private:
     }
 };
 
-template <std::size_t M_y, std::size_t N_x, typename T>
-struct mat_printer<M_y, N_x, T, false> {
+template<std::size_t M_y, std::size_t N_x, typename T>
+struct mat_printer<M_y, N_x, T, false>
+{
     /**
      * @brief Print row-major matrix
      */
     static std::ostream& print(std::ostream& out,
-                               const Mat<M_y, N_x, T, false>& mat) {
+                               const Mat<M_y, N_x, T, false>& mat)
+    {
         std::stringstream s{};
         auto count_chars = [&s](const T& value) {
             s.str("");
@@ -824,7 +883,9 @@ struct mat_printer<M_y, N_x, T, false> {
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(),
+        std::transform(mat.range().begin(),
+                       mat.range().end(),
+                       lengths.begin(),
                        count_chars);
         auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
@@ -857,13 +918,15 @@ struct mat_printer<M_y, N_x, T, false> {
     }
 };
 
-template <std::size_t M_y, std::size_t N_x, typename T>
-struct mat_printer<M_y, N_x, T, true> {
+template<std::size_t M_y, std::size_t N_x, typename T>
+struct mat_printer<M_y, N_x, T, true>
+{
     /**
      * @brief Print column-major matrix
      */
     static std::ostream& print(std::ostream& out,
-                               const Mat<M_y, N_x, T, true>& mat) {
+                               const Mat<M_y, N_x, T, true>& mat)
+    {
         std::stringstream s{};
         auto count_chars = [&s](const T& value) {
             s.str("");
@@ -871,7 +934,9 @@ struct mat_printer<M_y, N_x, T, true> {
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(),
+        std::transform(mat.range().begin(),
+                       mat.range().end(),
+                       lengths.begin(),
                        count_chars);
         auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
@@ -912,4 +977,4 @@ struct mat_printer<M_y, N_x, T, true> {
     }
 };
 
-}  // namespace asciirast::math
+} // namespace asciirast::math

@@ -9,16 +9,15 @@
  * `.vec()` method.
  *
  * In-place operations with other swizzled with overlapping memory regions
- * (overlapping indicies) should be seen as UB. Use `.vec()` as needed.
- *
- * Assumes the vector type can copy construct the Swizzled type, and have a
- * indexing operator.
+ * (overlapping indicies) should be seen as UB. Use `.to_vec()` to create
+ * temporary copies as needed.
  */
 
 #pragma once
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <ranges>
 
 namespace asciirast::math {
@@ -27,20 +26,20 @@ namespace asciirast::math {
  * @brief Class to swizzle vector components
  *
  * This class takes the vector type as template parameter input, and defines
- * in-place operators and .vec() with it. The number of indicies given is used
- * to determine the size of this swizzled component.
+ * in-place operators and `.to_vec()` with it. The number of indicies given is
+ * used to determine the size of this swizzled component.
  *
- * @tparam V    The vector type, instansiated with the correct size and type.
- * @tparam N    Number of components in the vector
- * @tparam T    Type of components
- * @tparam Is   The indicies
+ * @tparam Vec      Vector type instansiated with the correct size and type.
+ * @tparam N        Number of components in the vector
+ * @tparam T        Type of components
+ * @tparam Indicies The indicies
  */
-template <class V, std::size_t N, typename T, std::size_t... Is>
-    requires(N > 0 && std::is_arithmetic_v<T> && ((Is < N) && ...) &&
-             sizeof...(Is) > 0)
-class Swizzled {
+template<class Vec, std::size_t N, typename T, std::size_t... Indicies>
+    requires(sizeof...(Indicies) > 0 && ((Indicies < N) && ...))
+class Swizzled
+{
 private:
-    static constexpr std::array indicies = {Is...};
+    static constexpr std::array indicies = { Indicies... };
 
 private:
     std::array<T, N> m_components;
@@ -54,54 +53,65 @@ public:
     /**
      * @brief Convert this to a temporary vector copy
      */
-    V as_vec() const { return V{*this}; }
+    Vec as_vec() const { return Vec{ (*this) }; }
 
     /**
      * @brief Unary minus vector operator
      */
-    V operator-() const { return T{-1} * as_vec(); }
+    Vec operator-() const { return -as_vec(); }
 
     /**
      * @brief Index the swizzled component.
      */
-    T& operator[](const std::size_t i) {
+    T& operator[](const std::size_t i)
+    {
         assert(i < this->size() && "index is inside bounds");
+
         return m_components[indicies[i]];
     }
 
     /**
      * @brief Index the swizzled component.
      */
-    T operator[](const std::size_t i) const {
+    T operator[](const std::size_t i) const
+    {
         assert(i < this->size() && "index is inside bounds");
+
         return m_components[indicies[i]];
     }
 
     /**
      * @brief Range of swizzled components
      */
-    std::ranges::view auto range() {
+    std::ranges::view auto range()
+    {
+        const auto func = [this](const std::size_t i) {
+            return m_components[indicies[i]];
+        };
+
         return std::views::iota(0U, indicies.size()) |
-               std::views::transform([this](std::size_t i) {
-                   return m_components[indicies[i]];
-               });
+               std::views::transform(func);
     }
 
     /**
      * @brief Range of swizzled components
      */
-    std::ranges::view auto range() const {
+    std::ranges::view auto range() const
+    {
+        const auto func = [this](const std::size_t i) {
+            return m_components[indicies[i]];
+        };
+
         return std::views::iota(0U, indicies.size()) |
-               std::views::transform([this](std::size_t i) {
-                   return m_components[indicies[i]];
-               });
+               std::views::transform(func);
     }
 
     /**
      * @brief In-place assignment with vector
      */
-    Swizzled operator=(const V& v) {
-        for (auto i : indicies) {
+    Swizzled operator=(const Vec& v)
+    {
+        for (const auto i : indicies) {
             m_components[i] = v[i];
         }
         return *this;
@@ -110,8 +120,9 @@ public:
     /**
      * @brief In-place component-wise addition with vector
      */
-    Swizzled operator+=(const V& that) {
-        for (auto i : indicies) {
+    Swizzled operator+=(const Vec& that)
+    {
+        for (const auto i : indicies) {
             m_components[i] += that[i];
         }
         return *this;
@@ -120,8 +131,9 @@ public:
     /**
      * @brief In-place component-wise subtraction with vector
      */
-    Swizzled operator-=(const V& that) {
-        for (auto i : indicies) {
+    Swizzled operator-=(const Vec& that)
+    {
+        for (const auto i : indicies) {
             m_components[i] -= that[i];
         }
         return *this;
@@ -130,8 +142,9 @@ public:
     /**
      * @brief In-place component-wise multiplication with vector
      */
-    Swizzled operator*=(const V& that) {
-        for (auto i : indicies) {
+    Swizzled operator*=(const Vec& that)
+    {
+        for (const auto i : indicies) {
             m_components[i] *= that[i];
         }
         return *this;
@@ -140,8 +153,9 @@ public:
     /**
      * @brief In-place component-wise assignment with other Swizzled
      */
-    template <class W, std::size_t M, std::size_t... Js>
-    Swizzled operator=(const Swizzled<W, M, T, Js...>& that) {
+    template<class W, std::size_t M, std::size_t... Js>
+    Swizzled operator=(const Swizzled<W, M, T, Js...>& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x = y;
         }
@@ -151,8 +165,9 @@ public:
     /**
      * @brief In-place component-wise addition with other Swizzled
      */
-    template <class W, std::size_t M, std::size_t... Js>
-    Swizzled operator+=(const Swizzled<W, M, T, Js...>& that) {
+    template<class W, std::size_t M, std::size_t... Js>
+    Swizzled operator+=(const Swizzled<W, M, T, Js...>& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x += y;
         }
@@ -162,8 +177,9 @@ public:
     /**
      * @brief In-place component-wise subtraction with other Swizzled
      */
-    template <class W, std::size_t M, std::size_t... Js>
-    Swizzled operator-=(const Swizzled<W, M, T, Js...>& that) {
+    template<class W, std::size_t M, std::size_t... Js>
+    Swizzled operator-=(const Swizzled<W, M, T, Js...>& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x -= y;
         }
@@ -173,8 +189,9 @@ public:
     /**
      * @brief In-place component-wise multiplication with other Swizzled
      */
-    template <class W, std::size_t M, std::size_t... Js>
-    Swizzled operator*=(const Swizzled<W, M, T, Js...>& that) {
+    template<class W, std::size_t M, std::size_t... Js>
+    Swizzled operator*=(const Swizzled<W, M, T, Js...>& that)
+    {
         for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x *= y;
         }
@@ -184,8 +201,9 @@ public:
     /**
      * @brief In-place scalar multiplication
      */
-    Swizzled operator*=(const T scalar) {
-        for (auto x : this->range()) {
+    Swizzled operator*=(const T scalar)
+    {
+        for (auto& x : this->range()) {
             x *= scalar;
         }
         return *this;
@@ -194,9 +212,13 @@ public:
     /**
      * @brief In-place scalar division
      */
-    Swizzled operator/=(const T scalar) {
-        assert(scalar != 0 && "non-zero division");
-        for (auto x : this->range()) {
+    Swizzled operator/=(const T scalar)
+    {
+        if constexpr (std::is_integral_v<T>) {
+            assert(scalar != T{ 0 } && "non-zero division");
+        }
+
+        for (auto& x : this->range()) {
             x /= scalar;
         }
         return *this;
@@ -207,14 +229,15 @@ public:
  * @brief Specialized Swizzled class for single components, given a single
  * index.
  *
- * @tparam V     The vector type, instansiated with the correct size and type.
+ * @tparam Vec   Vector type instansiated with the correct size and type.
  * @tparam N     Number of components in the vector
  * @tparam T     Type of components
  * @tparam index The index
  */
-template <class V, std::size_t N, typename T, std::size_t index>
-    requires(N > 0 && std::is_arithmetic_v<T> && index < N)
-class Swizzled<V, N, T, index> {
+template<class Vec, std::size_t N, typename T, std::size_t index>
+    requires(index < N)
+class Swizzled<Vec, N, T, index>
+{
 private:
     std::array<T, N> m_components;
 
@@ -222,7 +245,7 @@ public:
     /**
      * @brief Implicit conversion to number
      */
-    constexpr operator T() const { return m_components[index]; }
+    operator T() const { return m_components[index]; }
 
     /**
      * @brief Implicit conversion to number reference
@@ -235,4 +258,4 @@ public:
     T& operator=(const T value) { return (m_components[index] = value); }
 };
 
-}  // namespace asciirast::math
+} // namespace asciirast::math
