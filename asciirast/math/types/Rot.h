@@ -159,6 +159,21 @@ public:
     };
 
     /**
+     * @brief Rotate by angle in x axis
+     */
+    static Rot X(const T angle) { return Rot{ Vec3{ 1, 0, 0 }, angle }; }
+
+    /**
+     * @brief Rotate by angle in y axis
+     */
+    static Rot Y(const T angle) { return Rot{ Vec3{ 0, 1, 0 }, angle }; }
+
+    /**
+     * @brief Rotate by angle in z axis
+     */
+    static Rot Z(const T angle) { return Rot{ Vec3{ 0, 0, 1 }, angle }; }
+
+    /**
      * @brief Construct identity rotation object
      */
     Rot()

@@ -8,6 +8,7 @@
 #include <cassert>
 
 #include "Mat.h"
+#include "Rot.h"
 
 namespace asciirast::math {
 
@@ -36,6 +37,7 @@ public:
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
     using Mat3 = Mat<3, 3, T, mat_is_column_major>;
+    using Rot2 = Rot<2, T, mat_is_column_major>;
 
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
@@ -105,36 +107,14 @@ public:
     }
 
     /**
-     * Stack the transformation which aligns the x-axis with v
+     * Stack a rotation transformation
      */
-    Transform& rotate(const Vec2& v, bool is_normalized = false)
+    Transform& rotate(const Rot2& rot)
     {
-        const auto x_basis = is_normalized ? v : v.normalized();
-        const auto y_basis = complex_prod(x_basis, Vec2{ 0, 1 });
-        const auto z_basis = Vec3{ 0, 0, 1 };
-
-        const Mat3 mr{ x_basis, y_basis, z_basis };
+        const Mat3 mr = { rot.to_mat2(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
 
         return this->stack(mr, mi);
-    }
-
-    /**
-     * Stack the transformation which performs a rotation of some radians in
-     * counterclockwise direction
-     */
-    Transform& rotate_counterclockwise(const T radians)
-    {
-        return this->rotate(Vec2::rotor(radians), true);
-    }
-
-    /**
-     * Stack the transformation which performs a rotation of some radians in
-     * clockwise direction
-     */
-    Transform& rotate_clockwise(const T radians)
-    {
-        return this->rotate(Vec2::rotor(-radians), true);
     }
 
     /**
@@ -229,6 +209,7 @@ private:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat4 = Mat<4, 4, T, mat_is_column_major>;
+    using Rot3 = Rot<3, T, mat_is_column_major>;
 
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
@@ -297,74 +278,22 @@ private:
         return this->translate(delta.x, delta.y, delta.z);
     }
 
-    // /**
-    //  * Stack the transformation equivalent to:
-    //  * (x', y', z') = [right | up | forward] * (x, y, z) with:
-    //  * - right   = up_dir x forward
-    //  * - up      = forward x right
-    //  * following right-hand-rule.
-    //  *
-    //  * @note With OpenGL conventions, camera forward should be -FORWARD by
-    //  * default.
-    //  */
-    // Transform rotate(const vec3& forward_,
-    //                    const vec3& up_dir_,
-    //                    bool is_normalized = false) {
-    //     const auto up_dir = is_normalized ? up_dir_ : up_dir_.normalized();
-    //     const auto forward = is_normalized ? forward_ :
-    //     forward_.normalized();
-    //
-    //     const auto right = cross(up_dir, forward);
-    //     const auto up = cross(forward, right);
-    //
-    //     const auto mr = mat4{mat3::from_rows(right, up, forward),
-    //                               vec4{0, 0, 0, 1}};
-    //     const auto mi = mr.transposed();
-    //
-    //     return this->stack(mr, mi);
-    // }
-    //
-    // /**
-    //  * Rotate by `angle_x` radians measured from RIGHT towards FORWARD
-    //  */
-    // Transform rotateX(const T angle_x) {
-    //     const auto up_dir_y = std::cos(angle_x);
-    //     const auto up_dir_z = std::sin(angle_x);
-    //     const auto forward_y = -up_dir_z;
-    //     const auto forward_z = up_dir_y;
-    //
-    //     return this->rotate(vec3{0, forward_y, forward_z},
-    //                         vec3{0, up_dir_y, up_dir_z}, true);
-    // }
-    //
-    // /**
-    //  * Rotate by `angle_y` radians measured from UP towards FORWARD
-    //  */
-    // Transform& rotateY(const T angle_y) {
-    //     const auto up_dir = UP;
-    //     const auto forward_x = std::cos(angle_y);
-    //     const auto forward_z = std::sin(angle_y);
-    //
-    //     return this->rotate(vec3{forward_x, 0, forward_z}, up_dir,
-    //     true);
-    // }
-    //
-    // /**
-    //  * Rotate by `angle_z` radians measured from RIGHT towards UP
-    //  */
-    // Transform& rotateZ(const T angle_z) {
-    //     const auto forward = FORWARD;
-    //     const auto up_dir_x = std::cos(angle_z);
-    //     const auto up_dir_y = std::sin(angle_z);
-    //
-    //     return this->rotate(forward, vec3{up_dir_x, up_dir_y, 0},
-    //     true);
-    // }
+    /**
+     * Stack a rotation transformation
+     */
+    Transform rotate(const Rot3& rot)
+    {
+        const Mat4 mr = { rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
+        const Mat4 mi = mr.transposed();
+
+        return this->stack(mr, mi);
+    }
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y', z') = (scale_x * x, scale_y * y, scale_z * z) assuming
-     * scale_x * scale_y * scale_z != 0
+     * (x', y', z') = (scale_x * x, scale_y * y, scale_z * z),
+     *
+     * @note assuming scale_x * scale_y * scale_z != 0
      */
     Transform& scale(const T scale_x, const T scale_y, const T scale_z)
     {
@@ -389,8 +318,9 @@ private:
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y', z') = (scale.x * x, scale.y * y, scale.z * z) assuming
-     * scale.x * scale.y * scale.z != 0
+     * (x', y', z') = (scale.x * x, scale.y * y, scale.z * z),
+     *
+     * @note assuming scale.x * scale.y * scale.z != 0
      */
     Transform& scale(const Vec3& scale)
     {
