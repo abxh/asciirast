@@ -23,10 +23,10 @@ using Mat2 = Mat<2, 2, float, true>; ///< 2x2 float column-major matrix
 using Mat3 = Mat<3, 3, float, true>; ///< 3x3 float column-major matrix
 using Mat4 = Mat<4, 4, float, true>; ///< 4x4 float column-major matrix
 
-using Rot2 = Rot<2, float, true>; ///< 2D rotation abstraction
-using Rot3 = Rot<3, float, true>; ///< 3D rotation abstraction
+using Rot2 = Rot<2, float, true>; ///< 2D rotation abstraction producing column-major matrices
+using Rot3 = Rot<3, float, true>; ///< 3D rotation abstraction producing column-major matrices
 
-using Transform2 = Transform<2, float, true>; ///< 2D transform abstraction
-using Transform3 = Transform<3, float, true>; ///< 3D transform abstraction
+using Transform2 = Transform<2, float, true>; ///< 2D transform abstraction using column-major matrices
+using Transform3 = Transform<3, float, true>; ///< 3D transform abstraction using column-major matrices
 
 } // namespace asciirast::math

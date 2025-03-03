@@ -17,6 +17,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 
-add_subdirectory(external)
+# add_subdirectory(external/tiny_obj_loader)
+# add_subdirectory(external/stb_image)
+add_subdirectory(external/terminal_utils)
+
 add_subdirectory(asciirast)
-add_subdirectory(adapters)
+
+add_subdirectory(examples/00-minimal)

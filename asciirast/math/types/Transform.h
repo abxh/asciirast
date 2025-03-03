@@ -59,10 +59,7 @@ public:
     /**
      * Invert the transformation applied to a 2D Vector
      */
-    Vec2 invert(const Vec2& v) const
-    {
-        return Vec2{ m_mat_inv * Vec3{ v, 1 } };
-    }
+    Vec2 invert(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
 
     /**
      * Stack a new transformation matrix and it's inverse on top
@@ -77,10 +74,7 @@ public:
     /**
      * Stack another Transform2D on top of this
      */
-    Transform& stack(const Transform& that)
-    {
-        return this->stack(that.m_mat, that.m_mat_inv);
-    }
+    Transform& stack(const Transform& that) { return this->stack(that.m_mat, that.m_mat_inv); }
 
     /**
      * Stack the transformation equivalent to:
@@ -101,10 +95,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (x + delta.x, y + delta.y)
      */
-    Transform& translate(const Vec2& delta)
-    {
-        return this->translate(delta.x, delta.y);
-    }
+    Transform& translate(const Vec2& delta) { return this->translate(delta.x, delta.y); }
 
     /**
      * Stack a rotation transformation
@@ -143,10 +134,7 @@ public:
      * Stack the transformation equivalent to:
      * (x', y') = (scale.x * x, scale.y * y) assuming scale.x * scale.y != 0
      */
-    Transform& scale(const Vec2& scale)
-    {
-        return this->scale(scale.x, scale.y);
-    }
+    Transform& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
 
     /**
      * Stack the transformation equivalent to:
@@ -231,10 +219,7 @@ private:
     /**
      * Invert the transformation applied to a 3D Vector
      */
-    Vec3 invert(const Vec3& v) const
-    {
-        return Vec3{ m_mat_inv * Vec4{ v, 1 } };
-    }
+    Vec3 invert(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
 
     /**
      * Stack a new transformation matrix and it's inverse on top
@@ -249,10 +234,7 @@ private:
     /**
      * Stack another Transform on top of this
      */
-    Transform& stack(const Transform& that)
-    {
-        return this->stack(that.m_mat, that.m_mat_inv);
-    }
+    Transform& stack(const Transform& that) { return this->stack(that.m_mat, that.m_mat_inv); }
 
     /**
      * Stack the transformation equivalent to:
@@ -273,10 +255,7 @@ private:
      * Stack the transformation equivalent to:
      * (x', y', z') = (x + delta.x, y + delta.y, z + delta.z)
      */
-    Transform& translate(const Vec3& delta)
-    {
-        return this->translate(delta.x, delta.y, delta.z);
-    }
+    Transform& translate(const Vec3& delta) { return this->translate(delta.x, delta.y, delta.z); }
 
     /**
      * Stack a rotation transformation
@@ -322,10 +301,7 @@ private:
      *
      * @note assuming scale.x * scale.y * scale.z != 0
      */
-    Transform& scale(const Vec3& scale)
-    {
-        return this->scale(scale.x, scale.y, scale.z);
-    }
+    Transform& scale(const Vec3& scale) { return this->scale(scale.x, scale.y, scale.z); }
 
     /**
      * Stack the transformation equivalent to:

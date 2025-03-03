@@ -28,11 +28,7 @@ namespace asciirast::math {
  * @tparam Args             Arguments consisting of vectors and smaller
  * matrices.
  */
-template<std::size_t M_y,
-         std::size_t N_x,
-         typename T,
-         bool is_column_major,
-         typename... Args>
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major, typename... Args>
 struct mat_constructible_from;
 
 /**
@@ -100,8 +96,7 @@ public:
     template<typename... Args>
         requires(vec_info<Args>::value && ...)
     static Mat from_columns(const Args&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) &&
-                 ((vec_info<Args>::size <= M_y) && ...))
+        requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) && ((vec_info<Args>::size <= M_y) && ...))
     {
         if constexpr (is_column_major) {
             return Mat<M_y, N_x, T, is_column_major>{ args... };
@@ -116,8 +111,7 @@ public:
     template<typename... Args>
         requires(vec_info<Args>::value && ...)
     static Mat from_rows(const Args&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) &&
-                 ((vec_info<Args>::size <= N_x) && ...))
+        requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) && ((vec_info<Args>::size <= N_x) && ...))
     {
         if constexpr (is_column_major) {
             return Mat<N_x, M_y, T, is_column_major>{ args... }.transposed();
@@ -152,13 +146,11 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(sizeof...(Args) > 1)
+        requires(not_single_value<T, Args...>::value)
     explicit Mat(const Args&... args)
-        requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::
-                         value)
+        requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::value)
     {
-        mat_initializer<M_y, N_x, T, is_column_major>::init_from(*this,
-                                                                 args...);
+        mat_initializer<M_y, N_x, T, is_column_major>::init_from(*this, args...);
     };
 
     /**
@@ -166,8 +158,7 @@ public:
      */
     explicit Mat(std::ranges::input_range auto&& it)
     {
-        assert(this->size() == std::ranges::distance(it) &&
-               "range size is same as matrix size");
+        assert(this->size() == std::ranges::distance(it) && "range size is same as matrix size");
         for (auto [x, y] : std::views::zip(this->range(), it)) {
             x = y;
         }
@@ -250,8 +241,7 @@ public:
     {
         Mat<N_x, M_y, T, is_column_major> out{};
 
-        auto indicies = std::views::cartesian_product(
-                std::views::iota(0U, M_y), std::views::iota(0U, N_x));
+        auto indicies = std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x));
 
         for (auto [y, x] : indicies) {
             out(x, y) = (*this)(y, x);
@@ -262,18 +252,12 @@ public:
     /**
      * @brief Get range over matrix elements in the current storage order.
      */
-    std::ranges::view auto range()
-    {
-        return std::ranges::views::all(m_elements);
-    }
+    std::ranges::view auto range() { return std::ranges::views::all(m_elements); }
 
     /**
      * @brief Get range over matrix elements in the current storage order.
      */
-    std::ranges::view auto range() const
-    {
-        return std::ranges::views::all(m_elements);
-    }
+    std::ranges::view auto range() const { return std::ranges::views::all(m_elements); }
 
     /**
      * @brief Get range over elements at row y.
@@ -283,12 +267,9 @@ public:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T& {
-            return m_elements[map_2d_index(y, x)];
-        };
+        auto func = [this, y](const std::size_t x) -> T& { return m_elements[map_2d_index(y, x)]; };
 
-        return std::ranges::views::iota(0U, N_x) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
 
     /**
@@ -299,12 +280,9 @@ public:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T {
-            return m_elements[map_2d_index(y, x)];
-        };
+        auto func = [this, y](const std::size_t x) -> T { return m_elements[map_2d_index(y, x)]; };
 
-        return std::ranges::views::iota(0U, N_x) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
 
     /**
@@ -315,8 +293,7 @@ public:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), N_x * y) |
-               std::ranges::views::take(N_x);
+        return std::ranges::views::drop(this->range(), N_x * y) | std::ranges::views::take(N_x);
     }
 
     /**
@@ -327,8 +304,7 @@ public:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), N_x * y) |
-               std::ranges::views::take(N_x);
+        return std::ranges::views::drop(this->range(), N_x * y) | std::ranges::views::take(N_x);
     }
 
     /**
@@ -339,12 +315,9 @@ public:
     {
         assert(x < this->column_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T& {
-            return m_elements[map_2d_index(y, x)];
-        };
+        auto func = [this, x](const std::size_t y) -> T& { return m_elements[map_2d_index(y, x)]; };
 
-        return std::ranges::views::iota(0U, M_y) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
 
     /**
@@ -355,12 +328,9 @@ public:
     {
         assert(x < this->column_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T {
-            return m_elements[map_2d_index(y, x)];
-        };
+        auto func = [this, x](const std::size_t y) -> T { return m_elements[map_2d_index(y, x)]; };
 
-        return std::ranges::views::iota(0U, M_y) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
 
     /**
@@ -371,8 +341,7 @@ public:
     {
         assert(x < this->column_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), M_y * x) |
-               std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), M_y * x) | std::ranges::views::take(M_y);
     }
 
     /**
@@ -383,8 +352,7 @@ public:
     {
         assert(x < this->column_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), M_y * x) |
-               std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), M_y * x) | std::ranges::views::take(M_y);
     }
 
     /**
@@ -393,12 +361,9 @@ public:
      */
     std::ranges::view auto diagonal_range()
     {
-        auto func = [this](const std::size_t i) -> T& {
-            return m_elements[map_2d_index(i, i)];
-        };
+        auto func = [this](const std::size_t i) -> T& { return m_elements[map_2d_index(i, i)]; };
 
-        return std::ranges::views::iota(0U, std::min(N_x, M_y)) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, std::min(N_x, M_y)) | std::ranges::views::transform(func);
     }
 
     /**
@@ -406,12 +371,9 @@ public:
      */
     std::ranges::view auto diagonal_range() const
     {
-        auto func = [this](const std::size_t i) -> T {
-            return m_elements[map_2d_index(i, i)];
-        };
+        auto func = [this](const std::size_t i) -> T { return m_elements[map_2d_index(i, i)]; };
 
-        return std::ranges::views::iota(0U, std::min(N_x, M_y)) |
-               std::ranges::views::transform(func);
+        return std::ranges::views::iota(0U, std::min(N_x, M_y)) | std::ranges::views::transform(func);
     }
 
 public:
@@ -483,9 +445,7 @@ public:
     friend bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, float>)
     {
-        auto func = [](const T lhs, const T rhs) -> bool {
-            return almost_equals(lhs, rhs, 9);
-        };
+        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 9); };
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
 
@@ -495,19 +455,14 @@ public:
     friend bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, double>)
     {
-        auto func = [](const T lhs, const T rhs) -> bool {
-            return almost_equals(lhs, rhs, 17);
-        };
+        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 17); };
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
 
     /**
      * @brief Check if approximately not equal to other matrix
      */
-    friend bool operator!=(const Mat& lhs, const Mat& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(const Mat& lhs, const Mat& rhs) { return !(lhs == rhs); }
 
 public:
     /**
@@ -617,7 +572,7 @@ public:
      */
     friend Mat operator*(const Mat& lhs, const T scalar)
     {
-        auto func = [=](const T x) { return x * scalar; };
+        auto func = [=](const T x) -> T { return x * scalar; };
         auto view = std::views::transform(lhs.range(), func);
 
         return Mat{ view };
@@ -630,7 +585,7 @@ public:
     {
         assert(scalar != 0 && "non-zero division");
 
-        auto func = [=](const T x) { return x / scalar; };
+        auto func = [=](const T x) -> T { return x / scalar; };
         auto view = std::views::transform(lhs.range(), func);
 
         return Mat{ view };
@@ -643,9 +598,8 @@ public:
      * Does a small optimisation of using the transposed matrix for
      * optimal access. But the transposed matrix does take extra time to create.
      */
-    friend Mat<M_y, M_y, T, is_column_major> operator*(
-            const Mat<M_y, N_x, T, is_column_major>& lhs,
-            const Mat<N_x, M_y, T, is_column_major>& rhs)
+    friend Mat<M_y, M_y, T, is_column_major> operator*(const Mat<M_y, N_x, T, is_column_major>& lhs,
+                                                       const Mat<N_x, M_y, T, is_column_major>& rhs)
     {
         Mat<M_y, M_y, T, is_column_major> res{};
 
@@ -655,13 +609,11 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.column_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.column_count(); j++) {
-                    res[idx++] = std::ranges::fold_left(
-                            std::ranges::views::zip_transform(
-                                    std::multiplies(),
-                                    rhs.column_range(i),
-                                    lhs_T.column_range(j)),
-                            T{ 0 },
-                            std::plus());
+                    res[idx++] = std::ranges::fold_left(std::ranges::views::zip_transform(std::multiplies(),
+                                                                                          rhs.column_range(i),
+                                                                                          lhs_T.column_range(j)),
+                                                        T{ 0 },
+                                                        std::plus());
                 }
             }
         } else {
@@ -671,10 +623,7 @@ public:
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
                     res[idx++] = std::ranges::fold_left(
-                            std::ranges::views::zip_transform(
-                                    std::multiplies(),
-                                    lhs.row_range(i),
-                                    rhs_T.row_range(j)),
+                            std::ranges::views::zip_transform(std::multiplies(), lhs.row_range(i), rhs_T.row_range(j)),
                             T{ 0 },
                             std::plus());
                 }
@@ -686,8 +635,7 @@ public:
     /**
      * @brief Perform matrix-vector multiplication
      */
-    friend Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_column_major>& mat,
-                                 const Vec<N_x, T>& vec)
+    friend Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_column_major>& mat, const Vec<N_x, T>& vec)
     {
         Vec<M_y, T> res{};
 
@@ -701,9 +649,7 @@ public:
         } else {
             for (std::size_t y = 0; y < mat.row_count(); y++) {
                 res[y] = std::ranges::fold_left(
-                        std::ranges::views::zip_transform(std::multiplies(),
-                                                          mat.row_range(y),
-                                                          vec.range()),
+                        std::ranges::views::zip_transform(std::multiplies(), mat.row_range(y), vec.range()),
                         T{ 0 },
                         std::plus());
             }
@@ -739,42 +685,29 @@ struct mat_info<Mat<M_y, N_x, T, is_column_major>>
 /**
  * @brief Trait to check if matrix can constructed from arguments.
  */
-template<std::size_t M_y,
-         std::size_t N_x,
-         typename T,
-         bool is_column_major,
-         typename... Args>
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major, typename... Args>
 struct mat_constructible_from
 {
 private:
-    static constexpr bool accepted_types =
-            ((vec_info<Args>::value || mat_info<Args>::value) && ...);
+    static constexpr bool accepted_types = ((vec_info<Args>::value || mat_info<Args>::value) && ...);
 
-    static constexpr std::size_t num_vecs =
-            ((vec_info<Args>::value ? 1 : 0) + ...);
+    static constexpr std::size_t num_vecs = ((vec_info<Args>::value ? 1 : 0) + ...);
 
-    static constexpr std::size_t vec_max_length =
-            std::max({ vec_info<Args>::size... });
+    static constexpr std::size_t vec_max_length = std::max({ vec_info<Args>::size... });
 
-    static constexpr std::size_t mat_max_width =
-            std::max({ mat_info<Args>::width... });
+    static constexpr std::size_t mat_max_width = std::max({ mat_info<Args>::width... });
 
-    static constexpr std::size_t mat_max_height =
-            std::max({ mat_info<Args>::height... });
+    static constexpr std::size_t mat_max_height = std::max({ mat_info<Args>::height... });
 
     static constexpr bool total_area_in_bounds =
-            (is_column_major &&
-             (std::max(vec_max_length, mat_max_height) <= M_y) &&
+            (is_column_major && (std::max(vec_max_length, mat_max_height) <= M_y) &&
              (num_vecs + (mat_info<Args>::width + ...) <= N_x)) ||
-            (!is_column_major &&
-             (std::max(vec_max_length, mat_max_width) <= N_x) &&
+            (!is_column_major && (std::max(vec_max_length, mat_max_width) <= N_x) &&
              (num_vecs + (mat_info<Args>::height + ...) <= M_y));
 
 public:
-    static constexpr bool value =
-            accepted_types &&
-            total_area_in_bounds; ///< whether the arguments are of acceptable
-                                  ///< types and total area is inside bounds
+    static constexpr bool value = accepted_types && total_area_in_bounds; ///< whether the arguments are of acceptable
+                                                                          ///< types and total area is inside bounds
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_column_major>
@@ -788,10 +721,8 @@ public:
      * @param args  The arguments
      */
     template<typename... Args>
-    static constexpr void init_from(Mat<M_y, N_x, T, is_column_major>& out,
-                                    const Args&... args)
-        requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::
-                         value)
+    static constexpr void init_from(Mat<M_y, N_x, T, is_column_major>& out, const Args&... args)
+        requires(mat_constructible_from<M_y, N_x, T, is_column_major, Args...>::value)
     {
         std::size_t idx = 0;
         init_from_inner(idx, out, args...);
@@ -807,19 +738,16 @@ public:
     }
 
 private:
-    static constexpr void init_from_inner(
-            std::size_t& idx,
-            Mat<M_y, N_x, T, is_column_major>& out)
+    static constexpr void init_from_inner(std::size_t& idx, Mat<M_y, N_x, T, is_column_major>& out)
     {
         (void)(idx);
         (void)(out);
     }
     template<std::size_t M, typename U>
-    static constexpr void init_from_inner(
-            std::size_t& idx,
-            Mat<M_y, N_x, T, is_column_major>& out,
-            const Vec<M, U>& arg,
-            const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx,
+                                          Mat<M_y, N_x, T, is_column_major>& out,
+                                          const Vec<M, U>& arg,
+                                          const auto&... rest)
     {
         if constexpr (is_column_major) {
             out.column_set(idx++, Vec<M_y, T>{ arg });
@@ -829,13 +757,12 @@ private:
         init_from_inner(idx, out, rest...);
     }
 
-    template<std::size_t M, std::size_t... Is>
+    template<std::size_t M, typename U, std::size_t... Is>
         requires(sizeof...(Is) > 1)
-    static constexpr void init_from_inner(
-            std::size_t& idx,
-            Mat<M_y, N_x, T, is_column_major>& out,
-            const Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>& arg,
-            const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx,
+                                          Mat<M_y, N_x, T, is_column_major>& out,
+                                          const Swizzled<Vec<sizeof...(Is), T>, M, U, Is...>& arg,
+                                          const auto&... rest)
     {
         if constexpr (is_column_major) {
             out.column_set(idx++, Vec<M_y, T>{ arg });
@@ -846,11 +773,10 @@ private:
     }
 
     template<std::size_t M1_y, std::size_t N1_x>
-    static constexpr void init_from_inner(
-            std::size_t& idx,
-            Mat<M_y, N_x, T, is_column_major>& out,
-            const Mat<M1_y, N1_x, T, is_column_major>& arg,
-            const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx,
+                                          Mat<M_y, N_x, T, is_column_major>& out,
+                                          const Mat<M1_y, N1_x, T, is_column_major>& arg,
+                                          const auto&... rest)
     {
         if constexpr (is_column_major) {
             for (auto i : std::ranges::views::iota(0U, arg.column_count())) {
@@ -873,20 +799,16 @@ struct mat_printer<M_y, N_x, T, false>
     /**
      * @brief Print row-major matrix
      */
-    static std::ostream& print(std::ostream& out,
-                               const Mat<M_y, N_x, T, false>& mat)
+    static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, false>& mat)
     {
         std::stringstream s{};
-        auto count_chars = [&s](const T& value) {
+        auto count_chars = [&s](const T& value) -> auto {
             s.str("");
             s << value;
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(),
-                       mat.range().end(),
-                       lengths.begin(),
-                       count_chars);
+        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
         auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
@@ -924,20 +846,16 @@ struct mat_printer<M_y, N_x, T, true>
     /**
      * @brief Print column-major matrix
      */
-    static std::ostream& print(std::ostream& out,
-                               const Mat<M_y, N_x, T, true>& mat)
+    static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, true>& mat)
     {
         std::stringstream s{};
-        auto count_chars = [&s](const T& value) {
+        auto count_chars = [&s](const T& value) -> auto {
             s.str("");
             s << value;
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(),
-                       mat.range().end(),
-                       lengths.begin(),
-                       count_chars);
+        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
         auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";

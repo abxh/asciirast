@@ -34,12 +34,9 @@ almost_equal(const T& x, const T& y, const unsigned ulps_)
 
     const T ulps = static_cast<T>(ulps_);
     const T min = std::min(std::fabs(x), std::fabs(y));
-    const T exp = min < std::numeric_limits<T>::min()
-                          ? std::numeric_limits<T>::min_exponent - 1
-                          : std::ilogb(min);
+    const T exp = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
 
-    return std::fabs(x - y) <=
-           ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+    return std::fabs(x - y) <= ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
 }
 
 /**
@@ -88,11 +85,41 @@ almost_less_than(const T& x, const T& y, const unsigned ulps_)
 {
     const T ulps = static_cast<T>(ulps_);
     const T min = std::min(std::fabs(x), std::fabs(y));
-    const T exp = min < std::numeric_limits<T>::min()
-                          ? std::numeric_limits<T>::min_exponent - 1
-                          : std::ilogb(min);
+    const T exp = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
 
     return x - y < -ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+}
+
+/**
+ * @brief Check if almost less than another floating value with default
+ * precision.
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+bool
+almost_less_than(const T& x, const T& y)
+    requires(std::is_same_v<T, float>)
+{
+    // default precision based on:
+    // https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+
+    return almost_less_than(x, y, 9);
+}
+
+/**
+ * @brief Check if almost less than another floating value with default
+ * precision.
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+bool
+almost_less_than(const T& x, const T& y)
+    requires(std::is_same_v<T, double>)
+{
+    // default precision based on:
+    // https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+
+    return almost_less_than(x, y, 17);
 }
 
 /**
@@ -114,6 +141,15 @@ struct vec_constructible_from;
  */
 template<std::size_t N, typename T>
 struct vec_initializer;
+
+/**
+ * @brief Trait to check if Args doesn't contain a single value of type T.
+ *
+ * @tparam T    Type of components
+ * @tparam Args The argument types
+ */
+template<typename T, typename... Args>
+struct not_single_value;
 
 /**
  * @brief Math vector class
@@ -166,7 +202,7 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(sizeof...(Args) > 1)
+        requires(not_single_value<T, Args...>::value)
     explicit Vec(const Args&... args)
         requires(vec_constructible_from<N, T, Args...>::value)
     {
@@ -190,8 +226,8 @@ public:
      */
     explicit Vec(std::ranges::input_range auto&& range)
     {
-        assert(N == std::ranges::distance(range) &&
-               "range size is same as vector size");
+        assert(N == std::ranges::distance(range) && "range size is same as vector size");
+
         for (auto [x, y] : std::views::zip(this->range(), range)) {
             x = y;
         }
@@ -231,18 +267,12 @@ public:
     /**
      * @brief Get range over vector components.
      */
-    std::ranges::view auto range()
-    {
-        return std::ranges::views::all(m_components);
-    }
+    std::ranges::view auto range() { return std::ranges::views::all(m_components); }
 
     /**
      * @brief Get range over vector components.
      */
-    std::ranges::view auto range() const
-    {
-        return std::ranges::views::all(m_components);
-    }
+    std::ranges::view auto range() const { return std::ranges::views::all(m_components); }
 
     /**
      * @brief Print the vector
@@ -286,10 +316,7 @@ public:
     /**
      * @brief Check if approximately not equal to other vector
      */
-    friend bool operator!=(const Vec& lhs, const Vec& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(const Vec& lhs, const Vec& rhs) { return !(lhs == rhs); }
 
 public:
     /**
@@ -561,10 +588,7 @@ public:
     /**
      * @brief Vector signed angle ranging from -pi and pi radians
      */
-    friend T angle(const Vec& lhs,
-                   const Vec& rhs,
-                   const Vec& up_,
-                   const bool up_is_normalized)
+    friend T angle(const Vec& lhs, const Vec& rhs, const Vec& up_, const bool up_is_normalized)
         requires(N == 3 && std::is_floating_point_v<T>)
     {
         const Vec& up = up_is_normalized ? up_ : up_.normalized();
@@ -579,9 +603,7 @@ public:
     friend Vec lerp(const Vec& a, const Vec& b, const T t)
         requires(std::is_floating_point_v<T>)
     {
-        const auto func = [=](const T x, const T y) -> T {
-            return std::lerp(x, y, t);
-        };
+        const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
 
         return Vec{ std::ranges::transform(a.range(), b.range(), func) };
     }
@@ -589,10 +611,7 @@ public:
     /**
      * @brief Take the absolute value of each component
      */
-    friend Vec abs(const Vec& v)
-    {
-        return Vec{ std::ranges::transform(v.range(), std::abs) };
-    }
+    friend Vec abs(const Vec& v) { return Vec{ std::ranges::transform(v.range(), std::abs) }; }
 
     /**
      * @brief Take the rounded value of each component
@@ -646,6 +665,14 @@ public:
     static constexpr std::size_t size() { return 1; }
 };
 
+template<typename T, typename... Args>
+struct not_single_value
+{
+    static constexpr bool value = sizeof...(Args) > 1 ||
+                                  sizeof...(Args) == 1 &&
+                                          !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
+};
+
 /**
  * @brief Vector information trait
  */
@@ -673,7 +700,7 @@ template<std::size_t M, typename T, std::size_t... Is>
     requires(sizeof...(Is) > 1)
 struct vec_info<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
 {
-    static constexpr bool value = true; ///< whether the type is vector like
+    static constexpr bool value = true;                ///< whether the type is vector like
     static constexpr std::size_t size = sizeof...(Is); ///< vector size
 };
 
@@ -681,20 +708,15 @@ template<std::size_t N, typename T, typename... Args>
 struct vec_constructible_from
 {
 private:
-    static constexpr bool accepted_types =
-            ((std::convertible_to<Args, T> || vec_info<Args>::value) && ...);
+    static constexpr bool accepted_types = ((std::convertible_to<Args, T> || vec_info<Args>::value) && ...);
 
-    static constexpr std::size_t num_values =
-            ((std::convertible_to<Args, T> ? 1 : 0) + ...);
+    static constexpr std::size_t num_values = ((std::convertible_to<Args, T> ? 1 : 0) + ...);
 
-    static constexpr bool total_size_in_bounds =
-            (N >= num_values + (vec_info<Args>::size + ...));
+    static constexpr bool total_size_in_bounds = (N >= num_values + (vec_info<Args>::size + ...));
 
 public:
-    static constexpr bool value =
-            accepted_types &&
-            total_size_in_bounds; ///< whether the arguments are of acceptable
-                                  ///< types and total size is inside bounds
+    static constexpr bool value = accepted_types && total_size_in_bounds; ///< whether the arguments are of acceptable
+                                                                          ///< types and total size is inside bounds
 };
 
 template<std::size_t N, typename T>
@@ -725,10 +747,7 @@ private:
         (void)(out);
     }
 
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Vec<N, T>& out,
-                                          const T& arg,
-                                          const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const T& arg, const auto&... rest)
     {
         out[idx] = arg;
         idx += 1;
@@ -736,30 +755,25 @@ private:
     }
 
     template<std::size_t M, typename U>
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Vec<N, T>& out,
-                                          const Vec<M, U>& arg,
-                                          const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, const auto&... rest)
     {
-        for (auto [i, j] : std::views::zip(std::views::iota(idx, idx + M),
-                                           std::views::iota(0U, M))) {
+        for (auto [i, j] : std::views::zip(std::views::iota(idx, idx + M), std::views::iota(0U, M))) {
             out[i] = static_cast<T>(arg[j]);
         }
         idx += M;
         init_from_inner(idx, out, rest...);
     }
 
-    template<std::size_t M, std::size_t... Is>
+    template<std::size_t M, typename U, std::size_t... Is>
         requires(sizeof...(Is) > 1)
-    static constexpr void init_from_inner(
-            std::size_t& idx,
-            Vec<N, T>& out,
-            const Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>& arg,
-            const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx,
+                                          Vec<N, T>& out,
+                                          const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
+                                          const auto&... rest)
     {
         auto values = arg.range();
         for (auto [i, value] : std::views::zip(std::views::iota(idx), values)) {
-            out[i] = value;
+            out[i] = static_cast<T>(value);
         }
         idx += sizeof...(Is);
         init_from_inner(idx, out, rest...);

@@ -10,7 +10,11 @@
 #include <windows.h>
 #endif
 
-void just_fix_windows_console(bool enable) {
+#include "terminal_utils.h"
+
+void
+just_fix_windows_console(bool enable)
+{
 #ifdef _WIN32
     HANDLE handleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD consoleMode;

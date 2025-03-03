@@ -122,10 +122,7 @@ public:
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec2 apply(const Vec2& v) const
-    {
-        return Rot{ reversed().dir, v, false }.dir;
-    }
+    Vec2 apply(const Vec2& v) const { return Rot{ reversed().dir, v, false }.dir; }
 
     /**
      * @brief Invert the applied rotation from a vector
@@ -185,8 +182,7 @@ public:
      */
     Rot(const Vec3& axis, const T angle, bool normalize = true)
             : s{ std::cos(angle / 2.f) }
-            , dir{ std::sin(angle / 2.f) *
-                   ((normalize) ? axis.normalized() : axis) } {};
+            , dir{ std::sin(angle / 2.f) * ((normalize) ? axis.normalized() : axis) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors
@@ -265,26 +261,17 @@ public:
     /**
      * @brief Stack another rotation on top of this
      */
-    Rot& stack(const Rot& that, bool normalize = true)
-    {
-        return Rot{ this->quat, that.quat, normalize };
-    }
+    Rot& stack(const Rot& that, bool normalize = true) { return Rot{ this->quat, that.quat, normalize }; }
 
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec3 apply(const Vec3& v) const
-    {
-        return Rot{ Rot{ (*this), v }, reversed() }.dir;
-    }
+    Vec3 apply(const Vec3& v) const { return Rot{ Rot{ (*this), v }, reversed() }.dir; }
 
     /**
      * @brief Invert the applied rotation from a vector
      */
-    Vec3 invert(const Vec3& v) const
-    {
-        return Rot{ Rot{ reversed(), v }, (*this) }.dir;
-    }
+    Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this) }.dir; }
 };
 
 }

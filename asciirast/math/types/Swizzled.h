@@ -85,12 +85,9 @@ public:
      */
     std::ranges::view auto range()
     {
-        const auto func = [this](const std::size_t i) {
-            return m_components[indicies[i]];
-        };
+        const auto func = [this](const std::size_t i) -> T& { return m_components[indicies[i]]; };
 
-        return std::views::iota(0U, indicies.size()) |
-               std::views::transform(func);
+        return std::views::iota(0U, indicies.size()) | std::views::transform(func);
     }
 
     /**
@@ -98,12 +95,9 @@ public:
      */
     std::ranges::view auto range() const
     {
-        const auto func = [this](const std::size_t i) {
-            return m_components[indicies[i]];
-        };
+        const auto func = [this](const std::size_t i) -> T { return m_components[indicies[i]]; };
 
-        return std::views::iota(0U, indicies.size()) |
-               std::views::transform(func);
+        return std::views::iota(0U, indicies.size()) | std::views::transform(func);
     }
 
     /**

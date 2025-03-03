@@ -13,3 +13,5 @@ ConstructorInitializerIndentWidth: 8
 AccessModifierOffset: -4
 IndentCaseLabels: false
 BreakStringLiterals: false
+
+ColumnLimit: 120
