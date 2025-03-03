@@ -49,11 +49,11 @@ public:
     {
         int width = 0, height = 0;
         get_terminal_size(width, height);
-        if (m_width == width && m_height == height / 2) {
+        if (m_width == width && m_height == height - 1) {
             return;
         };
 
-        m_width = std::max(1, width / 2);
+        m_width = std::max(1, width);
         m_height = std::max(1, height - 1);
         m_viewport_to_window = math::Transform2().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
         m_buf.reserve(m_width * m_height);
