@@ -361,7 +361,7 @@ public:
     /**
      * @brief Construct default vector with all zeroes
      */
-    explicit constexpr Vec()
+    explicit Vec()
     {
         for (auto& x : this->range()) {
             x = T{ 0 };
