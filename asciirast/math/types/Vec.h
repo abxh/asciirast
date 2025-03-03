@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <limits>
 #include <ostream>
+#include <ranges>
 #include <type_traits>
 
 #include "VecBase.h"
@@ -150,6 +151,186 @@ struct vec_initializer;
  */
 template<typename T, typename... Args>
 struct not_single_value;
+
+/**
+ * @brief Math vector class
+ *
+ * @tparam N    Number of components in the vector
+ * @tparam T    Type of components
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+class Vec;
+
+/**
+ * @brief Vector dot product
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+T
+dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+{
+    auto func = std::multiplies();
+    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+    return std::ranges::fold_left(view, T{ 0 }, std::plus());
+}
+
+/**
+ * @brief Vector 2d "cross product"
+ *
+ * By calculating the signed magnitude of the plane spanned by the two
+ * vectors.
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+T
+cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+    requires(N == 2)
+{
+    return lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
+}
+
+/**
+ * @brief Vector 3d cross product
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+    requires(N == 3)
+{
+    /*
+        det([x_hat, y_hat, z_hat],
+            [lhs.x, lhs.y, lhs.z],
+            [rhs.x, rhs.y, rhs.z]])
+        =
+            x_hat det([lhs.y, lhs.z],
+                      [rhs.y, rhs.z])
+          - y_hat det([lhs.x, lhs.z],
+                      [rhs.x, rhs.z])
+          + z_hat det([lhs.x, lhs.y],
+                      [rhs.x, rhs.y])
+    */
+
+    const T x_hat = lhs.y * rhs.z - rhs.y * lhs.z; // YZ_magnitude
+    const T y_hat = lhs.x * rhs.z - rhs.x * lhs.z; // XZ_magnitude
+    const T z_hat = lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
+
+    return Vec<N, T>{ +x_hat, -y_hat, +z_hat };
+}
+
+/**
+ * @brief Vector signed angle ranging from -pi and pi radians
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+T
+angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+    requires(N == 2 && std::is_floating_point_v<T>)
+{
+    /*
+        atan2(x,y)        = tan^-1(y/x) [with quadrant sign considerations]
+        theta             = angle between lhs and rhs
+        cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
+        dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
+    */
+    return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
+}
+
+/**
+ * @brief Vector signed angle ranging from -pi and pi radians
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+T
+angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized)
+    requires(N == 3 && std::is_floating_point_v<T>)
+{
+    const Vec<N, T>& up = up_is_normalized ? up_ : up_.normalized();
+
+    return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
+}
+
+/**
+ * @brief Linearly interpolate the components of the two vectors with a
+ * parameter t ranging from 0 to 1.
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+lerp(const Vec<N, T>& a, const Vec<N, T>& b, const T t)
+    requires(std::is_floating_point_v<T>)
+{
+    const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
+    const auto view = std::views::zip_transform(func, a.range(), b.range());
+
+    return Vec<N, T>{ view };
+}
+
+/**
+ * @brief Take the absolute value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+abs(const Vec<N, T>& v)
+{
+    return Vec<N, T>{ std::ranges::transform(v.range(), std::abs) };
+}
+
+/**
+ * @brief Clamp each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
+    requires(std::is_integral_v<T>)
+{
+    const auto func = [=](const T x, const T low_val, const T high_val) -> T {
+        return std::clamp(x, low_val, high_val);
+    };
+    const auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
+
+    return Vec<N, T>{ view };
+}
+
+/**
+ * @brief Take the rounded value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+round(const Vec<N, T>& v)
+    requires(std::is_floating_point_v<T>)
+{
+    return Vec<N, T>{ std::ranges::transform(v.range(), std::round) };
+}
+
+/**
+ * @brief Take the ceiled value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+ceil(const Vec<N, T>& v)
+    requires(std::is_floating_point_v<T>)
+{
+    return Vec<N, T>{ std::ranges::transform(v.range(), std::ceil) };
+}
+
+/**
+ * @brief Take the ceiled value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+floor(const Vec<N, T>& v)
+    requires(std::is_floating_point_v<T>)
+{
+    return Vec<N, T>{ std::ranges::transform(v.range(), std::floor) };
+}
 
 /**
  * @brief Math vector class
@@ -518,126 +699,6 @@ public:
         requires(std::is_floating_point_v<T> && (N == 2 || N == 3))
     {
         return (*this) - T{ 2 } * this->project_onto(normal, is_normalized);
-    }
-
-public:
-    /**
-     * @brief Vector dot product
-     */
-    friend T dot(const Vec& lhs, const Vec& rhs)
-    {
-        auto func = std::multiplies();
-        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-        return std::ranges::fold_left(view, T{ 0 }, std::plus());
-    }
-
-    /**
-     * @brief Vector 2d "cross product"
-     *
-     * By calculating the signed magnitude of the plane spanned by the two
-     * vectors.
-     */
-    friend T cross(const Vec& lhs, const Vec& rhs)
-        requires(N == 2)
-    {
-        return lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
-    }
-
-    /**
-     * @brief Vector 3d cross product
-     */
-    friend Vec cross(const Vec& lhs, const Vec& rhs)
-        requires(N == 3)
-    {
-        /*
-            det([x_hat, y_hat, z_hat],
-                [lhs.x, lhs.y, lhs.z],
-                [rhs.x, rhs.y, rhs.z]])
-            =
-                x_hat det([lhs.y, lhs.z],
-                          [rhs.y, rhs.z])
-              - y_hat det([lhs.x, lhs.z],
-                          [rhs.x, rhs.z])
-              + z_hat det([lhs.x, lhs.y],
-                          [rhs.x, rhs.y])
-        */
-
-        const T x_hat = lhs.y * rhs.z - rhs.y * lhs.z; // YZ_magnitude
-        const T y_hat = lhs.x * rhs.z - rhs.x * lhs.z; // XZ_magnitude
-        const T z_hat = lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
-
-        return Vec{ +x_hat, -y_hat, +z_hat };
-    }
-
-    /**
-     * @brief Vector signed angle ranging from -pi and pi radians
-     */
-    friend T angle(const Vec& lhs, const Vec& rhs)
-        requires(N == 2 && std::is_floating_point_v<T>)
-    {
-        /*
-            atan2(x,y)        = tan^-1(y/x) [with quadrant sign considerations]
-            theta             = angle between lhs and rhs
-            cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
-            dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
-        */
-        return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
-    }
-
-    /**
-     * @brief Vector signed angle ranging from -pi and pi radians
-     */
-    friend T angle(const Vec& lhs, const Vec& rhs, const Vec& up_, const bool up_is_normalized)
-        requires(N == 3 && std::is_floating_point_v<T>)
-    {
-        const Vec& up = up_is_normalized ? up_ : up_.normalized();
-
-        return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
-    }
-
-    /**
-     * @brief Linearly interpolate the components of the two vectors with a
-     * parameter t ranging from 0 to 1.
-     */
-    friend Vec lerp(const Vec& a, const Vec& b, const T t)
-        requires(std::is_floating_point_v<T>)
-    {
-        const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
-
-        return Vec{ std::ranges::transform(a.range(), b.range(), func) };
-    }
-
-    /**
-     * @brief Take the absolute value of each component
-     */
-    friend Vec abs(const Vec& v) { return Vec{ std::ranges::transform(v.range(), std::abs) }; }
-
-    /**
-     * @brief Take the rounded value of each component
-     */
-    friend Vec round(const Vec& v)
-        requires(std::is_floating_point_v<T>)
-    {
-        return Vec{ std::ranges::transform(v.range(), std::round) };
-    }
-
-    /**
-     * @brief Take the ceiled value of each component
-     */
-    friend Vec ceil(const Vec& v)
-        requires(std::is_floating_point_v<T>)
-    {
-        return Vec{ std::ranges::transform(v.range(), std::ceil) };
-    }
-
-    /**
-     * @brief Take the ceiled value of each component
-     */
-    friend Vec floor(const Vec& v)
-        requires(std::is_floating_point_v<T>)
-    {
-        return Vec{ std::ranges::transform(v.range(), std::floor) };
     }
 };
 

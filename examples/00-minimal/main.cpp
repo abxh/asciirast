@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstdio>
 #include <iostream>
+#include <semaphore>
 #include <thread>
 #include <vector>
 
@@ -26,10 +27,8 @@ public:
         this->check_terminal_size();
 
         std::cout << CSI_ESC CSI_HIDECURSOR;
-        for (int y = 0; y < m_height; y++) {
-            std::cout << CSI_ESC CSI_CLEARLINE "\n";
-        }
-        this->clear();
+        this->clear_lines();
+        this->clear_buffer();
     }
     ~TerminalAdapter()
     {
@@ -37,8 +36,13 @@ public:
 
         just_fix_windows_console(false);
     }
-
-    void clear()
+    void clear_lines()
+    {
+        for (int y = 0; y < m_height; y++) {
+            std::cout << CSI_ESC CSI_CLEARLINE "\n";
+        }
+    }
+    void clear_buffer()
     {
         for (int i = 0; i < m_height * m_width; i++) {
             m_buf[i] = ' ';
@@ -52,12 +56,15 @@ public:
         if (m_width == width && m_height == height - 1) {
             return;
         };
+        std::cout << CSI_ESC << m_height << CSI_MOVEUPLINES << '\r';
 
         m_width = std::max(1, width);
         m_height = std::max(1, height - 1);
         m_viewport_to_window = math::Transform2().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
         m_buf.reserve(m_width * m_height);
-        clear();
+
+        this->clear_lines();
+        this->clear_buffer();
     }
 
     void render() const
@@ -74,8 +81,10 @@ public:
 
     math::Transform2& get_viewport_to_window_transform() override { return m_viewport_to_window; }
 
-    void plot(const math::Vec2Int& pos, std::tuple<char> targets) override
+    void plot(const math::Vec2Int& pos_, std::tuple<char> targets) override
     {
+        auto pos = math::clamp(pos_, math::Vec2Int{ 0, 0 }, math::Vec2Int{ m_width - 1, m_height - 1 });
+
         m_buf[index(pos.y, pos.x)] = std::get<0>(targets);
     }
 
@@ -162,13 +171,23 @@ main(void)
             { 8, math::Vec2{ 1, -1 }.normalized() },
     });
 
-    while (true) {
+    std::binary_semaphore s{ 0 };
+
+    std::thread peek_inp{ [&] {
+        while (std::cin.peek() != EOF) {
+            continue;
+        }
+        s.release();
+    } };
+
+    while (!s.try_acquire()) {
         r.apply(p, u, vb, t);
         t.render();
-        t.clear();
+        t.clear_buffer();
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
         t.check_terminal_size();
         rot.stack(inc);
     }
+    peek_inp.join();
 }
