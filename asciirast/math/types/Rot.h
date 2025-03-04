@@ -266,12 +266,12 @@ public:
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec3 apply(const Vec3& v) const { return Rot{ Rot{ (*this), v }, reversed() }.dir; }
+    Vec3 apply(const Vec3& v) const { return Rot{ Rot{ (*this), v }, reversed(), false }.dir; }
 
     /**
      * @brief Invert the applied rotation from a vector
      */
-    Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this) }.dir; }
+    Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this), false }.dir; }
 };
 
 }
