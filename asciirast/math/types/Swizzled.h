@@ -85,7 +85,7 @@ public:
      */
     std::ranges::view auto range()
     {
-        const auto func = [this](const std::size_t i) -> T& { return m_components[indicies[i]]; };
+        auto func = [this](const std::size_t i) -> T& { return m_components[indicies[i]]; };
 
         return std::views::iota(0U, indicies.size()) | std::views::transform(func);
     }
@@ -95,7 +95,7 @@ public:
      */
     std::ranges::view auto range() const
     {
-        const auto func = [this](const std::size_t i) -> T { return m_components[indicies[i]]; };
+        auto func = [this](const std::size_t i) -> T { return m_components[indicies[i]]; };
 
         return std::views::iota(0U, indicies.size()) | std::views::transform(func);
     }
@@ -105,7 +105,7 @@ public:
      */
     Swizzled operator=(const Vec& v)
     {
-        for (const auto i : indicies) {
+        for (const std::size_t i : indicies) {
             m_components[i] = v[i];
         }
         return *this;
@@ -116,7 +116,7 @@ public:
      */
     Swizzled operator+=(const Vec& that)
     {
-        for (const auto i : indicies) {
+        for (const std::size_t i : indicies) {
             m_components[i] += that[i];
         }
         return *this;
@@ -127,7 +127,7 @@ public:
      */
     Swizzled operator-=(const Vec& that)
     {
-        for (const auto i : indicies) {
+        for (const std::size_t i : indicies) {
             m_components[i] -= that[i];
         }
         return *this;
@@ -138,7 +138,7 @@ public:
      */
     Swizzled operator*=(const Vec& that)
     {
-        for (const auto i : indicies) {
+        for (const std::size_t i : indicies) {
             m_components[i] *= that[i];
         }
         return *this;

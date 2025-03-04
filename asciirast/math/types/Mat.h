@@ -126,7 +126,7 @@ public:
      */
     constexpr Mat()
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x = T{ 0 };
         }
     }
@@ -136,7 +136,7 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (auto& x : this->diagonal_range()) {
+        for (T& x : this->diagonal_range()) {
             x = diagonal_element;
         }
     }
@@ -191,6 +191,7 @@ public:
     T& operator[](const std::size_t i)
     {
         assert(i < this->size() && "index is inside bounds");
+
         return m_elements[i];
     }
 
@@ -396,9 +397,8 @@ public:
 
         auto view = std::views::zip(this->row_range(y), v.range());
 
-        for (std::tuple<T&, const T> t : view) {
-            auto [a, b] = t;
-            a = b;
+        for (auto [x, y] : view) {
+            x = y;
         }
         return *this;
     }
@@ -422,9 +422,8 @@ public:
 
         auto view = std::views::zip(this->column_range(x), v.range());
 
-        for (std::tuple<T&, const T> t : view) {
-            auto [a, b] = t;
-            a = b;
+        for (auto [x, y] : view) {
+            x = y;
         }
         return *this;
     }
@@ -446,6 +445,7 @@ public:
         requires(std::is_same_v<T, float>)
     {
         auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 9); };
+
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
 
@@ -456,6 +456,7 @@ public:
         requires(std::is_same_v<T, double>)
     {
         auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 17); };
+
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
 
@@ -609,11 +610,11 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.column_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.column_count(); j++) {
-                    res[idx++] = std::ranges::fold_left(std::ranges::views::zip_transform(std::multiplies(),
-                                                                                          rhs.column_range(i),
-                                                                                          lhs_T.column_range(j)),
-                                                        T{ 0 },
-                                                        std::plus());
+                    auto vl = rhs.column_range(i);
+                    auto vr = lhs_T.column_range(j);
+                    auto v = std::ranges::views::zip_transform(std::multiplies(), vl, vr);
+
+                    res[idx++] = std::ranges::fold_left(v, T{ 0 }, std::plus());
                 }
             }
         } else {
@@ -622,10 +623,11 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    res[idx++] = std::ranges::fold_left(
-                            std::ranges::views::zip_transform(std::multiplies(), lhs.row_range(i), rhs_T.row_range(j)),
-                            T{ 0 },
-                            std::plus());
+                    auto vl = lhs.row_range(i);
+                    auto vr = rhs_T.row_range(j);
+                    auto v = std::ranges::views::zip_transform(std::multiplies(), vl, vr);
+
+                    res[idx++] = std::ranges::fold_left(v, T{ 0 }, std::plus());
                 }
             }
         }
@@ -648,10 +650,9 @@ public:
             }
         } else {
             for (std::size_t y = 0; y < mat.row_count(); y++) {
-                res[y] = std::ranges::fold_left(
-                        std::ranges::views::zip_transform(std::multiplies(), mat.row_range(y), vec.range()),
-                        T{ 0 },
-                        std::plus());
+                auto v = std::ranges::views::zip_transform(std::multiplies(), mat.row_range(y), vec.range());
+
+                res[y] = std::ranges::fold_left(v, T{ 0 }, std::plus());
             }
         }
         return res;
@@ -727,11 +728,11 @@ public:
         std::size_t idx = 0;
         init_from_inner(idx, out, args...);
         if constexpr (is_column_major) {
-            for (auto i : std::views::iota(idx, out.column_count())) {
+            for (const std::size_t i : std::views::iota(idx, out.column_count())) {
                 out.column_set(i, Vec<M_y, T>{ T{ 0 } });
             }
         } else {
-            for (auto i : std::views::iota(idx, out.row_count())) {
+            for (const std::size_t i : std::views::iota(idx, out.row_count())) {
                 out.row_set(i, Vec<N_x, T>{ T{ 0 } });
             }
         }
@@ -779,12 +780,12 @@ private:
                                           const auto&... rest)
     {
         if constexpr (is_column_major) {
-            for (auto i : std::ranges::views::iota(0U, arg.column_count())) {
+            for (const std::size_t i : std::ranges::views::iota(0U, arg.column_count())) {
                 out.column_set(idx + i, Vec<M_y, T>{ arg.column_get(i) });
             }
             idx += arg.column_count();
         } else {
-            for (auto i : std::ranges::views::iota(0U, arg.row_count())) {
+            for (const std::size_t i : std::ranges::views::iota(0U, arg.row_count())) {
                 out.row_set(idx + i, Vec<N_x, T>{ arg.row_get(i) });
             }
             idx += arg.row_count();

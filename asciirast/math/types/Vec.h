@@ -262,8 +262,8 @@ Vec<N, T>
 lerp(const Vec<N, T>& a, const Vec<N, T>& b, const T t)
     requires(std::is_floating_point_v<T>)
 {
-    const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
-    const auto view = std::views::zip_transform(func, a.range(), b.range());
+    auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
+    auto view = std::views::zip_transform(func, a.range(), b.range());
 
     return Vec<N, T>{ view };
 }
@@ -288,10 +288,10 @@ Vec<N, T>
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
     requires(std::is_integral_v<T>)
 {
-    const auto func = [=](const T x, const T low_val, const T high_val) -> T {
+    auto func = [=](const T x, const T low_val, const T high_val) -> T {
         return std::clamp(x, low_val, high_val);
     };
-    const auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
+    auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
 
     return Vec<N, T>{ view };
 }
