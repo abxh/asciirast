@@ -54,18 +54,20 @@ public:
     {
         int width = 0, height = 0;
         terminal_utils::get_terminal_size(width, height);
-        if (m_width == width && m_height == height - 1) {
+        if (m_width == width - 1 && m_height == height - 1) {
             return;
-        };
+        }
+
         std::cout << CSI::ESC << m_height << CSI::MOVEUPLINES << '\r';
 
-        m_width = std::max(1, width);
-        m_height = std::max(1, height - 1);
-        m_viewport_to_window = math::Transform2().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
+        m_width = std::clamp(width - 1, 2, 4096);
+        m_height = std::clamp(height - 1, 2, 4096);
+        m_viewport_to_window = math::Transform2().reflectY().translate(0.f, 1.f).scale(m_width - 1, m_height - 1);
+
         m_buf.reserve(m_width * m_height);
 
-        this->clear_lines();
         this->clear_buffer();
+        this->clear_lines();
     }
 
     void render() const
@@ -158,7 +160,7 @@ main(void)
     math::Rot2 rot{};
     math::Rot2 inc{ math::angle_as_radians(-45.f) };
 
-    std::string palette = "@%#*+=-:."; // Paul Borke's palette
+    std::string palette = "@%#*+=-:. "; // Paul Borke's palette
     CustomUniform u{ rot, palette };
 
     asciirast::VertexBuffer<CustomVertex> vb;
@@ -178,7 +180,7 @@ main(void)
 
     std::binary_semaphore s{ 0 };
 
-    std::thread peek_inp{ [&] {
+    std::thread peek_inp{ [&s] {
         while (std::cin.peek() != EOF) {
             continue;
         }
