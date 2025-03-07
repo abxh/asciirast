@@ -16,6 +16,8 @@
 
 #include "terminal_utils.h"
 
+namespace terminal_utils {
+
 void
 get_terminal_size(int& out_width, int& out_height)
 {
@@ -31,4 +33,6 @@ get_terminal_size(int& out_width, int& out_height)
     out_width = (int)(w.ws_col);
     out_height = (int)(w.ws_row);
 #endif // Windows/Linux
+}
+
 }

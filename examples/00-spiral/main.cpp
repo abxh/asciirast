@@ -14,32 +14,33 @@
 #include <thread>
 #include <vector>
 
-using namespace asciirast;
+namespace math = asciirast::math;
+namespace CSI = terminal_utils::CSI;
 
 class TerminalAdapter : public asciirast::Framebuffer<char>
 {
 public:
     TerminalAdapter()
     {
-        just_fix_windows_console(true);
+        terminal_utils::just_fix_windows_console(true);
 
         m_width = m_height = 0;
         this->check_terminal_size();
 
-        std::cout << CSI_ESC CSI_HIDECURSOR;
+        std::cout << CSI::ESC << CSI::HIDECURSOR;
         this->clear_lines();
         this->clear_buffer();
     }
     ~TerminalAdapter()
     {
-        std::cout << CSI_ESC CSI_SHOWCURSOR;
+        std::cout << CSI::ESC << CSI::SHOWCURSOR;
 
-        just_fix_windows_console(false);
+        terminal_utils::just_fix_windows_console(false);
     }
     void clear_lines()
     {
         for (int y = 0; y < m_height; y++) {
-            std::cout << CSI_ESC CSI_CLEARLINE "\n";
+            std::cout << CSI::ESC << CSI::CLEARLINE << "\n";
         }
     }
     void clear_buffer()
@@ -52,11 +53,11 @@ public:
     void check_terminal_size()
     {
         int width = 0, height = 0;
-        get_terminal_size(width, height);
+        terminal_utils::get_terminal_size(width, height);
         if (m_width == width && m_height == height - 1) {
             return;
         };
-        std::cout << CSI_ESC << m_height << CSI_MOVEUPLINES << '\r';
+        std::cout << CSI::ESC << m_height << CSI::MOVEUPLINES << '\r';
 
         m_width = std::max(1, width);
         m_height = std::max(1, height - 1);
@@ -69,7 +70,7 @@ public:
 
     void render() const
     {
-        std::cout << CSI_ESC << m_height << CSI_MOVEUPLINES << '\r';
+        std::cout << CSI::ESC << m_height << CSI::MOVEUPLINES << '\r';
         for (int y = 0; y < m_height; y++) {
             for (int x = 0; x < m_width; x++) {
                 std::cout << m_buf[index(y, x)];
@@ -129,7 +130,7 @@ public:
     friend CustomVarying operator*(const float scalar, const CustomVarying& v) { return { v.id, scalar * v.pos }; }
 };
 
-class CustomProgram : public Program<CustomUniform, CustomVertex, CustomVarying, TerminalAdapter>
+class CustomProgram : public asciirast::Program<CustomUniform, CustomVertex, CustomVarying, TerminalAdapter>
 {
 public:
     CustomVarying on_vertex(const CustomUniform& u, const CustomVertex& vert) const override
@@ -150,7 +151,7 @@ public:
 int
 main(void)
 {
-    Renderer r;
+    asciirast::Renderer r;
     TerminalAdapter t;
     CustomProgram p;
 
@@ -160,7 +161,7 @@ main(void)
     std::string palette = "@%#*+=-:."; // Paul Borke's palette
     CustomUniform u{ rot, palette };
 
-    VertexBuffer<CustomVertex> vb;
+    asciirast::VertexBuffer<CustomVertex> vb;
     vb.shape_type = asciirast::ShapeType::POINTS; // only type now.. :7
     vb.verticies = std::move(std::vector<CustomVertex>{
             { 0, math::Vec2{ 0.1f, 0 } },

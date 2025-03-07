@@ -12,6 +12,8 @@
 
 #include "terminal_utils.h"
 
+namespace terminal_utils {
+
 void
 just_fix_windows_console(bool enable)
 {
@@ -28,4 +30,6 @@ just_fix_windows_console(bool enable)
 #else
     (void)enable;
 #endif
+}
+
 }
