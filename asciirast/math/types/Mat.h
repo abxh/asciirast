@@ -515,7 +515,9 @@ public:
      */
     Mat& operator/=(const T scalar)
     {
-        assert(scalar != 0 && "non-zero division");
+        if constexpr (std::is_integral_v<T>) {
+            assert(scalar != T{ 0 } && "non-zero division");
+        }
 
         for (auto& x : this->range()) {
             x /= scalar;
@@ -584,7 +586,9 @@ public:
      */
     friend Mat operator/(const Mat& lhs, const T scalar)
     {
-        assert(scalar != 0 && "non-zero division");
+        if constexpr (std::is_integral_v<T>) {
+            assert(scalar != T{ 0 } && "non-zero division");
+        }
 
         auto func = [=](const T x) -> T { return x / scalar; };
         auto view = std::views::transform(lhs.range(), func);

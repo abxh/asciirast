@@ -81,10 +81,8 @@ public:
 
     math::Transform2& get_viewport_to_window_transform() override { return m_viewport_to_window; }
 
-    void plot(const math::Vec2Int& pos_, std::tuple<char> targets) override
+    void plot(const math::Vec2Int& pos, std::tuple<char> targets) override
     {
-        auto pos = math::clamp(pos_, math::Vec2Int{ 0, 0 }, math::Vec2Int{ m_width - 1, m_height - 1 });
-
         m_buf[index(pos.y, pos.x)] = std::get<0>(targets);
     }
 
@@ -101,14 +99,15 @@ class CustomUniform
 {
 public:
     math::Rot2& rot;
+    std::string& palette;
 };
 
 class CustomVertex
 {
 public:
-    int id;
+    float id;
     math::Vec2 pos2;
-    CustomVertex(int id, math::Vec2 pos2)
+    CustomVertex(float id, math::Vec2 pos2)
             : id{ id }
             , pos2{ pos2 } {};
 };
@@ -116,17 +115,18 @@ public:
 class CustomVarying
 {
 public:
-    int id;
+    float id;
     math::Vec4 pos;
-    CustomVarying(int id, const math::Vec4& position)
+
+    CustomVarying(float id, const math::Vec4& position)
             : id{ id }
             , pos{ position } {};
 
     friend CustomVarying operator+(const CustomVarying& lhs, const CustomVarying& rhs)
     {
-        return { 0, lhs.pos + rhs.pos };
+        return { std::min(lhs.id, rhs.id), lhs.pos + rhs.pos };
     }
-    friend CustomVarying operator*(const float scalar, const CustomVarying& v) { return { 0, scalar * v.pos }; }
+    friend CustomVarying operator*(const float scalar, const CustomVarying& v) { return { v.id, scalar * v.pos }; }
 };
 
 class CustomProgram : public Program<CustomUniform, CustomVertex, CustomVarying, TerminalAdapter>
@@ -143,7 +143,7 @@ public:
     {
         auto [id, pos] = frag;
 
-        return id + '0';
+        return u.palette[(int)id];
     }
 };
 
@@ -155,20 +155,19 @@ main(void)
     CustomProgram p;
 
     math::Rot2 rot{};
-    math::Rot2 inc{ math::angle_as_radians(45.f / 2) };
-    CustomUniform u{ rot };
+    math::Rot2 inc{ math::angle_as_radians(-45.f) };
+
+    math::Rot2 f{ math::angle_as_radians(45.f / 2) };
+    f.dir *= 1.1; // hack which works since it uses complex numbers
+
+    std::string palette = "@%#*+=-:."; // Paul Borke's palette
+
+    CustomUniform u{ rot, palette };
 
     VertexBuffer<CustomVertex> vb;
     vb.shape_type = asciirast::ShapeType::POINTS; // only type now.. :7
     vb.verticies = std::move(std::vector<CustomVertex>{
-            { 1, math::Vec2{ 1, 0 } },
-            { 2, math::Vec2{ 1, 1 }.normalized() },
-            { 3, math::Vec2{ 0, 1 } },
-            { 4, math::Vec2{ -1, 1 }.normalized() },
-            { 5, math::Vec2{ -1, 0 } },
-            { 6, math::Vec2{ -1, -1 }.normalized() },
-            { 7, math::Vec2{ 0, -1 } },
-            { 8, math::Vec2{ 1, -1 }.normalized() },
+            { 0, math::Vec2{ 0.1f, 0 } },
     });
 
     std::binary_semaphore s{ 0 };
@@ -185,9 +184,13 @@ main(void)
         t.render();
         t.clear_buffer();
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         t.check_terminal_size();
         rot.stack(inc);
+
+        const CustomVertex last_vertex = vb.verticies[vb.verticies.size() - 1];
+        vb.verticies.push_back(
+                CustomVertex{ std::min((last_vertex.id + 0.4f), (float)palette.size()), f.apply(last_vertex.pos2) });
     }
     peek_inp.join();
 }

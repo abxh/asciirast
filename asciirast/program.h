@@ -1,6 +1,3 @@
-// inspiration:
-// https://github.com/nikolausrauch/software-rasterizer
-
 #pragma once
 
 #include <concepts>

@@ -23,4 +23,4 @@ add_subdirectory(external/terminal_utils)
 
 add_subdirectory(asciirast)
 
-add_subdirectory(examples/00-minimal)
+add_subdirectory(examples/00-spiral)
