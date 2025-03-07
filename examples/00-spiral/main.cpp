@@ -157,11 +157,7 @@ main(void)
     math::Rot2 rot{};
     math::Rot2 inc{ math::angle_as_radians(-45.f) };
 
-    math::Rot2 f{ math::angle_as_radians(45.f / 2) };
-    f.dir *= 1.1; // hack which works since it uses complex numbers
-
     std::string palette = "@%#*+=-:."; // Paul Borke's palette
-
     CustomUniform u{ rot, palette };
 
     VertexBuffer<CustomVertex> vb;
@@ -169,6 +165,15 @@ main(void)
     vb.verticies = std::move(std::vector<CustomVertex>{
             { 0, math::Vec2{ 0.1f, 0 } },
     });
+
+    math::Rot2 f{ math::angle_as_radians(45.f / 2) };
+    f.dir *= 1.1; // hack which works since it uses complex numbers
+
+    for (int i = 0; i < 20; i++) {
+        CustomVertex last_vertex = vb.verticies[vb.verticies.size() - 1];
+        vb.verticies.push_back(
+                CustomVertex{ std::min((last_vertex.id + 0.4f), (float)palette.size()), f.apply(last_vertex.pos2) });
+    }
 
     std::binary_semaphore s{ 0 };
 
@@ -187,10 +192,6 @@ main(void)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         t.check_terminal_size();
         rot.stack(inc);
-
-        const CustomVertex last_vertex = vb.verticies[vb.verticies.size() - 1];
-        vb.verticies.push_back(
-                CustomVertex{ std::min((last_vertex.id + 0.4f), (float)palette.size()), f.apply(last_vertex.pos2) });
     }
     peek_inp.join();
 }
