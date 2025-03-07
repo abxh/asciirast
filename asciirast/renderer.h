@@ -40,8 +40,8 @@ public:
     Renderer(const math::Vec2 viewport_min = math::Vec2{ 0.f, 0.f },
              const math::Vec2 viewport_max = math::Vec2{ 1.f, 1.f })
     {
-        assert(0.f <= viewport_min.x && viewport_min.x < viewport_max.x);
-        assert(0.f <= viewport_min.y && viewport_min.y < viewport_max.y);
+        assert(0.f <= viewport_min.x && viewport_min.x < viewport_max.x && viewport_max.x <= 1.f);
+        assert(0.f <= viewport_min.y && viewport_min.y < viewport_max.y && viewport_max.y <= 1.f);
 
         m_screen_to_viewport = math::Transform2()
                                        .translate(1.f, 1.f)
