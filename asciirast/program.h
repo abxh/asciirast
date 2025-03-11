@@ -14,15 +14,15 @@ concept VaryingType = requires(T x) {
     requires std::is_same_v<decltype(x.pos), math::Vec4>;
 };
 
-template<class Uniforms, class Vertex, VaryingType Varying, FramebufferType Framebuffer>
+template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
 class Program
 {
 public:
-    using Targets = Framebuffer::targets;
+    using Targets = FrameBuffer::Targets;
 
     virtual ~Program() = default;
-    virtual Varying on_vertex(const Uniforms& u, const Vertex& vert) const = 0;
-    virtual Targets on_fragment(const Uniforms& u, const Varying& frag) const = 0;
+    virtual Varying on_vertex(const Uniforms&, const Vertex&) const = 0;
+    virtual Targets on_fragment(const Uniforms&, const Varying&) const = 0;
 };
 
 }

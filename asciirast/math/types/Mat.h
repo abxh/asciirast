@@ -124,9 +124,9 @@ public:
     /**
      * @brief Default constructor. Set all values to zero.
      */
-    constexpr Mat()
+    Mat()
     {
-        for (T& x : this->range()) {
+        for (auto& x : this->range()) {
             x = T{ 0 };
         }
     }
@@ -136,8 +136,10 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (T& x : this->diagonal_range()) {
-            x = diagonal_element;
+        auto indicies = std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x));
+
+        for (auto [y, x] : indicies) {
+            (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
 
@@ -354,27 +356,6 @@ public:
         assert(x < this->column_count() && "index is inside bounds");
 
         return std::ranges::views::drop(this->range(), M_y * x) | std::ranges::views::take(M_y);
-    }
-
-    /**
-     * @brief Get range over diagonal elements.
-     * @todo Support other diagonals than the main diagonal?
-     */
-    std::ranges::view auto diagonal_range()
-    {
-        auto func = [this](const std::size_t i) -> T& { return m_elements[map_2d_index(i, i)]; };
-
-        return std::ranges::views::iota(0U, std::min(N_x, M_y)) | std::ranges::views::transform(func);
-    }
-
-    /**
-     * @brief Get range over diagonal elements.
-     */
-    std::ranges::view auto diagonal_range() const
-    {
-        auto func = [this](const std::size_t i) -> T { return m_elements[map_2d_index(i, i)]; };
-
-        return std::ranges::views::iota(0U, std::min(N_x, M_y)) | std::ranges::views::transform(func);
     }
 
 public:

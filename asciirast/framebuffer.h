@@ -6,18 +6,18 @@
 
 namespace asciirast {
 
-template<typename... Targets>
-class Framebuffer
+template<typename... TargetTypes>
+class FrameBuffer
 {
 public:
-    using targets = std::tuple<Targets...>;
+    using Targets = std::tuple<TargetTypes...>;
 
-    ~Framebuffer() = default;
+    ~FrameBuffer() = default;
     virtual const math::Transform2& get_viewport_to_window_transform() const = 0;
-    virtual void plot(const math::Vec2Int& pos, std::tuple<Targets...> targets) = 0;
+    virtual void plot(const math::Vec2&, const Targets&) = 0;
 };
 
 template<class T>
-concept FramebufferType = requires(T t) { []<typename... Targets>(Framebuffer<Targets...>&) {}(t); };
+concept FrameBufferType = requires(T t) { []<typename... Targets>(FrameBuffer<Targets...>&) {}(t); };
 
 }

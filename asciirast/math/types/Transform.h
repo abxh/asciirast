@@ -62,6 +62,11 @@ public:
     Vec2 invert(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
 
     /**
+     * Get reversed transformation object
+     */
+    Transform reversed() const { return Transform{}.stack(this->m_mat_inv, this->m_mat); }
+
+    /**
      * Stack a new transformation matrix and it's inverse on top
      */
     Transform& stack(const Mat3& mat, const Mat3& inv_mat)
@@ -222,6 +227,11 @@ private:
     Vec3 invert(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
 
     /**
+     * Get reversed transformation object
+     */
+    Transform reversed() const { return Transform{}.stack(this->m_mat_inv, this->m_mat); }
+
+    /**
      * Stack a new transformation matrix and it's inverse on top
      */
     Transform& stack(const Mat4& mat, const Mat4& inv_mat)
@@ -260,7 +270,7 @@ private:
     /**
      * Stack a rotation transformation
      */
-    Transform rotate(const Rot3& rot)
+    Transform& rotate(const Rot3& rot)
     {
         const Mat4 mr = Mat4{ rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();

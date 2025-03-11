@@ -103,10 +103,10 @@ public:
     /**
      * @brief In-place assignment with vector
      */
-    Swizzled operator=(const Vec& v)
+    Swizzled operator=(const Vec& that)
     {
         for (const std::size_t i : indicies) {
-            m_components[i] = v[i];
+            m_components[i] = that[i];
         }
         return *this;
     }

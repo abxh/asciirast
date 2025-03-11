@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <limits>
 #include <ostream>
-#include <ranges>
 #include <type_traits>
 
 #include "VecBase.h"
@@ -288,9 +287,7 @@ Vec<N, T>
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
     requires(std::is_integral_v<T>)
 {
-    auto func = [=](const T x, const T low_val, const T high_val) -> T {
-        return std::clamp(x, low_val, high_val);
-    };
+    auto func = [=](const T x, const T low_val, const T high_val) -> T { return std::clamp(x, low_val, high_val); };
     auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
 
     return Vec<N, T>{ view };
@@ -305,7 +302,9 @@ Vec<N, T>
 round(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    return Vec<N, T>{ std::ranges::transform(v.range(), std::round) };
+    auto view = std::ranges::transform(v.range(), std::round);
+
+    return Vec<N, T>{ view };
 }
 
 /**
@@ -317,7 +316,9 @@ Vec<N, T>
 ceil(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    return Vec<N, T>{ std::ranges::transform(v.range(), std::ceil) };
+    auto view = std::ranges::transform(v.range(), std::ceil);
+
+    return Vec<N, T>{ view };
 }
 
 /**
@@ -329,7 +330,9 @@ Vec<N, T>
 floor(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    return Vec<N, T>{ std::ranges::transform(v.range(), std::floor) };
+    auto view = std::ranges::transform(v.range(), std::floor);
+
+    return Vec<N, T>{ view };
 }
 
 /**
@@ -347,24 +350,24 @@ protected:
 
 public:
     /**
-     * @brief Implicitly construct vector from swizzled components.
+     * @brief Construct default vector with all zeroes
      */
-    template<std::size_t M, std::size_t... Is>
-        requires(M > 1)
-    Vec(const Swizzled<Vec, M, T, Is...>& swizzled)
+    Vec()
     {
-        for (auto [x, y] : std::views::zip(this->range(), swizzled.range())) {
-            x = y;
+        for (auto& x : this->range()) {
+            x = 0;
         }
     }
 
     /**
-     * @brief Construct default vector with all zeroes
+     * @brief Implicitly construct vector from swizzled components.
      */
-    explicit Vec()
+    template<std::size_t M, std::size_t... Is>
+        requires(M > 1)
+    Vec(const Swizzled<Vec, M, T, Is...>& that)
     {
-        for (auto& x : this->range()) {
-            x = T{ 0 };
+        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
+            x = y;
         }
     }
 
@@ -374,6 +377,18 @@ public:
     explicit Vec(const T y)
     {
         for (auto& x : this->range()) {
+            x = y;
+        }
+    }
+
+    /**
+     * @brief Construct vector from a larger truncated vector.
+     */
+    template<std::size_t M>
+        requires(M > N)
+    explicit Vec(const Vec<M, T>& that)
+    {
+        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
             x = y;
         }
     }
@@ -389,18 +404,6 @@ public:
     {
         vec_initializer<N, T>::init_from(*this, args...);
     };
-
-    /**
-     * @brief Construct vector from a larger truncated vector.
-     */
-    template<std::size_t M>
-        requires(M > N)
-    explicit Vec(const Vec<M, T>& that)
-    {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x = y;
-        }
-    }
 
     /**
      * @brief Construct vector from input range.
@@ -539,7 +542,7 @@ public:
     Vec& operator/=(const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != T{ 0 } && "non-zero division");
+            assert(scalar != 0 && "non-zero division");
         }
 
         for (auto& x : this->range()) {
@@ -610,7 +613,7 @@ public:
     friend Vec operator/(const Vec& lhs, const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != T{ 0 } && "non-zero division");
+            assert(scalar != 0 && "non-zero division");
         }
 
         auto func = [=](const T x) -> T { return x / scalar; };
@@ -797,7 +800,7 @@ public:
         std::size_t idx = 0;
         init_from_inner(idx, out, args...);
         for (auto i : std::views::iota(idx, N)) {
-            out[i] = T{ 0 };
+            out[i] = 0;
         }
     }
 

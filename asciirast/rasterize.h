@@ -1,11 +1,9 @@
-
-#include "renderer.h"
-#include <cassert>
+#include "math/types.h"
 
 namespace asciirast {
 
-bool
-Renderer::cull_point(const math::Vec4& p) const
+static bool
+cull_point(const math::Vec4& p)
 {
     const bool x_in_bounds = -p.w <= p.x && p.x <= +p.w;
     const bool y_in_bounds = -p.w <= p.y && p.y <= +p.w;
@@ -14,4 +12,4 @@ Renderer::cull_point(const math::Vec4& p) const
     return !(x_in_bounds && y_in_bounds && z_in_bounds);
 }
 
-};
+}
