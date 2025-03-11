@@ -2,8 +2,8 @@
 
 #include <concepts>
 
-#include "framebuffer.h"
-#include "math/types.h"
+#include "./framebuffer.h"
+#include "./math.h"
 
 namespace asciirast {
 

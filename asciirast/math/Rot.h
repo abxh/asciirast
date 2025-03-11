@@ -17,27 +17,27 @@ namespace asciirast::math {
 /**
  * @brief Rotation abstraction
  *
- * @tparam N                    Number of dimensions being operated on.
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the produced matrix is in column major
+ * @tparam N             Number of dimensions being operated on.
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the produced matrix is in column major
  */
-template<std::size_t N, typename T, bool mat_is_column_major>
+template<std::size_t N, typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class Rot;
 
 /**
  * @brief 2D rotation abstraction (unit complex number)
  *
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the produced matrix is in column major
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the produced matrix is in column major
  */
-template<typename T, bool mat_is_column_major>
+template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot<2, T, mat_is_column_major>
+class Rot<2, T, is_col_major>
 {
 public:
     using Vec2 = Vec<2, T>;
-    using Mat2 = Mat<2, 2, T, mat_is_column_major>;
+    using Mat2 = Mat<2, 2, T, is_col_major>;
 
     union
     {
@@ -89,7 +89,7 @@ public:
         const Vec2 x_hat = apply(Vec2{ 1, 0 });
         const Vec2 y_hat = apply(Vec2{ 0, 1 });
 
-        return Mat2::from_columns(x_hat, y_hat);
+        return Mat2::from_cols(x_hat, y_hat);
     }
 
     /**
@@ -133,17 +133,17 @@ public:
 /**
  * @brief 3D rotation abstraction (unit quaternion)
  *
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the produced matrix is in column major
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the produced matrix is in column major
  */
-template<typename T, bool mat_is_column_major>
+template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot<3, T, mat_is_column_major>
+class Rot<3, T, is_col_major>
 {
 public:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
-    using Mat3 = Mat<3, 3, T, mat_is_column_major>;
+    using Mat3 = Mat<3, 3, T, is_col_major>;
 
     union
     {
@@ -236,7 +236,7 @@ public:
         const Vec3 y_hat = apply(Vec3{ 0, 1, 0 });
         const Vec3 z_hat = apply(Vec3{ 0, 0, 1 });
 
-        return Mat3::from_columns(x_hat, y_hat, z_hat);
+        return Mat3::from_cols(x_hat, y_hat, z_hat);
     }
 
     /**

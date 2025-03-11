@@ -15,29 +15,29 @@ namespace asciirast::math {
 /**
  * @brief Transformation abstraction
  *
- * @tparam N                    Number of dimensions being operated on.
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the matrix is in column major
+ * @tparam N             Number of dimensions being operated on.
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the matrix is in column major
  */
-template<std::size_t N, typename T, bool mat_is_column_major>
+template<std::size_t N, typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class Transform;
 
 /**
  * @brief 2D transformation abstraction
  *
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the matrix is in column major
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the matrix is in column major
  */
-template<typename T, bool mat_is_column_major>
+template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform<2, T, mat_is_column_major>
+class Transform<2, T, is_col_major>
 {
 public:
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
-    using Mat3 = Mat<3, 3, T, mat_is_column_major>;
-    using Rot2 = Rot<2, T, mat_is_column_major>;
+    using Mat3 = Mat<3, 3, T, is_col_major>;
+    using Rot2 = Rot<2, T, is_col_major>;
 
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
@@ -90,8 +90,8 @@ public:
         const auto vr = Vec3{ delta_x, delta_y, 1 };
         const auto vi = Vec3{ -delta_x, -delta_y, 1 };
 
-        const auto mr = Mat3::identity().column_set(2, vr);
-        const auto mi = Mat3::identity().column_set(2, vi);
+        const auto mr = Mat3::identity().col_set(2, vr);
+        const auto mi = Mat3::identity().col_set(2, vi);
 
         return this->stack(mr, mi);
     }
@@ -191,18 +191,18 @@ public:
 /**
  * @brief 3D transformation abstraction
  *
- * @tparam T                    Type of elements
- * @tparam mat_is_column_major  Whether the matrix is in column major
+ * @tparam T             Type of elements
+ * @tparam is_col_major  Whether the matrix is in column major
  */
-template<typename T, bool mat_is_column_major>
+template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform<3, T, mat_is_column_major>
+class Transform<3, T, is_col_major>
 {
 private:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
-    using Mat4 = Mat<4, 4, T, mat_is_column_major>;
-    using Rot3 = Rot<3, T, mat_is_column_major>;
+    using Mat4 = Mat<4, 4, T, is_col_major>;
+    using Rot3 = Rot<3, T, is_col_major>;
 
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
@@ -253,10 +253,10 @@ private:
     Transform& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const auto v = Vec4{ delta_x, delta_y, delta_z, 1 };
-        const auto mr = Mat4::identity().column_set(3, v);
+        const auto mr = Mat4::identity().col_set(3, v);
 
         const auto vi = Vec4{ -delta_x, -delta_y, -delta_z, 1 };
-        const auto mi = Mat4::identity().column_set(3, vi);
+        const auto mi = Mat4::identity().col_set(3, vi);
 
         return this->stack(mr, mi);
     }

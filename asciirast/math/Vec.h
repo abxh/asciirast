@@ -12,8 +12,8 @@
 #include <ostream>
 #include <type_traits>
 
-#include "../utils.h"
 #include "VecBase.h"
+#include "utils.h"
 
 namespace asciirast::math {
 
@@ -64,10 +64,8 @@ template<std::size_t N, typename T>
 T
 dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
-    auto func = std::multiplies();
-    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-    return std::ranges::fold_left(view, T{ 0 }, std::plus());
+    return std::ranges::fold_left(
+            std::views::zip_transform(std::multiplies(), lhs.range(), rhs.range()), T{ 0 }, std::plus());
 }
 
 /**

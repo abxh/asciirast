@@ -1,4 +1,4 @@
-#include "math/types.h"
+#include "./math.h"
 
 namespace asciirast {
 

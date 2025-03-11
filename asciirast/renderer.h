@@ -9,9 +9,9 @@
 #include <ranges>
 #include <vector>
 
-#include "math/types.h"
-#include "program.h"
-#include "rasterize.h"
+#include "./math.h"
+#include "./program.h"
+#include "./rasterize.h"
 
 namespace asciirast {
 

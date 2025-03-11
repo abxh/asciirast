@@ -1,7 +1,6 @@
 
 #include "asciirast/framebuffer.h"
-#include "asciirast/math/types.h"
-#include "asciirast/math/utils.h"
+#include "asciirast/math.h"
 #include "asciirast/program.h"
 #include "asciirast/renderer.h"
 #include "external/terminal_utils/terminal_utils.h"

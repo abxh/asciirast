@@ -1,9 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
 #include <numbers>
 #include <type_traits>
 
 namespace asciirast::math {
+
+namespace constants {
 
 template<typename T>
 static const T PI = std::numbers::pi; // PI constant
@@ -11,20 +15,28 @@ static const T PI = std::numbers::pi; // PI constant
 template<typename T>
 static const T PI_2 = std::numbers::pi + std::numbers::pi; // PI_2 constant
 
-template<typename T>
-    requires(std::is_floating_point_v<T>)
-T
-angle_as_radians(const T degrees)
-{
-    return PI_2<T> * degrees / T{ 360 };
 }
 
+/**
+ * @brief Convert from degrees to radians
+ */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-T
+static T
+angle_as_radians(const T degrees)
+{
+    return constants::PI_2<T> * degrees / T{ 360 };
+}
+
+/**
+ * @brief Convert from radians to degrees
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+static T
 angle_as_degrees(const T radians)
 {
-    return T{ 360 } * radians / PI_2<T>;
+    return T{ 360 } * radians / constants::PI_2<T>;
 }
 
 /**
