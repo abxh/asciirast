@@ -119,13 +119,13 @@ public:
 
         Mat3 mr{}, mi{};
 
-        mr(0, 0) = scale_x;
-        mr(1, 1) = scale_y;
-        mr(2, 2) = 1;
+        mr[0, 0] = scale_x;
+        mr[1, 1] = scale_y;
+        mr[2, 2] = 1;
 
-        mi(0, 0) = 1 / scale_x;
-        mi(1, 1) = 1 / scale_y;
-        mi(2, 2) = 1;
+        mi[0, 0] = 1 / scale_x;
+        mi[1, 1] = 1 / scale_y;
+        mi[2, 2] = 1;
 
         return this->stack(mr, mi);
     }
@@ -160,7 +160,7 @@ public:
         const auto mr = Mat3::from_rows(a, b, c);
 
         auto mi = Mat3{ mr };
-        mi(0, 1) *= -1;
+        mi[0, 1] *= -1;
 
         return this->stack(mr, mi);
     }
@@ -177,7 +177,7 @@ public:
         const auto mr = Mat3::from_rows(a, b, c);
 
         auto mi = Mat3{ mr };
-        mi(1, 0) *= -1;
+        mi[1, 0] *= -1;
 
         return this->stack(mr, mi);
     }
@@ -243,7 +243,7 @@ private:
     Transform& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const auto v = Vec4{ delta_x, delta_y, delta_z, 1 };
-        const auto mr = Mat4::identity().column_set(3, v);
+        const auto mr = Mat4::identity().column_set[3, v];
 
         const auto vi = Vec4{ -delta_x, -delta_y, -delta_z, 1 };
         const auto mi = Mat4::identity().column_set(3, vi);
@@ -282,15 +282,15 @@ private:
 
         Mat4 mr{}, mi{};
 
-        mr(0, 0) = scale_x;
-        mr(1, 1) = scale_y;
-        mr(2, 2) = scale_z;
-        mr(3, 3) = 1;
+        mr[0, 0] = scale_x;
+        mr[1, 1] = scale_y;
+        mr[2, 2] = scale_z;
+        mr[3, 3] = 1;
 
-        mi(0, 0) = 1 / scale_x;
-        mi(1, 1) = 1 / scale_y;
-        mi(2, 2) = 1 / scale_z;
-        mi(3, 3) = 1;
+        mi[0, 0] = 1 / scale_x;
+        mi[1, 1] = 1 / scale_y;
+        mi[2, 2] = 1 / scale_z;
+        mi[3, 3] = 1;
 
         return this->stack(mr, mi);
     }
@@ -334,8 +334,8 @@ private:
         const auto mr = Mat4::from_rows(a, b, c, d);
 
         auto mi = Mat4{ mr };
-        mi(0, 2) *= -1;
-        mi(1, 2) *= -1;
+        mi[0, 2] *= -1;
+        mi[1, 2] *= -1;
 
         return this->stack(mr, mi);
     }
@@ -353,8 +353,8 @@ private:
         const auto mr = Mat4::from_rows(a, b, c, d);
 
         auto mi = Mat4{ mr };
-        mi(0, 1) *= -1;
-        mi(2, 1) *= -1;
+        mi[0, 1] *= -1;
+        mi[2, 1] *= -1;
 
         return this->stack(mr, mi);
     }
@@ -372,8 +372,8 @@ private:
         const auto mr = Mat4::from_rows(a, b, c, d);
 
         auto mi = Mat4{ mr };
-        mi(1, 0) *= -1;
-        mi(2, 0) *= -1;
+        mi[1, 0] *= -1;
+        mi[2, 0] *= -1;
 
         return this->stack(mr, mi);
     }

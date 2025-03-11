@@ -208,7 +208,7 @@ public:
     /**
      * @brief Index the matrix
      */
-    T& operator()(const std::size_t y, const std::size_t x)
+    T& operator[](const std::size_t y, const std::size_t x)
     {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
@@ -219,7 +219,7 @@ public:
     /**
      * @brief Index the matrix
      */
-    T operator()(const std::size_t y, const std::size_t x) const
+    T operator[](const std::size_t y, const std::size_t x) const
     {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
@@ -245,7 +245,7 @@ public:
         auto indicies = std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x));
 
         for (auto [y, x] : indicies) {
-            out(x, y) = (*this)(y, x);
+            out[x, y] = (*this)[y, x];
         }
         return out;
     }
