@@ -102,7 +102,7 @@ public:
      */
     Transform& rotate(const Rot2& rot)
     {
-        const Mat3 mr = { rot.to_mat2(), Vec3{ 0, 0, 1 } };
+        const Mat3 mr = Mat3{ rot.to_mat2(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
 
         return this->stack(mr, mi);
@@ -243,7 +243,7 @@ private:
     Transform& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const auto v = Vec4{ delta_x, delta_y, delta_z, 1 };
-        const auto mr = Mat4::identity().column_set[3, v];
+        const auto mr = Mat4::identity().column_set(3, v);
 
         const auto vi = Vec4{ -delta_x, -delta_y, -delta_z, 1 };
         const auto mi = Mat4::identity().column_set(3, vi);
@@ -262,7 +262,7 @@ private:
      */
     Transform rotate(const Rot3& rot)
     {
-        const Mat4 mr = { rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
+        const Mat4 mr = Mat4{ rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();
 
         return this->stack(mr, mi);
