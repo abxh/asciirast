@@ -9,6 +9,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <ranges>
 #include <vector>
 
 #include "math/types.h"
@@ -65,8 +66,10 @@ public:
                const IndexedVertexBuffer<Vertex>& verts,
                Framebuffer& out) const
     {
-        auto view = std::ranges::views::transform(std::views::all(verts.indicies),
-                                                  [&](const std::size_t i) { return verts.verticies[i]; });
+        auto view = std::ranges::views::transform(std::views::all(verts.indicies), [&](const std::size_t i) {
+            assert(i < verts.verticies.size() && "index is inside bounds");
+            return verts.verticies[i];
+        });
 
         apply(program, uniforms, verts.shape_type, view, out);
     }
@@ -75,33 +78,20 @@ private:
     math::Transform2 m_screen_to_viewport;
 
 private:
-    bool cull_point(const math::Vec2 p) const;
-
-    template<class Uniforms, class Vertex, class Varying, class Framebuffer>
-    Varying transfrom_vertex(const Program<Uniforms, Vertex, Varying, Framebuffer>& program,
-                             const Uniforms& uniforms,
-                             const Vertex& vert,
-                             Framebuffer& out) const
-    {
-        Varying frag = program.on_vertex(uniforms, vert);
-
-        frag.pos.xyz /= frag.pos.w; // perspective divide
-
-        return frag;
-    }
+    bool cull_point(const math::Vec4& p) const;
 
     template<class Uniforms, class Vertex, class Varying, class Framebuffer>
     std::tuple<math::Vec2Int, typename Framebuffer::targets> transfrom_fragment(
             const Program<Uniforms, Vertex, Varying, Framebuffer>& program,
             const Uniforms& uniforms,
-            Varying frag,
-            Framebuffer& out) const
+            const Framebuffer& fb,
+            Varying frag) const
     {
+        frag.pos.xyz /= frag.pos.w; // perspective divide
         frag.pos.xy = std::move(m_screen_to_viewport.apply(frag.pos.xy));
 
         const auto targets = program.on_fragment(uniforms, frag);
-
-        const math::Vec2 win_pos = out.get_viewport_to_window_transform().apply(frag.pos.xy);
+        const math::Vec2 win_pos = fb.get_viewport_to_window_transform().apply(frag.pos.xy);
 
         return { math::Vec2Int{ win_pos }, targets };
     }
@@ -111,20 +101,20 @@ private:
                const Uniforms& uniforms,
                const ShapeType shape_type,
                std::ranges::input_range auto&& range,
-               Framebuffer& out) const
+               Framebuffer& fb) const
     {
         switch (shape_type) {
         case ShapeType::POINTS:
             for (const Vertex& vert : range) {
-                const auto frag = transfrom_vertex(program, uniforms, vert, out);
+                const auto frag = program.on_vertex(uniforms, vert);
 
-                if (cull_point(frag.pos.xy)) {
+                if (cull_point(frag.pos)) {
                     continue;
                 }
 
-                const auto [pos, targets] = transfrom_fragment(program, uniforms, frag, out);
+                const auto [pos, targets] = transfrom_fragment(program, uniforms, fb, frag);
 
-                out.plot(pos, targets);
+                fb.plot(pos, targets);
             }
             break;
         }

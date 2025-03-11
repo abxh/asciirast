@@ -60,11 +60,11 @@ public:
 
         std::cout << CSI::ESC << m_height << CSI::MOVEUPLINES << '\r';
 
-        m_width = std::clamp(width - 1, 2, 4096);
-        m_height = std::clamp(height - 1, 2, 4096);
-        m_viewport_to_window = math::Transform2().reflectY().translate(0.f, 1.f).scale(m_width - 1, m_height - 1);
+        m_width = std::max(width - 1, 2);
+        m_height = std::max(height - 1, 2);
+        m_viewport_to_window = math::Transform2().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
 
-        m_buf.reserve(m_width * m_height);
+        m_buf.resize(m_width * m_height);
 
         this->clear_buffer();
         this->clear_lines();
@@ -82,10 +82,13 @@ public:
         std::fflush(stdout);
     }
 
-    math::Transform2& get_viewport_to_window_transform() override { return m_viewport_to_window; }
+    const math::Transform2& get_viewport_to_window_transform() const override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, std::tuple<char> targets) override
     {
+        assert(0 <= pos.x && pos.x < m_width);
+        assert(0 <= pos.y && pos.y < m_height);
+
         m_buf[index(pos.y, pos.x)] = std::get<0>(targets);
     }
 
