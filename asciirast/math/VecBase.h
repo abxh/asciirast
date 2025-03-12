@@ -8,7 +8,7 @@
 
 #include <array>
 
-#include "Swizzled.h"
+#include "./Swizzled.h"
 
 namespace asciirast::math {
 

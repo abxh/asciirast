@@ -7,8 +7,8 @@
 
 #include <cassert>
 
-#include "Mat.h"
-#include "Rot.h"
+#include "./Mat.h"
+#include "./Rot.h"
 
 namespace asciirast::math {
 

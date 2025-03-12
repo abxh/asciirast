@@ -9,8 +9,8 @@
 #include <cmath>
 #include <type_traits>
 
-#include "Mat.h"
-#include "Vec.h"
+#include "./Mat.h"
+#include "./Vec.h"
 
 namespace asciirast::math {
 

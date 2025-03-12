@@ -14,7 +14,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include "Vec.h"
+#include "./Vec.h"
 
 namespace asciirast::math {
 

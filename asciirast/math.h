@@ -13,14 +13,14 @@
 
 namespace asciirast::math {
 
-using I = int;
-using F = float;
-static constexpr bool is_col_major = true;
+using I = int;                             ///< default integral type
+using F = float;                           ///< default floating point type
+static constexpr bool is_col_major = true; ///< default matrix major order
 
 static const F PI = constants::PI<F>; ///< PI constant
 
-using Vec2Int = Vec<2, I>; ///< 2D math vector
-using Vec3Int = Vec<3, I>; ///< 3D math vector
+using Vec2Int = Vec<2, I>; ///< 2D integral type math vector
+using Vec3Int = Vec<3, I>; ///< 3D integral type math vector
 
 using Vec2 = Vec<2, F>; ///< 2D math vector
 using Vec3 = Vec<3, F>; ///< 3D math vector
