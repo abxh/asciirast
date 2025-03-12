@@ -49,7 +49,7 @@ angle_as_degrees(const T radians)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_equal(const T& x, const T& y, const unsigned ulps_)
+almost_equal(const T x, const T y, const unsigned ulps_)
 {
     // Based on:
     // https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
@@ -68,7 +68,7 @@ almost_equal(const T& x, const T& y, const unsigned ulps_)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_equal(const T& x, const T& y)
+almost_equal(const T x, const T y)
     requires(std::is_same_v<T, float>)
 {
     // default precision based on:
@@ -84,7 +84,7 @@ almost_equal(const T& x, const T& y)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_equal(const T& x, const T& y)
+almost_equal(const T x, const T y)
     requires(std::is_same_v<T, double>)
 {
     // default precision based on:
@@ -103,7 +103,7 @@ almost_equal(const T& x, const T& y)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_less_than(const T& x, const T& y, const unsigned ulps_)
+almost_less_than(const T x, const T y, const unsigned ulps_)
 {
     const T ulps = static_cast<T>(ulps_);
     const T min = std::min(std::fabs(x), std::fabs(y));
@@ -119,7 +119,7 @@ almost_less_than(const T& x, const T& y, const unsigned ulps_)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_less_than(const T& x, const T& y)
+almost_less_than(const T x, const T y)
     requires(std::is_same_v<T, float>)
 {
     // default precision based on:
@@ -135,7 +135,7 @@ almost_less_than(const T& x, const T& y)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 bool
-almost_less_than(const T& x, const T& y)
+almost_less_than(const T x, const T y)
     requires(std::is_same_v<T, double>)
 {
     // default precision based on:

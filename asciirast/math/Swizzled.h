@@ -101,6 +101,20 @@ public:
     }
 
     /**
+     * @brief In-place assignment with initializer list
+     */
+    Swizzled operator=(std::initializer_list<T> list)
+    {
+        assert(this->size() == list.size() && "list has same size");
+
+        auto it = list.begin();
+        for (const std::size_t i : indicies) {
+            m_components[i] = *(it++);
+        }
+        return *this;
+    }
+
+    /**
      * @brief In-place assignment with vector
      */
     Swizzled operator=(const Vec& that)

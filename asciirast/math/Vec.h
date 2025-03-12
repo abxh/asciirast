@@ -44,7 +44,7 @@ struct vec_initializer;
  * @tparam Args The argument types
  */
 template<typename T, typename... Args>
-struct not_single_value;
+struct not_a_single_value;
 
 /**
  * @brief Math vector class
@@ -291,11 +291,11 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(not_single_value<T, Args...>::value)
-    explicit Vec(const Args&... args)
+        requires(not_a_single_value<T, Args...>::value)
+    explicit Vec(Args&&... args)
         requires(vec_constructible_from<N, T, Args...>::value)
     {
-        vec_initializer<N, T>::init_from(*this, args...);
+        vec_initializer<N, T>::init_from(*this, std::forward<Args>(args)...);
     };
 
     /**
@@ -623,18 +623,22 @@ public:
 };
 
 template<typename T, typename... Args>
-struct not_single_value
+struct not_a_single_value_impl
 {
     static constexpr bool value = sizeof...(Args) > 1 ||
                                   sizeof...(Args) == 1 &&
                                           !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
 };
 
+template<typename T, typename... Args>
+struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>...>
+{};
+
 /**
  * @brief Vector information trait
  */
 template<typename TT>
-struct vec_info
+struct vec_info_impl
 {
     static constexpr bool value = false;   ///< whether the type is vector like
     static constexpr std::size_t size = 0; ///< vector size
@@ -644,7 +648,7 @@ struct vec_info
  * @brief Vector information trait
  */
 template<std::size_t M, typename U>
-struct vec_info<Vec<M, U>>
+struct vec_info_impl<Vec<M, U>>
 {
     static constexpr bool value = true;    ///< whether the type is vector like
     static constexpr std::size_t size = M; ///< vector size
@@ -655,26 +659,33 @@ struct vec_info<Vec<M, U>>
  */
 template<std::size_t M, typename T, std::size_t... Is>
     requires(sizeof...(Is) > 1)
-struct vec_info<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
+struct vec_info_impl<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
 {
     static constexpr bool value = true;                ///< whether the type is vector like
     static constexpr std::size_t size = sizeof...(Is); ///< vector size
 };
 
+template<typename TT>
+using vec_info = vec_info_impl<std::remove_cvref_t<TT>>;
+
 template<std::size_t N, typename T, typename... Args>
-struct vec_constructible_from
+struct vec_constructible_from_impl
 {
 private:
-    static constexpr bool accepted_types = ((std::convertible_to<Args, T> || vec_info<Args>::value) && ...);
+    static constexpr bool accepted_types = ((std::convertible_to<Args, T> || vec_info_impl<Args>::value) && ...);
 
     static constexpr std::size_t num_values = ((std::convertible_to<Args, T> ? 1 : 0) + ...);
 
-    static constexpr bool total_size_in_bounds = (N >= num_values + (vec_info<Args>::size + ...));
+    static constexpr bool total_size_in_bounds = (N >= num_values + (vec_info_impl<Args>::size + ...));
 
 public:
     static constexpr bool value = accepted_types && total_size_in_bounds; ///< whether the arguments are of acceptable
                                                                           ///< types and total size is inside bounds
 };
+
+template<std::size_t N, typename T, typename... Args>
+struct vec_constructible_from : vec_constructible_from_impl<N, T, std::remove_cvref_t<Args>...>
+{};
 
 template<std::size_t N, typename T>
 struct vec_initializer
@@ -687,11 +698,11 @@ public:
      * @param args  The arguments
      */
     template<typename... Args>
-    static constexpr void init_from(Vec<N, T>& out, const Args&... args)
+    static constexpr void init_from(Vec<N, T>& out, Args&&... args)
         requires(vec_constructible_from<N, T, Args...>::value)
     {
         std::size_t idx = 0;
-        init_from_inner(idx, out, args...);
+        init_from_inner(idx, out, std::forward<Args>(args)...);
         for (auto i : std::views::iota(idx, N)) {
             out[i] = 0;
         }
@@ -704,7 +715,7 @@ private:
         (void)(out);
     }
 
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const T& arg, const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const T arg, auto&&... rest)
     {
         out[idx] = arg;
         idx += 1;
@@ -712,7 +723,7 @@ private:
     }
 
     template<std::size_t M, typename U>
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, const auto&... rest)
+    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, auto&&... rest)
     {
         for (auto [i, j] : std::views::zip(std::views::iota(idx, idx + M), std::views::iota(0U, M))) {
             out[i] = static_cast<T>(arg[j]);
@@ -726,7 +737,7 @@ private:
     static constexpr void init_from_inner(std::size_t& idx,
                                           Vec<N, T>& out,
                                           const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
-                                          const auto&... rest)
+                                          auto&&... rest)
     {
         auto values = arg.range();
         for (auto [i, value] : std::views::zip(std::views::iota(idx), values)) {

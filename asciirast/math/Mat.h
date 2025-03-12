@@ -14,7 +14,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include "./Vec.h"
+#include "Vec.h"
 
 namespace asciirast::math {
 
@@ -95,13 +95,13 @@ public:
      */
     template<typename... Args>
         requires(vec_info<Args>::value && ...)
-    static Mat from_cols(const Args&... args)
+    static Mat from_cols(Args&&... args)
         requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) && ((vec_info<Args>::size <= M_y) && ...))
     {
         if constexpr (is_col_major) {
-            return Mat<M_y, N_x, T, is_col_major>{ args... };
+            return Mat<M_y, N_x, T, is_col_major>{ std::forward<Args>(args)... };
         } else {
-            return Mat<N_x, M_y, T, is_col_major>{ args... }.transposed();
+            return Mat<N_x, M_y, T, is_col_major>{ std::forward<Args>(args)... }.transposed();
         }
     }
 
@@ -110,13 +110,13 @@ public:
      */
     template<typename... Args>
         requires(vec_info<Args>::value && ...)
-    static Mat from_rows(const Args&... args)
+    static Mat from_rows(Args&&... args)
         requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) && ((vec_info<Args>::size <= N_x) && ...))
     {
         if constexpr (is_col_major) {
-            return Mat<N_x, M_y, T, is_col_major>{ args... }.transposed();
+            return Mat<N_x, M_y, T, is_col_major>{ std::forward<Args>(args)... }.transposed();
         } else {
-            return Mat<M_y, N_x, T, is_col_major>{ args... };
+            return Mat<M_y, N_x, T, is_col_major>{ std::forward<Args>(args)... };
         }
     }
 
@@ -146,11 +146,11 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(not_single_value<T, Args...>::value)
-    explicit Mat(const Args&... args)
+        requires(not_a_single_value<T, Args...>::value)
+    explicit Mat(Args&&... args)
         requires(mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {
-        mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, args...);
+        mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
     };
 
     /**
@@ -655,11 +655,8 @@ private:
     }
 };
 
-/**
- * @brief Matrix information trait
- */
 template<typename TT>
-struct mat_info
+struct mat_info_impl
 {
     using value_type = void;                 ///< value type
     static constexpr bool value = false;     ///< whether the type is a matrix
@@ -667,11 +664,8 @@ struct mat_info
     static constexpr std::size_t width = 0;  ///< matrix width
 };
 
-/**
- * @brief Matrix information trait
- */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
-struct mat_info<Mat<M_y, N_x, T, is_col_major>>
+struct mat_info_impl<Mat<M_y, N_x, T, is_col_major>>
 {
     using value_type = T;                      ///< value type
     static constexpr bool value = true;        ///< whether the type is a matrix
@@ -680,10 +674,17 @@ struct mat_info<Mat<M_y, N_x, T, is_col_major>>
 };
 
 /**
+ * @brief Matrix information trait
+ */
+template<typename TT>
+struct mat_info : mat_info_impl<std::remove_cvref_t<TT>>
+{};
+
+/**
  * @brief Trait to check if matrix can constructed from arguments.
  */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
-struct mat_constructible_from
+struct mat_constructible_from_impl
 {
 private:
     static constexpr bool accepted_types = ((vec_info<Args>::value || mat_info<Args>::value) && ...);
@@ -706,6 +707,10 @@ public:
                                                                           ///< types and total area is inside bounds
 };
 
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
+struct mat_constructible_from : mat_constructible_from_impl<M_y, N_x, T, is_col_major, std::remove_cvref_t<Args>...>
+{};
+
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer
 {
@@ -717,11 +722,11 @@ public:
      * @param args  The arguments
      */
     template<typename... Args>
-    static constexpr void init_from(Mat<M_y, N_x, T, is_col_major>& out, const Args&... args)
+    static constexpr void init_from(Mat<M_y, N_x, T, is_col_major>& out, Args&&... args)
         requires(mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {
         std::size_t idx = 0;
-        init_from_inner(idx, out, args...);
+        init_from_inner(idx, out, std::forward<Args>(args)...);
         if constexpr (is_col_major) {
             for (const std::size_t i : std::views::iota(idx, out.col_count())) {
                 out.col_set(i, Vec<M_y, T>{ T{ 0 } });
@@ -743,7 +748,7 @@ private:
     static constexpr void init_from_inner(std::size_t& idx,
                                           Mat<M_y, N_x, T, is_col_major>& out,
                                           const Vec<M, U>& arg,
-                                          const auto&... rest)
+                                          auto&&... rest)
     {
         if constexpr (is_col_major) {
             out.col_set(idx++, Vec<M_y, T>{ arg });
@@ -758,7 +763,7 @@ private:
     static constexpr void init_from_inner(std::size_t& idx,
                                           Mat<M_y, N_x, T, is_col_major>& out,
                                           const Swizzled<Vec<sizeof...(Is), T>, M, U, Is...>& arg,
-                                          const auto&... rest)
+                                          auto&&... rest)
     {
         if constexpr (is_col_major) {
             out.col_set(idx++, Vec<M_y, T>{ arg });
@@ -772,7 +777,7 @@ private:
     static constexpr void init_from_inner(std::size_t& idx,
                                           Mat<M_y, N_x, T, is_col_major>& out,
                                           const Mat<M1_y, N1_x, T, is_col_major>& arg,
-                                          const auto&... rest)
+                                          auto&&... rest)
     {
         if constexpr (is_col_major) {
             for (const std::size_t i : std::ranges::views::iota(0U, arg.col_count())) {
