@@ -136,7 +136,7 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (auto [y, x] : this->indicies_range()) {
+        for (auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
             (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
@@ -243,7 +243,7 @@ public:
     {
         Mat<N_x, M_y, T, is_col_major> out{};
 
-        for (auto [y, x] : out.indicies_range()) {
+        for (auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
             out[x, y] = (*this)[y, x];
         }
         return out;
@@ -259,7 +259,6 @@ public:
      */
     std::ranges::view auto range() const { return std::ranges::views::all(m_elements); }
 
-public:
     /**
      * @brief Get y'th row
      */
@@ -540,24 +539,6 @@ public:
     }
 
 private:
-    /**
-     * @brief Get range over indicies
-     */
-    std::ranges::view auto indicies_range() const
-        requires(is_col_major)
-    {
-        return std::views::cartesian_product(std::views::iota(0U, N_x), std::views::iota(0U, M_y));
-    }
-
-    /**
-     * @brief Get range over indicies
-     */
-    std::ranges::view auto indicies_range() const
-        requires(!is_col_major)
-    {
-        return std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x));
-    }
-
     /**
      * @brief Get range over elements at row y.
      */
