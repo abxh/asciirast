@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <compare>
 #include <cstdlib>
 #include <ostream>
 #include <type_traits>
@@ -169,6 +170,34 @@ Vec<N, T>
 abs(const Vec<N, T>& v)
 {
     return Vec<N, T>{ std::ranges::transform(v.range(), std::abs) };
+}
+
+/**
+ * @brief Take the max value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+{
+    auto func = [=](const T lhs, const T rhs) -> T { return std::max(lhs, rhs); };
+    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+    return Vec<N, T>{ view };
+}
+
+/**
+ * @brief Take the min value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+Vec<N, T>
+min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+{
+    auto func = [=](const T lhs, const T rhs) -> T { return std::min(lhs, rhs); };
+    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+    return Vec<N, T>{ view };
 }
 
 /**
@@ -387,13 +416,47 @@ public:
     friend bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_floating_point_v<T>)
     {
-        return std::ranges::equal(lhs.range(), rhs.range(), almost_equal<T>);
+        auto func = [](const T x, const T y) { return math::almost_equal(x, y); };
+
+        return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
 
     /**
      * @brief Check if approximately not equal to other vector
      */
     friend bool operator!=(const Vec& lhs, const Vec& rhs) { return !(lhs == rhs); }
+
+    /**
+     * @brief Compare lexigraphically with other vector
+     */
+    friend auto operator<=>(const Vec& lhs, const Vec& rhs)
+        requires(std::is_integral_v<T>)
+    {
+        if (std::ranges::lexicographical_compare(lhs.range(), rhs.range())) {
+            return std::strong_ordering::less;
+        }
+        if (std::ranges::lexicographical_compare(rhs.range(), lhs.range())) {
+            return std::strong_ordering::greater;
+        }
+        return std::strong_ordering::equal;
+    }
+
+    /**
+     * @brief Compare lexigraphically with other vector
+     */
+    friend auto operator<=>(const Vec& lhs, const Vec& rhs)
+        requires(std::is_floating_point_v<T>)
+    {
+        auto func = [](const T x, const T y) { return math::almost_less_than(x, y); };
+
+        if (std::ranges::equal(lhs.range(), rhs.range(), func)) {
+            return std::partial_ordering::less;
+        }
+        if (std::ranges::equal(rhs.range(), lhs.range(), func)) {
+            return std::partial_ordering::greater;
+        }
+        return std::partial_ordering::equivalent;
+    }
 
 public:
     /**

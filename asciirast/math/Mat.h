@@ -1,6 +1,7 @@
 /**
  * @file Mat.h
  * @brief File with definition of a (basic) matrix class
+ * @todo determinant and inverse function
  */
 
 #pragma once
@@ -14,7 +15,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include "Vec.h"
+#include "./Vec.h"
 
 namespace asciirast::math {
 

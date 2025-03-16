@@ -6,20 +6,20 @@ namespace terminal_utils {
 
 namespace CSI {
 
-static const std::string ESC = "\033[";
-static const std::string RESET_COLOR = "0m";
+inline const std::string ESC = "\033[";
+inline const std::string RESET_COLOR = "0m";
 
-static const std::string SHOW_CURSOR = "?25h";
-static const std::string HIDE_CURSOR = "?25l";
+inline const std::string SHOW_CURSOR = "?25h";
+inline const std::string HIDE_CURSOR = "?25l";
 
-static const std::string ENABLE_LINE_WRAP = "7h";
-static const std::string DISABLE_LINE_WRAP = "7l";
+inline const std::string ENABLE_LINE_WRAP = "7h";
+inline const std::string DISABLE_LINE_WRAP = "7l";
 
-static const std::string MOVE_UP_LINES = "A";
-static const std::string CLEAR_LINE = "2K";
+inline const std::string MOVE_UP_LINES = "A";
+inline const std::string CLEAR_LINE = "2K";
 
-static const std::string SET_BG_RGB_COLOR = "48;2;";
-static const std::string SET_FG_RGB_COLOR = "38;2;";
+inline const std::string SET_BG_RGB_COLOR = "48;2;";
+inline const std::string SET_FG_RGB_COLOR = "38;2;";
 
 };
 

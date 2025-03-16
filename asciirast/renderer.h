@@ -1,6 +1,5 @@
 // TODO:
 // improve documentation
-// create AABB objects
 
 #pragma once
 
@@ -39,17 +38,18 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 class Renderer
 {
 public:
-    Renderer(const math::Vec2 viewport_min = math::Vec2{ 0.f, 0.f },
-             const math::Vec2 viewport_max = math::Vec2{ 1.f, 1.f })
-    {
-        assert(0.f <= viewport_min.x && viewport_min.x < viewport_max.x && viewport_max.x <= 1.f);
-        assert(0.f <= viewport_min.y && viewport_min.y < viewport_max.y && viewport_max.y <= 1.f);
+    static inline const math::AABB2 screen_AABB = math::AABB2::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
 
-        m_screen_to_viewport = math::Transform2()
-                                       .translate(1.f, 1.f)
-                                       .scale(0.5f, 0.5f)
-                                       .scale(viewport_max - viewport_min)
-                                       .translate(viewport_min);
+    Renderer()
+            : m_screen_to_viewport{ screen_AABB.to_transform().reversed() }
+    {
+    }
+
+    Renderer(const math::AABB2& viewport_AABB)
+            : m_screen_to_viewport{ screen_AABB.to_transform().reversed().stack(viewport_AABB.to_transform()) }
+    {
+        assert(math::AABB2::from_min_max(math::Vec2{ 0, 0 }, math::Vec2{ 1, 1 }).contains(viewport_AABB));
+        assert(viewport_AABB.size_get() != math::Vec2{ 0 });
     }
 
     template<class Uniforms, class Vertex, class Varying, class Framebuffer>
@@ -121,7 +121,19 @@ private:
         case ShapeType::LINES:
         case ShapeType::LINE_STRIP:
         case ShapeType::LINE_LOOP:
-            auto draw_line = [](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {};
+            auto draw_line = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
+                for (const auto& [v1, v2] : verticies) {
+                    // apply vertex shader
+                    // model space -> world space -> view space -> NDC space:
+                    // auto frag1 = program.on_vertex(uniforms, v1);
+                    // auto frag2 = program.on_vertex(uniforms, v2);
+
+                    // clip line so it's inside viewing volume:
+                    // if () {
+                    //     continue;
+                    // }
+                }
+            };
             if (shape_type == ShapeType::LINES) {
                 draw_line(range | std::ranges::views::chunk(2U));
             } else if (shape_type == ShapeType::LINE_STRIP) {

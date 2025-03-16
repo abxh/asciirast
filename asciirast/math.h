@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "math/AABB.h"
 #include "math/Mat.h"
 #include "math/Rot.h"
 #include "math/Transform.h"
@@ -35,5 +36,8 @@ using Rot3 = Rot<3, F, is_col_major>; ///< 3D rotation abstraction
 
 using Transform2 = Transform<2, F, is_col_major>; ///< 2D transform abstraction
 using Transform3 = Transform<3, F, is_col_major>; ///< 3D transform abstraction
+
+using AABB2 = AABB<2, F, is_col_major>; ///< 2D Axis-Aligned Bounding Box
+using AABB3 = AABB<3, F, is_col_major>; ///< 3D Axis-Aligned Bounding Box
 
 };

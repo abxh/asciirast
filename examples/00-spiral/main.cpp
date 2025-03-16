@@ -184,10 +184,10 @@ main(void)
                                                  f.apply(last_vertex.pos2) });
         }
     }
-    asciirast::Renderer r1{ math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5, 0.5f } };
-    asciirast::Renderer r2{ math::Vec2{ 0.5f, 0.5f }, math::Vec2{ 1.0f, 1.0f } };
-    asciirast::Renderer r3{ math::Vec2{ 0.5f, 0.0f }, math::Vec2{ 1.f, 0.5f } };
-    asciirast::Renderer r4{ math::Vec2{ 0.0f, 0.5f }, math::Vec2{ 0.5f, 1.f } };
+    asciirast::Renderer r1{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };
+    asciirast::Renderer r2{ math::AABB2::from_min_max(math::Vec2{ 0.5f, 0.5f }, math::Vec2{ 1.0f, 1.0f }) };
+    asciirast::Renderer r3{ math::AABB2::from_min_max(math::Vec2{ 0.5f, 0.0f }, math::Vec2{ 1.0f, 0.5f }) };
+    asciirast::Renderer r4{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.5f }, math::Vec2{ 0.5f, 1.0f }) };
 
     TerminalBuffer t;
 

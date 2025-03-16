@@ -1,6 +1,7 @@
 /**
  * @file Rot.h
  * @brief File with definition of the rotation abstraction
+ * @todo spherical interpolation
  */
 
 #pragma once
@@ -158,18 +159,19 @@ public:
     /**
      * @brief Rotate by angle in x axis
      */
-    static Rot rotateX(const T angle) { return Rot{ Vec3{ 1, 0, 0 }, angle }; }
+    Rot rotateX(const T angle) { return Rot{ Vec3{ 1, 0, 0 }, angle }; }
 
     /**
      * @brief Rotate by angle in y axis
      */
-    static Rot rotateY(const T angle) { return Rot{ Vec3{ 0, 1, 0 }, angle }; }
+    Rot rotateY(const T angle) { return Rot{ Vec3{ 0, 1, 0 }, angle }; }
 
     /**
      * @brief Rotate by angle in z axis
      */
-    static Rot rotateZ(const T angle) { return Rot{ Vec3{ 0, 0, 1 }, angle }; }
+    Rot rotateZ(const T angle) { return Rot{ Vec3{ 0, 0, 1 }, angle }; }
 
+public:
     /**
      * @brief Construct identity rotation object
      */

@@ -6,11 +6,14 @@
  * specialized to behave as an number implicitly. With multiple indicies
  * provided, it supports in-place operations with other Swizzled and vectors of
  * same size, and can be explictly converted to a vector temporary copy with the
- * `.vec()` method.
+ * `.to_vec()` method.
  *
  * In-place operations with other swizzled with overlapping memory regions
  * (overlapping indicies) should be seen as UB. Use `.to_vec()` to create
  * temporary copies as needed.
+ *
+ * Inspiration:
+ * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
  */
 
 #pragma once
@@ -53,12 +56,12 @@ public:
     /**
      * @brief Convert this to a temporary vector copy
      */
-    Vec as_vec() const { return Vec{ (*this) }; }
+    Vec to_vec() const { return Vec{ (*this) }; }
 
     /**
      * @brief Unary minus vector operator
      */
-    Vec operator-() const { return -as_vec(); }
+    Vec operator-() const { return -to_vec(); }
 
     /**
      * @brief Index the swizzled component.
