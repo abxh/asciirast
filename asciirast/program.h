@@ -25,4 +25,10 @@ public:
     virtual Targets on_fragment(const Uniforms&, const Varying&) const = 0;
 };
 
+template<class T>
+concept ProgramType = requires(T t) {
+    []<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>(
+            Program<Uniforms, Vertex, Varying, FrameBuffer>&) {}(t);
+};
+
 }

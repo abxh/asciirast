@@ -86,7 +86,10 @@ public:
 
         m_width = new_width;
         m_height = new_height;
-        m_transform = std::move(math::Transform2{}.reflectY().translate(0, 1.f).scale(m_width, m_height));
+        m_transform = std::move(math::Transform2()
+                                        .reflectY()
+                                        .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
+                                        .scale(m_width, m_height));
         m_buf.resize((m_width + 1) * (m_height + 1));
 
         this->offset_printer();
@@ -138,9 +141,14 @@ public:
 
     friend CustomVarying operator+(const CustomVarying& lhs, const CustomVarying& rhs)
     {
+        // unused for this example. but must be defined
         return { std::min(lhs.id, rhs.id), lhs.pos + rhs.pos };
     }
-    friend CustomVarying operator*(const float scalar, const CustomVarying& v) { return { v.id, scalar * v.pos }; }
+    friend CustomVarying operator*(const float scalar, const CustomVarying& v)
+    {
+        // unused for this example. but must be defined
+        return { v.id, scalar * v.pos };
+    }
 };
 
 class CustomProgram : public asciirast::Program<CustomUniform, CustomVertex, CustomVarying, TerminalBuffer>

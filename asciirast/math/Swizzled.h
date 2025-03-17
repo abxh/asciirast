@@ -267,6 +267,16 @@ public:
      * @brief Assignment from number
      */
     T& operator=(const T value) { return (m_components[index] = value); }
+
+    /**
+     * @brief Range of swizzled component
+     */
+    std::ranges::view auto range() { return std::ranges::views::single(m_components[index]); }
+
+    /**
+     * @brief Range of swizzled component
+     */
+    std::ranges::view auto range() const { return std::ranges::views::single(m_components[index]); }
 };
 
 } // namespace asciirast::math

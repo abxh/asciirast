@@ -683,6 +683,16 @@ public:
      * @brief Get number of components
      */
     static constexpr std::size_t size() { return 1; }
+
+    /**
+     * @brief Get range over vector component.
+     */
+    std::ranges::view auto range() { return std::ranges::views::single(m_components[0]); }
+
+    /**
+     * @brief Get range over vector component.
+     */
+    std::ranges::view auto range() const { return std::ranges::views::single(m_components[0]); }
 };
 
 template<typename T, typename... Args>

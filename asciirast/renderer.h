@@ -37,38 +37,45 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 
 class Renderer
 {
+private:
+    math::Transform2 m_screen_to_viewport;
+
 public:
-    static inline const math::AABB2 screen_AABB = math::AABB2::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
+    static inline const math::AABB2 SCREEN_BOUNDS =
+            math::AABB2::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
+    static inline const math::AABB2 VIEWPORT_BOUNDS =
+            math::AABB2::from_min_max(math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
 
     Renderer()
-            : m_screen_to_viewport{ screen_AABB.to_transform().reversed() }
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform2().reversed() }
     {
     }
 
-    Renderer(const math::AABB2& viewport_AABB)
-            : m_screen_to_viewport{ screen_AABB.to_transform().reversed().stack(viewport_AABB.to_transform()) }
+    Renderer(const math::AABB2& viewport)
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform2().reversed().stack(viewport.to_transform2()) }
     {
-        assert(math::AABB2::from_min_max(math::Vec2{ 0, 0 }, math::Vec2{ 1, 1 }).contains(viewport_AABB));
-        assert(viewport_AABB.size_get() != math::Vec2{ 0 });
+        assert(viewport.size_get() != math::Vec2{ 0 });
+        assert(VIEWPORT_BOUNDS.contains(viewport));
     }
 
-    template<class Uniforms, class Vertex, class Varying, class Framebuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, Framebuffer>& program,
+    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
+    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
               const VertexBuffer<Vertex>& verts,
-              Framebuffer& out) const
+              FrameBuffer& out) const
     {
         draw(program, uniforms, verts.shape_type, std::views::all(verts.verticies), out);
     }
 
-    template<class Uniforms, class Vertex, class Varying, class Framebuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, Framebuffer>& program,
+    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
+    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
               const IndexedVertexBuffer<Vertex>& verts,
-              Framebuffer& out) const
+              FrameBuffer& out) const
     {
         auto func = [&verts](const std::size_t i) {
             assert(i < verts.verticies.size() && "index is inside bounds");
+
             return verts.verticies[i];
         };
         auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
@@ -77,23 +84,22 @@ public:
     }
 
 private:
-    math::Transform2 m_screen_to_viewport;
-
-private:
-    template<class Uniforms, class Vertex, class Varying, class Framebuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, Framebuffer>& program,
+    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
+    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
               const ShapeType shape_type,
               std::ranges::input_range auto&& range,
-              Framebuffer& fb) const
+              FrameBuffer& framebuffer) const
     {
-        using Targets = typename Framebuffer::Targets;
+        using Targets = typename FrameBuffer::Targets;
 
         switch (shape_type) {
         case ShapeType::POINTS:
+            assert(std::ranges::distance(range) >= 1U && "at least one point vertex");
+
             for (const Vertex& vert : range) {
                 // apply vertex shader
-                // model space -> world space -> view space -> NDC space:
+                // model space -> world space -> view space -> clip space (NDC / Normalized-Device-Coordinate Space):
                 auto frag = program.on_vertex(uniforms, vert);
 
                 // cull points outside of viewing volume:
@@ -102,8 +108,9 @@ private:
                 }
 
                 // perspective divide
-                // NDC space -> screen space:
-                frag.pos.xyz /= frag.pos.w;
+                // clip space -> screen space:
+                frag.pos.w = 1 / frag.pos.w;
+                frag.pos.xyz *= frag.pos.w;
 
                 // screen space -> viewport space:
                 frag.pos.xy = std::move(m_screen_to_viewport.apply(frag.pos.xy));
@@ -112,30 +119,66 @@ private:
                 const auto targets = program.on_fragment(uniforms, frag);
 
                 // viewport space -> window space:
-                const auto win_pos = fb.get_viewport_to_window_transform().apply(frag.pos.xy);
+                const auto pos = framebuffer.get_viewport_to_window_transform().apply(frag.pos.xy);
 
-                // plot in window:
-                fb.plot(win_pos, targets);
+                // plot in window / framebuffer:
+                framebuffer.plot(pos, targets);
             }
             break;
         case ShapeType::LINES:
         case ShapeType::LINE_STRIP:
         case ShapeType::LINE_LOOP:
-            auto draw_line = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
-                for (const auto& [v1, v2] : verticies) {
-                    // apply vertex shader
-                    // model space -> world space -> view space -> NDC space:
-                    // auto frag1 = program.on_vertex(uniforms, v1);
-                    // auto frag2 = program.on_vertex(uniforms, v2);
+            assert(std::ranges::distance(range) >= 2U && "at least two line vertices");
+            assert(std::ranges::distance(range) % 2U == 0U && "even number of line verticies");
 
-                    // clip line so it's inside viewing volume:
-                    // if () {
-                    //     continue;
-                    // }
+            auto draw_line = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
+                auto draw = [&](const Vertex& v0, const Vertex& v1) -> void {
+                    auto frag0 = program.on_vertex(uniforms, v0);
+                    auto frag1 = program.on_vertex(uniforms, v1);
+
+                    const auto tup = clip_line(frag0.pos, frag1.pos);
+                    if (!tup.has_value()) {
+                        return;
+                    }
+
+                    // interpolate line using t values:
+                    const auto [t0, t1] = tup.value();
+                    frag0 = std::move(t0 * frag0);
+                    frag1 = std::move(t1 * frag1);
+
+                    frag0.pos.w = 1 / frag0.pos.w;
+                    frag1.pos.w = 1 / frag1.pos.w;
+
+                    frag0.pos.xyz *= frag0.pos.w;
+                    frag1.pos.xyz *= frag1.pos.w;
+
+                    frag0.pos.xy = std::move(m_screen_to_viewport.apply(frag0.pos.xy));
+                    frag1.pos.xy = std::move(m_screen_to_viewport.apply(frag1.pos.xy));
+
+                    static auto plot = [](const VaryingType auto& frag,
+                                          const Uniforms& uniforms,
+                                          const ProgramType auto& program,
+                                          FrameBufferType auto& framebuffer) -> void {
+                        const auto pos = framebuffer.get_viewport_to_window_transform().apply(frag.pos.xy);
+                        const auto targets = program.on_fragment(uniforms, frag);
+
+                        framebuffer.plot(pos, targets);
+                    };
+                    plot_line(plot, frag0, frag1, uniforms, program, framebuffer);
+                };
+                for (auto [v0, v1] : verticies) {
+                    draw(v0, v1);
                 }
+                if (looped) {
+                    draw(std::get<1>(*--verticies.cend()), std::get<0>(*verticies.cbegin()));
+                };
             };
             if (shape_type == ShapeType::LINES) {
-                draw_line(range | std::ranges::views::chunk(2U));
+                auto func = [](auto&& r) -> std::tuple<const Vertex&, const Vertex&> {
+                    auto&& it = r.cbegin();
+                    return std::make_tuple(*it, *it++);
+                };
+                draw_line(std::ranges::views::transform(range | std::ranges::views::chunk(2U), func));
             } else if (shape_type == ShapeType::LINE_STRIP) {
                 draw_line(range | std::ranges::views::adjacent<2U>);
             } else if (shape_type == ShapeType::LINE_LOOP) {

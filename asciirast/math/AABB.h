@@ -70,8 +70,17 @@ public:
     /**
      * @brief Convert to transform that takes a unit area to converts it to the bounding box area
      */
-    Transform<N, T, is_col_major> to_transform() const
-        requires(N == 2 || N == 3)
+    Transform<N, T, is_col_major> to_transform2() const
+        requires(N == 2)
+    {
+        return Transform<N, T, is_col_major>().scale(this->size_get()).translate(this->min_get());
+    }
+
+    /**
+     * @brief Convert to transform that takes a unit volume to converts it to the bounding box volume
+     */
+    Transform<N, T, is_col_major> to_transform3() const
+        requires(N == 3)
     {
         return Transform<N, T, is_col_major>().scale(this->size_get()).translate(this->min_get());
     }
