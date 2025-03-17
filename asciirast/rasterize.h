@@ -15,7 +15,7 @@ cull_point(const math::Vec4& p)
 
 namespace detail {
 
-using T = asciirast::math::F;
+using T = math::FloatingPointType;
 
 enum class BorderType
 {
@@ -74,10 +74,6 @@ clip_line(const math::Vec4& p0,
     // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
     // - https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
-    if (p0.w < 0 && p1.w < 0) {
-        return false;
-    }
-
     const std::size_t border_id = static_cast<std::size_t>(border);
 
     const math::Vec4 delta = p1 - p0;
@@ -94,19 +90,23 @@ clip_line(const math::Vec4& p0,
         -delta.z, delta.z, //
     };
 
-    return clip_line(q[border_id], p[border_id], t0, t1);
+    return clip_line(q[border_id], -delta.w + p[border_id], t0, t1);
 }
 
 }
 
-static std::optional<std::tuple<asciirast::math::F, asciirast::math::F>>
+static std::optional<std::tuple<math::FloatingPointType, math::FloatingPointType>>
 clip_line(const math::Vec4& p0, const math::Vec4& p1)
 {
-    const auto min = math::Vec3{ p0.w, p0.w, p0.w };
-    const auto max = math::Vec3{ p1.w, p1.w, p1.w };
+    if (p0.w < 0 && p1.w < 0) {
+        return {};
+    }
 
-    asciirast::math::F t0 = 0.f;
-    asciirast::math::F t1 = 1.f;
+    const auto min = math::Vec3{ -p0.w, -p0.w, -p0.w };
+    const auto max = math::Vec3{ +p0.w, +p0.w, +p0.w };
+
+    auto t0 = math::FloatingPointType{ 0 };
+    auto t1 = math::FloatingPointType{ 1 };
 
     for (auto border = detail::BorderType::BEGIN; border < detail::BorderType::END;
          border = static_cast<detail::BorderType>(static_cast<std::size_t>(border) + 1)) {

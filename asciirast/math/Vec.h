@@ -152,11 +152,11 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
 Vec<N, T>
-lerp(const Vec<N, T>& a, const Vec<N, T>& b, const T t)
+lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
     requires(std::is_floating_point_v<T>)
 {
     auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
-    auto view = std::views::zip_transform(func, a.range(), b.range());
+    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
 }

@@ -95,8 +95,6 @@ private:
 
         switch (shape_type) {
         case ShapeType::POINTS:
-            assert(std::ranges::distance(range) >= 1U && "at least one point vertex");
-
             for (const Vertex& vert : range) {
                 // apply vertex shader
                 // model space -> world space -> view space -> clip space (NDC / Normalized-Device-Coordinate Space):
@@ -128,14 +126,12 @@ private:
         case ShapeType::LINES:
         case ShapeType::LINE_STRIP:
         case ShapeType::LINE_LOOP:
-            assert(std::ranges::distance(range) >= 2U && "at least two line vertices");
-            assert(std::ranges::distance(range) % 2U == 0U && "even number of line verticies");
-
             auto draw_line = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
                 auto draw = [&](const Vertex& v0, const Vertex& v1) -> void {
                     auto frag0 = program.on_vertex(uniforms, v0);
                     auto frag1 = program.on_vertex(uniforms, v1);
 
+                    // clip line so it's inside the viewing volume:
                     const auto tup = clip_line(frag0.pos, frag1.pos);
                     if (!tup.has_value()) {
                         return;
@@ -143,8 +139,8 @@ private:
 
                     // interpolate line using t values:
                     const auto [t0, t1] = tup.value();
-                    frag0 = std::move(t0 * frag0);
-                    frag1 = std::move(t1 * frag1);
+                    frag0 = std::move(lerp(frag0, frag1, t0));
+                    frag1 = std::move(lerp(frag0, frag1, t1));
 
                     frag0.pos.w = 1 / frag0.pos.w;
                     frag1.pos.w = 1 / frag1.pos.w;
@@ -169,7 +165,7 @@ private:
                 for (auto [v0, v1] : verticies) {
                     draw(v0, v1);
                 }
-                if (looped) {
+                if (looped && std::ranges::distance(range) >= 1U) {
                     draw(std::get<1>(*--verticies.cend()), std::get<0>(*verticies.cbegin()));
                 };
             };
@@ -178,7 +174,13 @@ private:
                     auto&& it = r.cbegin();
                     return std::make_tuple(*it, *it++);
                 };
-                draw_line(std::ranges::views::transform(range | std::ranges::views::chunk(2U), func));
+                if (std::ranges::distance(range) % 2U == 0U) {
+                    draw_line(range | std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
+                } else if (std::ranges::distance(range) >= 1U) {
+                    draw_line(range | std::ranges::views::chunk(2U) |
+                              std::ranges::views::take(std::ranges::distance(range) - 1U) |
+                              std::ranges::views::transform(func));
+                }
             } else if (shape_type == ShapeType::LINE_STRIP) {
                 draw_line(range | std::ranges::views::adjacent<2U>);
             } else if (shape_type == ShapeType::LINE_LOOP) {

@@ -158,7 +158,7 @@ public:
     {
         math::Vec2 pos = u.rot.apply(vert.pos2);
 
-        return { vert.id, math::Vec4{ pos, 0, 1 } }; // last component should be kept 1
+        return { vert.id, math::Vec4{ pos, 0, 1 } }; // last component should be kept 1 when operating in 2D
     }
     std::tuple<char> on_fragment(const CustomUniform& u, const CustomVarying& frag) const override
     {
