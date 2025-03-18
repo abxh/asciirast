@@ -130,7 +130,7 @@ public:
      */
     Vec<N, T> size_set(const Vec<N, T>& size)
     {
-        m_extent = math::max(size, Vec<N, T>{ 0 });
+        m_extent = math::max(size / 2, Vec<N, T>{ 0 });
         return *this;
     }
 };
