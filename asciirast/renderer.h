@@ -92,6 +92,8 @@ private:
               FrameBuffer& framebuffer) const
     {
         using Targets = typename FrameBuffer::Targets;
+        const auto screen_to_window =
+                math::Transform2{}.stack(m_screen_to_viewport).stack(framebuffer.get_viewport_to_window_transform());
 
         switch (shape_type) {
         case ShapeType::POINTS:
@@ -107,17 +109,13 @@ private:
 
                 // perspective divide
                 // clip space -> screen space:
-                frag.pos.w = 1 / frag.pos.w;
-                frag.pos.xyz *= frag.pos.w;
-
-                // screen space -> viewport space:
-                frag.pos.xy = std::move(m_screen_to_viewport.apply(frag.pos.xy));
+                frag.pos.xyz /= frag.pos.w;
 
                 // apply fragment shader:
                 const auto targets = program.on_fragment(uniforms, frag);
 
-                // viewport space -> window space:
-                const auto pos = framebuffer.get_viewport_to_window_transform().apply(frag.pos.xy);
+                // screen space -> window space:
+                const auto pos = screen_to_window.apply(frag.pos.xy);
 
                 // plot in window / framebuffer:
                 framebuffer.plot(pos, targets);
@@ -138,29 +136,25 @@ private:
                     }
 
                     // interpolate line using t values:
-                    const auto [t0, t1] = tup.value();
+                    const auto [t0, t1] = tup.value(); 
                     frag0 = std::move(lerp(frag0, frag1, t0));
                     frag1 = std::move(lerp(frag0, frag1, t1));
 
-                    frag0.pos.w = 1 / frag0.pos.w;
-                    frag1.pos.w = 1 / frag1.pos.w;
-
-                    frag0.pos.xyz *= frag0.pos.w;
-                    frag1.pos.xyz *= frag1.pos.w;
-
-                    frag0.pos.xy = std::move(m_screen_to_viewport.apply(frag0.pos.xy));
-                    frag1.pos.xy = std::move(m_screen_to_viewport.apply(frag1.pos.xy));
+                    // perspective divide:
+                    frag0.pos.xyz /= frag0.pos.w;
+                    frag1.pos.xyz /= frag1.pos.w;
 
                     static auto plot = [](const VaryingType auto& frag,
+                                          const math::Transform2& screen_to_window,
                                           const Uniforms& uniforms,
                                           const ProgramType auto& program,
                                           FrameBufferType auto& framebuffer) -> void {
-                        const auto pos = framebuffer.get_viewport_to_window_transform().apply(frag.pos.xy);
                         const auto targets = program.on_fragment(uniforms, frag);
+                        const auto pos = screen_to_window.apply(frag.pos.xy);
 
                         framebuffer.plot(pos, targets);
                     };
-                    plot_line(plot, frag0, frag1, uniforms, program, framebuffer);
+                    plot_line(plot, frag0, frag1, screen_to_window, uniforms, program, framebuffer);
                 };
                 for (auto [v0, v1] : verticies) {
                     draw(v0, v1);
