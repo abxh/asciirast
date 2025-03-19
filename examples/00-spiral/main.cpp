@@ -127,48 +127,38 @@ class CustomVertex
 {
 public:
     float id;
-    math::Vec2 pos2;
+    math::Vec2 pos;
     CustomVertex(float id, math::Vec2 pos2)
             : id{ id }
-            , pos2{ pos2 } {};
+            , pos{ pos2 } {};
 };
 
 class CustomVarying
 {
 public:
     float id;
-    math::Vec4 pos;
 
-    CustomVarying(float id, const math::Vec4& position)
-            : id{ id }
-            , pos{ position } {};
+    explicit CustomVarying(float id)
+            : id{ id } {};
 
     friend CustomVarying operator+(const CustomVarying& lhs, const CustomVarying& rhs)
     {
-        // unused for this example. but must be defined
-        return { std::min(lhs.id, rhs.id), lhs.pos + rhs.pos };
+        return CustomVarying{ std::min(lhs.id, rhs.id) };
     }
-    friend CustomVarying operator*(const float scalar, const CustomVarying& v)
-    {
-        // unused for this example. but must be defined
-        return { v.id, scalar * v.pos };
-    }
+    friend CustomVarying operator*(const float scalar, const CustomVarying& v) { return CustomVarying{ v.id }; }
 };
 
 class CustomProgram : public asciirast::Program<CustomUniform, CustomVertex, CustomVarying, TerminalBuffer>
 {
 public:
-    CustomVarying on_vertex(const CustomUniform& u, const CustomVertex& vert) const override
+    Fragment on_vertex(const CustomUniform& u, const CustomVertex& vert) const override
     {
-        math::Vec2 pos = u.rot.apply(vert.pos2);
-
-        return { vert.id, math::Vec4{ pos, 0, 1 } }; // last component should be kept 1 when operating in 2D
+        return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // last component should be 1 for 2D
+                         .attrs = CustomVarying{ vert.id } };
     }
-    std::tuple<char> on_fragment(const CustomUniform& u, const CustomVarying& frag) const override
+    Targets on_fragment(const CustomUniform& u, const Fragment& frag) const override
     {
-        auto [id, pos] = frag;
-
-        return u.palette[(int)id];
+        return { u.palette[(int)frag.attrs.id] };
     }
 };
 
@@ -192,8 +182,8 @@ main(void)
         f.dir *= 1.1; // hack which works since it uses complex numbers
         for (int i = 0; i < 20; i++) {
             CustomVertex last_vertex = vb.verticies[vb.verticies.size() - 1];
-            vb.verticies.push_back(CustomVertex{ std::min((last_vertex.id + 0.4f), (float)palette.size()),
-                                                 f.apply(last_vertex.pos2) });
+            vb.verticies.push_back(
+                    CustomVertex{ std::min((last_vertex.id + 0.4f), (float)palette.size()), f.apply(last_vertex.pos) });
         }
     }
     asciirast::Renderer r1{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };

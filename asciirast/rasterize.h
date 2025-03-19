@@ -15,7 +15,7 @@ cull_point(const math::Vec4& p)
 
 namespace detail {
 
-using T = math::FloatingPointType;
+using T = math::F;
 
 enum class BorderType
 {
@@ -95,7 +95,7 @@ clip_line(const math::Vec4& p0,
 
 }
 
-static std::optional<std::tuple<math::FloatingPointType, math::FloatingPointType>>
+static std::optional<std::tuple<math::F, math::F>>
 clip_line(const math::Vec4& p0, const math::Vec4& p1)
 {
     if (p0.w < 0 && p1.w < 0) {
@@ -105,8 +105,8 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
     const auto min = math::Vec3{ -p0.w, -p0.w, -p0.w };
     const auto max = math::Vec3{ +p0.w, +p0.w, +p0.w };
 
-    auto t0 = math::FloatingPointType{ 0 };
-    auto t1 = math::FloatingPointType{ 1 };
+    auto t0 = math::F{ 0 };
+    auto t1 = math::F{ 1 };
 
     for (auto border = detail::BorderType::BEGIN; border < detail::BorderType::END;
          border = static_cast<detail::BorderType>(static_cast<std::size_t>(border) + 1)) {
@@ -118,10 +118,10 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
-template<VaryingType Varying, typename Callable, typename... Args>
-    requires(std::invocable<Callable, const Varying&, Args...>)
+template<FragmentType Fragment, typename Callable, typename... Args>
+    requires(std::invocable<Callable, const Fragment&, Args...>)
 static void
-plot_line(Callable plot, const Varying& v0, const Varying& v1, Args&&... args)
+plot_line(Callable plot, const Fragment& frag0, const Fragment& frag1, Args&&... args)
 {
 }
 

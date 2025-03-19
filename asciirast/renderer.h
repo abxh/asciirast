@@ -151,16 +151,16 @@ private:
                     frag0.pos.w = 1 / frag0.pos.w;
                     frag0.pos.xyz *= frag0.pos.w;
 
-                    frag1.pos.w = 1 / frag1.pos.w;
-                    frag1.pos.xyz *= frag1.pos.w;
+                    frag1.pos.w = 1 / frag0.pos.w;
+                    frag1.pos.xyz *= frag0.pos.w;
 
-                    static auto plot_point = [](const VaryingType auto& frag,
+                    static auto plot_point = [](const FragmentType auto& frag,
                                                 const math::Transform2& screen_to_window,
                                                 const Uniforms& uniforms,
                                                 const ProgramType auto& program,
                                                 FrameBufferType auto& framebuffer) -> void {
                         // apply fragment shader:
-                        const auto targets = program.on_fragment(uniforms, frag);
+                        const auto targets = program.on_fragment(uniforms, frag.pos, frag.attrs);
 
                         // screen space -> window space:
                         const auto pos = screen_to_window.apply(frag.pos.xy);
