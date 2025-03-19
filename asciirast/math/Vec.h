@@ -18,6 +18,8 @@
 
 namespace asciirast::math {
 
+namespace detail {
+
 /**
  * @brief Trait to check if vector can constructed from arguments.
  *
@@ -47,6 +49,8 @@ struct vec_initializer;
 template<typename T, typename... Args>
 struct not_a_single_value;
 
+}
+
 /**
  * @brief Math vector class
  *
@@ -62,7 +66,7 @@ class Vec;
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-T
+static T
 dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
     return std::ranges::fold_left(
@@ -77,7 +81,7 @@ dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-T
+static T
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 2)
 {
@@ -89,7 +93,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 3)
 {
@@ -118,7 +122,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-T
+static T
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 2 && std::is_floating_point_v<T>)
 {
@@ -136,7 +140,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-T
+static T
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized)
     requires(N == 3 && std::is_floating_point_v<T>)
 {
@@ -151,7 +155,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
     requires(std::is_floating_point_v<T>)
 {
@@ -166,7 +170,7 @@ lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 abs(const Vec<N, T>& v)
 {
     return Vec<N, T>{ std::ranges::transform(v.range(), std::abs) };
@@ -177,7 +181,7 @@ abs(const Vec<N, T>& v)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
     auto func = [=](const T lhs, const T rhs) -> T { return std::max(lhs, rhs); };
@@ -191,7 +195,7 @@ max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
     auto func = [=](const T lhs, const T rhs) -> T { return std::min(lhs, rhs); };
@@ -205,7 +209,7 @@ min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
     requires(std::is_integral_v<T>)
 {
@@ -220,7 +224,7 @@ clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 round(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
@@ -234,7 +238,7 @@ round(const Vec<N, T>& v)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 ceil(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
@@ -248,7 +252,7 @@ ceil(const Vec<N, T>& v)
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-Vec<N, T>
+static Vec<N, T>
 floor(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
@@ -320,11 +324,11 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(not_a_single_value<T, Args...>::value)
+        requires(detail::not_a_single_value<T, Args...>::value)
     explicit Vec(Args&&... args)
-        requires(vec_constructible_from<N, T, Args...>::value)
+        requires(detail::vec_constructible_from<N, T, Args...>::value)
     {
-        vec_initializer<N, T>::init_from(*this, std::forward<Args>(args)...);
+        detail::vec_initializer<N, T>::init_from(*this, std::forward<Args>(args)...);
     };
 
     /**
@@ -414,9 +418,9 @@ public:
      * @brief Check if approximately equal to other vector
      */
     friend bool operator==(const Vec& lhs, const Vec& rhs)
-        requires(std::is_floating_point_v<T>)
+        requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        auto func = [](const T x, const T y) { return math::almost_equal(x, y); };
+        auto func = [](const T x, const T y) { return math::almost_equal<T>(x, y); };
 
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
@@ -424,7 +428,11 @@ public:
     /**
      * @brief Check if approximately not equal to other vector
      */
-    friend bool operator!=(const Vec& lhs, const Vec& rhs) { return !(lhs == rhs); }
+    friend bool operator!=(const Vec& lhs, const Vec& rhs)
+        requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        return !(lhs == rhs);
+    }
 
     /**
      * @brief Compare lexigraphically with other vector
@@ -695,6 +703,8 @@ public:
     std::ranges::view auto range() const { return std::ranges::views::single(m_components[0]); }
 };
 
+namespace detail {
+
 template<typename T, typename... Args>
 struct not_a_single_value_impl
 {
@@ -820,5 +830,7 @@ private:
         init_from_inner(idx, out, rest...);
     }
 };
+
+}
 
 } // namespace asciirast::math

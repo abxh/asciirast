@@ -19,6 +19,8 @@ namespace CSI = terminal_utils::CSI;
 class TerminalBuffer : public asciirast::FrameBuffer<char>
 {
 public:
+    using TransformRef = const asciirast::AbstractChangeDetected<math::Transform2>&;
+
     TerminalBuffer()
     {
         terminal_utils::just_fix_windows_console(true);
@@ -26,6 +28,7 @@ public:
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
         std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
 
+        m_transform_changed = true;
         m_width = m_height = 0;
         this->clear_and_update_size();
     }
@@ -37,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    const math::Transform2& get_viewport_to_window_transform() const override { return m_transform; }
+    TransformRef get_viewport_to_window() const override { return m_transform; }
 
     void plot(const math::Vec2& posf, const std::tuple<char>& targets) override
     {
@@ -109,7 +112,8 @@ private:
     int m_width;
     int m_height;
     std::vector<char> m_buf;
-    math::Transform2 m_transform;
+    asciirast::ChangeDetected<math::Transform2> m_transform;
+    bool m_transform_changed;
 };
 
 class CustomUniform

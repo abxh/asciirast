@@ -14,16 +14,6 @@ concept VaryingType = requires(T x) {
     requires std::is_same_v<decltype(x.pos), math::Vec4>;
 };
 
-template<VaryingType V>
-static V
-lerp(const V& a, const V& b, const math::FloatingPointType t)
-{
-    const auto weight_a = 1 - t;
-    const auto weight_b = t;
-
-    return weight_a * a + weight_b * b;
-}
-
 template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
 class Program
 {
@@ -40,5 +30,25 @@ concept ProgramType = requires(T t) {
     []<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>(
             Program<Uniforms, Vertex, Varying, FrameBuffer>&) {}(t);
 };
+
+template<VaryingType V>
+static V
+lerp(const V& a, const V& b, const math::FloatingPointType t)
+{
+    const auto weight_a = 1 - t;
+    const auto weight_b = t;
+
+    return weight_a * a + weight_b * b;
+}
+
+template<VaryingType V>
+static V
+perspective_correct_interpolation(const V& a, const V& b, const math::FloatingPointType t)
+{
+    const auto weight_a = (1 - t) * a.pos.w; // multiply instead of divide since the reciprocal is stored
+    const auto weight_b = t * b.pos.w;       // after perspective divide
+
+    return lerp(a, b, (t * a.pos.w) / (weight_a + weight_b));
+}
 
 }

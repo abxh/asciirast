@@ -3,6 +3,7 @@
 #include <tuple>
 
 #include "./math.h"
+#include "./utils/ChangeDetected.h"
 
 namespace asciirast {
 
@@ -13,7 +14,7 @@ public:
     using Targets = std::tuple<TargetTypes...>;
 
     ~FrameBuffer() = default;
-    virtual const math::Transform2& get_viewport_to_window_transform() const = 0;
+    virtual const AbstractChangeDetected<math::Transform2>& get_viewport_to_window() const = 0;
     virtual void plot(const math::Vec2&, const Targets&) = 0;
 };
 

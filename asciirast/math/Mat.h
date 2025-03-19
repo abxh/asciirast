@@ -19,6 +19,8 @@
 
 namespace asciirast::math {
 
+namespace detail {
+
 /**
  * @brief Trait to check if matrix can constructed from arguments.
  *
@@ -53,6 +55,8 @@ struct mat_initializer;
  */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
+
+}
 
 /**
  * @brief Math matrix class
@@ -95,9 +99,9 @@ public:
      * @brief Create matrix from columns
      */
     template<typename... Args>
-        requires(vec_info<Args>::value && ...)
+        requires(detail::vec_info<Args>::value && ...)
     static Mat from_cols(Args&&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) && ((vec_info<Args>::size <= M_y) && ...))
+        requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) && ((detail::vec_info<Args>::size <= M_y) && ...))
     {
         if constexpr (is_col_major) {
             return Mat<M_y, N_x, T, is_col_major>{ std::forward<Args>(args)... };
@@ -110,9 +114,9 @@ public:
      * @brief Create matrix from rows
      */
     template<typename... Args>
-        requires(vec_info<Args>::value && ...)
+        requires(detail::vec_info<Args>::value && ...)
     static Mat from_rows(Args&&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) && ((vec_info<Args>::size <= N_x) && ...))
+        requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) && ((detail::vec_info<Args>::size <= N_x) && ...))
     {
         if constexpr (is_col_major) {
             return Mat<N_x, M_y, T, is_col_major>{ std::forward<Args>(args)... }.transposed();
@@ -143,15 +147,15 @@ public:
     }
 
     /**
-     * @brief Construct vector from a mix of values and (smaller) vectors,
-     * padding the rest of the vector with zeroes.
+     * @brief Construct matrix from a mix smaller of matrices and vectors,
+     * padding the rest of the elements with zeroes.
      */
     template<typename... Args>
-        requires(not_a_single_value<T, Args...>::value)
+        requires(detail::not_a_single_value<T, Args...>::value)
     explicit Mat(Args&&... args)
-        requires(mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
+        requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {
-        mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
+        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
     };
 
     /**
@@ -234,7 +238,7 @@ public:
      */
     friend std::ostream& operator<<(std::ostream& out, const Mat& m)
     {
-        return mat_printer<M_y, N_x, T, is_col_major>::print(out, m);
+        return detail::mat_printer<M_y, N_x, T, is_col_major>::print(out, m);
     }
 
     /**
@@ -308,7 +312,7 @@ public:
 
 public:
     /**
-     * @brief Check if equal to other matrix
+     * @brief Check if equal to other matrix in terms of bitwise equality
      */
     friend bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_integral_v<T>)
@@ -320,20 +324,9 @@ public:
      * @brief Check if approximately equal to other matrix
      */
     friend bool operator==(const Mat& lhs, const Mat& rhs)
-        requires(std::is_same_v<T, float>)
+        requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 9); };
-
-        return std::ranges::equal(lhs.range(), rhs.range(), func);
-    }
-
-    /**
-     * @brief Check if approximately equal to other matrix
-     */
-    friend bool operator==(const Mat& lhs, const Mat& rhs)
-        requires(std::is_same_v<T, double>)
-    {
-        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals(lhs, rhs, 17); };
+        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals<T>(lhs, rhs); };
 
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
@@ -341,7 +334,11 @@ public:
     /**
      * @brief Check if approximately not equal to other matrix
      */
-    friend bool operator!=(const Mat& lhs, const Mat& rhs) { return !(lhs == rhs); }
+    friend bool operator!=(const Mat& lhs, const Mat& rhs)
+        requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        return !(lhs == rhs);
+    }
 
 public:
     /**
@@ -637,6 +634,8 @@ private:
     }
 };
 
+namespace detail {
+
 template<typename TT>
 struct mat_info_impl
 {
@@ -877,5 +876,7 @@ struct mat_printer<M_y, N_x, T, true>
         return out;
     }
 };
+
+}
 
 } // namespace asciirast::math
