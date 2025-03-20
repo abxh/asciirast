@@ -122,7 +122,6 @@ private:
     std::vector<char> m_buf;
     std::vector<math::F> m_depthbuf;
     Transform2Wrapped m_transform;
-    bool m_transform_changed;
 };
 
 class CustomUniform
