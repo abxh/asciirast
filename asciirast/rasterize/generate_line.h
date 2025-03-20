@@ -5,6 +5,7 @@
 #pragma once
 
 #include <generator>
+#include <cassert>
 
 #include "../math.h"
 
