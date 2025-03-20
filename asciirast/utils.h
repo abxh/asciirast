@@ -1,9 +1,9 @@
-// Inspiration:
-// https://meetingcpp.com/blog/items/Detecting-change-to-an-object-in-Cpp.html
+
+#pragma once
 
 #include <utility>
 
-namespace asciirast {
+namespace asciirast::utils {
 
 template<class T>
 class AbstractChangeDetected
@@ -17,6 +17,9 @@ template<class T, class BoolLike = bool>
     requires(std::is_convertible_v<BoolLike, bool>)
 class ChangeDetected : public AbstractChangeDetected<T>
 {
+    // Inspiration:
+    // https://meetingcpp.com/blog/items/Detecting-change-to-an-object-in-Cpp.html
+
 private:
     T m_val;
     BoolLike m_changed;

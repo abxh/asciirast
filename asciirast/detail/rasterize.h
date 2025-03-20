@@ -1,7 +1,11 @@
+
+#pragma once
+
 #include "./math.h"
 #include "./program.h"
+#include <cassert>
 
-namespace asciirast {
+namespace asciirast::detail {
 
 static bool
 cull_point(const math::Vec4& p)
@@ -12,8 +16,6 @@ cull_point(const math::Vec4& p)
 
     return !(x_in_bounds && y_in_bounds && z_in_bounds);
 }
-
-namespace detail {
 
 using T = math::F;
 
@@ -93,8 +95,6 @@ clip_line(const math::Vec4& p0,
     return clip_line(q[border_id], -delta.w + p[border_id], t0, t1);
 }
 
-}
-
 static std::optional<std::tuple<math::F, math::F>>
 clip_line(const math::Vec4& p0, const math::Vec4& p1)
 {
@@ -108,21 +108,54 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
     auto t0 = math::F{ 0 };
     auto t1 = math::F{ 1 };
 
-    for (auto border = detail::BorderType::BEGIN; border < detail::BorderType::END;
-         border = static_cast<detail::BorderType>(static_cast<std::size_t>(border) + 1)) {
+    for (auto border = BorderType::BEGIN; border < BorderType::END;
+         border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
 
-        if (!detail::clip_line(p0, p1, border, min, max, t0, t1)) {
+        if (!clip_line(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
     }
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
-template<FragmentType Fragment, typename Callable, typename... Args>
-    requires(std::invocable<Callable, const Fragment&, Args...>)
+template<ProjectedFragmentType ProjectedFragment, typename Callable, typename... Args>
+    requires(std::invocable<Callable, const ProjectedFragment &&, Args...>)
 static void
-plot_line(Callable plot, const Fragment& frag0, const Fragment& frag1, Args&&... args)
+plot_line(Callable plot, const ProjectedFragment& frag0, const ProjectedFragment& frag1, Args&&... args)
 {
+    // line drawing based on linear interpolation:
+    // https://www.redblobgames.com/grids/line-drawing/#more
+
+    const auto p_delta = frag1.pos - frag0.pos;
+    const auto max_len = static_cast<math::I>(std::max(std::abs(p_delta.x), std::abs(p_delta.y)));
+
+    if (max_len == 0U) {
+        return;
+    }
+
+    auto attr_t_func = [&](math::F t) -> math::F {
+        // perspective-corrected / hyperbolic interpolation
+        return t * frag0.depth / ((1 - t) * frag0.depth + t * frag1.depth);
+    };
+
+    const auto t_step = math::F{ 1 } / max_len;
+    const auto p_step = t_step * p_delta;
+    const auto d_step = t_step * (frag1.depth - frag0.depth);
+
+    auto t_curr = math::F{ 0 };
+    auto p_curr = frag0.pos;
+    auto d_curr = frag0.depth;
+
+    for (math::I i = 0; i <= max_len; i++) {
+        plot(ProjectedFragment{ .pos = p_curr,
+                                .depth = d_curr,
+                                .attrs = lerp(frag0.attrs, frag1.attrs, attr_t_func(t_curr)) },
+             std::forward<Args>(args)...);
+
+        t_curr += t_step;
+        p_curr += p_step;
+        d_curr += d_step;
+    }
 }
 
 }

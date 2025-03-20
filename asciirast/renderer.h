@@ -8,9 +8,9 @@
 #include <ranges>
 #include <vector>
 
+#include "./detail/rasterize.h"
 #include "./math.h"
 #include "./program.h"
-#include "./rasterize.h"
 
 namespace asciirast {
 
@@ -76,7 +76,7 @@ public:
               const IndexedVertexBuffer<Vertex>& verts,
               FrameBuffer& out)
     {
-        auto func = [&verts](const std::size_t i) {
+        auto func = [&verts](const std::size_t i) -> const Vertex {
             assert(i < verts.verticies.size() && "index is inside bounds");
 
             return verts.verticies[i];
@@ -108,23 +108,22 @@ private:
                 auto frag = program.on_vertex(uniforms, vert);
 
                 // cull points outside of viewing volume:
-                if (cull_point(frag.pos)) {
+                if (detail::cull_point(frag.pos)) {
                     continue;
                 }
 
                 // perspective divide
                 // clip space -> screen space:
-                frag.pos.w = 1 / frag.pos.w;
-                frag.pos.xyz *= frag.pos.w;
-
-                // apply fragment shader:
-                const auto targets = program.on_fragment(uniforms, frag);
+                auto pfrag = project(frag);
 
                 // screen space -> window space:
-                const auto pos = m_screen_to_window.apply(frag.pos.xy);
+                pfrag.pos = std::move(m_screen_to_window.apply(pfrag.pos));
+
+                // apply fragment shader:
+                const auto targets = program.on_fragment(uniforms, pfrag);
 
                 // plot in framebuffer:
-                framebuffer.plot(pos, targets);
+                framebuffer.plot(pfrag.pos, pfrag.depth, targets);
             }
             break;
         case ShapeType::LINES:
@@ -138,7 +137,7 @@ private:
                     auto frag1 = program.on_vertex(uniforms, v1);
 
                     // clip line so it's inside the viewing volume:
-                    const auto tup = clip_line(frag0.pos, frag1.pos);
+                    const auto tup = detail::clip_line(frag0.pos, frag1.pos);
                     if (!tup.has_value()) {
                         return;
                     }
@@ -146,31 +145,28 @@ private:
                     frag0 = std::move(lerp(frag0, frag1, t0));
                     frag1 = std::move(lerp(frag0, frag1, t1));
 
-                    // perspective divide
+                    // perspective dividpe
                     // clip space -> screen space:
-                    frag0.pos.w = 1 / frag0.pos.w;
-                    frag0.pos.xyz *= frag0.pos.w;
+                    auto pfrag0 = project(frag0);
+                    auto pfrag1 = project(frag1);
 
-                    frag1.pos.w = 1 / frag0.pos.w;
-                    frag1.pos.xyz *= frag0.pos.w;
+                    // screen space -> window space:
+                    pfrag0.pos = std::move(m_screen_to_window.apply(pfrag0.pos));
+                    pfrag1.pos = std::move(m_screen_to_window.apply(pfrag1.pos));
 
-                    static auto plot_point = [](const FragmentType auto& frag,
-                                                const math::Transform2& screen_to_window,
+                    static auto plot_point = [](const ProjectedFragmentType auto&& pfrag,
                                                 const Uniforms& uniforms,
                                                 const ProgramType auto& program,
                                                 FrameBufferType auto& framebuffer) -> void {
                         // apply fragment shader:
-                        const auto targets = program.on_fragment(uniforms, frag.pos, frag.attrs);
-
-                        // screen space -> window space:
-                        const auto pos = screen_to_window.apply(frag.pos.xy);
+                        const auto targets = program.on_fragment(uniforms, pfrag);
 
                         // plot point in framebuffer:
-                        framebuffer.plot(pos, targets);
+                        framebuffer.plot(pfrag.pos, pfrag.depth, targets);
                     };
 
                     // plot line in framebuffer:
-                    plot_line(plot_point, frag0, frag1, m_screen_to_window, uniforms, program, framebuffer);
+                    detail::plot_line(plot_point, pfrag0, pfrag1, uniforms, program, framebuffer);
                 };
                 for (auto [v0, v1] : verticies) {
                     draw_line(v0, v1);
@@ -180,7 +176,7 @@ private:
                 };
             };
             if (shape_type == ShapeType::LINES) {
-                auto func = [](auto&& r) -> std::tuple<const Vertex&, const Vertex&> {
+                auto func = [](auto&& r) -> std::tuple<Vertex, Vertex> {
                     auto&& it = r.cbegin();
                     return std::make_tuple(*it, *it++);
                 };
