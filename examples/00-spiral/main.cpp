@@ -166,7 +166,7 @@ public:
     Fragment on_vertex(const CustomUniform& u, const CustomVertex& vert) const override
     {
         return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos),
-                                            -0.1f, // positive z vertices are culled.
+                                            -0.1f, // non-negative z vertices are culled.
                                             1 },   // w should be 1 for 2D.
                          .attrs = CustomVarying{ vert.id } };
     }
