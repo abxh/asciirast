@@ -166,17 +166,6 @@ lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
 }
 
 /**
- * @brief Take the absolute value of each component
- */
-template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
-static Vec<N, T>
-abs(const Vec<N, T>& v)
-{
-    return Vec<N, T>{ std::ranges::transform(v.range(), std::abs) };
-}
-
-/**
  * @brief Take the max value of each component
  */
 template<std::size_t N, typename T>
@@ -220,6 +209,20 @@ clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
 }
 
 /**
+ * @brief Take the absolute value of each component
+ */
+template<std::size_t N, typename T>
+    requires(N > 0 && std::is_arithmetic_v<T>)
+static Vec<N, T>
+abs(const Vec<N, T>& v)
+{
+    auto func = [](const T x) { return std::abs(x); };
+    auto view = std::ranges::views::transform(v.range(), func);
+
+    return Vec<N, T>{ view };
+}
+
+/**
  * @brief Take the rounded value of each component
  */
 template<std::size_t N, typename T>
@@ -228,7 +231,8 @@ static Vec<N, T>
 round(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto view = std::ranges::transform(v.range(), std::round);
+    auto func = [](const T x) { return std::round(x); };
+    auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -242,7 +246,8 @@ static Vec<N, T>
 ceil(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto view = std::ranges::transform(v.range(), std::ceil);
+    auto func = [](const T x) { return std::ceil(x); };
+    auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -256,7 +261,8 @@ static Vec<N, T>
 floor(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto view = std::ranges::transform(v.range(), std::floor);
+    auto func = [](const T x) { return std::floor(x); };
+    auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -599,7 +605,7 @@ public:
     T norm() const
         requires(std::is_floating_point_v<T>)
     {
-        const Vec& v = (*this);
+        const Vec v = (*this);
 
         return std::sqrt(dot(v, v));
     }
@@ -650,8 +656,8 @@ public:
     Vec project_onto(const Vec& that, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T>)
     {
-        const Vec& v = (*this);
-        const Vec& that_unit = is_normalized ? that : that.normalized();
+        const Vec v = (*this);
+        const Vec that_unit = is_normalized ? that : that.normalized();
 
         return dot(v, that_unit) * v;
     }

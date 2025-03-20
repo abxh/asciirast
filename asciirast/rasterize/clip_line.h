@@ -1,21 +1,12 @@
+// Liang-Barsky clipping algorithm:
+// - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
+// - https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
 #pragma once
 
-#include "./math.h"
-#include "./program.h"
-#include <cassert>
+#include "./../math.h"
 
-namespace asciirast::detail {
-
-static bool
-cull_point(const math::Vec4& p)
-{
-    const bool x_in_bounds = -p.w <= p.x && p.x <= +p.w;
-    const bool y_in_bounds = -p.w <= p.y && p.y <= +p.w;
-    const bool z_in_bounds = -p.w <= p.z && p.z <= +p.w;
-
-    return !(x_in_bounds && y_in_bounds && z_in_bounds);
-}
+namespace asciirast::rasterize {
 
 using T = math::F;
 
@@ -30,14 +21,12 @@ enum class BorderType
     COUNT,
     BEGIN = 0U,
     END = COUNT,
+    END2D = TOP + 1U,
 };
 
 static inline bool
 clip_line(const T q, const T p, T& t0, T& t1)
 {
-    // Liang-Barsky clipping algorithm:
-    // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
-
     // q: delta from border to vector tail
     // p: delta from vector tail to vector head. sign flipped to face border
 
@@ -64,6 +53,34 @@ clip_line(const T q, const T p, T& t0, T& t1)
 }
 
 static inline bool
+clip_line(const math::Vec2& p0,
+          const math::Vec2& p1,
+          const BorderType border,
+          const math::Vec2& min,
+          const math::Vec2& max,
+          T& t0,
+          T& t1)
+{
+    const std::size_t border_id = static_cast<std::size_t>(border);
+
+    const math::Vec2 delta = p1 - p0;
+
+    // clang-format off
+    const std::array<T, 6> q = {
+        p0.x - min.x, max.x - p0.x,
+        p0.y - min.y, max.y - p0.y,
+    };
+
+    const std::array<T, 6> p = {
+        -delta.x, delta.x,
+        -delta.y, delta.y,
+    };
+    // clang-format on
+
+    return clip_line(q[border_id], p[border_id], t0, t1);
+}
+
+static inline bool
 clip_line(const math::Vec4& p0,
           const math::Vec4& p1,
           const BorderType border,
@@ -74,7 +91,6 @@ clip_line(const math::Vec4& p0,
 {
     // Liang-Barsky clipping algorithm:
     // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
-    // - https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
     const std::size_t border_id = static_cast<std::size_t>(border);
 
@@ -93,6 +109,26 @@ clip_line(const math::Vec4& p0,
     };
 
     return clip_line(q[border_id], -delta.w + p[border_id], t0, t1);
+}
+
+static std::optional<std::tuple<math::F, math::F>>
+clip_line(const math::Vec2& p0, const math::Vec2& p1)
+{
+
+    const auto min = math::Vec2{ -1, -1 };
+    const auto max = math::Vec2{ +1, +1 };
+
+    auto t0 = math::F{ 0 };
+    auto t1 = math::F{ 1 };
+
+    for (auto border = BorderType::BEGIN; border < BorderType::END2D;
+         border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
+
+        if (!clip_line(p0, p1, border, min, max, t0, t1)) {
+            return {};
+        }
+    }
+    return std::make_optional(std::make_tuple(t0, t1));
 }
 
 static std::optional<std::tuple<math::F, math::F>>
@@ -116,46 +152,6 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
         }
     }
     return std::make_optional(std::make_tuple(t0, t1));
-}
-
-template<ProjectedFragmentType ProjectedFragment, typename Callable, typename... Args>
-    requires(std::invocable<Callable, const ProjectedFragment &&, Args...>)
-static void
-plot_line(Callable plot, const ProjectedFragment& frag0, const ProjectedFragment& frag1, Args&&... args)
-{
-    // line drawing based on linear interpolation:
-    // https://www.redblobgames.com/grids/line-drawing/#more
-
-    const auto p_delta = frag1.pos - frag0.pos;
-    const auto max_len = static_cast<math::I>(std::max(std::abs(p_delta.x), std::abs(p_delta.y)));
-
-    if (max_len == 0U) {
-        return;
-    }
-
-    auto attr_t_func = [&](math::F t) -> math::F {
-        // perspective-corrected / hyperbolic interpolation
-        return t * frag0.depth / ((1 - t) * frag0.depth + t * frag1.depth);
-    };
-
-    const auto t_step = math::F{ 1 } / max_len;
-    const auto p_step = t_step * p_delta;
-    const auto d_step = t_step * (frag1.depth - frag0.depth);
-
-    auto t_curr = math::F{ 0 };
-    auto p_curr = frag0.pos;
-    auto d_curr = frag0.depth;
-
-    for (math::I i = 0; i <= max_len; i++) {
-        plot(ProjectedFragment{ .pos = p_curr,
-                                .depth = d_curr,
-                                .attrs = lerp(frag0.attrs, frag1.attrs, attr_t_func(t_curr)) },
-             std::forward<Args>(args)...);
-
-        t_curr += t_step;
-        p_curr += p_step;
-        d_curr += d_step;
-    }
 }
 
 }

@@ -9,6 +9,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <semaphore>
 #include <thread>
@@ -27,7 +28,6 @@ public:
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
         std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
 
-        m_transform_changed = true;
         m_width = m_height = 0;
         this->clear_and_update_size();
     }
@@ -41,16 +41,16 @@ public:
 
     Transform2WrappedView get_viewport_to_window() const override { return m_transform; }
 
-    void plot(const math::Vec2& posf, const math::F depth, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
-        const auto pos = math::Vec2Int{ posf + math::Vec2{ 0.5f, 0.5f } };
-
-        assert(0.f <= pos.x && pos.x < m_width + 1.f);
-        assert(0.f <= pos.y && pos.y < m_height + 1.f);
+        if (!(0 <= pos.x && pos.x <= m_width && 0 <= pos.y && pos.y <= m_height)) {
+            std::cout << pos << "\n";
+            std::abort();
+        }
 
         const auto idx = index(pos.y, pos.x);
 
-        if (!(m_depthbuf[idx] < depth && depth < 0)) {
+        if (!(m_depthbuf[idx] < depth)) {
             return;
         }
 
@@ -89,8 +89,8 @@ public:
             this->clear(clear_char);
             return;
         }
-        new_width = std::max(1, new_width - 1);
-        new_height = std::max(1, new_height - 1);
+        new_width = std::max(2, new_width - 1);
+        new_height = std::max(2, new_height - 1);
 
         this->reset_printer();
 
@@ -99,9 +99,9 @@ public:
         m_transform = std::move(math::Transform2()
                                         .reflectY()
                                         .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
-                                        .scale(m_width, m_height));
-        m_buf.resize((m_width + 1) * (m_height + 1));
-        m_depthbuf.resize((m_width + 1) * (m_height + 1));
+                                        .scale(m_width - 1, m_height - 1));
+        m_buf.resize(new_width * new_height);
+        m_depthbuf.resize(new_width * new_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -124,52 +124,47 @@ private:
     Transform2Wrapped m_transform;
 };
 
-class CustomUniform
+class Uniform
 {
 public:
     const math::Rot2& rot;
     const std::string& palette;
 };
 
-class CustomVertex
+class Vertex
 {
 public:
     float id;
     math::Vec2 pos;
-    CustomVertex(float id, math::Vec2 pos2)
+    Vertex(float id, math::Vec2 pos2)
             : id{ id }
             , pos{ pos2 } {};
 };
 
-class CustomVarying
+class Varying
 {
 public:
     float id;
 
-    explicit CustomVarying(float id)
+    explicit Varying(float id)
             : id{ id } {};
 
-    friend CustomVarying operator+(const CustomVarying& lhs, const CustomVarying& rhs)
-    {
-        return CustomVarying{ lhs.id + rhs.id };
-    }
-    friend CustomVarying operator*(const float scalar, const CustomVarying& v)
-    {
-        return CustomVarying{ scalar * v.id };
-    }
+    friend Varying operator+(const Varying& lhs, const Varying& rhs) { return Varying{ lhs.id + rhs.id }; }
+    friend Varying operator*(const float scalar, const Varying& v) { return Varying{ scalar * v.id }; }
 };
 
-class CustomProgram : public asciirast::Program<CustomUniform, CustomVertex, CustomVarying, TerminalBuffer>
+class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
 {
 public:
-    Fragment on_vertex(const CustomUniform& u, const CustomVertex& vert) const override
+    using Fragment = asciirast::Fragment<Varying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
+
+    Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos),
-                                            -0.1f, // non-negative z vertices are culled.
-                                            1 },   // w should be 1 for 2D.
-                         .attrs = CustomVarying{ vert.id } };
+        return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // w should be 1 for 2D.
+                         .attrs = Varying{ vert.id } };
     }
-    Targets on_fragment(const CustomUniform& u, const ProjectedFragment& pfrag) const override
+    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
     {
         return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size())] };
     }
@@ -180,27 +175,27 @@ main(void)
 {
     const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
 
-    CustomProgram p;
+    Program p;
 
     math::Rot2 u_rot{};
-    CustomUniform u{ u_rot, palette };
+    Uniform u{ u_rot, palette };
 
-    asciirast::VertexBuffer<CustomVertex> vb;
+    asciirast::VertexBuffer<Vertex> vb;
     {
         /*
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // feel free to try ::POINTS or other shapes too
-        vb.verticies = std::move(std::vector<CustomVertex>{
+        vb.shape_type = asciirast::ShapeType::LINE_STRIP;
+        vb.verticies = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });
         math::Rot2 f{ math::angle_as_radians(45.f / 2) };
         f.dir *= 1.1; // hack which works since it uses complex numbers
         for (int i = 0; i < 40; i++) {
-            CustomVertex last_vertex = vb.verticies[vb.verticies.size() - 1];
+            Vertex last_vertex = vb.verticies[vb.verticies.size() - 1];
             vb.verticies.push_back(
-                    CustomVertex{ std::min((last_vertex.id + 0.2f), (float)palette.size()), f.apply(last_vertex.pos) });
+                    Vertex{ std::min((last_vertex.id + 0.2f), (float)palette.size()), f.apply(last_vertex.pos) });
         }
     }
     asciirast::Renderer r1{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };
