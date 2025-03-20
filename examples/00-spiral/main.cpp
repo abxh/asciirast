@@ -187,6 +187,10 @@ main(void)
 
     asciirast::VertexBuffer<CustomVertex> vb;
     {
+        /*
+           raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
+           so-called logarithmic spiral which goes outwards.
+        */
         vb.shape_type = asciirast::ShapeType::LINE_STRIP; // feel free to try ::POINTS or other shapes too
         vb.verticies = std::move(std::vector<CustomVertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
