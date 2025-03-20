@@ -10,7 +10,6 @@
 #include <chrono>
 #include <cstdio>
 #include <iostream>
-#include <mutex>
 #include <semaphore>
 #include <thread>
 #include <vector>
@@ -42,7 +41,7 @@ public:
 
     Transform2WrappedView get_viewport_to_window() const override { return m_transform; }
 
-    void plot(const math::Vec2& posf, const math::F depth, const std::tuple<char>& targets) override
+    void plot(const math::Vec2& posf, const math::F depth, const Targets& targets) override
     {
         const auto pos = math::Vec2Int{ posf + math::Vec2{ 0.5f, 0.5f } };
 
