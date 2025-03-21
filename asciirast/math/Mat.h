@@ -151,7 +151,7 @@ public:
      * padding the rest of the elements with zeroes.
      */
     template<typename... Args>
-        requires(detail::not_a_single_value<T, Args...>::value)
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
     explicit Mat(Args&&... args)
         requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {

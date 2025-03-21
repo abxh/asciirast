@@ -330,7 +330,7 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(detail::not_a_single_value<T, Args...>::value)
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
     explicit Vec(Args&&... args)
         requires(detail::vec_constructible_from<N, T, Args...>::value)
     {
@@ -649,7 +649,7 @@ public:
 
     /**
      * @brief Project this vector onto other vector and calculate the resulting
-     * projection vector. Alias to this->dot(that.normalized()).
+     * projection vector. Alias to dot(*this, that.normalized()).
      *
      * @note Can pre-normalize vector and set second parameter to true.
      */
@@ -714,7 +714,7 @@ namespace detail {
 template<typename T, typename... Args>
 struct not_a_single_value_impl
 {
-    static constexpr bool value = sizeof...(Args) > 1 ||
+    static constexpr bool value = sizeof...(Args) > 0 ||
                                   sizeof...(Args) == 1 &&
                                           !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
 };
