@@ -102,18 +102,19 @@ private:
             m_screen_to_window = math::Transform2().stack(m_screen_to_viewport).stack(t.get());
         }
 
-        auto screen_to_window_func = [this](const math::Vec2& pos) -> math::Vec2 {
+        auto w_func = [this](const math::Vec2& pos) -> math::Vec2 {
             return math::floor(m_screen_to_window.apply(pos) + math::Vec2{ 0.5f, 0.5f });
         };
 
         using Targets = typename FrameBuffer::Targets;
+        using PFrag = ProjectedFragment<Varying>;
 
         switch (shape_type) {
         case ShapeType::POINTS:
             for (const Vertex& vert : range) {
                 // apply vertex shader
                 // model space -> world space -> view space -> clip space:
-                auto frag = program.on_vertex(uniforms, vert);
+                const auto frag = program.on_vertex(uniforms, vert);
 
                 // cull points outside of viewing volume:
                 if (rasterize::cull_point(frag.pos)) {
@@ -122,16 +123,16 @@ private:
 
                 // perspective divide
                 // clip space -> screen space:
-                auto pfrag = project(frag);
+                const auto pfrag = project(frag);
 
                 // screen space -> window space:
-                pfrag.pos = std::move(screen_to_window_func(pfrag.pos));
+                const auto wfrag = PFrag{ .pos = w_func(pfrag.pos), .depth = pfrag.depth, .attrs = pfrag.attrs };
 
                 // apply fragment shader:
-                const auto targets = program.on_fragment(uniforms, pfrag);
+                const auto targets = program.on_fragment(uniforms, wfrag);
 
                 // plot in framebuffer:
-                framebuffer.plot(math::Vec2Int{ pfrag.pos }, pfrag.depth, targets);
+                framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.depth, targets);
             }
             break;
         case ShapeType::LINES:
@@ -141,8 +142,8 @@ private:
                 auto draw_line = [&](const Vertex& v0, const Vertex& v1) -> void {
                     // apply vertex shader
                     // model space -> world space -> view space -> clip space:
-                    auto frag0 = program.on_vertex(uniforms, v0);
-                    auto frag1 = program.on_vertex(uniforms, v1);
+                    const auto frag0 = program.on_vertex(uniforms, v0);
+                    const auto frag1 = program.on_vertex(uniforms, v1);
 
                     // clip line so it's inside the viewing volume:
                     const auto tup = rasterize::clip_line(frag0.pos, frag1.pos);
@@ -150,28 +151,28 @@ private:
                         return;
                     }
                     const auto [t0, t1] = tup.value(); // interpolate line using t values:
-                    frag0 = std::move(lerp(frag0, frag1, t0));
-                    frag1 = std::move(lerp(frag0, frag1, t1));
+                    const auto tfrag0 = lerp(frag0, frag1, t0);
+                    const auto tfrag1 = lerp(frag0, frag1, t1);
 
                     // perspective divide
                     // clip space -> screen space:
-                    auto pfrag0 = project(frag0);
-                    auto pfrag1 = project(frag1);
+                    const auto pfrag0 = project(tfrag0);
+                    const auto pfrag1 = project(tfrag1);
 
                     // screen space -> window space:
-                    pfrag0.pos = std::move(screen_to_window_func(pfrag0.pos));
-                    pfrag1.pos = std::move(screen_to_window_func(pfrag1.pos));
+                    const auto wfrag0 = PFrag{ .pos = w_func(pfrag0.pos), .depth = pfrag0.depth, .attrs = pfrag0.attrs };
+                    const auto wfrag1 = PFrag{ .pos = w_func(pfrag1.pos), .depth = pfrag1.depth, .attrs = pfrag1.attrs };
 
-                    const auto delta = pfrag1.pos - pfrag0.pos;
+                    const auto delta = wfrag1.pos - wfrag0.pos;
                     const auto size = math::abs(delta);
                     const auto len = std::max<math::F>(size.x, size.y);
                     const auto len_inv = 1 / len;
 
                     // iterate over line fragments:
                     for (const auto [pos, depth, attrs] :
-                         std::ranges::views::zip(rasterize::generate_line(delta, size, pfrag0.pos, pfrag1.pos),
-                                                 rasterize::generate_depth(len, len_inv, pfrag0.depth, pfrag1.depth),
-                                                 rasterize::generate_attrs(len, len_inv, pfrag0, pfrag1))) {
+                         std::ranges::views::zip(rasterize::generate_line(delta, size, wfrag0.pos, wfrag1.pos),
+                                                 rasterize::generate_depth(len, len_inv, wfrag0.depth, wfrag1.depth),
+                                                 rasterize::generate_attrs(len, len_inv, wfrag0, wfrag1))) {
                         using PFrag = ProjectedFragment<Varying>;
 
                         // apply fragment shader:
