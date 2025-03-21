@@ -160,8 +160,10 @@ private:
                     const auto pfrag1 = project(tfrag1);
 
                     // screen space -> window space:
-                    const auto wfrag0 = PFrag{ .pos = w_func(pfrag0.pos), .depth = pfrag0.depth, .attrs = pfrag0.attrs };
-                    const auto wfrag1 = PFrag{ .pos = w_func(pfrag1.pos), .depth = pfrag1.depth, .attrs = pfrag1.attrs };
+                    const auto wfrag0 =
+                            PFrag{ .pos = w_func(pfrag0.pos), .depth = pfrag0.depth, .attrs = pfrag0.attrs };
+                    const auto wfrag1 =
+                            PFrag{ .pos = w_func(pfrag1.pos), .depth = pfrag1.depth, .attrs = pfrag1.attrs };
 
                     const auto delta = wfrag1.pos - wfrag0.pos;
                     const auto size = math::abs(delta);
@@ -190,16 +192,14 @@ private:
                 };
             };
             if (shape_type == ShapeType::LINES) {
-                auto func = [](auto&& r) -> std::tuple<Vertex, Vertex> {
-                    auto&& it = r.cbegin();
-                    return std::make_tuple(*it, *it++);
+                auto func = [](auto&& r) -> std::tuple<const Vertex, const Vertex> {
+                    return std::make_tuple(*r.cbegin(), *(r.cbegin() + 1));
                 };
                 if (std::ranges::distance(range) % 2U == 0U) {
                     draw_lines(range | std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
                 } else if (std::ranges::distance(range) >= 1U) {
-                    draw_lines(range | std::ranges::views::chunk(2U) |
-                               std::ranges::views::take(std::ranges::distance(range) - 1U) |
-                               std::ranges::views::transform(func));
+                    auto range_take_1 = range | std::ranges::views::take(std::ranges::distance(range) - 1U);
+                    draw_lines(range_take_1 | std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
                 }
             } else if (shape_type == ShapeType::LINE_STRIP) {
                 draw_lines(range | std::ranges::views::adjacent<2U>);
