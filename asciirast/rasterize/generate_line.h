@@ -51,16 +51,21 @@ generate_steep_line(const math::Vec2& v0, const math::Vec2& v1, const math::Vec2
     assert(size.y >= size.x);
 
     math::Vec2 v = v0;
-    math::F D = size.y - 2 * size.x; // "Decision" variable choosing based on next midpoint
 
-    for (math::I i = 0; i < static_cast<math::I>(size.y); i++) {
+    const auto size_y = static_cast<math::I>(size.y);
+    const auto two_size_y = size_y << 1;
+    const auto two_size_x = static_cast<math::I>(size.x) << 1;
+
+    math::I D = size_y - two_size_x; // "Decision" variable choosing based on next midpoint
+
+    for (math::I i = 0; i < size_y; i++) {
         co_yield v;
 
         if (D < 0) {
             v.x += dir;
-            D += 2 * size.y;
+            D += two_size_y;
         }
-        D -= 2 * size.x;
+        D -= two_size_x;
         v.y += 1;
     }
 }
@@ -75,16 +80,21 @@ generate_shallow_line(const math::Vec2& v0, const math::Vec2& v1, const math::Ve
     assert(size.x >= size.y);
 
     math::Vec2 v = v0;
-    math::F D = size.x - 2 * size.y; // "Decision" variable choosing based on next midpoint
 
-    for (math::I i = 0; i < static_cast<math::I>(size.x); i++) {
+    const auto size_x = static_cast<math::I>(size.x);
+    const auto two_size_x = size_x << 1;
+    const auto two_size_y = static_cast<math::I>(size.y) << 1;
+
+    math::I D = size_x - two_size_y; // "Decision" variable choosing based on next midpoint
+
+    for (math::I i = 0; i < size_x; i++) {
         co_yield v;
 
         if (D < 0) {
             v.y += dir;
-            D += 2 * size.x;
+            D += two_size_x;
         }
-        D -= 2 * size.y;
+        D -= two_size_y;
         v.x += 1;
     }
 }
