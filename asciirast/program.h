@@ -49,7 +49,7 @@ static ProjectedFragment<T>
 project(const Fragment<T>& frag)
 {
     return ProjectedFragment<T>{ .pos = frag.pos.xy / frag.pos.w,
-                                 .depth = frag.pos.w / frag.pos.z,
+                                 .depth = frag.pos.w / frag.pos.z, // 1 / (z / w)
                                  .attrs = frag.attrs };
 }
 

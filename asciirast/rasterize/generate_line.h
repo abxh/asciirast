@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <generator>
 #include <cassert>
+#include <generator>
 
 #include "../math.h"
 
@@ -17,11 +17,12 @@ generate_horizontal_line(const math::Vec2& v0, const math::Vec2& size)
     assert(size.x >= 0);
     assert(size.y == 0);
 
-    math::Vec2 v = v0;
+    math::F x = 0;
 
     const auto len = static_cast<math::I>(size.x);
-    for (math::I x = 0; x < len; x++) {
+    for (math::I i = 0; i < len; i++) {
         co_yield v0 + math::Vec2{ x, 0 };
+        x += 1;
     }
 }
 
@@ -31,9 +32,12 @@ generate_vertical_line(const math::Vec2& v0, const math::Vec2& size)
     assert(size.x == 0);
     assert(size.y >= 0);
 
+    math::F y = 0;
+
     const auto len = static_cast<math::I>(size.y);
-    for (math::I y = 0; y < len; y++) {
+    for (math::I i = 0; i < len; i++) {
         co_yield v0 + math::Vec2{ 0, y };
+        y += 1;
     }
 }
 
@@ -47,10 +51,11 @@ generate_steep_line(const math::Vec2& v0, const math::Vec2& v1, const math::Vec2
     assert(size.y >= size.x);
 
     math::F x = 0;
+    math::F y = 0;
     math::F D = size.y - 2 * size.x;
 
     const auto len = static_cast<math::I>(size.y);
-    for (math::I y = 0; y < len; y++) {
+    for (math::I i = 0; i < len; i++) {
         co_yield v0 + math::Vec2{ x, y };
 
         if (D < 0) {
@@ -58,6 +63,7 @@ generate_steep_line(const math::Vec2& v0, const math::Vec2& v1, const math::Vec2
             D += 2 * size.y;
         }
         D -= 2 * size.x;
+        y += 1;
     }
 }
 
@@ -70,11 +76,12 @@ generate_shallow_line(const math::Vec2& v0, const math::Vec2& v1, const math::Ve
     assert(delta.x >= 0);
     assert(size.x >= size.y);
 
+    math::F x = 0;
     math::F y = 0;
     math::F D = size.x - 2 * size.y;
 
     const auto len = static_cast<math::I>(size.x);
-    for (math::I x = 0; x < len; x++) {
+    for (math::I i = 0; i < len; i++) {
         co_yield v0 + math::Vec2{ x, y };
 
         if (D < 0) {
@@ -82,6 +89,7 @@ generate_shallow_line(const math::Vec2& v0, const math::Vec2& v1, const math::Ve
             D += 2 * size.x;
         }
         D -= 2 * size.y;
+        x += 1;
     }
 }
 
