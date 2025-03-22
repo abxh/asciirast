@@ -43,10 +43,8 @@ public:
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
-        if (!(0 <= pos.x && pos.x <= m_width && 0 <= pos.y && pos.y <= m_height)) {
-            std::cout << pos << "\n";
-            std::abort();
-        }
+        assert(0 <= pos.x && pos.x <= m_width);
+        assert(0 <= pos.y && pos.y <= m_height);
 
         const auto idx = index(pos.y, pos.x);
 
@@ -54,7 +52,7 @@ public:
             return;
         }
 
-        m_buf[idx] = std::get<0>(targets);
+        m_charbuf[idx] = std::get<0>(targets);
         m_depthbuf[idx] = depth;
     }
 
@@ -64,7 +62,7 @@ public:
 
         for (int y = 0; y < m_height; y++) {
             for (int x = 0; x < m_width; x++) {
-                std::cout << m_buf[index(y, x)];
+                std::cout << m_charbuf[index(y, x)];
             }
             std::cout << "\n";
         }
@@ -75,7 +73,7 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (int i = 0; i < m_height * m_width; i++) {
-            m_buf[i] = clear_char;
+            m_charbuf[i] = clear_char;
             m_depthbuf[i] = -std::numeric_limits<math::F>::infinity();
         }
     }
@@ -100,7 +98,7 @@ public:
                                         .reflectY()
                                         .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
                                         .scale(m_width - 1, m_height - 1));
-        m_buf.resize(new_width * new_height);
+        m_charbuf.resize(new_width * new_height);
         m_depthbuf.resize(new_width * new_height);
 
         this->offset_printer();
@@ -119,7 +117,7 @@ private:
 
     int m_width;
     int m_height;
-    std::vector<char> m_buf;
+    std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
     Transform2Wrapped m_transform;
 };
@@ -150,7 +148,7 @@ public:
             : id{ id } {};
 
     friend Varying operator+(const Varying& lhs, const Varying& rhs) { return Varying{ lhs.id + rhs.id }; }
-    friend Varying operator*(const float scalar, const Varying& v) { return Varying{ scalar * v.id }; }
+    friend Varying operator*(const Varying& v, const float scalar) { return Varying{ v.id * scalar }; }
 };
 
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
@@ -166,7 +164,7 @@ public:
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
     {
-        return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size())] };
+        return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
     }
 };
 
@@ -186,7 +184,7 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::LINE_STRIP;
+        vb.shape_type = asciirast::ShapeType::POINTS;
         vb.verticies = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });

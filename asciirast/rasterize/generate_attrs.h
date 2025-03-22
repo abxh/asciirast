@@ -11,17 +11,15 @@ namespace asciirast::rasterize {
 template<VaryingType Varying>
 static std::generator<Varying>
 generate_attrs_lerp(const math::F& len,
-                      const math::F& len_inv,
-                      const ProjectedFragment<Varying>& proj0,
-                      const ProjectedFragment<Varying>& proj1)
+                    const math::F& len_inv,
+                    const ProjectedFragment<Varying>& proj0,
+                    const ProjectedFragment<Varying>& proj1)
 {
-    const Varying inc = len_inv * (proj1.attrs + -1 * proj0.attrs);
-
-    Varying acc = proj0.attrs;
+    auto acc = proj0.attrs;
+    auto inc = (proj1.attrs + proj0.attrs * -1) * len_inv;
 
     for (math::I i = 0; i < static_cast<math::I>(len); i++) {
         co_yield acc;
-
         acc = std::move(acc + inc);
     }
 }
@@ -37,13 +35,11 @@ generate_attrs_perspective_corrected(const math::F& len,
         return t * proj0.depth / ((1 - t) * proj0.depth + t * proj1.depth);
     };
 
-    const math::F inc_t = len_inv;
-
     math::F acc_t = 0;
+    math::F inc_t = len_inv;
 
     for (math::I i = 0; i < static_cast<math::I>(len); i++) {
         co_yield lerp(proj0.attrs, proj1.attrs, perspective_corrected(acc_t));
-
         acc_t += inc_t;
     }
 }

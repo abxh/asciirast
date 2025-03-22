@@ -168,11 +168,11 @@ private:
                     const auto delta = wfrag1.pos - wfrag0.pos;
                     const auto size = math::abs(delta);
                     const auto len = std::max<math::F>(size.x, size.y);
-                    const auto len_inv = 1 / len;
+                    const auto len_inv = 1 / len; // division by zero let through.
 
                     // iterate over line fragments:
                     for (const auto [pos, depth, attrs] :
-                         std::ranges::views::zip(rasterize::generate_line(delta, size, wfrag0.pos, wfrag1.pos),
+                         std::ranges::views::zip(rasterize::generate_line(len, len_inv, wfrag0.pos, wfrag1.pos),
                                                  rasterize::generate_depth(len, len_inv, wfrag0.depth, wfrag1.depth),
                                                  rasterize::generate_attrs(len, len_inv, wfrag0, wfrag1))) {
                         using PFrag = ProjectedFragment<Varying>;
@@ -184,7 +184,7 @@ private:
                         framebuffer.plot(math::Vec2Int{ pos }, 0, targets);
                     }
                 };
-                for (auto [v0, v1] : verticies) {
+                for (const auto [v0, v1] : verticies) {
                     draw_line(v0, v1);
                 }
                 if (looped && std::ranges::distance(range) >= 1U) {
