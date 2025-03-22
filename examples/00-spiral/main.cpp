@@ -184,7 +184,7 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::POINTS;
+        vb.shape_type = asciirast::ShapeType::LINE_STRIP;
         vb.verticies = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });

@@ -714,9 +714,9 @@ namespace detail {
 template<typename T, typename... Args>
 struct not_a_single_value_impl
 {
-    static constexpr bool value = sizeof...(Args) > 0 ||
-                                  sizeof...(Args) == 1 &&
-                                          !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
+    static constexpr bool value =
+            sizeof...(Args) != 1 ||
+            sizeof...(Args) == 1 && !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
 };
 
 template<typename T, typename... Args>
