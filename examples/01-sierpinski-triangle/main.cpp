@@ -1,0 +1,290 @@
+#include "asciirast/framebuffer.h"
+#include "asciirast/math.h"
+#include "asciirast/program.h"
+#include "asciirast/renderer.h"
+#include "external/terminal_utils/terminal_utils.h"
+
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <semaphore>
+#include <thread>
+#include <vector>
+
+namespace math = asciirast::math;
+namespace CSI = terminal_utils::CSI;
+
+using RGB = math::Vec3;
+
+class TerminalBuffer : public asciirast::FrameBuffer<char, RGB>
+{
+public:
+    bool m_oob_error;
+
+    TerminalBuffer()
+            : m_charbuf{}
+            , m_depthbuf{}
+            , m_colorbuf{}
+    {
+        terminal_utils::just_fix_windows_console(true);
+
+        std::cout << CSI::ESC << CSI::HIDE_CURSOR;
+        std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
+
+        m_oob_error = false;
+
+        m_width = m_height = 0;
+        this->clear_and_update_size();
+    }
+    ~TerminalBuffer()
+    {
+        std::cout << CSI::ESC << CSI::SHOW_CURSOR;
+        std::cout << CSI::ESC << CSI::ENABLE_LINE_WRAP;
+        std::cout << CSI::ESC << CSI::RESET_COLOR;
+
+        terminal_utils::just_fix_windows_console(false);
+    }
+
+    Transform2WrappedView get_viewport_to_window() const override { return m_transform; }
+
+    void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
+    {
+        if (!(0 <= pos.x && pos.x <= m_width && 0 <= pos.y && pos.y <= m_height)) {
+            m_oob_error = true;
+            return;
+        }
+
+        const auto idx = index(pos.y, pos.x);
+
+        if (!(m_depthbuf[idx] < depth)) {
+            return;
+        }
+
+        m_charbuf[idx] = std::get<char>(targets);
+        m_colorbuf[idx] = std::get<RGB>(targets);
+        m_depthbuf[idx] = depth;
+    }
+
+    void render() const
+    {
+        this->reset_printer();
+
+        for (int y = 0; y < m_height; y++) {
+            for (int x = 0; x < m_width; x++) {
+                const auto idx = index(y, x);
+
+                const int r = static_cast<int>(255.f * m_colorbuf[idx].x);
+                const int g = static_cast<int>(255.f * m_colorbuf[idx].y);
+                const int b = static_cast<int>(255.f * m_colorbuf[idx].z);
+
+                std::cout << CSI::ESC << CSI::SET_FG_RGB_COLOR << r << ";" << g << ";" << b << "m";
+                std::cout << m_charbuf[idx];
+            }
+            std::cout << "\n";
+        }
+        std::cout << CSI::ESC << CSI::RESET_COLOR;
+
+        std::fflush(stdout);
+    }
+
+    void clear(const char clear_char = ' ')
+    {
+        for (int i = 0; i < m_height * m_width; i++) {
+            m_charbuf[i] = clear_char;
+            m_depthbuf[i] = -std::numeric_limits<math::F>::infinity();
+            m_colorbuf[i] = RGB{ 0 };
+        }
+    }
+
+    void clear_and_update_size(const char clear_char = ' ')
+    {
+        int new_width = 0, new_height = 0;
+        terminal_utils::get_terminal_size(new_width, new_height);
+
+        if (m_width == new_width - 1 && m_height == new_height - 1) {
+            this->clear(clear_char);
+            return;
+        }
+        new_width = std::max(2, new_width - 1);
+        new_height = std::max(2, new_height - 1);
+
+        this->reset_printer();
+
+        m_width = new_width;
+        m_height = new_height;
+        m_transform = std::move(math::Transform2()
+                                        .reflectY()
+                                        .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
+                                        .scale(m_width - 1, m_height - 1));
+        m_charbuf.resize(new_width * new_height);
+        m_depthbuf.resize(new_width * new_height);
+        m_colorbuf.resize(new_width * new_height);
+
+        this->offset_printer();
+        this->clear(clear_char);
+    }
+
+private:
+    int index(const int y, const int x) const { return m_width * y + x; }
+    void reset_printer() const { std::cout << CSI::ESC << m_height << CSI::MOVE_UP_LINES << '\r'; }
+    void offset_printer() const
+    {
+        for (int y = 0; y < m_height; y++) {
+            std::cout << CSI::ESC << CSI::CLEAR_LINE << "\n";
+        }
+    }
+
+    int m_width;
+    int m_height;
+    std::vector<char> m_charbuf;
+    std::vector<math::F> m_depthbuf;
+    std::vector<RGB> m_colorbuf;
+    Transform2Wrapped m_transform;
+};
+
+class Uniform
+{
+public:
+    const std::string& palette;
+};
+
+class Vertex
+{
+public:
+    float id;
+    math::Vec2 pos;
+    RGB color;
+    Vertex(float id, math::Vec2 pos, RGB color)
+            : id{ id }
+            , pos{ pos }
+            , color{ color } {};
+
+    friend Vertex operator+(const Vertex& lhs, const Vertex& rhs)
+    {
+        return { lhs.id + rhs.id, lhs.pos + rhs.pos, lhs.color + rhs.color };
+    }
+    friend Vertex operator/(const Vertex& v, const float scalar)
+    {
+        return { v.id / scalar, v.pos / scalar, v.color / scalar };
+    }
+};
+
+class Varying
+{
+public:
+    float id;
+    RGB color;
+
+    Varying(float id, const RGB& color)
+            : id{ id }
+            , color{ color } {};
+
+    friend Varying operator+(const Varying& lhs, const Varying& rhs)
+    {
+        return { lhs.id + rhs.id, lhs.color + rhs.color };
+    }
+    friend Varying operator*(const Varying& v, const float scalar) { return { v.id * scalar, v.color * scalar }; }
+};
+
+class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
+{
+public:
+    using Fragment = asciirast::Fragment<Varying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
+
+    Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
+    {
+        return Fragment{ .pos = math::Vec4{ vert.pos, 0, 1 }, // w should be 1 for 2D.
+                         .attrs = Varying{ vert.id, vert.color } };
+    }
+    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
+    {
+        return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
+    }
+};
+
+void
+sierpinski_triangle(std::vector<Vertex>& v, const Vertex& V1, const Vertex& V2, const Vertex& V3, const int depth = 1)
+{
+    if (depth <= 0) {
+        return;
+    }
+    v.push_back(V1);
+    v.push_back(V2);
+
+    v.push_back(V2);
+    v.push_back(V3);
+
+    v.push_back(V3);
+    v.push_back(V1);
+
+    const auto V1V2 = (V1 + V2) / 2;
+    const auto V1V3 = (V1 + V3) / 2;
+    const auto V2V3 = (V2 + V3) / 2;
+
+    sierpinski_triangle(v, V1, V1V2, V1V3, depth - 1);
+    sierpinski_triangle(v, V1V2, V2, V2V3, depth - 1);
+    sierpinski_triangle(v, V1V3, V2V3, V3, depth - 1);
+}
+
+int
+main(void)
+{
+    const std::string palette = "@%#*+=-:."; // Paul Borke's palette
+
+    Program p;
+
+    Uniform u{ palette };
+
+    auto V1 = Vertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
+    auto V2 = Vertex{ palette.size() - 1.f, math::Vec2{ 0, 1 }, RGB{ 0, 1, 0 } };
+    auto V3 = Vertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
+
+    asciirast::VertexBuffer<Vertex> vb{ .shape_type = asciirast::ShapeType::LINES };
+
+    int i = 1;
+    int dir = 1;
+    vb.verticies.clear();
+    sierpinski_triangle(vb.verticies, V1, V2, V3, i);
+
+    asciirast::Renderer r;
+    TerminalBuffer t;
+
+    std::binary_semaphore s{ 0 };
+
+    std::thread check_eof_program{ [&s] {
+        while (std::cin.get() != EOF) {
+            continue;
+        }
+        s.release();
+    } };
+
+    while (!s.try_acquire()) {
+        r.draw(p, u, vb, t);
+
+        t.render();
+
+        if (t.m_oob_error) {
+            std::cout << "error: point plotted outside of border! the library should not allow this.\n";
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        if (i <= 1) {
+            dir = 1;
+        } else if (i >= 5) {
+            dir = -1;
+        }
+        i += dir;
+
+        vb.verticies.clear();
+        sierpinski_triangle(vb.verticies, V1, V2, V3, i);
+
+        t.clear_and_update_size();
+    }
+    check_eof_program.join();
+}
