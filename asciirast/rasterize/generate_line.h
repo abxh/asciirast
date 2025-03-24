@@ -19,7 +19,7 @@ generate_line(const math::F& len, const math::F& len_inv, const math::Vec2& v0, 
     auto inc = (v1 - v0) * len_inv;
 
     for (math::I i = 0; i < static_cast<math::I>(len); i++) {
-        co_yield acc;
+        co_yield math::floor(acc);
         acc += inc;
     }
 }

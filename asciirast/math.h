@@ -22,6 +22,7 @@ static const auto PI = constants::PI<F>; ///< PI constant
 
 using Vec2Int = Vec<2, I>; ///< 2D integral type math vector
 using Vec3Int = Vec<3, I>; ///< 3D integral type math vector
+using Vec4Int = Vec<4, I>; ///< 4D integral type math vector
 
 using Vec2 = Vec<2, F>; ///< 2D math vector
 using Vec3 = Vec<3, F>; ///< 3D math vector
