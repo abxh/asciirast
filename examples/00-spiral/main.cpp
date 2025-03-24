@@ -20,6 +20,9 @@ namespace CSI = terminal_utils::CSI;
 
 class TerminalBuffer : public asciirast::FrameBuffer<char>
 {
+    using Transform2DWrapped = asciirast::utils::ChangeDetected<math::Transform2D>;
+    using Transform2DWrappedView = const asciirast::utils::AbstractChangeDetected<math::Transform2D>&;
+
 public:
     TerminalBuffer()
     {
@@ -39,7 +42,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    Transform2WrappedView get_viewport_to_window() const override { return m_transform; }
+    Transform2DWrappedView get_viewport_to_window() const override { return m_transform; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -94,7 +97,7 @@ public:
 
         m_width = new_width;
         m_height = new_height;
-        m_transform = std::move(math::Transform2()
+        m_transform = std::move(math::Transform2D()
                                         .reflectY()
                                         .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
                                         .scale(m_width - 1, m_height - 1));
@@ -119,13 +122,13 @@ private:
     int m_height;
     std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
-    Transform2Wrapped m_transform;
+    Transform2DWrapped m_transform;
 };
 
 class Uniform
 {
 public:
-    const math::Rot2& rot;
+    const math::Rot2D& rot;
     const std::string& palette;
 };
 
@@ -147,16 +150,16 @@ public:
     explicit Varying(float id)
             : id{ id } {};
 
-    friend Varying operator+(const Varying& lhs, const Varying& rhs) { return Varying{ lhs.id + rhs.id }; }
-    friend Varying operator*(const Varying& v, const float scalar) { return Varying{ v.id * scalar }; }
+    Varying operator+(const Varying& that) { return Varying{ this->id + that.id }; }
+    Varying operator*(const float that) { return Varying{ this->id * that }; }
 };
 
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
 {
-public:
     using Fragment = asciirast::Fragment<Varying>;
     using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
 
+public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
         return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // w should be 1 for 2D.
@@ -175,7 +178,7 @@ main(void)
 
     Program p;
 
-    math::Rot2 u_rot{};
+    math::Rot2D u_rot{};
     Uniform u{ u_rot, palette };
 
     asciirast::VertexBuffer<Vertex> vb;
@@ -188,18 +191,25 @@ main(void)
         vb.verticies = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });
-        math::Rot2 f{ math::angle_as_radians(45.f / 2) };
-        f.dir *= 1.1; // hack which works since it uses complex numbers
+
+        math::Rot2D f{ math::radians(45.f / 2) };
+        float scalar = 1.1;
+        Vertex& last_vertex = vb.verticies[0];
+
         for (int i = 0; i < 40; i++) {
-            Vertex last_vertex = vb.verticies[vb.verticies.size() - 1];
-            vb.verticies.push_back(
-                    Vertex{ std::min((last_vertex.id + 0.2f), (float)palette.size()), f.apply(last_vertex.pos) });
+            const auto id = std::min((last_vertex.id + 0.2f), (float)palette.size());
+            const auto pos = scalar * f.apply(last_vertex.pos);
+
+            vb.verticies.push_back(Vertex{ id, pos });
+
+            scalar *= scalar;
+            last_vertex = vb.verticies[vb.verticies.size() - 1U];
         }
     }
-    asciirast::Renderer r1{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };
-    asciirast::Renderer r2{ math::AABB2::from_min_max(math::Vec2{ 0.5f, 0.5f }, math::Vec2{ 1.0f, 1.0f }) };
-    asciirast::Renderer r3{ math::AABB2::from_min_max(math::Vec2{ 0.5f, 0.0f }, math::Vec2{ 1.0f, 0.5f }) };
-    asciirast::Renderer r4{ math::AABB2::from_min_max(math::Vec2{ 0.0f, 0.5f }, math::Vec2{ 0.5f, 1.0f }) };
+    asciirast::Renderer r1{ math::AABB2D::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };
+    asciirast::Renderer r2{ math::AABB2D::from_min_max(math::Vec2{ 0.5f, 0.5f }, math::Vec2{ 1.0f, 1.0f }) };
+    asciirast::Renderer r3{ math::AABB2D::from_min_max(math::Vec2{ 0.5f, 0.0f }, math::Vec2{ 1.0f, 0.5f }) };
+    asciirast::Renderer r4{ math::AABB2D::from_min_max(math::Vec2{ 0.0f, 0.5f }, math::Vec2{ 0.5f, 1.0f }) };
 
     TerminalBuffer t;
 
@@ -224,7 +234,7 @@ main(void)
 
         t.clear_and_update_size();
 
-        u_rot.stack(math::Rot2{ math::angle_as_radians(-45.f) });
+        u_rot.stack(math::Rot2D{ math::radians(-45.f) });
     }
     check_eof_program.join();
 }

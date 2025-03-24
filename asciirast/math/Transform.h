@@ -33,7 +33,6 @@ template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class Transform<2, T, is_col_major>
 {
-public:
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
@@ -42,6 +41,7 @@ public:
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
 
+public:
     /**
      * Create a new transform object
      */
@@ -50,6 +50,16 @@ public:
             , m_mat_inv{ Mat3::identity() }
     {
     }
+
+    /**
+     * Get underlying matrix
+     */
+    const Mat3& mat() const { return m_mat; }
+
+    /**
+     * Get underlying inverse matrix
+     */
+    const Mat3& mat_inv() const { return m_mat_inv; }
 
     /**
      * Apply transformation to a 2D Vector
@@ -198,7 +208,6 @@ template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class Transform<3, T, is_col_major>
 {
-private:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat4 = Mat<4, 4, T, is_col_major>;
@@ -207,6 +216,7 @@ private:
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
 
+public:
     /**
      * Create a new transform object
      */
@@ -215,6 +225,16 @@ private:
             , m_mat_inv{ Mat4::identity() }
     {
     }
+
+    /**
+     * Get underlying matrix
+     */
+    const Mat4& mat() const { return m_mat; }
+
+    /**
+     * Get underlying inverse matrix
+     */
+    const Mat4& mat_inv() const { return m_mat_inv; }
 
     /**
      * Apply transformation to a 3D Vector

@@ -21,9 +21,12 @@ using RGB = math::Vec3;
 
 class TerminalBuffer : public asciirast::FrameBuffer<char, RGB>
 {
-public:
+    using Transform2DWrapped = asciirast::utils::ChangeDetected<math::Transform2D>;
+    using Transform2DWrappedView = const asciirast::utils::AbstractChangeDetected<math::Transform2D>&;
+
     bool m_oob_error;
 
+public:
     TerminalBuffer()
             : m_charbuf{}
             , m_depthbuf{}
@@ -48,7 +51,9 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    Transform2WrappedView get_viewport_to_window() const override { return m_transform; }
+    bool out_of_bounds_error_occurred() const { return m_oob_error; }
+
+    Transform2DWrappedView get_viewport_to_window() const override { return m_transform; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -115,7 +120,7 @@ public:
 
         m_width = new_width;
         m_height = new_height;
-        m_transform = std::move(math::Transform2()
+        m_transform = std::move(math::Transform2D()
                                         .reflectY()
                                         .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
                                         .scale(m_width - 1, m_height - 1));
@@ -142,7 +147,7 @@ private:
     std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
     std::vector<RGB> m_colorbuf;
-    Transform2Wrapped m_transform;
+    Transform2DWrapped m_transform;
 };
 
 class Uniform
@@ -267,7 +272,7 @@ main(void)
 
         t.render();
 
-        if (t.m_oob_error) {
+        if (t.out_of_bounds_error_occurred()) {
             std::cout << "error: point plotted outside of border! the library should not allow this.\n";
             break;
         }

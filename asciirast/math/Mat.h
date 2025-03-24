@@ -77,7 +77,7 @@ public:
     /**
      * @brief Map a 2d matrix index to a 1d array index.
      */
-    static std::size_t map_2d_index(const std::size_t y, const std::size_t x)
+    static std::size_t map_index(const std::size_t y, const std::size_t x)
     {
         if constexpr (is_col_major) {
             return M_y * x + y;
@@ -219,7 +219,7 @@ public:
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
 
-        return m_elements[map_2d_index(y, x)];
+        return m_elements[map_index(y, x)];
     }
 
     /**
@@ -230,7 +230,7 @@ public:
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
 
-        return m_elements[map_2d_index(y, x)];
+        return m_elements[map_index(y, x)];
     }
 
     /**
@@ -545,7 +545,7 @@ private:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T& { return m_elements[map_2d_index(y, x)]; };
+        auto func = [this, y](const std::size_t x) -> T& { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
@@ -558,7 +558,7 @@ private:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T { return m_elements[map_2d_index(y, x)]; };
+        auto func = [this, y](const std::size_t x) -> T { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
@@ -593,7 +593,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T& { return m_elements[map_2d_index(y, x)]; };
+        auto func = [this, x](const std::size_t y) -> T& { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
@@ -606,7 +606,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T { return m_elements[map_2d_index(y, x)]; };
+        auto func = [this, x](const std::size_t y) -> T { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
@@ -800,7 +800,7 @@ struct mat_printer<M_y, N_x, T, false>
             }
             out << "[ ";
             for (std::size_t x = 0; x < N_x; x++) {
-                auto index = Mat<M_y, N_x, T, false>::map_2d_index(y, x);
+                auto index = Mat<M_y, N_x, T, false>::map_index(y, x);
                 auto lpad = (max_length - lengths[index]) / 2;
                 auto rpad = max_length - (lpad + lengths[index]);
 
@@ -851,7 +851,7 @@ struct mat_printer<M_y, N_x, T, true>
                 } else {
                     out << "  ";
                 }
-                auto index = Mat<M_y, N_x, T, true>::map_2d_index(y, x);
+                auto index = Mat<M_y, N_x, T, true>::map_index(y, x);
                 auto lpad = (max_length - lengths[index]) / 2;
                 auto rpad = max_length - (lpad + lengths[index]);
 

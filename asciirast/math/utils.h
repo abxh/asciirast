@@ -23,7 +23,7 @@ static const T PI_2 = std::numbers::pi + std::numbers::pi; // PI_2 constant
 template<typename T>
     requires(std::is_floating_point_v<T>)
 static T
-angle_as_radians(const T degrees)
+radians(const T degrees)
 {
     return constants::PI_2<T> * degrees / T{ 360 };
 }
@@ -34,7 +34,7 @@ angle_as_radians(const T degrees)
 template<typename T>
     requires(std::is_floating_point_v<T>)
 static T
-angle_as_degrees(const T radians)
+degrees(const T radians)
 {
     return T{ 360 } * radians / constants::PI_2<T>;
 }

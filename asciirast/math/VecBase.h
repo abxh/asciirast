@@ -41,7 +41,6 @@ public:
 template<template<std::size_t, typename> class Vec, typename T>
 class VecBase<Vec, 1, T>
 {
-private:
     static constexpr std::size_t N = 1;
 
     template<std::size_t... Indicies>
@@ -80,7 +79,6 @@ public:
 template<template<std::size_t, typename> class Vec, typename T>
 class VecBase<Vec, 2, T>
 {
-private:
     static constexpr std::size_t N = 2;
 
     template<std::size_t... Indicies>
@@ -149,7 +147,6 @@ public:
 template<template<std::size_t, typename> class Vec, typename T>
 class VecBase<Vec, 3, T>
 {
-private:
     static constexpr std::size_t N = 3;
 
     template<std::size_t... Indicies>
@@ -309,7 +306,6 @@ public:
 template<template<std::size_t, typename> class Vec, typename T>
 class VecBase<Vec, 4, T>
 {
-private:
     static constexpr std::size_t N = 4;
 
     template<std::size_t... Indicies>

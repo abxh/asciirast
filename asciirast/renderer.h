@@ -41,24 +41,23 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 
 class Renderer
 {
-private:
-    math::Transform2 m_screen_to_viewport;
-    math::Transform2 m_screen_to_window;
+    math::Transform2D m_screen_to_viewport;
+    math::Transform2D m_screen_to_window;
 
 public:
-    static inline const math::AABB2 SCREEN_BOUNDS =
-            math::AABB2::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-    static inline const math::AABB2 VIEWPORT_BOUNDS =
-            math::AABB2::from_min_max(math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
+    static inline const math::AABB2D SCREEN_BOUNDS =
+            math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
+    static inline const math::AABB2D VIEWPORT_BOUNDS =
+            math::AABB2D::from_min_max(math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
 
     Renderer()
-            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform2().reversed() }
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
             , m_screen_to_window{}
     {
     }
 
-    Renderer(const math::AABB2& viewport)
-            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform2().reversed().stack(viewport.to_transform2()) }
+    Renderer(const math::AABB2D& viewport)
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed().stack(viewport.to_transform()) }
             , m_screen_to_window{}
     {
         assert(viewport.size_get() != math::Vec2{ 0 });
@@ -99,7 +98,7 @@ private:
               FrameBuffer& framebuffer)
     {
         if (auto&& t = framebuffer.get_viewport_to_window(); t.changed()) {
-            m_screen_to_window = math::Transform2().stack(m_screen_to_viewport).stack(t.get());
+            m_screen_to_window = math::Transform2D().stack(m_screen_to_viewport).stack(t.get());
         }
 
         auto w_func = [this](const math::Vec2& pos) -> math::Vec2 {

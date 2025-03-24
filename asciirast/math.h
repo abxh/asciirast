@@ -31,13 +31,13 @@ using Mat2 = Mat<2, 2, F, is_col_major>; ///< 2x2 matrix
 using Mat3 = Mat<3, 3, F, is_col_major>; ///< 3x3 matrix
 using Mat4 = Mat<4, 4, F, is_col_major>; ///< 4x4 matrix
 
-using Rot2 = Rot<2, F, is_col_major>; ///< 2D rotation abstraction
-using Rot3 = Rot<3, F, is_col_major>; ///< 3D rotation abstraction
+using Rot2D = Rot<2, F, is_col_major>; ///< 2D rotation abstraction
+using Rot3D = Rot<3, F, is_col_major>; ///< 3D rotation abstraction
 
-using Transform2 = Transform<2, F, is_col_major>; ///< 2D transform abstraction
-using Transform3 = Transform<3, F, is_col_major>; ///< 3D transform abstraction
+using Transform2D = Transform<2, F, is_col_major>; ///< 2D transform abstraction
+using Transform3D = Transform<3, F, is_col_major>; ///< 3D transform abstraction
 
-using AABB2 = AABB<2, F, is_col_major>; ///< 2D Axis-Aligned Bounding Box
-using AABB3 = AABB<3, F, is_col_major>; ///< 3D Axis-Aligned Bounding Box
+using AABB2D = AABB<2, F, is_col_major>; ///< 2D Axis-Aligned Bounding Box
+using AABB3D = AABB<3, F, is_col_major>; ///< 3D Axis-Aligned Bounding Box
 
 };

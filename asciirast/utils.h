@@ -13,14 +13,13 @@ public:
     virtual const T& get() const = 0;
 };
 
+// Inspiration:
+// https://meetingcpp.com/blog/items/Detecting-change-to-an-object-in-Cpp.html
+
 template<class T, class BoolLike = bool>
     requires(std::is_convertible_v<BoolLike, bool>)
 class ChangeDetected : public AbstractChangeDetected<T>
 {
-    // Inspiration:
-    // https://meetingcpp.com/blog/items/Detecting-change-to-an-object-in-Cpp.html
-
-private:
     T m_val;
     BoolLike m_changed;
 

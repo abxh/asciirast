@@ -25,7 +25,6 @@ template<std::size_t N, typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class AABB
 {
-private:
     Vec<N, T> m_center; ///< center of bounding box
     Vec<N, T> m_extent; ///< half of size
 
@@ -70,7 +69,7 @@ public:
     /**
      * @brief Convert to transform that takes a unit area to converts it to the bounding box area
      */
-    Transform<N, T, is_col_major> to_transform2() const
+    Transform<N, T, is_col_major> to_transform() const
         requires(N == 2)
     {
         return Transform<N, T, is_col_major>().scale(this->size_get()).translate(this->min_get());
@@ -79,7 +78,7 @@ public:
     /**
      * @brief Convert to transform that takes a unit volume to converts it to the bounding box volume
      */
-    Transform<N, T, is_col_major> to_transform3() const
+    Transform<N, T, is_col_major> to_transform() const
         requires(N == 3)
     {
         return Transform<N, T, is_col_major>().scale(this->size_get()).translate(this->min_get());
