@@ -49,7 +49,7 @@ struct vec_initializer;
 template<typename T, typename... Args>
 struct not_a_single_value;
 
-}
+} // namespace detail
 
 /**
  * @brief Math vector class
@@ -159,8 +159,8 @@ static Vec<N, T>
 lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
     requires(std::is_floating_point_v<T>)
 {
-    auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
-    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+    const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
+    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
 }
@@ -173,8 +173,8 @@ template<std::size_t N, typename T>
 static Vec<N, T>
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
-    auto func = [=](const T lhs, const T rhs) -> T { return std::max(lhs, rhs); };
-    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+    const auto func = [=](const T lhs, const T rhs) -> T { return std::max(lhs, rhs); };
+    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
 }
@@ -187,8 +187,8 @@ template<std::size_t N, typename T>
 static Vec<N, T>
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
-    auto func = [=](const T lhs, const T rhs) -> T { return std::min(lhs, rhs); };
-    auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+    const auto func = [=](const T lhs, const T rhs) -> T { return std::min(lhs, rhs); };
+    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
 }
@@ -202,8 +202,10 @@ static Vec<N, T>
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
     requires(std::is_integral_v<T>)
 {
-    auto func = [=](const T x, const T low_val, const T high_val) -> T { return std::clamp(x, low_val, high_val); };
-    auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
+    const auto func = [=](const T x, const T low_val, const T high_val) -> T {
+        return std::clamp(x, low_val, high_val);
+    };
+    const auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
 
     return Vec<N, T>{ view };
 }
@@ -216,8 +218,8 @@ template<std::size_t N, typename T>
 static Vec<N, T>
 abs(const Vec<N, T>& v)
 {
-    auto func = [](const T x) { return std::abs(x); };
-    auto view = std::ranges::views::transform(v.range(), func);
+    const auto func = [](const T x) { return std::abs(x); };
+    const auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -231,8 +233,8 @@ static Vec<N, T>
 round(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto func = [](const T x) { return std::round(x); };
-    auto view = std::ranges::views::transform(v.range(), func);
+    const auto func = [](const T x) { return std::round(x); };
+    const auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -246,8 +248,8 @@ static Vec<N, T>
 ceil(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto func = [](const T x) { return std::ceil(x); };
-    auto view = std::ranges::views::transform(v.range(), func);
+    const auto func = [](const T x) { return std::ceil(x); };
+    const auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -261,8 +263,8 @@ static Vec<N, T>
 floor(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
 {
-    auto func = [](const T x) { return std::floor(x); };
-    auto view = std::ranges::views::transform(v.range(), func);
+    const auto func = [](const T x) { return std::floor(x); };
+    const auto view = std::ranges::views::transform(v.range(), func);
 
     return Vec<N, T>{ view };
 }
@@ -426,7 +428,7 @@ public:
     friend bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        auto func = [](const T x, const T y) { return math::almost_equal<T>(x, y); };
+        const auto func = [](const T x, const T y) { return math::almost_equal<T>(x, y); };
 
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
@@ -461,7 +463,7 @@ public:
     friend auto operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_floating_point_v<T>)
     {
-        auto func = [](const T x, const T y) { return math::almost_less_than(x, y); };
+        const auto func = [](const T x, const T y) { return math::almost_less_than(x, y); };
 
         if (std::ranges::equal(lhs.range(), rhs.range(), func)) {
             return std::partial_ordering::less;
@@ -527,8 +529,8 @@ public:
      */
     Vec operator-() const
     {
-        auto func = [](const T x) -> T { return -x; };
-        auto view = std::ranges::views::transform(this->range(), func);
+        const auto func = [](const T x) -> T { return -x; };
+        const auto view = std::ranges::views::transform(this->range(), func);
 
         return Vec{ view };
     }
@@ -538,8 +540,8 @@ public:
      */
     friend Vec operator+(const Vec& lhs, const Vec& rhs)
     {
-        auto func = std::plus();
-        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+        const auto func = std::plus();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
         return Vec{ view };
     }
@@ -549,8 +551,8 @@ public:
      */
     friend Vec operator-(const Vec& lhs, const Vec& rhs)
     {
-        auto func = std::minus();
-        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+        const auto func = std::minus();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
         return Vec{ view };
     }
@@ -560,8 +562,8 @@ public:
      */
     friend Vec operator*(const T scalar, const Vec& rhs)
     {
-        auto func = [=](const T x) -> T { return scalar * x; };
-        auto view = std::views::transform(rhs.range(), func);
+        const auto func = [=](const T x) -> T { return scalar * x; };
+        const auto view = std::views::transform(rhs.range(), func);
 
         return Vec{ view };
     }
@@ -571,8 +573,8 @@ public:
      */
     friend Vec operator*(const Vec& lhs, const T scalar)
     {
-        auto func = [=](const T x) -> T { return x * scalar; };
-        auto view = std::views::transform(lhs.range(), func);
+        const auto func = [=](const T x) -> T { return x * scalar; };
+        const auto view = std::views::transform(lhs.range(), func);
 
         return Vec{ view };
     }
@@ -586,8 +588,8 @@ public:
             assert(scalar != 0 && "non-zero division");
         }
 
-        auto func = [=](const T x) -> T { return x / scalar; };
-        auto view = std::views::transform(lhs.range(), func);
+        const auto func = [=](const T x) -> T { return x / scalar; };
+        const auto view = std::views::transform(lhs.range(), func);
 
         return Vec{ view };
     }
@@ -837,6 +839,6 @@ private:
     }
 };
 
-}
+} // namespace detail
 
 } // namespace asciirast::math

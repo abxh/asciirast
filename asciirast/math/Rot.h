@@ -116,13 +116,13 @@ public:
      */
     Rot& stack(const Rot& that, bool normalize = true)
     {
-        return *this = std::move(Rot{ reversed().dir, that.m_dir, normalize });
+        return *this = std::move(Rot{ reversed().m_dir, that.m_dir, normalize });
     }
 
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec2 apply(const Vec2& v) const { return Rot{ reversed().dir, v, false }.m_dir; }
+    Vec2 apply(const Vec2& v) const { return Rot{ reversed().m_dir, v, false }.m_dir; }
 
     /**
      * @brief Invert the applied rotation from a vector
@@ -273,4 +273,4 @@ public:
     Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this), false }.m_dir; }
 };
 
-}
+} // namespace asciirast::math

@@ -67,7 +67,8 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes a unit area to converts it to the bounding box area
+     * @brief Convert to transform that takes a unit area to converts it to the
+     * bounding box area
      */
     Transform<N, T, is_col_major> to_transform() const
         requires(N == 2)
@@ -76,7 +77,8 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes a unit volume to converts it to the bounding box volume
+     * @brief Convert to transform that takes a unit volume to converts it to
+     * the bounding box volume
      */
     Transform<N, T, is_col_major> to_transform() const
         requires(N == 3)
@@ -134,4 +136,4 @@ public:
     }
 };
 
-}
+} // namespace asciirast::math

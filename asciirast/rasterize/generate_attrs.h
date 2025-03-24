@@ -58,4 +58,4 @@ generate_attrs(const math::F& len,
     }
 }
 
-}
+} // namespace asciirast::rasterize

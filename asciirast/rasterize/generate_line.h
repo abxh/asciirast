@@ -1,6 +1,7 @@
 // DDA Line algorithm:
 // - https://www.redblobgames.com/grids/line-drawing/#more
-// - https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
+// -
+// https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
 
 #pragma once
 
@@ -23,4 +24,4 @@ generate_line(const math::F& len, const math::F& len_inv, const math::Vec2& v0, 
     }
 }
 
-}
+} // namespace asciirast::rasterize

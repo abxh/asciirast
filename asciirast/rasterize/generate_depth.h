@@ -18,4 +18,4 @@ generate_depth(const math::F& len, const math::F& len_inv, const math::F& depth0
     }
 }
 
-}
+} // namespace asciirast::rasterize

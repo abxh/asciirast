@@ -56,7 +56,7 @@ struct mat_initializer;
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
 
-}
+} // namespace detail
 
 /**
  * @brief Math matrix class
@@ -326,7 +326,7 @@ public:
     friend bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        auto func = [](const T lhs, const T rhs) -> bool { return almost_equals<T>(lhs, rhs); };
+        const auto func = [](const T lhs, const T rhs) -> bool { return almost_equals<T>(lhs, rhs); };
 
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
@@ -406,8 +406,8 @@ public:
      */
     Mat operator-() const
     {
-        auto func = [](const T x) -> T { return -x; };
-        auto view = std::ranges::views::transform(this->range(), func);
+        const auto func = [](const T x) -> T { return -x; };
+        const auto view = std::ranges::views::transform(this->range(), func);
 
         return Mat{ view };
     }
@@ -417,8 +417,8 @@ public:
      */
     friend Mat operator+(const Mat& lhs, const Mat& rhs)
     {
-        auto func = std::plus();
-        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+        const auto func = std::plus();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
         return Mat{ view };
     }
@@ -428,8 +428,8 @@ public:
      */
     friend Mat operator-(const Mat& lhs, const Mat& rhs)
     {
-        auto func = std::minus();
-        auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+        const auto func = std::minus();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
         return Mat{ view };
     }
@@ -439,8 +439,8 @@ public:
      */
     friend Mat operator*(const T scalar, const Mat& rhs)
     {
-        auto func = [=](const T x) -> T { return scalar * x; };
-        auto view = std::views::transform(rhs.range(), func);
+        const auto func = [=](const T x) -> T { return scalar * x; };
+        const auto view = std::views::transform(rhs.range(), func);
 
         return Mat{ view };
     }
@@ -450,8 +450,8 @@ public:
      */
     friend Mat operator*(const Mat& lhs, const T scalar)
     {
-        auto func = [=](const T x) -> T { return x * scalar; };
-        auto view = std::views::transform(lhs.range(), func);
+        const auto func = [=](const T x) -> T { return x * scalar; };
+        const auto view = std::views::transform(lhs.range(), func);
 
         return Mat{ view };
     }
@@ -465,8 +465,8 @@ public:
             assert(scalar != T{ 0 } && "non-zero division");
         }
 
-        auto func = [=](const T x) -> T { return x / scalar; };
-        auto view = std::views::transform(lhs.range(), func);
+        const auto func = [=](const T x) -> T { return x / scalar; };
+        const auto view = std::views::transform(lhs.range(), func);
 
         return Mat{ view };
     }
@@ -545,7 +545,7 @@ private:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T& { return m_elements[map_index(y, x)]; };
+        const auto func = [this, y](const std::size_t x) -> T& { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
@@ -558,7 +558,7 @@ private:
     {
         assert(y < this->row_count() && "index is inside bounds");
 
-        auto func = [this, y](const std::size_t x) -> T { return m_elements[map_index(y, x)]; };
+        const auto func = [this, y](const std::size_t x) -> T { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, N_x) | std::ranges::views::transform(func);
     }
@@ -593,7 +593,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T& { return m_elements[map_index(y, x)]; };
+        const auto func = [this, x](const std::size_t y) -> T& { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
@@ -606,7 +606,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        auto func = [this, x](const std::size_t y) -> T { return m_elements[map_index(y, x)]; };
+        const auto func = [this, x](const std::size_t y) -> T { return m_elements[map_index(y, x)]; };
 
         return std::ranges::views::iota(0U, M_y) | std::ranges::views::transform(func);
     }
@@ -877,6 +877,6 @@ struct mat_printer<M_y, N_x, T, true>
     }
 };
 
-}
+} // namespace detail
 
 } // namespace asciirast::math

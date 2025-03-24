@@ -150,8 +150,8 @@ public:
     explicit Varying(float id)
             : id{ id } {};
 
-    Varying operator+(const Varying& that) { return Varying{ this->id + that.id }; }
-    Varying operator*(const float that) { return Varying{ this->id * that }; }
+    Varying operator+(const Varying& that) const { return Varying{ this->id + that.id }; }
+    Varying operator*(const float that) const { return Varying{ this->id * that }; }
 };
 
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
@@ -193,17 +193,14 @@ main(void)
         });
 
         math::Rot2D f{ math::radians(45.f / 2) };
-        float scalar = 1.1;
-        Vertex& last_vertex = vb.verticies[0];
 
         for (int i = 0; i < 40; i++) {
+            const auto last_vertex = vb.verticies[vb.verticies.size() - 1U];
+
             const auto id = std::min((last_vertex.id + 0.2f), (float)palette.size());
-            const auto pos = scalar * f.apply(last_vertex.pos);
+            const auto pos = 1.1f * f.apply(last_vertex.pos);
 
             vb.verticies.push_back(Vertex{ id, pos });
-
-            scalar *= scalar;
-            last_vertex = vb.verticies[vb.verticies.size() - 1U];
         }
     }
     asciirast::Renderer r1{ math::AABB2D::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };

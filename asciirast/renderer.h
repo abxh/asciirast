@@ -26,17 +26,17 @@ enum class ShapeType
     LINE_LOOP,
 };
 
-template<typename Vertex>
+template<typename Vertex, class Allocator = std::allocator<Vertex>>
 struct VertexBuffer
 {
     ShapeType shape_type;
-    std::vector<Vertex> verticies;
+    std::vector<Vertex, Allocator> verticies;
 };
 
-template<typename Vertex>
+template<typename Vertex, class Allocator = std::allocator<Vertex>>
 struct IndexedVertexBuffer : VertexBuffer<Vertex>
 {
-    std::vector<std::size_t> indicies;
+    std::vector<std::size_t, Allocator> indicies;
 };
 
 class Renderer
@@ -64,27 +64,27 @@ public:
         assert(VIEWPORT_BOUNDS.contains(viewport));
     }
 
-    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
+    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer, class VertexAllocator>
     void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
-              const VertexBuffer<Vertex>& verts,
+              const VertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& out)
     {
         draw(program, uniforms, verts.shape_type, std::views::all(verts.verticies), out);
     }
 
-    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
+    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer, class VertexAllocator>
     void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
-              const IndexedVertexBuffer<Vertex>& verts,
+              const IndexedVertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& out)
     {
-        auto func = [&verts](const std::size_t i) -> const Vertex {
+        const auto func = [&verts](const std::size_t i) -> Vertex {
             assert(i < verts.verticies.size() && "index is inside bounds");
 
             return verts.verticies[i];
         };
-        auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
+        const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
         draw(program, uniforms, verts.shape_type, view, out);
     }
@@ -101,7 +101,7 @@ private:
             m_screen_to_window = math::Transform2D().stack(m_screen_to_viewport).stack(t.get());
         }
 
-        auto w_func = [this](const math::Vec2& pos) -> math::Vec2 {
+        const auto screen_to_window_func = [this](const math::Vec2& pos) -> math::Vec2 {
             return math::floor(m_screen_to_window.apply(pos) + math::Vec2{ 0.5f, 0.5f });
         };
 
@@ -125,7 +125,8 @@ private:
                 const auto pfrag = project(frag);
 
                 // screen space -> window space:
-                const auto wfrag = PFrag{ .pos = w_func(pfrag.pos), .depth = pfrag.depth, .attrs = pfrag.attrs };
+                const auto wfrag =
+                        PFrag{ .pos = screen_to_window_func(pfrag.pos), .depth = pfrag.depth, .attrs = pfrag.attrs };
 
                 // apply fragment shader:
                 const auto targets = program.on_fragment(uniforms, wfrag);
@@ -137,8 +138,8 @@ private:
         case ShapeType::LINES:
         case ShapeType::LINE_STRIP:
         case ShapeType::LINE_LOOP:
-            auto draw_lines = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
-                auto draw_line = [&](const Vertex& v0, const Vertex& v1) -> void {
+            const auto draw_lines = [&](std::ranges::input_range auto&& verticies, const bool looped = false) -> void {
+                const auto draw_line = [&](const Vertex& v0, const Vertex& v1) -> void {
                     // apply vertex shader
                     // model space -> world space -> view space -> clip space:
                     const auto frag0 = program.on_vertex(uniforms, v0);
@@ -159,10 +160,12 @@ private:
                     const auto pfrag1 = project(tfrag1);
 
                     // screen space -> window space:
-                    const auto wfrag0 =
-                            PFrag{ .pos = w_func(pfrag0.pos), .depth = pfrag0.depth, .attrs = pfrag0.attrs };
-                    const auto wfrag1 =
-                            PFrag{ .pos = w_func(pfrag1.pos), .depth = pfrag1.depth, .attrs = pfrag1.attrs };
+                    const auto wfrag0 = PFrag{ .pos = screen_to_window_func(pfrag0.pos),
+                                               .depth = pfrag0.depth,
+                                               .attrs = pfrag0.attrs };
+                    const auto wfrag1 = PFrag{ .pos = screen_to_window_func(pfrag1.pos),
+                                               .depth = pfrag1.depth,
+                                               .attrs = pfrag1.attrs };
 
                     const auto delta = wfrag1.pos - wfrag0.pos;
                     const auto size = math::abs(delta);
@@ -191,14 +194,14 @@ private:
                 };
             };
             if (shape_type == ShapeType::LINES) {
-                auto func = [](auto&& r) -> std::tuple<const Vertex, const Vertex> {
+                const auto func = [](auto&& r) -> std::tuple<const Vertex, const Vertex> {
                     return std::make_tuple(*r.cbegin(), *(r.cbegin() + 1));
                 };
                 if (std::ranges::distance(range) % 2U == 0U) {
                     draw_lines(range | std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
                 } else if (std::ranges::distance(range) >= 1U) {
-                    auto range_take_1 = range | std::ranges::views::take(std::ranges::distance(range) - 1U);
-                    draw_lines(range_take_1 | std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
+                    draw_lines(range | std::ranges::views::take(std::ranges::distance(range) - 1U) |
+                               std::ranges::views::chunk(2U) | std::ranges::views::transform(func));
                 }
             } else if (shape_type == ShapeType::LINE_STRIP) {
                 draw_lines(range | std::ranges::views::adjacent<2U>);

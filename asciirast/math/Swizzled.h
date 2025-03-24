@@ -41,14 +41,14 @@ template<class Vec, std::size_t N, typename T, std::size_t... Indicies>
     requires(sizeof...(Indicies) > 0 && ((Indicies < N) && ...))
 class Swizzled
 {
-    static constexpr std::array s_indicies = { Indicies... };
+    static constexpr std::array INDICIES = { Indicies... };
     std::array<T, N> m_components;
 
 public:
     /**
      * @brief Size of swizzled component
      */
-    std::size_t size() const { return s_indicies.size(); }
+    std::size_t size() const { return INDICIES.size(); }
 
     /**
      * @brief Convert this to a temporary vector copy
@@ -62,7 +62,7 @@ public:
     {
         assert(i < this->size() && "index is inside bounds");
 
-        return m_components[s_indicies[i]];
+        return m_components[INDICIES[i]];
     }
 
     /**
@@ -72,7 +72,7 @@ public:
     {
         assert(i < this->size() && "index is inside bounds");
 
-        return m_components[s_indicies[i]];
+        return m_components[INDICIES[i]];
     }
 
     /**
@@ -80,9 +80,9 @@ public:
      */
     std::ranges::view auto range()
     {
-        auto func = [this](const std::size_t i) -> T& { return m_components[s_indicies[i]]; };
+        const auto func = [this](const std::size_t i) -> T& { return m_components[INDICIES[i]]; };
 
-        return std::views::iota(0U, s_indicies.size()) | std::views::transform(func);
+        return std::views::iota(0U, INDICIES.size()) | std::views::transform(func);
     }
 
     /**
@@ -90,9 +90,9 @@ public:
      */
     std::ranges::view auto range() const
     {
-        auto func = [this](const std::size_t i) -> T { return m_components[s_indicies[i]]; };
+        const auto func = [this](const std::size_t i) -> T { return m_components[INDICIES[i]]; };
 
-        return std::views::iota(0U, s_indicies.size()) | std::views::transform(func);
+        return std::views::iota(0U, INDICIES.size()) | std::views::transform(func);
     }
 
     /**
@@ -101,25 +101,11 @@ public:
     Vec operator-() const { return -to_vec(); }
 
     /**
-     * @brief In-place assignment with initializer list
-     */
-    Swizzled operator=(std::initializer_list<T> list)
-    {
-        assert(this->size() == list.size() && "list has same size");
-
-        auto it = list.begin();
-        for (const std::size_t i : s_indicies) {
-            m_components[i] = *(it++);
-        }
-        return *this;
-    }
-
-    /**
      * @brief In-place assignment with vector
      */
     Swizzled operator=(const Vec& that)
     {
-        for (const std::size_t i : s_indicies) {
+        for (const std::size_t i : INDICIES) {
             m_components[i] = that[i];
         }
         return *this;
@@ -130,7 +116,7 @@ public:
      */
     Swizzled operator+=(const Vec& that)
     {
-        for (const std::size_t i : s_indicies) {
+        for (const std::size_t i : INDICIES) {
             m_components[i] += that[i];
         }
         return *this;
@@ -141,7 +127,7 @@ public:
      */
     Swizzled operator-=(const Vec& that)
     {
-        for (const std::size_t i : s_indicies) {
+        for (const std::size_t i : INDICIES) {
             m_components[i] -= that[i];
         }
         return *this;
@@ -152,7 +138,7 @@ public:
      */
     Swizzled operator*=(const Vec& that)
     {
-        for (const std::size_t i : s_indicies) {
+        for (const std::size_t i : INDICIES) {
             m_components[i] *= that[i];
         }
         return *this;
@@ -240,11 +226,11 @@ public:
  * @tparam Vec   Vector type instansiated with the correct size and type.
  * @tparam N     Number of components in the vector
  * @tparam T     Type of components
- * @tparam index The index
+ * @tparam INDEX The index
  */
-template<class Vec, std::size_t N, typename T, std::size_t index>
-    requires(index < N)
-class Swizzled<Vec, N, T, index>
+template<class Vec, std::size_t N, typename T, std::size_t INDEX>
+    requires(INDEX < N)
+class Swizzled<Vec, N, T, INDEX>
 {
     std::array<T, N> m_components;
 
@@ -252,27 +238,27 @@ public:
     /**
      * @brief Implicit conversion to number
      */
-    operator T() const { return m_components[index]; }
+    operator T() const { return m_components[INDEX]; }
 
     /**
      * @brief Implicit conversion to number reference
      */
-    operator T&() { return m_components[index]; }
+    operator T&() { return m_components[INDEX]; }
 
     /**
      * @brief Assignment from number
      */
-    T operator=(const T value) { return (m_components[index] = value); }
+    T operator=(const T value) { return (m_components[INDEX] = value); }
 
     /**
      * @brief Range of swizzled component
      */
-    std::ranges::view auto range() { return std::ranges::views::single(m_components[index]); }
+    std::ranges::view auto range() { return std::ranges::views::single(m_components[INDEX]); }
 
     /**
      * @brief Range of swizzled component
      */
-    std::ranges::view auto range() const { return std::ranges::views::single(m_components[index]); }
+    std::ranges::view auto range() const { return std::ranges::views::single(m_components[INDEX]); }
 
     /**
      * @brief Size of swizzled component
@@ -291,7 +277,7 @@ public:
     {
         assert(i == 0UL && "index is inside bounds");
 
-        return m_components[index];
+        return m_components[INDEX];
     }
 
     /**
@@ -301,7 +287,7 @@ public:
     {
         assert(i == 0UL && "index is inside bounds");
 
-        return m_components[index];
+        return m_components[INDEX];
     }
 };
 

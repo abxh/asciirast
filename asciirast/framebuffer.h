@@ -21,4 +21,4 @@ public:
 template<class T>
 concept FrameBufferType = requires(T t) { []<typename... Targets>(const FrameBuffer<Targets...>&) {}(t); };
 
-}
+} // namespace asciirast

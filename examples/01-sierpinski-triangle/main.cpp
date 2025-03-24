@@ -167,13 +167,13 @@ public:
             , pos{ pos }
             , color{ color } {};
 
-    friend Vertex operator+(const Vertex& lhs, const Vertex& rhs)
+    Vertex operator+(const Vertex& that) const
     {
-        return { lhs.id + rhs.id, lhs.pos + rhs.pos, lhs.color + rhs.color };
+        return { this->id + that.id, this->pos + that.pos, this->color + that.color };
     }
-    friend Vertex operator/(const Vertex& v, const float scalar)
+    Vertex operator/(const float scalar) const
     {
-        return { v.id / scalar, v.pos / scalar, v.color / scalar };
+        return { this->id / scalar, this->pos / scalar, this->color / scalar };
     }
 };
 
@@ -187,11 +187,8 @@ public:
             : id{ id }
             , color{ color } {};
 
-    friend Varying operator+(const Varying& lhs, const Varying& rhs)
-    {
-        return { lhs.id + rhs.id, lhs.color + rhs.color };
-    }
-    friend Varying operator*(const Varying& v, const float scalar) { return { v.id * scalar, v.color * scalar }; }
+    Varying operator+(const Varying& that) const { return { this->id + that.id, this->color + that.color }; }
+    Varying operator*(const float scalar) const { return { this->id * scalar, this->color * scalar }; }
 };
 
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>

@@ -1,6 +1,7 @@
 // Liang-Barsky clipping algorithm:
 // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
-// - https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
+// -
+// https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
 #pragma once
 
@@ -36,7 +37,8 @@ clip_line(const T q, const T p, T& t0, T& t1)
         }
         return true; // Line is inside and parallel, so kept as is
     }
-    const float t = q / p; // t for the intersection point of the line and the window edge (possibly projected)
+    const float t = q / p; // t for the intersection point of the line and the
+                           // window edge (possibly projected)
 
     if (p < 0.f) { // the line proceeds outside to inside the clip window
         if (t1 < t) {
@@ -114,7 +116,6 @@ clip_line(const math::Vec4& p0,
 static std::optional<std::tuple<math::F, math::F>>
 clip_line(const math::Vec2& p0, const math::Vec2& p1)
 {
-
     const auto min = math::Vec2{ -1, -1 };
     const auto max = math::Vec2{ +1, +1 };
 
@@ -123,7 +124,6 @@ clip_line(const math::Vec2& p0, const math::Vec2& p1)
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D;
          border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
-
         if (!clip_line(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
@@ -146,7 +146,6 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
 
     for (auto border = BorderType::BEGIN; border < BorderType::END;
          border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
-
         if (!clip_line(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
@@ -154,4 +153,4 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
-}
+} // namespace asciirast::rasterize

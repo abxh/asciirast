@@ -15,7 +15,7 @@ static const T PI = std::numbers::pi; // PI constant
 template<typename T>
 static const T PI_2 = std::numbers::pi + std::numbers::pi; // PI_2 constant
 
-}
+} // namespace constants
 
 /**
  * @brief Convert from degrees to radians

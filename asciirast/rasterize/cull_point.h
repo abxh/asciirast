@@ -23,4 +23,4 @@ cull_point(const math::Vec4& p)
     return !(x_in_bounds && y_in_bounds && z_in_bounds);
 }
 
-}
+} // namespace asciirast::rasterize
