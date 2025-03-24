@@ -21,11 +21,6 @@ using RGB = math::Vec3;
 
 class TerminalBuffer : public asciirast::FrameBuffer<char, RGB>
 {
-    using Transform2DWrapped = asciirast::utils::ChangeDetected<math::Transform2D>;
-    using Transform2DWrappedView = const asciirast::utils::AbstractChangeDetected<math::Transform2D>&;
-
-    bool m_oob_error;
-
 public:
     TerminalBuffer()
             : m_charbuf{}
@@ -53,7 +48,7 @@ public:
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
-    Transform2DWrappedView get_viewport_to_window() const override { return m_transform; }
+    const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -120,7 +115,7 @@ public:
 
         m_width = new_width;
         m_height = new_height;
-        m_transform = std::move(math::Transform2D()
+        m_viewport_to_window = std::move(math::Transform2D()
                                         .reflectY()
                                         .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
                                         .scale(m_width - 1, m_height - 1));
@@ -141,13 +136,14 @@ private:
             std::cout << CSI::ESC << CSI::CLEAR_LINE << "\n";
         }
     }
+    bool m_oob_error;
 
     int m_width;
     int m_height;
     std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
     std::vector<RGB> m_colorbuf;
-    Transform2DWrapped m_transform;
+    math::Transform2D m_viewport_to_window;
 };
 
 class Uniform

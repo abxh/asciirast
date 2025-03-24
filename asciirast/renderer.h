@@ -41,9 +41,6 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 
 class Renderer
 {
-    math::Transform2D m_screen_to_viewport;
-    math::Transform2D m_screen_to_window;
-
 public:
     static inline const math::AABB2D SCREEN_BOUNDS =
             math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
@@ -52,12 +49,14 @@ public:
 
     Renderer()
             : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
+            , m_viewport_to_window{}
             , m_screen_to_window{}
     {
     }
 
     Renderer(const math::AABB2D& viewport)
             : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed().stack(viewport.to_transform()) }
+            , m_viewport_to_window{}
             , m_screen_to_window{}
     {
         assert(viewport.size_get() != math::Vec2{ 0 });
@@ -90,6 +89,10 @@ public:
     }
 
 private:
+    math::Transform2D m_screen_to_viewport;
+    math::Transform2D m_viewport_to_window;
+    math::Transform2D m_screen_to_window;
+
     template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
     void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
               const Uniforms& uniforms,
@@ -97,8 +100,9 @@ private:
               std::ranges::input_range auto&& range,
               FrameBuffer& framebuffer)
     {
-        if (auto&& t = framebuffer.get_viewport_to_window(); t.changed()) {
-            m_screen_to_window = math::Transform2D().stack(m_screen_to_viewport).stack(t.get());
+        if (!std::ranges::equal(m_viewport_to_window.mat().range(), framebuffer.viewport_to_window().mat().range())) {
+            m_viewport_to_window = framebuffer.viewport_to_window();
+            m_screen_to_window = math::Transform2D().stack(m_screen_to_viewport).stack(m_viewport_to_window);
         }
 
         const auto screen_to_window_func = [this](const math::Vec2& pos) -> math::Vec2 {

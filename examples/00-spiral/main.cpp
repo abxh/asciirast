@@ -20,9 +20,6 @@ namespace CSI = terminal_utils::CSI;
 
 class TerminalBuffer : public asciirast::FrameBuffer<char>
 {
-    using Transform2DWrapped = asciirast::utils::ChangeDetected<math::Transform2D>;
-    using Transform2DWrappedView = const asciirast::utils::AbstractChangeDetected<math::Transform2D>&;
-
 public:
     TerminalBuffer()
     {
@@ -34,6 +31,7 @@ public:
         m_width = m_height = 0;
         this->clear_and_update_size();
     }
+
     ~TerminalBuffer()
     {
         std::cout << CSI::ESC << CSI::SHOW_CURSOR;
@@ -42,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    Transform2DWrappedView get_viewport_to_window() const override { return m_transform; }
+    const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -97,10 +95,10 @@ public:
 
         m_width = new_width;
         m_height = new_height;
-        m_transform = std::move(math::Transform2D()
-                                        .reflectY()
-                                        .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
-                                        .scale(m_width - 1, m_height - 1));
+        m_viewport_to_window = std::move(math::Transform2D()
+                                                 .reflectY()
+                                                 .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
+                                                 .scale(m_width - 1, m_height - 1));
         m_charbuf.resize(new_width * new_height);
         m_depthbuf.resize(new_width * new_height);
 
@@ -122,7 +120,7 @@ private:
     int m_height;
     std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
-    Transform2DWrapped m_transform;
+    math::Transform2D m_viewport_to_window;
 };
 
 class Uniform
