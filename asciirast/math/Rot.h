@@ -77,6 +77,11 @@ public:
     };
 
     /**
+     * @brief Get the (underlying) direction vector
+     */
+    const Vec2& dir() const { return m_dir; }
+
+    /**
      * @brief Convert to angle in radians
      */
     T to_angle() const { return std::atan2(m_imag, m_real); }
@@ -203,17 +208,22 @@ public:
     /**
      * @brief Rotate by angle in x axis
      */
-    Rot& rotateX(const T angle) { return this->apply(Rot{ Vec3{ 1, 0, 0 }, angle }); }
+    Rot& rotateX(const T angle) { return this->stack(Rot{ Vec3{ 1, 0, 0 }, angle }); }
 
     /**
      * @brief Rotate by angle in y axis
      */
-    Rot& rotateY(const T angle) { return this->apply(Rot{ Vec3{ 0, 1, 0 }, angle }); }
+    Rot& rotateY(const T angle) { return this->stack(Rot{ Vec3{ 0, 1, 0 }, angle }); }
 
     /**
      * @brief Rotate by angle in z axis
      */
-    Rot& rotateZ(const T angle) { return this->apply(Rot{ Vec3{ 0, 0, 1 }, angle }); }
+    Rot& rotateZ(const T angle) { return this->stack(Rot{ Vec3{ 0, 0, 1 }, angle }); }
+
+    /**
+     * @brief Get the underlying quaternion
+     */
+    const Vec4& quat() const { return m_quat; }
 
     /**
      * @brief Convert to (normalized) axis and angle
