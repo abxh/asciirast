@@ -10,11 +10,9 @@
 
 #include "./math.h"
 #include "./program.h"
-#include "./rasterize/clip_line.h"
-#include "./rasterize/cull_point.h"
-#include "./rasterize/generate_attrs.h"
-#include "./rasterize/generate_depth.h"
-#include "./rasterize/generate_line.h"
+#include "./rasterize/clip.h"
+#include "./rasterize/cull.h"
+#include "./rasterize/generate.h"
 
 namespace asciirast {
 
@@ -126,7 +124,7 @@ private:
 
                 // perspective divide
                 // clip space -> screen space:
-                const auto pfrag = project(frag);
+                const auto pfrag = math::project(frag);
 
                 // screen space -> window space:
                 const auto wfrag =
@@ -155,13 +153,13 @@ private:
                         return;
                     }
                     const auto [t0, t1] = tup.value(); // interpolate line using t values:
-                    const auto tfrag0 = lerp(frag0, frag1, t0);
-                    const auto tfrag1 = lerp(frag0, frag1, t1);
+                    const auto tfrag0 = math::lerp(frag0, frag1, t0);
+                    const auto tfrag1 = math::lerp(frag0, frag1, t1);
 
                     // perspective divide
                     // clip space -> screen space:
-                    const auto pfrag0 = project(tfrag0);
-                    const auto pfrag1 = project(tfrag1);
+                    const auto pfrag0 = math::project(tfrag0);
+                    const auto pfrag1 = math::project(tfrag1);
 
                     // screen space -> window space:
                     const auto wfrag0 = PFrag{ .pos = screen_to_window_func(pfrag0.pos),

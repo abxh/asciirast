@@ -14,7 +14,7 @@ public:
 
     ~FrameBuffer() = default;
     virtual const math::Transform2D& viewport_to_window() const = 0;
-    virtual void plot(const math::Vec2Int&, const math::F, const Targets&) = 0;
+    virtual void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) = 0;
 };
 
 template<class T>

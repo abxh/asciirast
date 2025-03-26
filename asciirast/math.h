@@ -5,20 +5,18 @@
 
 #pragma once
 
-#include "math/AABB.h"
-#include "math/Mat.h"
-#include "math/Rot.h"
-#include "math/Transform.h"
-#include "math/Vec.h"
-#include "math/utils.h"
+#include "./math/AABB.h"
+#include "./math/Mat.h"
+#include "./math/Rot.h"
+#include "./math/Transform.h"
+#include "./math/Vec.h"
+#include "./math/utils.h"
 
 namespace asciirast::math {
 
 using I = int;                             ///< default integral type
 using F = float;                           ///< default floating point type
 static constexpr bool is_col_major = true; ///< default matrix major order
-
-static const auto PI = constants::PI<F>; ///< PI constant
 
 using Vec2Int = Vec<2, I>; ///< 2D integral type math vector
 using Vec3Int = Vec<3, I>; ///< 3D integral type math vector

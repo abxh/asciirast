@@ -7,11 +7,20 @@
 
 namespace asciirast {
 
+namespace math {
+
 template<typename T>
 concept VaryingType = requires(T x) {
     { x + x } -> std::same_as<T>;
     { x * -1.f } -> std::same_as<T>;
 };
+
+template<VaryingType Varying>
+static Varying
+lerp_varying(const Varying& a, const Varying& b, const math::F t)
+{
+    return a * (1 - t) + b * t;
+}
 
 template<VaryingType Varying>
 struct Fragment
@@ -28,18 +37,11 @@ struct ProjectedFragment
     Varying attrs;
 };
 
-template<VaryingType Varying>
-static Varying
-lerp(const Varying& a, const Varying& b, const math::F t)
-{
-    return a * (1 - t) + b * t;
-}
-
 template<VaryingType T>
 static Fragment<T>
 lerp(const Fragment<T>& a, const Fragment<T>& b, const math::F t)
 {
-    return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = lerp(a.attrs, b.attrs, t) };
+    return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = math::lerp_varying(a.attrs, b.attrs, t) };
 }
 
 template<VaryingType T>
@@ -51,6 +53,17 @@ project(const Fragment<T>& frag)
                                  .attrs = frag.attrs };
 }
 
+}
+
+template<typename T>
+concept VaryingType = math::VaryingType<T>;
+
+template<VaryingType Varying>
+using Fragment = math::Fragment<Varying>;
+
+template<VaryingType Varying>
+using ProjectedFragment = math::ProjectedFragment<Varying>;
+
 template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
 class Program
 {
@@ -60,11 +73,6 @@ public:
     virtual ~Program() = default;
     virtual Fragment<Varying> on_vertex(const Uniforms&, const Vertex&) const = 0;
     virtual Targets on_fragment(const Uniforms&, const ProjectedFragment<Varying>&) const = 0;
-};
-
-template<class T>
-concept ProgramType = requires(T t) {
-    []<class T1, class T2, VaryingType T3, FrameBufferType T4>(const Program<T1, T2, T3, T4>&) {}(t);
 };
 
 }

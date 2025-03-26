@@ -7,15 +7,11 @@
 
 namespace asciirast::math {
 
-namespace constants {
-
-template<typename T>
-static const T PI = std::numbers::pi; // PI constant
-
-template<typename T>
-static const T PI_2 = std::numbers::pi + std::numbers::pi; // PI_2 constant
-
-} // namespace constants
+/**
+ * @brief Check if type conversion is a non-narrowing conversion.
+ */
+template<typename From, typename To>
+concept non_narrowing_conversion = requires(From f) { To{ f }; };
 
 /**
  * @brief Convert from degrees to radians
@@ -25,7 +21,7 @@ template<typename T>
 static T
 radians(const T degrees)
 {
-    return constants::PI_2<T> * degrees / T{ 360 };
+    return std::numbers::pi_v<T> * degrees / T{ 180 };
 }
 
 /**
@@ -36,7 +32,7 @@ template<typename T>
 static T
 degrees(const T radians)
 {
-    return T{ 360 } * radians / constants::PI_2<T>;
+    return T{ 180 } * radians / std::numbers::pi_v<T>;
 }
 
 /**

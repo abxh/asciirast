@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "./../math.h"
+#include "../math.h"
 
 namespace asciirast::rasterize {
 

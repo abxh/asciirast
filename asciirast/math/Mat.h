@@ -131,7 +131,7 @@ public:
      */
     Mat()
     {
-        for (auto& x : this->range()) {
+        for (auto&& x : this->range()) {
             x = T{ 0 };
         }
     }
@@ -141,7 +141,7 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
+        for (auto&& [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
             (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
