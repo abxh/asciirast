@@ -45,8 +45,6 @@ generate_line_fragments(const ProjectedFragment<Varying>& proj0, const Projected
     auto acc_attrs = attrs0;
 
     if (std::isfinite(depth0) && std::isfinite(depth1)) {
-        (void)(acc_attrs, inc_attrs);
-
         for (std::int64_t i = 0; i < static_cast<std::int64_t>(len); i++) {
             co_yield std::make_tuple(math::floor(acc_pos),
                                      acc_depth,
@@ -57,8 +55,6 @@ generate_line_fragments(const ProjectedFragment<Varying>& proj0, const Projected
             acc_depth += inc_depth;
         }
     } else {
-        (void)(acc_t, inc_t);
-
         for (std::int64_t i = 0; i < static_cast<std::int64_t>(len); i++) {
             co_yield std::make_tuple(math::floor(acc_pos), acc_depth, acc_attrs);
 
