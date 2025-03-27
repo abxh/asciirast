@@ -8,9 +8,6 @@
 
 namespace asciirast::rasterize {
 
-static_assert(std::numeric_limits<math::F>::min() >= std::numeric_limits<std::int64_t>::min());
-static_assert(std::numeric_limits<math::F>::max() >= std::numeric_limits<std::int64_t>::max());
-
 template<VaryingType Varying>
 static std::generator<std::tuple<math::Vec2, math::F, Varying>>
 generate_line_fragments(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1)
@@ -45,7 +42,7 @@ generate_line_fragments(const ProjectedFragment<Varying>& proj0, const Projected
     auto acc_attrs = attrs0;
 
     if (std::isfinite(depth0) && std::isfinite(depth1)) {
-        for (std::int64_t i = 0; i < static_cast<std::int64_t>(len); i++) {
+        for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
             co_yield std::make_tuple(math::floor(acc_pos),
                                      acc_depth,
                                      math::lerp_varying(proj0.attrs, proj1.attrs, perspective_corrected_t(acc_t)));
@@ -55,7 +52,7 @@ generate_line_fragments(const ProjectedFragment<Varying>& proj0, const Projected
             acc_depth += inc_depth;
         }
     } else {
-        for (std::int64_t i = 0; i < static_cast<std::int64_t>(len); i++) {
+        for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
             co_yield std::make_tuple(math::floor(acc_pos), acc_depth, acc_attrs);
 
             acc_pos += inc_pos;
