@@ -15,7 +15,7 @@
 #include <vector>
 
 namespace math = asciirast::math;
-namespace CSI = terminal_utils::CSI;
+namespace CSI  = terminal_utils::CSI;
 
 using RGB = math::Vec3;
 
@@ -59,11 +59,11 @@ public:
 
         const auto idx = index(pos.y, pos.x);
 
-        if (!(m_depthbuf[idx] < depth)) {
+        if (m_depthbuf[idx] > depth) {
             return;
         }
 
-        m_charbuf[idx] = std::get<char>(targets);
+        m_charbuf[idx]  = std::get<char>(targets);
         m_colorbuf[idx] = std::get<RGB>(targets);
         m_depthbuf[idx] = depth;
     }
@@ -93,7 +93,7 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (int i = 0; i < m_height * m_width; i++) {
-            m_charbuf[i] = clear_char;
+            m_charbuf[i]  = clear_char;
             m_depthbuf[i] = -std::numeric_limits<math::F>::infinity();
             m_colorbuf[i] = RGB{ 0 };
         }
@@ -108,20 +108,17 @@ public:
             this->clear(clear_char);
             return;
         }
-        new_width = std::max(2, new_width - 1);
+        new_width  = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
 
         this->reset_printer();
 
-        m_width = new_width;
-        m_height = new_height;
-        m_viewport_to_window = std::move(math::Transform2D()
-                                        .reflectY()
-                                        .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
-                                        .scale(m_width - 1, m_height - 1));
-        m_charbuf.resize(new_width * new_height);
-        m_depthbuf.resize(new_width * new_height);
-        m_colorbuf.resize(new_width * new_height);
+        m_width              = new_width;
+        m_height             = new_height;
+        m_viewport_to_window = math::Transform2D().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
+        m_charbuf.resize(m_width * m_height);
+        m_depthbuf.resize(m_width * m_height);
+        m_colorbuf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -190,12 +187,12 @@ public:
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
 {
 public:
-    using Fragment = asciirast::Fragment<Varying>;
+    using Fragment          = asciirast::Fragment<Varying>;
     using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        return Fragment{ .pos = math::Vec4{ vert.pos, 0, 1 }, // w should be 1 for 2D.
+        return Fragment{ .pos   = math::Vec4{ vert.pos, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ vert.id, vert.color } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
@@ -243,7 +240,7 @@ main(void)
 
     asciirast::VertexBuffer<Vertex> vb{ .shape_type = asciirast::ShapeType::LINES };
 
-    int i = 1;
+    int i   = 1;
     int dir = 1;
     vb.verticies.clear();
     sierpinski_triangle(vb.verticies, V1, V2, V3, i);

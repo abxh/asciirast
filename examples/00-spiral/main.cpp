@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace math = asciirast::math;
-namespace CSI = terminal_utils::CSI;
+namespace CSI  = terminal_utils::CSI;
 
 class TerminalBuffer : public asciirast::FrameBuffer<char>
 {
@@ -49,11 +49,11 @@ public:
 
         const auto idx = index(pos.y, pos.x);
 
-        if (!(m_depthbuf[idx] < depth)) {
+        if (m_depthbuf[idx] > depth) {
             return;
         }
 
-        m_charbuf[idx] = std::get<0>(targets);
+        m_charbuf[idx]  = std::get<0>(targets);
         m_depthbuf[idx] = depth;
     }
 
@@ -74,7 +74,7 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (int i = 0; i < m_height * m_width; i++) {
-            m_charbuf[i] = clear_char;
+            m_charbuf[i]  = clear_char;
             m_depthbuf[i] = -std::numeric_limits<math::F>::infinity();
         }
     }
@@ -88,19 +88,16 @@ public:
             this->clear(clear_char);
             return;
         }
-        new_width = std::max(2, new_width - 1);
+        new_width  = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
 
         this->reset_printer();
 
-        m_width = new_width;
-        m_height = new_height;
-        m_viewport_to_window = std::move(math::Transform2D()
-                                                 .reflectY()
-                                                 .translate(0, asciirast::Renderer::VIEWPORT_BOUNDS.size_get().y)
-                                                 .scale(m_width - 1, m_height - 1));
-        m_charbuf.resize(new_width * new_height);
-        m_depthbuf.resize(new_width * new_height);
+        m_width              = new_width;
+        m_height             = new_height;
+        m_viewport_to_window = math::Transform2D().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
+        m_charbuf.resize(m_width * m_height);
+        m_depthbuf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -154,13 +151,13 @@ public:
 
 class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
 {
-    using Fragment = asciirast::Fragment<Varying>;
+    using Fragment          = asciirast::Fragment<Varying>;
     using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
 
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        return Fragment{ .pos = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // w should be 1 for 2D.
+        return Fragment{ .pos   = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // w should be 1 for 2D
                          .attrs = Varying{ vert.id } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
@@ -186,7 +183,7 @@ main(void)
            so-called logarithmic spiral which goes outwards.
         */
         vb.shape_type = asciirast::ShapeType::LINE_STRIP;
-        vb.verticies = std::move(std::vector<Vertex>{
+        vb.verticies  = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });
 
@@ -195,7 +192,7 @@ main(void)
         for (int i = 0; i < 40; i++) {
             const auto last_vertex = vb.verticies[vb.verticies.size() - 1U];
 
-            const auto id = std::min((last_vertex.id + 0.2f), (float)palette.size());
+            const auto id  = std::min((last_vertex.id + 0.2f), (float)palette.size());
             const auto pos = 1.1f * f.apply(last_vertex.pos);
 
             vb.verticies.push_back(Vertex{ id, pos });

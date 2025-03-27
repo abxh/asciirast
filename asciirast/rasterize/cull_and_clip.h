@@ -1,13 +1,27 @@
-// Liang-Barsky clipping algorithm:
-// - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
-// -
-// https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
-
 #pragma once
 
 #include "../math.h"
 
 namespace asciirast::rasterize {
+
+static bool
+cull_point(const math::Vec2& p)
+{
+    const bool x_in_bounds = -1 <= p.x && p.x <= +1;
+    const bool y_in_bounds = -1 <= p.y && p.y <= +1;
+
+    return !(x_in_bounds && y_in_bounds);
+}
+
+static bool
+cull_point(const math::Vec4& p)
+{
+    const bool x_in_bounds = -p.w <= p.x && p.x <= +p.w;
+    const bool y_in_bounds = -p.w <= p.y && p.y <= +p.w;
+    const bool z_in_bounds = -p.w <= p.z && p.z <= +p.w;
+
+    return !(x_in_bounds && y_in_bounds && z_in_bounds);
+}
 
 using T = math::F;
 
@@ -28,6 +42,9 @@ enum class BorderType
 static inline bool
 clip_line(const T q, const T p, T& t0, T& t1)
 {
+    // Liang-Barsky clipping algorithm:
+    // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
+
     // q: delta from border to vector tail
     // p: delta from vector tail to vector head. sign flipped to face border
 
@@ -93,6 +110,7 @@ clip_line(const math::Vec4& p0,
 {
     // Liang-Barsky clipping algorithm:
     // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
+    // - https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
     const std::size_t border_id = static_cast<std::size_t>(border);
 

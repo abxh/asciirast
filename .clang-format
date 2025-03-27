@@ -15,3 +15,5 @@ IndentCaseLabels: false
 BreakStringLiterals: false
 
 ColumnLimit: 120
+
+AlignConsecutiveAssignments: "Consecutive"
