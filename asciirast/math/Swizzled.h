@@ -268,7 +268,7 @@ public:
     /**
      * @brief Convert this to a temporary vector copy
      */
-    Vec toVec() const { return Vec{ (*this) }; }
+    Vec to_vec() const { return Vec{ (*this) }; }
 
     /**
      * @brief Index the swizzled component.
