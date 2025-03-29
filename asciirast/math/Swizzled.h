@@ -309,6 +309,16 @@ public:
     T operator=(const T value) { return (m_components[INDEX] = value); }
 
     /**
+     * @brief Get pointer over underlying data
+     */
+    T* data() { return &m_components[0]; }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    const T* data() const { return &m_components[0]; }
+
+    /**
      * @brief Range of swizzled component
      */
     std::ranges::view auto range() { return std::ranges::views::single(m_components[INDEX]); }

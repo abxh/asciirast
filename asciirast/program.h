@@ -25,16 +25,17 @@ lerp_varying(const Varying& a, const Varying& b, const math::F t)
 template<VaryingType Varying>
 struct Fragment
 {
-    math::Vec4 pos;
-    Varying attrs;
+    math::Vec4 pos; ///@< world position in homogenous space
+    Varying attrs;  ///@< vertex attributes
 };
 
 template<VaryingType Varying>
 struct ProjectedFragment
 {
-    math::Vec2 pos;
-    math::F depth;
-    Varying attrs;
+    math::Vec2 pos; ///@< aka window position
+    math::F z_inv;  ///@< aka depth
+    math::F w_inv;  ///@< 1/w, useful for retrieving world position
+    Varying attrs;  ///@< fragment attributes
 };
 
 template<VaryingType T>
@@ -48,9 +49,10 @@ template<VaryingType T>
 static ProjectedFragment<T>
 project(const Fragment<T>& frag)
 {
-    return ProjectedFragment<T>{ .pos = frag.pos.xy / frag.pos.w,
-                                 .depth = frag.pos.w / frag.pos.z, // 1 / (z / w)
-                                 .attrs = frag.attrs };
+    const auto w_inv = 1 / frag.pos.w;
+    const auto vec   = frag.pos.xyz * w_inv;
+
+    return ProjectedFragment<T>{ .pos = vec.xy, .z_inv = 1 / vec.z, .w_inv = w_inv, .attrs = frag.attrs };
 }
 
 }
@@ -71,7 +73,9 @@ public:
     using Targets = FrameBuffer::Targets;
 
     virtual ~Program() = default;
+
     virtual Fragment<Varying> on_vertex(const Uniforms&, const Vertex&) const = 0;
+
     virtual Targets on_fragment(const Uniforms&, const ProjectedFragment<Varying>&) const = 0;
 };
 

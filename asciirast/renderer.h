@@ -127,13 +127,16 @@ private:
                 const auto pfrag = math::project(frag);
 
                 // screen space -> window space:
-                const auto wfrag = PFrag{ screen_to_window_func(pfrag.pos), pfrag.depth, pfrag.attrs };
+                const auto wfrag = PFrag{ .pos   = screen_to_window_func(pfrag.pos),
+                                          .z_inv = pfrag.z_inv,
+                                          .w_inv = pfrag.w_inv,
+                                          .attrs = pfrag.attrs };
 
                 // apply fragment shader:
                 const auto targets = program.on_fragment(uniforms, wfrag);
 
                 // plot in framebuffer:
-                framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.depth, targets);
+                framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.z_inv, targets);
             }
             break;
         case ShapeType::LINES:
@@ -161,17 +164,23 @@ private:
                     const auto pfrag1 = math::project(tfrag1);
 
                     // screen space -> window space:
-                    const auto wfrag0 = PFrag{ screen_to_window_func(pfrag0.pos), pfrag0.depth, pfrag0.attrs };
-                    const auto wfrag1 = PFrag{ screen_to_window_func(pfrag1.pos), pfrag1.depth, pfrag1.attrs };
+                    const auto wfrag0 = PFrag{ .pos   = screen_to_window_func(pfrag0.pos),
+                                               .z_inv = pfrag0.z_inv,
+                                               .w_inv = pfrag0.w_inv,
+                                               .attrs = pfrag0.attrs };
+                    const auto wfrag1 = PFrag{ .pos   = screen_to_window_func(pfrag1.pos),
+                                               .z_inv = pfrag1.z_inv,
+                                               .w_inv = pfrag1.w_inv,
+                                               .attrs = pfrag1.attrs };
 
                     // iterate over line fragments:
-                    for (const auto [pos, depth, attrs] : rasterize::generate_line_fragments(wfrag0, wfrag1)) {
+                    for (const auto [pos, z_inv, w_inv, attrs] : rasterize::generate_line_fragments(wfrag0, wfrag1)) {
 
                         // apply fragment shader:
-                        const auto targets = program.on_fragment(uniforms, PFrag{ pos, depth, attrs });
+                        const auto targets = program.on_fragment(uniforms, PFrag{ pos, z_inv, w_inv, attrs });
 
                         // plot point in framebuffer:
-                        framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
+                        framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
                     }
                 };
                 for (const auto [v0, v1] : verticies) {

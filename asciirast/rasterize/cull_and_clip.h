@@ -35,7 +35,7 @@ enum class BorderType
     FAR,
     COUNT,
     BEGIN = 0U,
-    END = COUNT,
+    END   = COUNT,
     END2D = TOP + 1U,
 };
 
@@ -141,7 +141,7 @@ clip_line(const math::Vec2& p0, const math::Vec2& p1)
     auto t1 = math::F{ 1 };
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D;
-         border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
+         border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
         if (!clip_line(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
@@ -163,7 +163,7 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
     auto t1 = math::F{ 1 };
 
     for (auto border = BorderType::BEGIN; border < BorderType::END;
-         border = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
+         border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
         if (!clip_line(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
