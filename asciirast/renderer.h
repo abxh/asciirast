@@ -46,22 +46,23 @@ class Renderer
     math::Transform2D m_screen_to_window;
 
 public:
-    static inline const auto s_screen_bounds   = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-    static inline const auto s_viewport_bounds = math::AABB2D::from_min_max(math::Vec2{ 0, 0 }, math::Vec2{ 1, 1 });
+    static inline const auto SCREEN_BOUNDS   = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
+    static inline const auto VIEWPORT_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ 0, 0 }, math::Vec2{ 1, 1 });
 
     Renderer()
-            : m_screen_to_viewport{ s_screen_bounds.to_transform().reversed() }
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
             , m_viewport_to_window{}
             , m_screen_to_window{ m_screen_to_viewport }
     {
     }
 
     Renderer(const math::AABB2D& viewport)
-            : m_screen_to_viewport{ s_screen_bounds.to_transform().reversed().stack(viewport.to_transform()) }
+            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed().stack(viewport.to_transform()) }
             , m_viewport_to_window{}
             , m_screen_to_window{ m_screen_to_viewport }
     {
         assert(viewport.size_get() != math::Vec2{ 0 });
+        assert(VIEWPORT_BOUNDS.contains(viewport));
     }
 
     template<class Uniforms, class Vertex, class VertexAllocator, VaryingType Varying, FrameBufferType FrameBuffer>

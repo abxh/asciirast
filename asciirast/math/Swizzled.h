@@ -8,10 +8,6 @@
  * same size, and can be explictly converted to a vector temporary copy with the
  * `.to_vec()` method.
  *
- * In-place operations with other swizzled with overlapping memory regions
- * (overlapping indicies) should be seen as UB. Use `.to_vec()` to create
- * temporary copies as needed.
- *
  * Inspiration:
  * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
  */
@@ -44,11 +40,46 @@ class Swizzled
     static constexpr std::array INDICIES = { Indicies... };
     std::array<T, N> m_components;
 
+    static consteval bool overlapping_indicies(const std::size_t i, const std::size_t j) { return i == j; }
+
+    template<std::size_t... OtherIndicies>
+    static consteval bool overlapping_indicies(const std::size_t i, const std::index_sequence<OtherIndicies...>& s2)
+    {
+        return (overlapping_indicies(i, OtherIndicies) || ...);
+    }
+
+    template<std::size_t... ThisIndicies, std::size_t... OtherIndicies>
+    static consteval bool overlapping_indicies(const std::index_sequence<ThisIndicies...>& s1,
+                                               const std::index_sequence<OtherIndicies...>& s2)
+    {
+        return (overlapping_indicies(ThisIndicies, s2) || ...);
+    }
+
+    template<std::size_t M, std::size_t... OtherIndicies>
+    bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
+    {
+        return this->data() != that.data() ||
+               (this->data() == that.data() &&
+                !overlapping_indicies(std::index_sequence<Indicies...>{}, std::index_sequence<OtherIndicies...>{}));
+    }
+
 public:
+    using value_type = T; ///@< value type
+
     /**
      * @brief Size of swizzled component
      */
-    std::size_t size() const { return INDICIES.size(); }
+    static constexpr std::size_t size() { return INDICIES.size(); }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    T* data() { return &m_components[0]; }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Convert this to a temporary vector copy
@@ -147,11 +178,16 @@ public:
     /**
      * @brief In-place component-wise assignment with other Swizzled
      */
-    template<class W, std::size_t M, std::size_t... Js>
-    Swizzled operator=(const Swizzled<W, M, T, Js...>& that)
+    template<std::size_t M, std::size_t... OtherIndicies>
+    Swizzled operator=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x = y;
+        assert(this->does_not_overlap(that) &&
+               "inplace operations with no overlapping indicies. use .to_vec() if needed");
+
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
         return *this;
     }
@@ -159,11 +195,16 @@ public:
     /**
      * @brief In-place component-wise addition with other Swizzled
      */
-    template<class W, std::size_t M, std::size_t... Js>
-    Swizzled operator+=(const Swizzled<W, M, T, Js...>& that)
+    template<std::size_t M, std::size_t... OtherIndicies>
+    Swizzled operator+=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x += y;
+        assert(this->does_not_overlap(that) &&
+               "inplace operations with no overlapping indicies. use .to_vec() if needed");
+
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest += src;
         }
         return *this;
     }
@@ -171,11 +212,16 @@ public:
     /**
      * @brief In-place component-wise subtraction with other Swizzled
      */
-    template<class W, std::size_t M, std::size_t... Js>
-    Swizzled operator-=(const Swizzled<W, M, T, Js...>& that)
+    template<std::size_t M, std::size_t... OtherIndicies>
+    Swizzled operator-=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x -= y;
+        assert(this->does_not_overlap(that) &&
+               "inplace operations with no overlapping indicies. use .to_vec() if needed");
+
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest -= src;
         }
         return *this;
     }
@@ -183,11 +229,16 @@ public:
     /**
      * @brief In-place component-wise multiplication with other Swizzled
      */
-    template<class W, std::size_t M, std::size_t... Js>
-    Swizzled operator*=(const Swizzled<W, M, T, Js...>& that)
+    template<std::size_t M, std::size_t... OtherIndicies>
+    Swizzled operator*=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x *= y;
+        assert(this->does_not_overlap(that) &&
+               "inplace operations with no overlapping indicies. use .to_vec() if needed");
+
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest *= src;
         }
         return *this;
     }
@@ -197,7 +248,7 @@ public:
      */
     Swizzled operator*=(const T scalar)
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x *= scalar;
         }
         return *this;
@@ -212,7 +263,7 @@ public:
             assert(scalar != T{ 0 } && "non-zero division");
         }
 
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x /= scalar;
         }
         return *this;
@@ -235,6 +286,13 @@ class Swizzled<Vec, N, T, INDEX>
     std::array<T, N> m_components;
 
 public:
+    using value_type = T; ///@< value type
+
+    /**
+     * @brief Size of swizzled component
+     */
+    static constexpr std::size_t size() { return 1UL; }
+
     /**
      * @brief Implicit conversion to number
      */
@@ -259,11 +317,6 @@ public:
      * @brief Range of swizzled component
      */
     std::ranges::view auto range() const { return std::ranges::views::single(m_components[INDEX]); }
-
-    /**
-     * @brief Size of swizzled component
-     */
-    std::size_t size() const { return 1UL; }
 
     /**
      * @brief Convert this to a temporary vector copy

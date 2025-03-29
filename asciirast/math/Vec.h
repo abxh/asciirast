@@ -80,7 +80,6 @@ dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * vectors.
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static T
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 2)
@@ -92,7 +91,6 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Vector 3d cross product
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 3)
@@ -121,7 +119,6 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Vector signed angle ranging from -pi and pi radians
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static T
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
     requires(N == 2 && std::is_floating_point_v<T>)
@@ -139,7 +136,6 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Vector signed angle ranging from -pi and pi radians
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static T
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized)
     requires(N == 3 && std::is_floating_point_v<T>)
@@ -154,7 +150,6 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
  * parameter t ranging from 0 to 1.
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
     requires(std::is_floating_point_v<T>)
@@ -169,7 +164,6 @@ lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
  * @brief Take the max value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
@@ -183,7 +177,6 @@ max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Take the min value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
@@ -197,7 +190,6 @@ min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Clamp each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
     requires(std::is_integral_v<T>)
@@ -214,7 +206,6 @@ clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
  * @brief Take the absolute value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 abs(const Vec<N, T>& v)
 {
@@ -228,7 +219,6 @@ abs(const Vec<N, T>& v)
  * @brief Take the rounded value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 round(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
@@ -243,7 +233,6 @@ round(const Vec<N, T>& v)
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 ceil(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
@@ -258,7 +247,6 @@ ceil(const Vec<N, T>& v)
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
 static Vec<N, T>
 floor(const Vec<N, T>& v)
     requires(std::is_floating_point_v<T>)
@@ -283,12 +271,14 @@ protected:
     using VecBase<Vec, N, T>::m_components;
 
 public:
+    using value_type = T; ///@< value type
+
     /**
      * @brief Construct default vector with all zeroes
      */
     Vec()
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x = 0;
         }
     }
@@ -300,8 +290,10 @@ public:
         requires(M > 1)
     Vec(const Swizzled<Vec, M, T, Is...>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
     }
 
@@ -310,7 +302,7 @@ public:
      */
     explicit Vec(const T y)
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x = y;
         }
     }
@@ -322,8 +314,10 @@ public:
         requires(M > N)
     explicit Vec(const Vec<M, T>& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
     }
 
@@ -346,8 +340,10 @@ public:
     {
         assert(N == std::ranges::distance(range) && "range size is same as vector size");
 
-        for (auto [x, y] : std::views::zip(this->range(), range)) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), range)) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
     }
 
@@ -361,6 +357,11 @@ public:
      * @brief Get pointer over underlying data
      */
     T* data() { return &m_components[0]; }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Index the vector.
@@ -480,8 +481,10 @@ public:
      */
     Vec& operator+=(const Vec& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x += y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest += src;
         }
         return *this;
     }
@@ -491,8 +494,10 @@ public:
      */
     Vec& operator-=(const Vec& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x -= y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest -= src;
         }
         return *this;
     }
@@ -502,7 +507,7 @@ public:
      */
     Vec& operator*=(const T scalar)
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x *= scalar;
         }
         return *this;
@@ -517,7 +522,7 @@ public:
             assert(scalar != 0 && "non-zero division");
         }
 
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x /= scalar;
         }
         return *this;
@@ -658,7 +663,7 @@ public:
     Vec project_onto(const Vec& that, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T>)
     {
-        const Vec v = (*this);
+        const Vec v         = (*this);
         const Vec that_unit = is_normalized ? that : that.normalized();
 
         return dot(v, that_unit) * v;
@@ -685,6 +690,13 @@ protected:
     using VecBase<Vec, 1, T>::m_components;
 
 public:
+    using value_type = T; ///@< value type
+
+    /**
+     * @brief Get number of components
+     */
+    static constexpr std::size_t size() { return 1; }
+
     /**
      * @brief Explicitly construct 1d-vector with value
      */
@@ -696,11 +708,6 @@ public:
     operator T() { return m_components[0]; }
 
     /**
-     * @brief Get number of components
-     */
-    static constexpr std::size_t size() { return 1; }
-
-    /**
      * @brief Get range over vector component.
      */
     std::ranges::view auto range() { return std::ranges::views::single(m_components[0]); }
@@ -709,6 +716,26 @@ public:
      * @brief Get range over vector component.
      */
     std::ranges::view auto range() const { return std::ranges::views::single(m_components[0]); }
+
+    /**
+     * @brief Index the vector component.
+     */
+    T& operator[](const std::size_t i)
+    {
+        assert(i == 0UL && "index is inside bounds");
+
+        return m_components[0];
+    }
+
+    /**
+     * @brief Index the vector component.
+     */
+    T operator[](const std::size_t i) const
+    {
+        assert(i == 0UL && "index is inside bounds");
+
+        return m_components[0];
+    }
 };
 
 namespace detail {
@@ -731,8 +758,8 @@ struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>
 template<typename TT>
 struct vec_info_impl
 {
-    static constexpr bool value = false;   ///< whether the type is vector like
-    static constexpr std::size_t size = 0; ///< vector size
+    static constexpr bool value       = false; ///< whether the type is vector like
+    static constexpr std::size_t size = 0;     ///< vector size
 };
 
 /**
@@ -741,8 +768,8 @@ struct vec_info_impl
 template<std::size_t M, typename U>
 struct vec_info_impl<Vec<M, U>>
 {
-    static constexpr bool value = true;    ///< whether the type is vector like
-    static constexpr std::size_t size = M; ///< vector size
+    static constexpr bool value       = true; ///< whether the type is vector like
+    static constexpr std::size_t size = M;    ///< vector size
 };
 
 /**
@@ -752,7 +779,7 @@ template<std::size_t M, typename T, std::size_t... Is>
     requires(sizeof...(Is) > 1)
 struct vec_info_impl<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
 {
-    static constexpr bool value = true;                ///< whether the type is vector like
+    static constexpr bool value       = true;          ///< whether the type is vector like
     static constexpr std::size_t size = sizeof...(Is); ///< vector size
 };
 
@@ -794,7 +821,7 @@ public:
     {
         std::size_t idx = 0;
         init_from_inner(idx, out, std::forward<Args>(args)...);
-        for (auto i : std::views::iota(idx, N)) {
+        for (const std::size_t i : std::views::iota(idx, N)) {
             out[i] = 0;
         }
     }
@@ -816,7 +843,7 @@ private:
     template<std::size_t M, typename U>
     static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, auto&&... rest)
     {
-        for (auto [i, j] : std::views::zip(std::views::iota(idx, idx + M), std::views::iota(0U, M))) {
+        for (const auto [i, j] : std::views::zip(std::views::iota(idx, idx + M), std::views::iota(0U, M))) {
             out[i] = static_cast<T>(arg[j]);
         }
         idx += M;
@@ -830,8 +857,8 @@ private:
                                           const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
                                           auto&&... rest)
     {
-        auto values = arg.range();
-        for (auto [i, value] : std::views::zip(std::views::iota(idx), values)) {
+        const auto values = arg.range();
+        for (const auto [i, value] : std::views::zip(std::views::iota(idx), values)) {
             out[i] = static_cast<T>(value);
         }
         idx += sizeof...(Is);

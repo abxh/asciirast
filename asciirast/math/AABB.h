@@ -34,7 +34,7 @@ public:
      */
     static AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max)
     {
-        const auto& size = math::max(max - min, Vec<N, T>{ 0 });
+        const auto size = math::max(max - min, Vec<N, T>{ 0 });
 
         return AABB{ min + size / 2, size };
     }

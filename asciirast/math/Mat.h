@@ -131,7 +131,7 @@ public:
      */
     Mat()
     {
-        for (auto&& x : this->range()) {
+        for (T& x : this->range()) {
             x = T{ 0 };
         }
     }
@@ -141,7 +141,7 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (auto&& [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
+        for (const auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
             (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
@@ -165,8 +165,10 @@ public:
     {
         assert(this->size() == std::ranges::distance(it) && "range size is same as matrix size");
 
-        for (auto [x, y] : std::views::zip(this->range(), it)) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), it)) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
     }
 
@@ -190,6 +192,11 @@ public:
      * @brief Get pointer over underlying data
      */
     T* data() { return &m_elements[0]; }
+
+    /**
+     * @brief Get pointer over underlying data
+     */
+    const T* data() const { return &m_elements[0]; }
 
     /**
      * @brief Index the underlying array
@@ -248,7 +255,7 @@ public:
     {
         Mat<N_x, M_y, T, is_col_major> out{};
 
-        for (auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
+        for (const auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
             out[x, y] = (*this)[y, x];
         }
         return out;
@@ -281,8 +288,10 @@ public:
     {
         assert(y < M_y && "index is inside bounds");
 
-        for (auto [x, y] : std::views::zip(this->row_range(y), v.range())) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->row_range(y), v.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
         return *this;
     }
@@ -304,8 +313,10 @@ public:
     {
         assert(x < M_y && "index is inside bounds");
 
-        for (auto [x, y] : std::views::zip(this->col_range(x), v.range())) {
-            x = y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->col_range(x), v.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
         return *this;
     }
@@ -346,8 +357,10 @@ public:
      */
     Mat& operator+=(const Mat& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x += y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest += src;
         }
         return *this;
     }
@@ -357,8 +370,10 @@ public:
      */
     Mat& operator-=(const Mat& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x -= y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest -= src;
         }
         return *this;
     }
@@ -368,8 +383,10 @@ public:
      */
     Mat& operator*=(const Mat& that)
     {
-        for (auto [x, y] : std::views::zip(this->range(), that.range())) {
-            x *= y;
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest *= src;
         }
         return *this;
     }
@@ -379,7 +396,7 @@ public:
      */
     Mat& operator*=(const T scalar)
     {
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x *= scalar;
         }
         return *this;
@@ -394,7 +411,7 @@ public:
             assert(scalar != T{ 0 } && "non-zero division");
         }
 
-        for (auto& x : this->range()) {
+        for (T& x : this->range()) {
             x /= scalar;
         }
         return *this;
@@ -639,19 +656,19 @@ namespace detail {
 template<typename TT>
 struct mat_info_impl
 {
-    using value_type = void;                 ///< value type
-    static constexpr bool value = false;     ///< whether the type is a matrix
-    static constexpr std::size_t height = 0; ///< matrix height
-    static constexpr std::size_t width = 0;  ///< matrix width
+    using value_type                    = void;  ///< value type
+    static constexpr bool value         = false; ///< whether the type is a matrix
+    static constexpr std::size_t height = 0;     ///< matrix height
+    static constexpr std::size_t width  = 0;     ///< matrix width
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_info_impl<Mat<M_y, N_x, T, is_col_major>>
 {
-    using value_type = T;                      ///< value type
-    static constexpr bool value = true;        ///< whether the type is a matrix
-    static constexpr std::size_t height = M_y; ///< matrix height
-    static constexpr std::size_t width = N_x;  ///< matrix width
+    using value_type                    = T;    ///< value type
+    static constexpr bool value         = true; ///< whether the type is a matrix
+    static constexpr std::size_t height = M_y;  ///< matrix height
+    static constexpr std::size_t width  = N_x;  ///< matrix width
 };
 
 /**
@@ -784,14 +801,14 @@ struct mat_printer<M_y, N_x, T, false>
     static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, false>& mat)
     {
         std::stringstream s{};
-        auto count_chars = [&s](const T& value) -> auto {
+        auto count_chars = [&s](const T& value) -> std::size_t {
             s.str("");
             s << value;
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
         std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
-        auto max_length = *std::max_element(lengths.begin(), lengths.end());
+        const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
         for (std::size_t y = 0; y < M_y; y++) {
@@ -800,9 +817,9 @@ struct mat_printer<M_y, N_x, T, false>
             }
             out << "[ ";
             for (std::size_t x = 0; x < N_x; x++) {
-                auto index = Mat<M_y, N_x, T, false>::map_index(y, x);
-                auto lpad = (max_length - lengths[index]) / 2;
-                auto rpad = max_length - (lpad + lengths[index]);
+                const auto index = Mat<M_y, N_x, T, false>::map_index(y, x);
+                const auto lpad  = (max_length - lengths[index]) / 2;
+                const auto rpad  = max_length - (lpad + lengths[index]);
 
                 out << std::setw(lpad) << "";
                 out << mat[index];
@@ -831,14 +848,14 @@ struct mat_printer<M_y, N_x, T, true>
     static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, true>& mat)
     {
         std::stringstream s{};
-        auto count_chars = [&s](const T& value) -> auto {
+        auto count_chars = [&s](const T& value) -> std::size_t {
             s.str("");
             s << value;
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
         std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
-        auto max_length = *std::max_element(lengths.begin(), lengths.end());
+        const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
         for (std::size_t y = 0; y < M_y; y++) {
@@ -851,9 +868,9 @@ struct mat_printer<M_y, N_x, T, true>
                 } else {
                     out << "  ";
                 }
-                auto index = Mat<M_y, N_x, T, true>::map_index(y, x);
-                auto lpad = (max_length - lengths[index]) / 2;
-                auto rpad = max_length - (lpad + lengths[index]);
+                const auto index = Mat<M_y, N_x, T, true>::map_index(y, x);
+                const auto lpad  = (max_length - lengths[index]) / 2;
+                const auto rpad  = max_length - (lpad + lengths[index]);
 
                 out << std::setw(lpad) << "";
                 out << mat[index];
