@@ -19,13 +19,20 @@ namespace CSI  = terminal_utils::CSI;
 
 using RGB = math::Vec3;
 
+struct RGBC
+{
+    std::uint8_t r;
+    std::uint8_t g;
+    std::uint8_t b;
+    char c;
+};
+
 class TerminalBuffer : public asciirast::FrameBuffer<char, RGB>
 {
 public:
     TerminalBuffer()
-            : m_charbuf{}
-            , m_depthbuf{}
-            , m_colorbuf{}
+            : m_rgbc_buf{}
+            , m_depth_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
 
@@ -59,29 +66,32 @@ public:
 
         const auto idx = index(pos.y, pos.x);
 
-        if (m_depthbuf[idx] > depth) {
+        if (m_depth_buf[idx] > depth) {
             return;
         }
 
-        m_charbuf[idx]  = std::get<char>(targets);
-        m_colorbuf[idx] = std::get<RGB>(targets);
-        m_depthbuf[idx] = depth;
+        const auto rgb    = std::get<RGB>(targets);
+        m_rgbc_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb.x);
+        m_rgbc_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb.y);
+        m_rgbc_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb.z);
+        m_rgbc_buf[idx].c = std::get<char>(targets);
+        m_depth_buf[idx]  = depth;
     }
 
     void render() const
     {
+        // int casting is neccessary:
+        // https://stackoverflow.com/questions/19562103/uint8-t-cant-be-printed-with-cout
+
         this->reset_printer();
 
         for (int y = 0; y < m_height; y++) {
             for (int x = 0; x < m_width; x++) {
-                const auto idx = index(y, x);
+                const auto idx          = index(y, x);
+                const auto [r, g, b, c] = m_rgbc_buf[idx];
 
-                const int r = static_cast<int>(255.f * m_colorbuf[idx].x);
-                const int g = static_cast<int>(255.f * m_colorbuf[idx].y);
-                const int b = static_cast<int>(255.f * m_colorbuf[idx].z);
-
-                std::cout << CSI::ESC << CSI::SET_FG_RGB_COLOR << r << ";" << g << ";" << b << "m";
-                std::cout << m_charbuf[idx];
+                std::cout << CSI::ESC << CSI::SET_FG_RGB_COLOR << int{ r } << ";" << int{ g } << ";" << int{ b } << "m"
+                          << c;
             }
             std::cout << "\n";
         }
@@ -93,9 +103,11 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (int i = 0; i < m_height * m_width; i++) {
-            m_charbuf[i]  = clear_char;
-            m_depthbuf[i] = -std::numeric_limits<math::F>::infinity();
-            m_colorbuf[i] = RGB{ 0 };
+            m_rgbc_buf[i].r = 0U;
+            m_rgbc_buf[i].g = 0U;
+            m_rgbc_buf[i].b = 0U;
+            m_rgbc_buf[i].c = clear_char;
+            m_depth_buf[i]  = -std::numeric_limits<math::F>::infinity();
         }
     }
 
@@ -116,9 +128,10 @@ public:
         m_width              = new_width;
         m_height             = new_height;
         m_viewport_to_window = math::Transform2D().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
-        m_charbuf.resize(m_width * m_height);
-        m_depthbuf.resize(m_width * m_height);
-        m_colorbuf.resize(m_width * m_height);
+        if (m_width * m_height > m_rgbc_buf.size()) {
+            m_rgbc_buf.reserve(m_width * m_height);
+            m_depth_buf.reserve(m_width * m_height);
+        }
 
         this->offset_printer();
         this->clear(clear_char);
@@ -137,9 +150,8 @@ private:
 
     int m_width;
     int m_height;
-    std::vector<char> m_charbuf;
-    std::vector<math::F> m_depthbuf;
-    std::vector<RGB> m_colorbuf;
+    std::vector<RGBC> m_rgbc_buf;
+    std::vector<math::F> m_depth_buf;
     math::Transform2D m_viewport_to_window;
 };
 
