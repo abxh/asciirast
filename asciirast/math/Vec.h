@@ -298,6 +298,18 @@ public:
     }
 
     /**
+     * @brief Construct vector from a mix of values and (smaller) vectors,
+     * padding the rest of the vector with zeroes.
+     */
+    template<typename... Args>
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
+    Vec(Args&&... args)
+        requires(detail::vec_constructible_from<N, T, Args...>::value)
+    {
+        detail::vec_initializer<N, T>::init_from(*this, std::forward<Args>(args)...);
+    };
+
+    /**
      * @brief Construct vector with given value for all components.
      */
     explicit Vec(const T y)
@@ -320,18 +332,6 @@ public:
             dest = src;
         }
     }
-
-    /**
-     * @brief Construct vector from a mix of values and (smaller) vectors,
-     * padding the rest of the vector with zeroes.
-     */
-    template<typename... Args>
-        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
-    explicit Vec(Args&&... args)
-        requires(detail::vec_constructible_from<N, T, Args...>::value)
-    {
-        detail::vec_initializer<N, T>::init_from(*this, std::forward<Args>(args)...);
-    };
 
     /**
      * @brief Construct vector from input range.

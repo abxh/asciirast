@@ -137,6 +137,18 @@ public:
     }
 
     /**
+     * @brief Construct matrix from a mix smaller of matrices and vectors,
+     * padding the rest of the elements with zeroes.
+     */
+    template<typename... Args>
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
+    Mat(Args&&... args)
+        requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
+    {
+        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
+    };
+
+    /**
      * @brief Initiate diagonal elements to some value
      */
     explicit Mat(const T diagonal_element)
@@ -145,18 +157,6 @@ public:
             (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
-
-    /**
-     * @brief Construct matrix from a mix smaller of matrices and vectors,
-     * padding the rest of the elements with zeroes.
-     */
-    template<typename... Args>
-        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
-    explicit Mat(Args&&... args)
-        requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
-    {
-        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
-    };
 
     /**
      * @brief Construct matrix from input range.

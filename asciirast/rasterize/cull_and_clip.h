@@ -134,11 +134,11 @@ clip_line(const math::Vec4& p0,
 static std::optional<std::tuple<math::F, math::F>>
 clip_line(const math::Vec2& p0, const math::Vec2& p1)
 {
-    const auto min = math::Vec2{ -1, -1 };
-    const auto max = math::Vec2{ +1, +1 };
+    const math::Vec2 min = { -1, -1 };
+    const math::Vec2 max = { +1, +1 };
 
-    auto t0 = math::F{ 0 };
-    auto t1 = math::F{ 1 };
+    math::F t0 = 0;
+    math::F t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D;
          border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
@@ -156,11 +156,11 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
         return {};
     }
 
-    const auto min = math::Vec3{ -p0.w, -p0.w, -p0.w };
-    const auto max = math::Vec3{ +p0.w, +p0.w, +p0.w };
+    const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
+    const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
 
-    auto t0 = math::F{ 0 };
-    auto t1 = math::F{ 1 };
+    math::F t0 = 0;
+    math::F t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END;
          border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {

@@ -81,7 +81,7 @@ public:
      */
     Transform& stack(const Mat3& mat, const Mat3& inv_mat)
     {
-        m_mat = mat * m_mat;
+        m_mat     = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
     }
@@ -97,8 +97,8 @@ public:
      */
     Transform& translate(const T delta_x, const T delta_y)
     {
-        const auto vr = Vec3{ delta_x, delta_y, 1 };
-        const auto vi = Vec3{ -delta_x, -delta_y, 1 };
+        const Vec3 vr = { +delta_x, +delta_y, 1 };
+        const Vec3 vi = { -delta_x, -delta_y, 1 };
 
         const auto mr = Mat3::identity().col_set(2, vr);
         const auto mi = Mat3::identity().col_set(2, vi);
@@ -117,7 +117,7 @@ public:
      */
     Transform& rotate(const Rot2& rot)
     {
-        const Mat3 mr = Mat3{ rot.to_mat2(), Vec3{ 0, 0, 1 } };
+        const Mat3 mr = { rot.to_mat2(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
 
         return this->stack(mr, mi);
@@ -169,12 +169,12 @@ public:
      */
     Transform& shearX(const T t)
     {
-        const auto a = Vec3{ 1, t, 0 };
-        const auto b = Vec3{ 0, 1, 0 };
-        const auto c = Vec3{ 0, 0, 1 };
+        const Vec3 a  = { 1, t, 0 };
+        const Vec3 b  = { 0, 1, 0 };
+        const Vec3 c  = { 0, 0, 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
-        auto mi = Mat3{ mr };
+        auto mi{ mr };
         mi[0, 1] *= -1;
 
         return this->stack(mr, mi);
@@ -186,12 +186,12 @@ public:
      */
     Transform& shearY(const T t)
     {
-        const auto a = Vec3{ 1, 0, 0 };
-        const auto b = Vec3{ t, 1, 0 };
-        const auto c = Vec3{ 0, 0, 1 };
+        const Vec3 a  = { 1, 0, 0 };
+        const Vec3 b  = { t, 1, 0 };
+        const Vec3 c  = { 0, 0, 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
-        auto mi = Mat3{ mr };
+        auto mi{ mr };
         mi[1, 0] *= -1;
 
         return this->stack(mr, mi);
@@ -256,7 +256,7 @@ public:
      */
     Transform& stack(const Mat4& mat, const Mat4& inv_mat)
     {
-        m_mat = mat * m_mat;
+        m_mat     = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
     }
@@ -272,10 +272,10 @@ public:
      */
     Transform& translate(const T delta_x, const T delta_y, const T delta_z)
     {
-        const auto v = Vec4{ delta_x, delta_y, delta_z, 1 };
+        const Vec4 v  = { +delta_x, +delta_y, +delta_z, 1 };
         const auto mr = Mat4::identity().col_set(3, v);
 
-        const auto vi = Vec4{ -delta_x, -delta_y, -delta_z, 1 };
+        const Vec4 vi = { -delta_x, -delta_y, -delta_z, 1 };
         const auto mi = Mat4::identity().col_set(3, vi);
 
         return this->stack(mr, mi);
@@ -292,7 +292,7 @@ public:
      */
     Transform& rotate(const Rot3& rot)
     {
-        const Mat4 mr = Mat4{ rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
+        const Mat4 mr = { rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();
 
         return this->stack(mr, mi);
@@ -357,13 +357,13 @@ public:
      */
     Transform& shearXY(const T s, const T t)
     {
-        const auto a = Vec4{ 1, 0, s, 0 };
-        const auto b = Vec4{ 0, 1, t, 0 };
-        const auto c = Vec4{ 0, 0, 1, 0 };
-        const auto d = Vec4{ 0, 0, 0, 1 };
+        const Vec4 a  = { 1, 0, s, 0 };
+        const Vec4 b  = { 0, 1, t, 0 };
+        const Vec4 c  = { 0, 0, 1, 0 };
+        const Vec4 d  = { 0, 0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi = Mat4{ mr };
+        auto mi{ mr };
         mi[0, 2] *= -1;
         mi[1, 2] *= -1;
 
@@ -376,13 +376,13 @@ public:
      */
     Transform& shearXZ(const T s, const T t)
     {
-        const auto a = Vec4{ 1, s, 0, 0 };
-        const auto b = Vec4{ 0, 1, 0, 0 };
-        const auto c = Vec4{ 0, t, 1, 0 };
-        const auto d = Vec4{ 0, 0, 0, 1 };
+        const Vec4 a  = { 1, s, 0, 0 };
+        const Vec4 b  = { 0, 1, 0, 0 };
+        const Vec4 c  = { 0, t, 1, 0 };
+        const Vec4 d  = { 0, 0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi = Mat4{ mr };
+        auto mi{ mr };
         mi[0, 1] *= -1;
         mi[2, 1] *= -1;
 
@@ -395,13 +395,13 @@ public:
      */
     Transform& shearYZ(const T s, const T t)
     {
-        const auto a = Vec4{ 1, 0, 0, 0 };
-        const auto b = Vec4{ s, 1, 0, 0 };
-        const auto c = Vec4{ t, 0, 1, 0 };
-        const auto d = Vec4{ 0, 0, 0, 1 };
+        const Vec4 a  = { 1, 0, 0, 0 };
+        const Vec4 b  = { s, 1, 0, 0 };
+        const Vec4 c  = { t, 0, 1, 0 };
+        const Vec4 d  = { 0, 0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi = Mat4{ mr };
+        auto mi{ mr };
         mi[1, 0] *= -1;
         mi[2, 0] *= -1;
 
