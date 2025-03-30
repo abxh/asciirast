@@ -2,6 +2,7 @@
  * @file AABB.h
  * @brief File with definition of axis-aligned bounding box
  * @todo raycast, distanceSqToPoint support?
+ * @todo use min-max representation, and allow integers too
  */
 
 #pragma once
@@ -95,7 +96,11 @@ public:
     /**
      * @brief Set minimum of bounding box
      */
-    AABB min_set(const Vec<N, T>& min) { return *this = std::move(AABB::from_min_max(min, this->max_get())); }
+    AABB& min_set(const Vec<N, T>& min)
+    {
+        *this = std::move(AABB::from_min_max(min, this->max_get()));
+        return *this;
+    }
 
     /**
      * @brief Get maximum of bounding box
@@ -105,7 +110,11 @@ public:
     /**
      * @brief Set maximum of bounding box
      */
-    AABB max_set(const Vec<N, T>& max) { return *this = std::move(AABB::from_min_max(this->min_get(), max)); }
+    AABB& max_set(const Vec<N, T>& max)
+    {
+        *this = std::move(AABB::from_min_max(this->min_get(), max));
+        return *this;
+    }
 
     /**
      * @brief Get size of bounding box
@@ -115,7 +124,7 @@ public:
     /**
      * @brief Set maximum of bounding box
      */
-    AABB center_set(const Vec<N, T>& center)
+    AABB& center_set(const Vec<N, T>& center)
     {
         m_center = center;
         return *this;
@@ -129,7 +138,7 @@ public:
     /**
      * @brief Get size of bounding box
      */
-    Vec<N, T> size_set(const Vec<N, T>& size)
+    AABB& size_set(const Vec<N, T>& size)
     {
         m_extent = math::max(size / 2, Vec<N, T>{ 0 });
         return *this;
