@@ -141,11 +141,12 @@ public:
      * padding the rest of the elements with zeroes.
      */
     template<typename... Args>
-        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
+                 detail::not_a_single_value<Mat, Args...>::value)
     Mat(Args&&... args)
         requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {
-        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward(args)...);
+        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward<Args>(args)...);
     };
 
     /**
@@ -284,7 +285,7 @@ public:
     /**
      * @brief Set y'th row
      */
-    Mat row_set(const std::size_t y, const Vec<N_x, T>& v)
+    Mat& row_set(const std::size_t y, const Vec<N_x, T>& v)
     {
         assert(y < M_y && "index is inside bounds");
 
@@ -309,7 +310,7 @@ public:
     /**
      * @brief Set x'th column
      */
-    Mat col_set(const std::size_t x, const Vec<M_y, T>& v)
+    Mat& col_set(const std::size_t x, const Vec<M_y, T>& v)
     {
         assert(x < M_y && "index is inside bounds");
 

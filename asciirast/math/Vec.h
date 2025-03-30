@@ -302,7 +302,8 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value)
+        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
+                 detail::not_a_single_value<Vec, Args...>::value)
     Vec(Args&&... args)
         requires(detail::vec_constructible_from<N, T, Args...>::value)
     {
@@ -384,16 +385,6 @@ public:
     }
 
     /**
-     * @brief Get range over vector components.
-     */
-    std::ranges::view auto range() { return std::ranges::views::all(m_components); }
-
-    /**
-     * @brief Get range over vector components.
-     */
-    std::ranges::view auto range() const { return std::ranges::views::all(m_components); }
-
-    /**
      * @brief Print the vector
      */
     friend std::ostream& operator<<(std::ostream& out, const Vec& v)
@@ -412,6 +403,16 @@ public:
 
         return out;
     }
+
+    /**
+     * @brief Get range over vector components.
+     */
+    std::ranges::view auto range() { return std::ranges::views::all(m_components); }
+
+    /**
+     * @brief Get range over vector components.
+     */
+    std::ranges::view auto range() const { return std::ranges::views::all(m_components); }
 
 public:
     /**
