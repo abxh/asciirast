@@ -125,6 +125,7 @@ class Uniform
 public:
     const math::Rot2D& rot;
     const std::string& palette;
+    const math::F& aspect_ratio;
 };
 
 class Vertex
@@ -157,7 +158,8 @@ class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuff
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        return Fragment{ .pos   = math::Vec4{ u.rot.apply(vert.pos), 0, 1 }, // w should be 1 for 2D
+        const auto v = u.rot.apply(vert.pos);
+        return Fragment{ .pos   = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
                          .attrs = Varying{ vert.id } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
@@ -169,12 +171,13 @@ public:
 int
 main(void)
 {
-    const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
+    const std::string palette  = "@%#*+=-:. "; // Paul Borke's palette
+    const math::F aspect_ratio = 1 / 2.f;
 
     Program p;
 
     math::Rot2D u_rot{};
-    Uniform u{ u_rot, palette };
+    Uniform u{ u_rot, palette, aspect_ratio };
 
     asciirast::VertexBuffer<Vertex> vb;
     {
@@ -182,7 +185,7 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::LINE_STRIP;
+        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
         vb.verticies  = std::move(std::vector<Vertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });

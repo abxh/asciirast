@@ -55,6 +55,8 @@ public:
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
+    math::F aspect_ratio() const { return 2.f * (float)m_height / (float)m_width; }
+
     const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
@@ -159,6 +161,7 @@ class Uniform
 {
 public:
     const std::string& palette;
+    const math::F& aspect_ratio;
 };
 
 class Vertex
@@ -204,7 +207,7 @@ public:
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        return Fragment{ .pos   = math::Vec4{ vert.pos, 0, 1 }, // w should be 1 for 2D.
+        return Fragment{ .pos   = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ vert.id, vert.color } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
@@ -228,9 +231,9 @@ sierpinski_triangle(std::vector<Vertex>& v, const Vertex& V1, const Vertex& V2, 
     v.push_back(V3);
     v.push_back(V1);
 
-    const auto V1V2 = (V1 + V2) / 2;
-    const auto V1V3 = (V1 + V3) / 2;
-    const auto V2V3 = (V2 + V3) / 2;
+    const auto V1V2 = (V1 + V2) / 2.f;
+    const auto V1V3 = (V1 + V3) / 2.f;
+    const auto V2V3 = (V2 + V3) / 2.f;
 
     sierpinski_triangle(v, V1, V1V2, V1V3, depth - 1);
     sierpinski_triangle(v, V1V2, V2, V2V3, depth - 1);
@@ -242,23 +245,24 @@ main(void)
 {
     const std::string palette = "@%#*+=-:."; // Paul Borke's palette
 
-    Program p;
-
-    Uniform u{ palette };
-
     auto V1 = Vertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
-    auto V2 = Vertex{ palette.size() - 1.f, math::Vec2{ 0, 1 }, RGB{ 0, 1, 0 } };
+    auto V2 = Vertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::F> }, RGB{ 0, 1, 0 } };
     auto V3 = Vertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
-
-    asciirast::VertexBuffer<Vertex> vb{ .shape_type = asciirast::ShapeType::LINES };
 
     int i   = 1;
     int dir = 1;
+    asciirast::VertexBuffer<Vertex> vb{};
+    vb.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES
     vb.verticies.clear();
     sierpinski_triangle(vb.verticies, V1, V2, V3, i);
 
+    Program p;
     asciirast::Renderer r;
     TerminalBuffer t;
+
+    t.clear_and_update_size();
+    math::F aspect_ratio = t.aspect_ratio();
+    Uniform u{ palette, aspect_ratio };
 
     std::binary_semaphore s{ 0 };
 
@@ -283,7 +287,7 @@ main(void)
 
         if (i <= 1) {
             dir = 1;
-        } else if (i >= 5) {
+        } else if (i >= 4) {
             dir = -1;
         }
         i += dir;
@@ -292,6 +296,7 @@ main(void)
         sierpinski_triangle(vb.verticies, V1, V2, V3, i);
 
         t.clear_and_update_size();
+        aspect_ratio = t.aspect_ratio();
     }
     check_eof_program.join();
 }
