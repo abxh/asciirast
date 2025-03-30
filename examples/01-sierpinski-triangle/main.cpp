@@ -55,7 +55,7 @@ public:
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
-    math::F aspect_ratio() const { return 2.f * (float)m_height / (float)m_width; }
+    math::F aspect_ratio() const { return 5.f / 3.f * (float)m_height / (float)m_width; }
 
     const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
 
@@ -287,7 +287,7 @@ main(void)
 
         if (i <= 1) {
             dir = 1;
-        } else if (i >= 4) {
+        } else if (i >= 5) {
             dir = -1;
         }
         i += dir;

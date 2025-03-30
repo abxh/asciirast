@@ -172,7 +172,7 @@ int
 main(void)
 {
     const std::string palette  = "@%#*+=-:. "; // Paul Borke's palette
-    const math::F aspect_ratio = 1 / 2.f;
+    const math::F aspect_ratio = 3.f / 5.f;
 
     Program p;
 
@@ -201,10 +201,7 @@ main(void)
             vb.verticies.push_back(Vertex{ id, pos });
         }
     }
-    asciirast::Renderer r1{ math::AABB2D::from_min_max(math::Vec2{ 0.0f, 0.0f }, math::Vec2{ 0.5f, 0.5f }) };
-    asciirast::Renderer r2{ math::AABB2D::from_min_max(math::Vec2{ 0.5f, 0.5f }, math::Vec2{ 1.0f, 1.0f }) };
-    asciirast::Renderer r3{ math::AABB2D::from_min_max(math::Vec2{ 0.5f, 0.0f }, math::Vec2{ 1.0f, 0.5f }) };
-    asciirast::Renderer r4{ math::AABB2D::from_min_max(math::Vec2{ 0.0f, 0.5f }, math::Vec2{ 0.5f, 1.0f }) };
+    asciirast::Renderer r;
 
     TerminalBuffer t;
 
@@ -218,10 +215,7 @@ main(void)
     } };
 
     while (!s.try_acquire()) {
-        r1.draw(p, u, vb, t);
-        r2.draw(p, u, vb, t);
-        r3.draw(p, u, vb, t);
-        r4.draw(p, u, vb, t);
+        r.draw(p, u, vb, t);
 
         t.render();
 
