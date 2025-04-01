@@ -3,7 +3,7 @@
 #include <concepts>
 
 #include "./framebuffer.h"
-#include "./math.h"
+#include "./math/types.h"
 
 namespace asciirast {
 

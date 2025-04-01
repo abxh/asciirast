@@ -3,7 +3,7 @@
 #include <cfloat>
 #include <generator>
 
-#include "../math.h"
+#include "../math/types.h"
 #include "../program.h"
 
 namespace asciirast::rasterize {

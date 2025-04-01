@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../math.h"
+#include "../math/types.h"
 
 namespace asciirast::rasterize {
 

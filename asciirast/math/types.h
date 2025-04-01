@@ -1,6 +1,6 @@
 /**
- * @file math.h
- * @brief File to import math module
+ * @file types.h
+ * @brief File to import math types
  */
 
 #pragma once
@@ -10,7 +10,6 @@
 #include "./math/Rot.h"
 #include "./math/Transform.h"
 #include "./math/Vec.h"
-#include "./math/utils.h"
 
 namespace asciirast::math {
 

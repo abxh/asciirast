@@ -8,7 +8,7 @@
 #include <ranges>
 #include <vector>
 
-#include "./math.h"
+#include "./math/types.h"
 #include "./program.h"
 #include "./rasterize/frustum_test.h"
 #include "./rasterize/rasterize.h"
