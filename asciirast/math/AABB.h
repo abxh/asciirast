@@ -68,7 +68,7 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes a unit area to converts it to the
+     * @brief Convert to transform that takes points in a unit area to converts it to the
      * bounding box area
      */
     Transform<N, T, is_col_major> to_transform() const
@@ -78,7 +78,7 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes a unit volume to converts it to
+     * @brief Convert to transform that takes points in a unit volume to converts it to
      * the bounding box volume
      */
     Transform<N, T, is_col_major> to_transform() const

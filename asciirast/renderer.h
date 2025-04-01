@@ -1,3 +1,8 @@
+/**
+ * @file program.h
+ * @brief Definition of program interface and other related types
+ */
+
 // TODO:
 // improve documentation
 
@@ -21,9 +26,9 @@ enum class ShapeType
     LINES,
     LINE_STRIP,
     LINE_LOOP,
-    TRIANGLES,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN
+    // TRIANGLES,
+    // TRIANGLE_STRIP,
+    // TRIANGLE_FAN
 };
 
 template<typename Vertex, class Allocator = std::allocator<Vertex>>
@@ -63,18 +68,28 @@ public:
         assert(VIEWPORT_BOUNDS.contains(viewport));
     }
 
-    template<class Uniforms, class Vertex, class VertexAllocator, VaryingType Varying, FrameBufferType FrameBuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
-              const Uniforms& uniforms,
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             class VertexAllocator,
+             FrameBufferInterface FrameBuffer>
+        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
+    void draw(const Program& program,
+              const Uniform& uniform,
               const VertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& out)
     {
-        draw(program, uniforms, verts.shape_type, std::views::all(verts.verticies), out);
+        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), out);
     }
 
-    template<class Uniforms, class Vertex, class VertexAllocator, VaryingType Varying, FrameBufferType FrameBuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
-              const Uniforms& uniforms,
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             class VertexAllocator,
+             FrameBufferInterface FrameBuffer>
+        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
+    void draw(const Program& program,
+              const Uniform& uniform,
               const IndexedVertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& out)
     {
@@ -85,19 +100,21 @@ public:
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
-        draw(program, uniforms, verts.shape_type, view, out);
+        draw(program, uniform, verts.shape_type, view, out);
     }
 
 private:
-    template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
-    void draw(const Program<Uniforms, Vertex, Varying, FrameBuffer>& program,
-              const Uniforms& uniforms,
+    template<ProgramInterface Program, class Uniform, FrameBufferInterface FrameBuffer>
+        requires(detail::can_use_program_with<Program, Uniform, typename Program::Vertex, FrameBuffer>::value)
+    void draw(const Program& program,
+              const Uniform& uniform,
               const ShapeType shape_type,
               std::ranges::input_range auto&& range,
               FrameBuffer& framebuffer)
     {
         using Targets = typename FrameBuffer::Targets;
-        using PFrag   = ProjectedFragment<Varying>;
+        using Vertex  = typename Program::Vertex;
+        using PFrag   = ProjectedFragment<typename Program::Varying>;
 
         if (!std::ranges::equal(m_viewport_to_window.mat().range(), framebuffer.viewport_to_window().mat().range())) {
             m_viewport_to_window = std::move(framebuffer.viewport_to_window());
@@ -116,7 +133,7 @@ private:
             for (const Vertex& vert : range) {
                 // apply vertex shader
                 // model space -> world space -> view space -> clip space:
-                const auto frag = program.on_vertex(uniforms, vert);
+                const auto frag = program.on_vertex(uniform, vert);
 
                 // cull points outside of viewing volume:
                 if (rasterize::point_in_frustum(frag.pos)) {
@@ -131,7 +148,7 @@ private:
                 const auto wfrag = screen_to_window_func(pfrag);
 
                 // apply fragment shader:
-                const auto targets = program.on_fragment(uniforms, wfrag);
+                const auto targets = program.on_fragment(uniform, wfrag);
 
                 // plot in framebuffer:
                 framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.z_inv, targets);
@@ -144,8 +161,8 @@ private:
                 const auto draw_line = [&](const Vertex& v0, const Vertex& v1) -> void {
                     // apply vertex shader
                     // model space -> world space -> view space -> clip space:
-                    const auto frag0 = program.on_vertex(uniforms, v0);
-                    const auto frag1 = program.on_vertex(uniforms, v1);
+                    const auto frag0 = program.on_vertex(uniform, v0);
+                    const auto frag1 = program.on_vertex(uniform, v1);
 
                     // clip line so it's inside the viewing volume:
                     const auto tup = rasterize::line_in_frustum(frag0.pos, frag1.pos);
@@ -169,7 +186,7 @@ private:
                     for (const auto [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
 
                         // apply fragment shader:
-                        const auto targets = program.on_fragment(uniforms, PFrag{ pos, z_inv, w_inv, attrs });
+                        const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
 
                         // plot point in framebuffer:
                         framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
@@ -196,6 +213,7 @@ private:
                 draw_lines(range | std::ranges::views::adjacent<2U>, true);
             }
         } break;
+                /*
         case ShapeType::TRIANGLES:
         case ShapeType::TRIANGLE_STRIP:
         case ShapeType::TRIANGLE_FAN: {
@@ -227,6 +245,7 @@ private:
                 draw_triangles(range | std::ranges::views::adjacent<3U>, true);
             }
         } break;
+                */
         }
     }
 };

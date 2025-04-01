@@ -1,3 +1,8 @@
+/**
+ * @file program.h
+ * @brief Definition of program interface and other related types
+ */
+
 #pragma once
 
 #include <concepts>
@@ -9,27 +14,41 @@ namespace asciirast {
 
 namespace math {
 
+/**
+ * @brief Concept of types that follow the varying interface
+ *
+ * Varying are the interpolated attributes of verticies.
+ */
 template<typename T>
-concept VaryingType = requires(T x) {
+concept VaryingInterface = requires(T x) {
     { x + x } -> std::same_as<T>;
     { x * -1.f } -> std::same_as<T>;
 };
 
-template<VaryingType Varying>
+/**
+ * @brief Linear interpolation of varying types
+ */
+template<VaryingInterface Varying>
 static Varying
 lerp_varying(const Varying& a, const Varying& b, const math::F t)
 {
     return a * (1 - t) + b * t;
 }
 
-template<VaryingType Varying>
+/**
+ * @brief Fragment (aka pixel)
+ */
+template<VaryingInterface Varying>
 struct Fragment
 {
     math::Vec4 pos; ///@< world position in homogenous space
     Varying attrs;  ///@< vertex attributes
 };
 
-template<VaryingType Varying>
+/**
+ * @brief (Projected) fragment (aka pixel)
+ */
+template<VaryingInterface Varying>
 struct ProjectedFragment
 {
     math::Vec2 pos; ///@< aka window position
@@ -38,14 +57,20 @@ struct ProjectedFragment
     Varying attrs;  ///@< fragment attributes
 };
 
-template<VaryingType T>
+/**
+ * @brief Linear interpolation of fragments
+ */
+template<VaryingInterface T>
 static Fragment<T>
 lerp(const Fragment<T>& a, const Fragment<T>& b, const math::F t)
 {
     return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = math::lerp_varying(a.attrs, b.attrs, t) };
 }
 
-template<VaryingType T>
+/**
+ * @brief Project a Fragment to converted it to ProjectFragment
+ */
+template<VaryingInterface T>
 static ProjectedFragment<T>
 project(const Fragment<T>& frag)
 {
@@ -57,26 +82,85 @@ project(const Fragment<T>& frag)
 
 }
 
+/**
+ * @brief math::VaryingInterface alias
+ */
 template<typename T>
-concept VaryingType = math::VaryingType<T>;
+concept VaryingInterface = math::VaryingInterface<T>;
 
-template<VaryingType Varying>
+/**
+ * @brief math::Fragment alias
+ */
+template<VaryingInterface Varying>
 using Fragment = math::Fragment<Varying>;
 
-template<VaryingType Varying>
+/**
+ * @brief math::ProjectedFragment alias
+ */
+template<VaryingInterface Varying>
 using ProjectedFragment = math::ProjectedFragment<Varying>;
 
-template<class Uniforms, class Vertex, VaryingType Varying, FrameBufferType FrameBuffer>
-class Program
+/**
+ * @brief Abstract (shader) program that can be used to follow the (shader) program interface
+ *
+ * @tparam UniformType Arbitary type which contain constant values
+ * @tparam VertexType  Vertex type to be used to output a fragment
+ * @tparam VaryingType Fragment type that follows the Varying interface
+ * @tparam FrameBuffer Framebuffer type that follows the Framebuffer interface
+ */
+template<class UniformType, class VertexType, VaryingInterface VaryingType, FrameBufferInterface FrameBuffer>
+class AbstractProgram
 {
 public:
-    using Targets = FrameBuffer::Targets;
+    using Uniform = UniformType;          ///@< uniform(s) type
+    using Vertex  = VertexType;           ///@< vertex type
+    using Varying = VaryingType;          ///@< varying type
+    using Targets = FrameBuffer::Targets; ///@< framebuffer targets
 
-    virtual ~Program() = default;
+    /**
+     * @brief Default virtual destructor
+     */
+    virtual ~AbstractProgram() = default;
 
-    virtual Fragment<Varying> on_vertex(const Uniforms&, const Vertex&) const = 0;
+    /**
+     * @brief Function run on every vertex
+     */
+    virtual Fragment<VaryingType> on_vertex(const UniformType&, const VertexType&) const = 0;
 
-    virtual Targets on_fragment(const Uniforms&, const ProjectedFragment<Varying>&) const = 0;
+    /**
+     * @brief Function run on every fragment (or pixel)
+     */
+    virtual Targets on_fragment(const UniformType&, const ProjectedFragment<VaryingType>&) const = 0;
+};
+
+/**
+ * @brief Concept of types that follow the (shader) program interface
+ */
+template<class T>
+concept ProgramInterface = requires(const T t) {
+    typename T::Uniform;
+    typename T::Vertex;
+    typename T::Varying;
+    typename T::Targets;
+    {
+        t.on_vertex(std::declval<const typename T::Uniform&>(), std::declval<const typename T::Vertex&>())
+    } -> std::same_as<Fragment<typename T::Varying>>;
+    {
+        t.on_fragment(std::declval<const typename T::Uniform&>(),
+                      std::declval<const ProjectedFragment<typename T::Varying>&>())
+    } -> std::same_as<typename T::Targets>;
+};
+
+namespace detail {
+
+template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
+struct can_use_program_with
+{
+    static constexpr bool value = std::is_same_v<typename Program::Uniform, Uniform> &&
+                                  std::is_same_v<typename Program::Vertex, Vertex> &&
+                                  std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
+};
+
 };
 
 }

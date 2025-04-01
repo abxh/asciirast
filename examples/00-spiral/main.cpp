@@ -18,7 +18,7 @@
 namespace math = asciirast::math;
 namespace CSI  = terminal_utils::CSI;
 
-class TerminalBuffer : public asciirast::FrameBuffer<char>
+class TerminalBuffer : public asciirast::AbstractFrameBuffer<char>
 {
 public:
     TerminalBuffer()
@@ -40,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
+    const math::Transform2D& viewport_to_window() override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -120,28 +120,28 @@ private:
     math::Transform2D m_viewport_to_window;
 };
 
-struct Uniform
+struct MyUniform
 {
     const math::Rot2D& rot;
     const std::string& palette;
     const math::F& aspect_ratio;
 };
 
-struct Vertex
+struct MyVertex
 {
     float id;
     math::Vec2 pos;
 };
 
-struct Varying
+struct MyVarying
 {
     float id;
 
-    Varying operator+(const Varying& that) const { return Varying{ this->id + that.id }; }
-    Varying operator*(const float that) const { return Varying{ this->id * that }; }
+    MyVarying operator+(const MyVarying& that) const { return MyVarying{ this->id + that.id }; }
+    MyVarying operator*(const float that) const { return MyVarying{ this->id * that }; }
 };
 
-class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
+class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
 {
     using Fragment          = asciirast::Fragment<Varying>;
     using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
@@ -165,19 +165,19 @@ main(void)
     const std::string palette  = "@%#*+=-:. "; // Paul Borke's palette
     const math::F aspect_ratio = 3.f / 5.f;
 
-    Program p;
+    MyProgram p;
 
     math::Rot2D u_rot{};
-    Uniform u{ u_rot, palette, aspect_ratio };
+    MyUniform u{ u_rot, palette, aspect_ratio };
 
-    asciirast::VertexBuffer<Vertex> vb;
+    asciirast::VertexBuffer<MyVertex> vb;
     {
         /*
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
         vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
-        vb.verticies  = std::move(std::vector<Vertex>{
+        vb.verticies  = std::move(std::vector<MyVertex>{
                 { 0, math::Vec2{ 0.05f, 0 } },
         });
 
@@ -189,7 +189,7 @@ main(void)
             const auto id  = std::min((last_vertex.id + 0.2f), (float)palette.size());
             const auto pos = 1.1f * f.apply(last_vertex.pos);
 
-            vb.verticies.push_back(Vertex{ id, pos });
+            vb.verticies.push_back(MyVertex{ id, pos });
         }
     }
     asciirast::Renderer r;

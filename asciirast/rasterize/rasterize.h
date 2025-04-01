@@ -8,7 +8,7 @@
 
 namespace asciirast::rasterize {
 
-template<VaryingType Varying>
+template<VaryingInterface Varying>
 static std::generator<std::tuple<math::Vec2, math::F, math::F, Varying>>
 rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1)
 {

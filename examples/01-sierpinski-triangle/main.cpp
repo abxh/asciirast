@@ -27,9 +27,11 @@ struct RGBC
     char c;
 };
 
-class TerminalBuffer : public asciirast::FrameBuffer<char, RGB>
+class TerminalBuffer
 {
 public:
+    using Targets = std::tuple<char, RGB>;
+
     TerminalBuffer()
             : m_rgbc_buf{}
             , m_depth_buf{}
@@ -62,9 +64,9 @@ public:
         return (5.f * m_height) / (3.f * m_width);
     }
 
-    const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
+    const math::Transform2D& viewport_to_window() { return m_viewport_to_window; }
 
-    void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets)
     {
         if (!(0 <= pos.x && pos.x <= m_width && 0 <= pos.y && pos.y <= m_height)) {
             m_oob_error = true;
@@ -162,56 +164,70 @@ private:
     math::Transform2D m_viewport_to_window;
 };
 
-struct Uniform
+static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
+
+struct MyUniform
 {
     const std::string& palette;
     const math::F& aspect_ratio;
 };
 
-struct Vertex
+struct MyVertex
 {
     float id;
     math::Vec2 pos;
     RGB color;
 
-    Vertex operator+(const Vertex& that) const
+    MyVertex operator+(const MyVertex& that) const
     {
         return { this->id + that.id, this->pos + that.pos, this->color + that.color };
     }
-    Vertex operator/(const float scalar) const
+    MyVertex operator/(const float scalar) const
     {
         return { this->id / scalar, this->pos / scalar, this->color / scalar };
     }
 };
 
-struct Varying
+struct MyVarying
 {
     float id;
     RGB color;
 
-    Varying operator+(const Varying& that) const { return { this->id + that.id, this->color + that.color }; }
-    Varying operator*(const float scalar) const { return { this->id * scalar, this->color * scalar }; }
+    MyVarying operator+(const MyVarying& that) const { return { this->id + that.id, this->color + that.color }; }
+    MyVarying operator*(const float scalar) const { return { this->id * scalar, this->color * scalar }; }
 };
 
-class Program : public asciirast::Program<Uniform, Vertex, Varying, TerminalBuffer>
+class MyProgram
 {
-public:
-    using Fragment          = asciirast::Fragment<Varying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
+    using Fragment          = asciirast::Fragment<MyVarying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
+public:
+    // alias to fullfill program interface:
+    using Uniform = MyUniform;
+    using Vertex  = MyVertex;
+    using Varying = MyVarying;
+    using Targets = TerminalBuffer::Targets;
+
+    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
         return Fragment{ .pos   = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ vert.id, vert.color } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
+    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
     {
         return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
     }
 };
 
+static_assert(asciirast::ProgramInterface<MyProgram>); // alternative
+
 void
-sierpinski_triangle(std::vector<Vertex>& v, const Vertex& V1, const Vertex& V2, const Vertex& V3, const int depth = 1)
+sierpinski_triangle(std::vector<MyVertex>& v,
+                    const MyVertex& V1,
+                    const MyVertex& V2,
+                    const MyVertex& V3,
+                    const int depth = 1)
 {
     if (depth <= 0) {
         return;
@@ -239,24 +255,24 @@ main(void)
 {
     const std::string palette = "@%#*+=-:."; // Paul Borke's palette
 
-    auto V1 = Vertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
-    auto V2 = Vertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::F> }, RGB{ 0, 1, 0 } };
-    auto V3 = Vertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
+    auto V1 = MyVertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
+    auto V2 = MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::F> }, RGB{ 0, 1, 0 } };
+    auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
 
     int i   = 1;
     int dir = 1;
-    asciirast::VertexBuffer<Vertex> vb{};
+    asciirast::VertexBuffer<MyVertex> vb{};
     vb.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES
     vb.verticies.clear();
     sierpinski_triangle(vb.verticies, V1, V2, V3, i);
 
-    Program p;
+    MyProgram p;
     asciirast::Renderer r;
     TerminalBuffer t;
 
     t.clear_and_update_size();
     math::F aspect_ratio = t.aspect_ratio();
-    Uniform u{ palette, aspect_ratio };
+    MyUniform u{ palette, aspect_ratio };
 
     std::binary_semaphore s{ 0 };
 
