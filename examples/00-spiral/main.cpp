@@ -180,7 +180,7 @@ main(void)
         vb.verticies  = {};
 
         auto id = 0.f;
-        auto v  = std::complex<float>{ 0.05f, 0.f };
+        auto v  = std::complex<float>{ 0.05f, 0.f }; // 0.05f instead of 1.f to scale it down
         auto f  = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
 
         for (int i = 0; i < 50; i++) {
