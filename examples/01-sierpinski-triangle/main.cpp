@@ -55,7 +55,12 @@ public:
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
-    math::F aspect_ratio() const { return 5.f / 3.f * (float)m_height / (float)m_width; }
+    math::F aspect_ratio() const
+    {
+        // this ratio worked best for my terminal
+
+        return (5.f * m_height) / (3.f * m_width);
+    }
 
     const math::Transform2D& viewport_to_window() const override { return m_viewport_to_window; }
 
@@ -157,23 +162,17 @@ private:
     math::Transform2D m_viewport_to_window;
 };
 
-class Uniform
+struct Uniform
 {
-public:
     const std::string& palette;
     const math::F& aspect_ratio;
 };
 
-class Vertex
+struct Vertex
 {
-public:
     float id;
     math::Vec2 pos;
     RGB color;
-    Vertex(float id, math::Vec2 pos, RGB color)
-            : id{ id }
-            , pos{ pos }
-            , color{ color } {};
 
     Vertex operator+(const Vertex& that) const
     {
@@ -185,15 +184,10 @@ public:
     }
 };
 
-class Varying
+struct Varying
 {
-public:
     float id;
     RGB color;
-
-    Varying(float id, const RGB& color)
-            : id{ id }
-            , color{ color } {};
 
     Varying operator+(const Varying& that) const { return { this->id + that.id, this->color + that.color }; }
     Varying operator*(const float scalar) const { return { this->id * scalar, this->color * scalar }; }

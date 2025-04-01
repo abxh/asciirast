@@ -120,31 +120,22 @@ private:
     math::Transform2D m_viewport_to_window;
 };
 
-class Uniform
+struct Uniform
 {
-public:
     const math::Rot2D& rot;
     const std::string& palette;
     const math::F& aspect_ratio;
 };
 
-class Vertex
+struct Vertex
 {
-public:
     float id;
     math::Vec2 pos;
-    Vertex(float id, math::Vec2 pos2)
-            : id{ id }
-            , pos{ pos2 } {};
 };
 
-class Varying
+struct Varying
 {
-public:
     float id;
-
-    explicit Varying(float id)
-            : id{ id } {};
 
     Varying operator+(const Varying& that) const { return Varying{ this->id + that.id }; }
     Varying operator*(const float that) const { return Varying{ this->id * that }; }

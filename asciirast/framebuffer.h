@@ -20,6 +20,6 @@ public:
 };
 
 template<class T>
-concept FrameBufferType = requires(T t) { []<typename... Targets>(const FrameBuffer<Targets...>&) {}(t); };
+concept FrameBufferType = requires(T t) { []<typename... TargetTypes>(const FrameBuffer<TargetTypes...>&) {}(t); };
 
 } // namespace asciirast

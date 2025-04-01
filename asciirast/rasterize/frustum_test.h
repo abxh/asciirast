@@ -5,7 +5,7 @@
 namespace asciirast::rasterize {
 
 static bool
-cull_point(const math::Vec2& p)
+point_in_frustum(const math::Vec2& p)
 {
     const bool x_in_bounds = -1 <= p.x && p.x <= +1;
     const bool y_in_bounds = -1 <= p.y && p.y <= +1;
@@ -14,7 +14,7 @@ cull_point(const math::Vec2& p)
 }
 
 static bool
-cull_point(const math::Vec4& p)
+point_in_frustum(const math::Vec4& p)
 {
     const bool x_in_bounds = -p.w <= p.x && p.x <= +p.w;
     const bool y_in_bounds = -p.w <= p.y && p.y <= +p.w;
@@ -40,7 +40,7 @@ enum class BorderType
 };
 
 static inline bool
-clip_line(const T q, const T p, T& t0, T& t1)
+line_in_frustum(const T q, const T p, T& t0, T& t1)
 {
     // Liang-Barsky clipping algorithm:
     // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
@@ -72,13 +72,13 @@ clip_line(const T q, const T p, T& t0, T& t1)
 }
 
 static inline bool
-clip_line(const math::Vec2& p0,
-          const math::Vec2& p1,
-          const BorderType border,
-          const math::Vec2& min,
-          const math::Vec2& max,
-          T& t0,
-          T& t1)
+line_in_frustum(const math::Vec2& p0,
+                const math::Vec2& p1,
+                const BorderType border,
+                const math::Vec2& min,
+                const math::Vec2& max,
+                T& t0,
+                T& t1)
 {
     const std::size_t border_id = static_cast<std::size_t>(border);
 
@@ -96,17 +96,17 @@ clip_line(const math::Vec2& p0,
     };
     // clang-format on
 
-    return clip_line(q[border_id], p[border_id], t0, t1);
+    return line_in_frustum(q[border_id], p[border_id], t0, t1);
 }
 
 static inline bool
-clip_line(const math::Vec4& p0,
-          const math::Vec4& p1,
-          const BorderType border,
-          const math::Vec3& min,
-          const math::Vec3& max,
-          T& t0,
-          T& t1)
+line_in_frustum(const math::Vec4& p0,
+                const math::Vec4& p1,
+                const BorderType border,
+                const math::Vec3& min,
+                const math::Vec3& max,
+                T& t0,
+                T& t1)
 {
     // Liang-Barsky clipping algorithm:
     // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
@@ -128,11 +128,11 @@ clip_line(const math::Vec4& p0,
         -delta.z, delta.z, //
     };
 
-    return clip_line(q[border_id], -delta.w + p[border_id], t0, t1);
+    return line_in_frustum(q[border_id], -delta.w + p[border_id], t0, t1);
 }
 
 static std::optional<std::tuple<math::F, math::F>>
-clip_line(const math::Vec2& p0, const math::Vec2& p1)
+line_in_frustum(const math::Vec2& p0, const math::Vec2& p1)
 {
     const math::Vec2 min = { -1, -1 };
     const math::Vec2 max = { +1, +1 };
@@ -142,7 +142,7 @@ clip_line(const math::Vec2& p0, const math::Vec2& p1)
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D;
          border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
-        if (!clip_line(p0, p1, border, min, max, t0, t1)) {
+        if (!line_in_frustum(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
     }
@@ -150,7 +150,7 @@ clip_line(const math::Vec2& p0, const math::Vec2& p1)
 }
 
 static std::optional<std::tuple<math::F, math::F>>
-clip_line(const math::Vec4& p0, const math::Vec4& p1)
+line_in_frustum(const math::Vec4& p0, const math::Vec4& p1)
 {
     if (p0.w < 0 && p1.w < 0) {
         return {};
@@ -164,7 +164,7 @@ clip_line(const math::Vec4& p0, const math::Vec4& p1)
 
     for (auto border = BorderType::BEGIN; border < BorderType::END;
          border      = static_cast<BorderType>(static_cast<std::size_t>(border) + 1)) {
-        if (!clip_line(p0, p1, border, min, max, t0, t1)) {
+        if (!line_in_frustum(p0, p1, border, min, max, t0, t1)) {
             return {};
         }
     }

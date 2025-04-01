@@ -10,7 +10,7 @@ namespace asciirast::rasterize {
 
 template<VaryingType Varying>
 static std::generator<std::tuple<math::Vec2, math::F, math::F, Varying>>
-generate_line_fragments(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1)
+rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1)
 {
     // DDA Line algorithm:
     // - https://www.redblobgames.com/grids/line-drawing/#more

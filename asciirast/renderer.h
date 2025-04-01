@@ -10,8 +10,8 @@
 
 #include "./math.h"
 #include "./program.h"
-#include "./rasterize/cull_and_clip.h"
-#include "./rasterize/generate.h"
+#include "./rasterize/frustum_test.h"
+#include "./rasterize/rasterize.h"
 
 namespace asciirast {
 
@@ -41,24 +41,22 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 
 class Renderer
 {
-    math::Transform2D m_screen_to_viewport;
-    math::Transform2D m_viewport_to_window;
-    math::Transform2D m_screen_to_window;
+    math::Transform2D m_screen_to_viewport = {};
+    math::Transform2D m_viewport_to_window = {};
+    math::Transform2D m_screen_to_window   = {};
 
 public:
     static inline const auto SCREEN_BOUNDS   = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-    static inline const auto VIEWPORT_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ 0, 0 }, math::Vec2{ 1, 1 });
+    static inline const auto VIEWPORT_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
 
     Renderer()
             : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
-            , m_viewport_to_window{}
             , m_screen_to_window{ m_screen_to_viewport }
     {
     }
 
     Renderer(const math::AABB2D& viewport)
             : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed().stack(viewport.to_transform()) }
-            , m_viewport_to_window{}
             , m_screen_to_window{ m_screen_to_viewport }
     {
         assert(viewport.size_get() != math::Vec2{ 0 });
@@ -106,8 +104,11 @@ private:
             m_screen_to_window = std::move(math::Transform2D().stack(m_screen_to_viewport).stack(m_viewport_to_window));
         }
 
-        const auto screen_to_window_func = [this](const math::Vec2& pos) -> math::Vec2 {
-            return math::floor(m_screen_to_window.apply(pos) + math::Vec2{ 0.5f, 0.5f });
+        const auto screen_to_window_func = [this](const PFrag& wfrag) -> PFrag {
+            return PFrag{ .pos   = math::floor(m_screen_to_window.apply(wfrag.pos) + math::Vec2{ 0.5f, 0.5f }),
+                          .z_inv = wfrag.z_inv,
+                          .w_inv = wfrag.w_inv,
+                          .attrs = wfrag.attrs };
         };
 
         switch (shape_type) {
@@ -118,7 +119,7 @@ private:
                 const auto frag = program.on_vertex(uniforms, vert);
 
                 // cull points outside of viewing volume:
-                if (rasterize::cull_point(frag.pos)) {
+                if (rasterize::point_in_frustum(frag.pos)) {
                     continue;
                 }
 
@@ -127,10 +128,7 @@ private:
                 const auto pfrag = math::project(frag);
 
                 // screen space -> window space:
-                const auto wfrag = PFrag{ .pos   = screen_to_window_func(pfrag.pos),
-                                          .z_inv = pfrag.z_inv,
-                                          .w_inv = pfrag.w_inv,
-                                          .attrs = pfrag.attrs };
+                const auto wfrag = screen_to_window_func(pfrag);
 
                 // apply fragment shader:
                 const auto targets = program.on_fragment(uniforms, wfrag);
@@ -150,7 +148,7 @@ private:
                     const auto frag1 = program.on_vertex(uniforms, v1);
 
                     // clip line so it's inside the viewing volume:
-                    const auto tup = rasterize::clip_line(frag0.pos, frag1.pos);
+                    const auto tup = rasterize::line_in_frustum(frag0.pos, frag1.pos);
                     if (!tup.has_value()) {
                         return;
                     }
@@ -164,17 +162,11 @@ private:
                     const auto pfrag1 = math::project(tfrag1);
 
                     // screen space -> window space:
-                    const auto wfrag0 = PFrag{ .pos   = screen_to_window_func(pfrag0.pos),
-                                               .z_inv = pfrag0.z_inv,
-                                               .w_inv = pfrag0.w_inv,
-                                               .attrs = pfrag0.attrs };
-                    const auto wfrag1 = PFrag{ .pos   = screen_to_window_func(pfrag1.pos),
-                                               .z_inv = pfrag1.z_inv,
-                                               .w_inv = pfrag1.w_inv,
-                                               .attrs = pfrag1.attrs };
+                    const auto wfrag0 = screen_to_window_func(pfrag0);
+                    const auto wfrag1 = screen_to_window_func(pfrag1);
 
                     // iterate over line fragments:
-                    for (const auto [pos, z_inv, w_inv, attrs] : rasterize::generate_line_fragments(wfrag0, wfrag1)) {
+                    for (const auto [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
 
                         // apply fragment shader:
                         const auto targets = program.on_fragment(uniforms, PFrag{ pos, z_inv, w_inv, attrs });
