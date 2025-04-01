@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <complex>
 #include <type_traits>
 
 #include "./Mat.h"
@@ -39,37 +40,28 @@ class Rot<2, T, is_col_major>
     using Vec2 = Vec<2, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
 
-    union
-    {
-        Vec2 m_dir; ///< as direction vector
-        struct
-        {
-            T m_real; ///< real component
-            T m_imag; ///< imaginary component
-        };
-    };
+    static constexpr auto I = std::complex<T>{ 0, 1 };
+
+    std::complex<T> m_complex;
 
 public:
     /**
      * @brief Construct identity rotation object
      */
     Rot()
-            : m_real{ 1 }
-            , m_imag{ 0 } {};
+            : m_complex{ T{ 1 } } {};
 
     /**
      * @brief Construct rotation object from angle in radians
      */
     explicit Rot(const T angle)
-            : m_real{ std::cos(angle) }
-            , m_imag{ std::sin(angle) } {};
+            : m_complex{ std::exp(I * angle) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors
      */
     Rot(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
-            : m_real{ dot(from_dir, to_dir) }
-            , m_imag{ cross(from_dir, to_dir) }
+            : m_complex{ to_dir.to_complex() / from_dir.to_complex() }
     {
         if (normalize) {
             this->normalize();
@@ -77,14 +69,14 @@ public:
     };
 
     /**
-     * @brief Get the (underlying) direction vector
+     * @brief Get the (underlying) complex number
      */
-    const Vec2& dir() const { return m_dir; }
+    const std::complex<T>& dir() const { return m_complex; }
 
     /**
      * @brief Convert to angle in radians
      */
-    T to_angle() const { return std::atan2(m_imag, m_real); }
+    T to_angle() const { return std::arg(m_complex); }
 
     /**
      * @brief Convert to 2D transformation matrix
@@ -102,7 +94,7 @@ public:
      */
     Rot& normalize()
     {
-        m_dir = std::move(m_dir.normalized());
+        m_complex /= std::abs(m_complex);
         return (*this);
     }
 
@@ -111,8 +103,8 @@ public:
      */
     Rot reversed() const
     {
-        Rot res = (*this);
-        res.m_imag *= -1;
+        Rot res       = (*this);
+        res.m_complex = std::move(std::conj(m_complex));
         return res;
     }
 
@@ -121,18 +113,32 @@ public:
      */
     Rot& stack(const Rot& that, bool normalize = true)
     {
-        return *this = std::move(Rot{ reversed().m_dir, that.m_dir, normalize });
+        this->m_complex *= that.m_complex;
+        if (normalize) {
+            this->normalize();
+        }
+        return (*this);
     }
 
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec2 apply(const Vec2& v) const { return Rot{ reversed().m_dir, v, false }.m_dir; }
+    Vec2 apply(const Vec2& v) const
+    {
+        const auto res = v.to_complex() * this->m_complex;
+
+        return Vec2{ std::real(res), std::imag(res) };
+    }
 
     /**
      * @brief Invert the applied rotation from a vector
      */
-    Vec2 invert(const Vec2& v) const { return Rot{ m_dir, v, false }.m_dir; }
+    Vec2 invert(const Vec2& v) const
+    {
+        const auto res = v.to_complex() / this->m_complex;
+
+        return Vec2{ std::real(res), std::imag(res) };
+    }
 };
 
 /**
@@ -231,7 +237,7 @@ public:
     std::tuple<Vec3, T> to_axis_angle() const
     {
         const T half_angle = std::acos(m_s);
-        const Vec3 axis = m_dir / std::sin(half_angle);
+        const Vec3 axis    = m_dir / std::sin(half_angle);
 
         return { axis, T{ 2 } * half_angle };
     }

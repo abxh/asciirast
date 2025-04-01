@@ -13,9 +13,10 @@
 
 namespace asciirast::math {
 
-using I                            = int;   ///< default integral type
-using F                            = float; ///< default floating point type
-static constexpr bool is_col_major = true;  ///< default matrix major order
+using I = int;   ///< default integral type
+using F = float; ///< default floating point type
+
+static constexpr bool is_col_major = true; ///< default matrix major order
 
 using Vec2Int = Vec<2, I>; ///< 2D integral type math vector
 using Vec3Int = Vec<3, I>; ///< 3D integral type math vector

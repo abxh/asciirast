@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cmath>
 #include <compare>
+#include <complex>
 #include <cstdlib>
 #include <ostream>
 #include <type_traits>
@@ -298,6 +299,16 @@ public:
     }
 
     /**
+     * @brief Implicitly construct vector from complex number
+     */
+    Vec(const std::complex<T>& v)
+        requires(N == 2)
+    {
+        m_components[0] = std::real(v);
+        m_components[1] = std::imag(v);
+    }
+
+    /**
      * @brief Construct vector from a mix of values and (smaller) vectors,
      * padding the rest of the vector with zeroes.
      */
@@ -413,6 +424,15 @@ public:
      * @brief Get range over vector components.
      */
     std::ranges::view auto range() const { return std::ranges::views::all(m_components); }
+
+    /**
+     * @brief Convert to complex number
+     */
+    std::complex<T> to_complex() const
+        requires(N == 2)
+    {
+        return std::complex(m_components[0], m_components[1]);
+    }
 
 public:
     /**

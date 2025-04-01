@@ -176,20 +176,17 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
-        vb.verticies  = std::move(std::vector<MyVertex>{
-                { 0, math::Vec2{ 0.05f, 0 } },
-        });
+        vb.shape_type = asciirast::ShapeType::POINTS; // Feel free to try POINTS / LINES / LINE_STRIP
+        vb.verticies  = {};
 
-        math::Rot2D f{ math::radians(45.f / 2) };
+        auto id = 0.f;
+        auto v  = std::complex<float>{ 0.05f, 0.f };
+        auto f  = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
 
-        for (int i = 0; i < 40; i++) {
-            const auto last_vertex = vb.verticies[vb.verticies.size() - 1U];
-
-            const auto id  = std::min((last_vertex.id + 0.2f), (float)palette.size());
-            const auto pos = 1.1f * f.apply(last_vertex.pos);
-
-            vb.verticies.push_back(MyVertex{ id, pos });
+        for (int i = 0; i < 50; i++) {
+            id = std::min((id + 0.2f), (float)palette.size() - 1);
+            v *= f;
+            vb.verticies.push_back(MyVertex{ id, v });
         }
     }
     asciirast::Renderer r;
