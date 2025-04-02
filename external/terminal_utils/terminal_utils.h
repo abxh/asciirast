@@ -15,7 +15,7 @@ inline const std::string HIDE_CURSOR = "?25l";
 inline const std::string ENABLE_LINE_WRAP = "7h";
 inline const std::string DISABLE_LINE_WRAP = "7l";
 
-inline const std::string MOVE_UP_LINES = "A";
+inline const std::string MOVE_UP_LINE = "A";
 inline const std::string CLEAR_LINE = "2K";
 
 inline const std::string SET_BG_RGB_COLOR = "48;2;";
