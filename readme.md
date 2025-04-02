@@ -13,7 +13,7 @@ You may need to install the `libsan` and `ubsan` sanitizers if not already. Othe
 
 ## Start here
 - https://www.youtube.com/watch?v=eoXn6nwV694
-- https://www.youtube.com/watch?v=Do_vEjd6gF0&list=PLYnrabpSIM-97qGEeOWnxZBqvR_zwjWoo
+- https://www.youtube.com/watch?v=vLSphLtKQ0o&list=PLplnkTzzqsZTfYh4UbhLGpI5kGd5oW_Hh
 
 ## Inspiration
 - https://github.com/nikolausrauch/software-rasterizer
