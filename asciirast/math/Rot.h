@@ -40,8 +40,6 @@ class Rot<2, T, is_col_major>
     using Vec2 = Vec<2, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
 
-    static constexpr auto I = std::complex<T>{ 0, 1 };
-
     std::complex<T> m_complex;
 
 public:
@@ -55,7 +53,7 @@ public:
      * @brief Construct rotation object from angle in radians
      */
     explicit Rot(const T angle)
-            : m_complex{ std::exp(I * angle) } {};
+            : m_complex{ std::exp(std::complex<T>{ 0, 1 } * angle) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors

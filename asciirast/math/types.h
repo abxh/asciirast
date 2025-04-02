@@ -26,6 +26,10 @@ using Vec2 = Vec<2, F>; ///< 2D math vector
 using Vec3 = Vec<3, F>; ///< 3D math vector
 using Vec4 = Vec<4, F>; ///< 4D math vector
 
+using Mat2Int = Mat<2, 2, I, is_col_major>; ///< 2x2 integral type matrix
+using Mat3Int = Mat<3, 3, I, is_col_major>; ///< 3x3 integral type matrix
+using Mat4Int = Mat<4, 4, I, is_col_major>; ///< 4x4 integral type matrix
+
 using Mat2 = Mat<2, 2, F, is_col_major>; ///< 2x2 matrix
 using Mat3 = Mat<3, 3, F, is_col_major>; ///< 3x3 matrix
 using Mat4 = Mat<4, 4, F, is_col_major>; ///< 4x4 matrix

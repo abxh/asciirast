@@ -15,7 +15,8 @@
 
 #include "./math/types.h"
 #include "./program.h"
-#include "./rasterize/frustum_test.h"
+#include "./rasterize/bounds_test.h"
+#include "./rasterize/lerp.h"
 #include "./rasterize/rasterize.h"
 
 namespace asciirast {
@@ -46,27 +47,37 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex>
 
 class Renderer
 {
-    math::Transform2D m_screen_to_viewport = {};
-    math::Transform2D m_viewport_to_window = {};
-    math::Transform2D m_screen_to_window   = {};
+    bool m_requires_viewport_clipping;
+    math::Transform2D m_screen_to_viewport; ///@< screen -> viewport
+    math::Transform2D m_viewport_to_window; ///@< viewport -> window
+    math::Transform2D m_screen_to_window;   ///@< screen -> viewport -> window
+
+    static inline math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
+                                                                 const math::AABB2D& screen_bounds)
+    {
+        assert(viewport_bounds.size_get().x != math::F{ 0 });
+        assert(viewport_bounds.size_get().y != math::F{ 0 });
+
+        const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
+        const auto rel_min  = screen_bounds.min_get().vector_to(viewport_bounds.min_get()) / screen_bounds.size_get();
+
+        return SCREEN_BOUNDS.to_transform().reversed().stack(math::Transform2D().scale(rel_size).translate(rel_min));
+    }
 
 public:
-    static inline const auto SCREEN_BOUNDS   = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-    static inline const auto VIEWPORT_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
+    static inline const auto SCREEN_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
 
     Renderer()
-            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
-            , m_screen_to_window{ m_screen_to_viewport }
-    {
-    }
+            : m_requires_viewport_clipping{ false }
+            , m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
+            , m_viewport_to_window{}
+            , m_screen_to_window{ m_screen_to_viewport } {};
 
-    Renderer(const math::AABB2D& viewport)
-            : m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed().stack(viewport.to_transform()) }
-            , m_screen_to_window{ m_screen_to_viewport }
-    {
-        assert(viewport.size_get() != math::Vec2{ 0 });
-        assert(VIEWPORT_BOUNDS.contains(viewport));
-    }
+    Renderer(const math::AABB2D& viewport_bounds)
+            : m_requires_viewport_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
+            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) }
+            , m_viewport_to_window{}
+            , m_screen_to_window{ m_screen_to_viewport } {};
 
     template<ProgramInterface Program,
              class Uniform,
@@ -105,7 +116,6 @@ public:
 
 private:
     template<ProgramInterface Program, class Uniform, FrameBufferInterface FrameBuffer>
-        requires(detail::can_use_program_with<Program, Uniform, typename Program::Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
@@ -116,16 +126,32 @@ private:
         using Vertex  = typename Program::Vertex;
         using PFrag   = ProjectedFragment<typename Program::Varying>;
 
-        if (!std::ranges::equal(m_viewport_to_window.mat().range(), framebuffer.viewport_to_window().mat().range())) {
-            m_viewport_to_window = std::move(framebuffer.viewport_to_window());
-            m_screen_to_window = std::move(math::Transform2D().stack(m_screen_to_viewport).stack(m_viewport_to_window));
+        if (const math::Transform2D viewport_to_window = framebuffer.viewport_to_window();
+            !std::ranges::equal(m_viewport_to_window.mat().range(), viewport_to_window.mat().range())) {
+            m_viewport_to_window = std::move(viewport_to_window);
+            m_screen_to_window   = math::Transform2D().stack(m_screen_to_viewport).stack(m_viewport_to_window);
         }
 
-        const auto screen_to_window_func = [this](const PFrag& wfrag) -> PFrag {
-            return PFrag{ .pos   = math::floor(m_screen_to_window.apply(wfrag.pos) + math::Vec2{ 0.5f, 0.5f }),
-                          .z_inv = wfrag.z_inv,
-                          .w_inv = wfrag.w_inv,
-                          .attrs = wfrag.attrs };
+        const auto round_pos = [](const math::Vec2& pos) -> math::Vec2 {
+            return math::floor(pos + math::Vec2{ 0.5f, 0.5f });
+        };
+        const auto screen_to_viewport_func = [this](const PFrag& pfrag) -> PFrag {
+            return PFrag{ .pos   = m_screen_to_viewport.apply(pfrag.pos),
+                          .z_inv = pfrag.z_inv,
+                          .w_inv = pfrag.w_inv,
+                          .attrs = pfrag.attrs };
+        };
+        const auto viewport_to_window_func = [this, round_pos](const PFrag& vfrag) -> PFrag {
+            return PFrag{ .pos   = round_pos(m_viewport_to_window.apply(vfrag.pos)),
+                          .z_inv = vfrag.z_inv,
+                          .w_inv = vfrag.w_inv,
+                          .attrs = vfrag.attrs };
+        };
+        const auto screen_to_window_func = [this, round_pos](const PFrag& vfrag) -> PFrag {
+            return PFrag{ .pos   = round_pos(m_screen_to_window.apply(vfrag.pos)),
+                          .z_inv = vfrag.z_inv,
+                          .w_inv = vfrag.w_inv,
+                          .attrs = vfrag.attrs };
         };
 
         switch (shape_type) {
@@ -136,16 +162,29 @@ private:
                 const auto frag = program.on_vertex(uniform, vert);
 
                 // cull points outside of viewing volume:
-                if (rasterize::point_in_frustum(frag.pos)) {
+                if (!rasterize::point_in_frustum(frag.pos)) {
                     continue;
                 }
 
                 // perspective divide
                 // clip space -> screen space:
-                const auto pfrag = math::project(frag);
+                const auto pfrag = rasterize::project(frag);
 
                 // screen space -> window space:
-                const auto wfrag = screen_to_window_func(pfrag);
+                PFrag wfrag;
+                if (m_requires_viewport_clipping) {
+                    // scale up to viewport:
+                    const auto vfrag = screen_to_viewport_func(pfrag);
+
+                    // cull points outside of viewport:
+                    if (!rasterize::point_in_unit_square(vfrag.pos)) {
+                        continue;
+                    }
+
+                    wfrag = viewport_to_window_func(vfrag);
+                } else {
+                    wfrag = screen_to_window_func(pfrag);
+                }
 
                 // apply fragment shader:
                 const auto targets = program.on_fragment(uniform, wfrag);
@@ -169,18 +208,38 @@ private:
                     if (!tup.has_value()) {
                         return;
                     }
-                    const auto [t0, t1] = tup.value(); // interpolate line using t values:
-                    const auto tfrag0   = math::lerp(frag0, frag1, t0);
-                    const auto tfrag1   = math::lerp(frag0, frag1, t1);
+                    const auto [t0, t1] = tup.value(); // interpolate line using t values
+                    const auto tfrag0   = rasterize::lerp(frag0, frag1, t0);
+                    const auto tfrag1   = rasterize::lerp(frag0, frag1, t1);
 
                     // perspective divide
                     // clip space -> screen space:
-                    const auto pfrag0 = math::project(tfrag0);
-                    const auto pfrag1 = math::project(tfrag1);
+                    const auto pfrag0 = rasterize::project(tfrag0);
+                    const auto pfrag1 = rasterize::project(tfrag1);
 
                     // screen space -> window space:
-                    const auto wfrag0 = screen_to_window_func(pfrag0);
-                    const auto wfrag1 = screen_to_window_func(pfrag1);
+                    PFrag wfrag0;
+                    PFrag wfrag1;
+                    if (m_requires_viewport_clipping) {
+                        // scale up to viewport:
+                        const auto vfrag0 = screen_to_viewport_func(pfrag0);
+                        const auto vfrag1 = screen_to_viewport_func(pfrag1);
+
+                        // clip line so it's inside the viewport:
+                        const auto vtup = rasterize::line_in_unit_square(vfrag0.pos, vfrag1.pos);
+                        if (!vtup.has_value()) {
+                            return;
+                        }
+                        const auto [vt0, vt1] = vtup.value();
+                        const auto vtfrag0    = rasterize::lerp(vfrag0, vfrag1, vt0);
+                        const auto vtfrag1    = rasterize::lerp(vfrag0, vfrag1, vt1);
+
+                        wfrag0 = viewport_to_window_func(vtfrag0);
+                        wfrag1 = viewport_to_window_func(vtfrag1);
+                    } else {
+                        wfrag0 = screen_to_window_func(pfrag0);
+                        wfrag1 = screen_to_window_func(pfrag1);
+                    }
 
                     // iterate over line fragments:
                     for (const auto [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
@@ -210,10 +269,11 @@ private:
             } else if (shape_type == ShapeType::LINE_STRIP) {
                 draw_lines(range | std::ranges::views::adjacent<2U>);
             } else if (shape_type == ShapeType::LINE_LOOP) {
-                draw_lines(range | std::ranges::views::adjacent<2U>, true);
+                const bool looped = true;
+                draw_lines(range | std::ranges::views::adjacent<2U>, looped);
             }
         } break;
-                /*
+            /*
         case ShapeType::TRIANGLES:
         case ShapeType::TRIANGLE_STRIP:
         case ShapeType::TRIANGLE_FAN: {
@@ -245,7 +305,7 @@ private:
                 draw_triangles(range | std::ranges::views::adjacent<3U>, true);
             }
         } break;
-                */
+            */
         }
     }
 };

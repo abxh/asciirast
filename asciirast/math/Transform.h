@@ -47,9 +47,7 @@ public:
      */
     Transform()
             : m_mat{ Mat3::identity() }
-            , m_mat_inv{ Mat3::identity() }
-    {
-    }
+            , m_mat_inv{ Mat3::identity() } {};
 
     /**
      * Get underlying matrix
@@ -117,7 +115,7 @@ public:
      */
     Transform& rotate(const Rot2& rot)
     {
-        const Mat3 mr = { rot.to_mat2(), Vec3{ 0, 0, 1 } };
+        const Mat3 mr = { rot.to_mat(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
 
         return this->stack(mr, mi);
@@ -292,7 +290,7 @@ public:
      */
     Transform& rotate(const Rot3& rot)
     {
-        const Mat4 mr = { rot.to_mat3(), Vec4{ 0, 0, 0, 1 } };
+        const Mat4 mr = { rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();
 
         return this->stack(mr, mi);

@@ -64,6 +64,11 @@ public:
      */
     bool contains(const AABB& that) const
     {
+        const auto this_min = this->min_get();
+        const auto this_max = this->max_get();
+        const auto that_min = that.min_get();
+        const auto that_max = that.max_get();
+
         return this->min_get() <= that.min_get() && that.max_get() <= this->max_get();
     }
 

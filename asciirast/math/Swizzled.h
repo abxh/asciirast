@@ -55,6 +55,10 @@ class Swizzled
         return (overlapping_indicies(ThisIndicies, s2) || ...);
     }
 
+    T* data() { return &m_components[0]; }
+
+    const T* data() const { return &m_components[0]; }
+
     template<std::size_t M, std::size_t... OtherIndicies>
     bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
     {
@@ -70,16 +74,6 @@ public:
      * @brief Size of swizzled component
      */
     static constexpr std::size_t size() { return INDICIES.size(); }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    T* data() { return &m_components[0]; }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Convert this to a temporary vector copy
@@ -307,16 +301,6 @@ public:
      * @brief Assignment from number
      */
     T operator=(const T value) { return (m_components[INDEX] = value); }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    T* data() { return &m_components[0]; }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Range of swizzled component

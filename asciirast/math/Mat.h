@@ -46,7 +46,7 @@ template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer;
 
 /**
- * @brief Helper class to prstd::size_t matrix.
+ * @brief Helper class to print matrix.
  *
  * @tparam M_y              Number of rows
  * @tparam N_x              Number of columns

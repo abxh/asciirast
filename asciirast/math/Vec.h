@@ -376,6 +376,16 @@ public:
     const T* data() const { return &m_components[0]; }
 
     /**
+     * @brief Get underlying array
+     */
+    std::array<T, N>& array() { return m_components; }
+
+    /**
+     * @brief Get underlying array
+     */
+    const std::array<T, N>& array() const { return m_components; }
+
+    /**
      * @brief Index the vector.
      */
     T& operator[](const std::size_t i)
@@ -606,6 +616,17 @@ public:
     }
 
     /**
+     * @brief Vector-vector component-wise multiplication (hadamard product)
+     */
+    friend Vec operator*(const Vec& lhs, const Vec& rhs)
+    {
+        const auto func = std::multiplies();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
+
+        return Vec{ view };
+    }
+
+    /**
      * @brief Vector-scalar division
      */
     friend Vec operator/(const Vec& lhs, const T scalar)
@@ -616,6 +637,22 @@ public:
 
         const auto func = [=](const T x) -> T { return x / scalar; };
         const auto view = std::views::transform(lhs.range(), func);
+
+        return Vec{ view };
+    }
+
+    /**
+     * @brief Vector-vector component-wise division (hadamard divsion)
+     */
+    friend Vec operator/(const Vec& lhs, const Vec& rhs)
+    {
+        if constexpr (std::is_integral_v<T>) {
+            assert(std::ranges::none_of(lhs.range(), [](const T x) { return x == 0; }) && "non-zero division");
+            assert(std::ranges::none_of(rhs.range(), [](const T x) { return x == 0; }) && "non-zero division");
+        }
+
+        const auto func = std::divides();
+        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
         return Vec{ view };
     }
@@ -719,9 +756,9 @@ public:
     static constexpr std::size_t size() { return 1; }
 
     /**
-     * @brief Explicitly construct 1d-vector with value
+     * @brief Explicitly construct 1d-vector from value
      */
-    explicit Vec(const T initial_value) { m_components[0] = initial_value; };
+    explicit Vec(const T value) { m_components[0] = value; };
 
     /**
      * @brief Implicitly convert to number
@@ -742,6 +779,16 @@ public:
      * @brief Get pointer over underlying data
      */
     const T* data() const { return &m_components[0]; }
+
+    /**
+     * @brief Get underlying array
+     */
+    std::array<T, 1>& array() { return m_components; }
+
+    /**
+     * @brief Get underlying array
+     */
+    const std::array<T, 1>& array() const { return m_components; }
 
     /**
      * @brief Get range over vector component.

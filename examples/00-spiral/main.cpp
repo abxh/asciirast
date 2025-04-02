@@ -40,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    const math::Transform2D& viewport_to_window() override { return m_viewport_to_window; }
+    math::Transform2D viewport_to_window() override { return m_viewport_to_window; }
 
     void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) override
     {
@@ -189,7 +189,8 @@ main(void)
             vb.verticies.push_back(MyVertex{ id, v });
         }
     }
-    asciirast::Renderer r;
+    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.f, +1.f }) };
+    asciirast::Renderer r2{ math::AABB2D::from_min_max({ +0.f, -1.f }, { +1.5f, +1.f }) };
 
     TerminalBuffer t;
 
@@ -203,7 +204,8 @@ main(void)
     } };
 
     while (!s.try_acquire()) {
-        r.draw(p, u, vb, t);
+        r1.draw(p, u, vb, t);
+        r2.draw(p, u, vb, t);
 
         t.render();
 
