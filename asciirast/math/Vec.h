@@ -12,6 +12,7 @@
 #include <complex>
 #include <cstdlib>
 #include <ostream>
+#include <functional>
 #include <type_traits>
 
 #include "./VecBase.h"
@@ -495,7 +496,9 @@ public:
     friend auto operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_floating_point_v<T>)
     {
-        const auto func = [](const T x, const T y) { return math::almost_less_than(x, y); };
+        const auto func = [](const T x, const T y) {
+            return math::almost_less_than(x, y) || math::almost_equal(x, y);
+        };
 
         if (std::ranges::equal(lhs.range(), rhs.range(), func)) {
             return std::partial_ordering::less;

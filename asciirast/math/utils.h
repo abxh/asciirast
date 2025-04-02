@@ -107,7 +107,7 @@ almost_less_than(const T x, const T y, const unsigned ulps_)
     const T exp  = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
     const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
 
-    return x < y - small_diff;
+    return x - y < -small_diff; // x < y - small_diff
 }
 
 /**
@@ -120,9 +120,6 @@ bool
 almost_less_than(const T x, const T y)
     requires(std::is_same_v<T, float>)
 {
-    // default precision based on:
-    // https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-
     return almost_less_than(x, y, 9);
 }
 
@@ -136,9 +133,6 @@ bool
 almost_less_than(const T x, const T y)
     requires(std::is_same_v<T, double>)
 {
-    // default precision based on:
-    // https://en.wikipedia.org/wiki/Double-precision_floating-point_format
-
     return almost_less_than(x, y, 17);
 }
 
