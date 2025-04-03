@@ -105,7 +105,11 @@ public:
 
 private:
     int index(const int y, const int x) const { return m_width * y + x; }
-    void reset_printer() const { std::cout << CSI::ESC << m_height << CSI::MOVE_UP_LINES << '\r'; }
+    void reset_printer() const {
+        for (int y = 0; y < m_height; y++) {
+            std::cout << CSI::ESC << CSI::MOVE_UP_LINE << "\r";
+        }
+    }
     void offset_printer() const
     {
         for (int y = 0; y < m_height; y++) {

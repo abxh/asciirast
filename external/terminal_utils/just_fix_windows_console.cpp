@@ -21,11 +21,11 @@ just_fix_windows_console(bool enable)
     HANDLE handleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD consoleMode;
     GetConsoleMode(handleOut, &consoleMode);
-    static auto initial_consoleMode = consoleMode;
-    if (enable)
-        consoleMode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    else
+    if (enable) {
         consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    } else {
+        consoleMode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    }
     SetConsoleMode(handleOut, consoleMode);
 #else
     (void)enable;

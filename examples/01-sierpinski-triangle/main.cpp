@@ -112,11 +112,8 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (int i = 0; i < m_height * m_width; i++) {
-            m_rgbc_buf[i].r = 0U;
-            m_rgbc_buf[i].g = 0U;
-            m_rgbc_buf[i].b = 0U;
-            m_rgbc_buf[i].c = clear_char;
-            m_depth_buf[i]  = -std::numeric_limits<math::F>::infinity();
+            m_rgbc_buf[i]  = { .r = 0, .g = 0, .b = 0, .c = clear_char };
+            m_depth_buf[i] = -std::numeric_limits<math::F>::infinity();
         }
     }
 
@@ -137,10 +134,8 @@ public:
         m_width              = new_width;
         m_height             = new_height;
         m_viewport_to_window = math::Transform2D().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
-        if (m_width * m_height > m_rgbc_buf.size()) {
-            m_rgbc_buf.reserve(m_width * m_height);
-            m_depth_buf.reserve(m_width * m_height);
-        }
+        m_rgbc_buf.resize(m_width * m_height);
+        m_depth_buf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -148,7 +143,11 @@ public:
 
 private:
     int index(const int y, const int x) const { return m_width * y + x; }
-    void reset_printer() const { std::cout << CSI::ESC << m_height << CSI::MOVE_UP_LINES << '\r'; }
+    void reset_printer() const {
+        for (int y = 0; y < m_height; y++) {
+            std::cout << CSI::ESC << CSI::MOVE_UP_LINE << "\r";
+        }
+    }
     void offset_printer() const
     {
         for (int y = 0; y < m_height; y++) {
