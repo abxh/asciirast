@@ -493,7 +493,7 @@ public:
      * @brief Compare lexigraphically with other vector
      */
     friend auto operator<=>(const Vec& lhs, const Vec& rhs)
-        requires(std::is_floating_point_v<T>)
+        requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
         const auto func = [](const T x, const T y) { return math::almost_less_than(x, y); };
 
