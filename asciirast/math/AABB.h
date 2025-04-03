@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <cassert>
 #include <cmath>
 #include <type_traits>
 

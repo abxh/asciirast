@@ -128,7 +128,10 @@ public:
     Transform& scale(const T scale_x, const T scale_y)
     {
         assert(scale_x != 0);
+        [[assume(scale_x != 0)]];
+
         assert(scale_y != 0);
+        [[assume(scale_y != 0)]];
 
         Mat3 mr{}, mi{};
 
@@ -305,8 +308,13 @@ public:
     Transform& scale(const T scale_x, const T scale_y, const T scale_z)
     {
         assert(scale_x != 0);
+        [[assume(scale_x != 0)]];
+
         assert(scale_y != 0);
+        [[assume(scale_y != 0)]];
+
         assert(scale_z != 0);
+        [[assume(scale_z != 0)]];
 
         Mat4 mr{}, mi{};
 

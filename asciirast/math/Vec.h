@@ -11,8 +11,8 @@
 #include <compare>
 #include <complex>
 #include <cstdlib>
-#include <ostream>
 #include <functional>
+#include <ostream>
 #include <type_traits>
 
 #include "./VecBase.h"
@@ -352,6 +352,7 @@ public:
     explicit Vec(std::ranges::input_range auto&& range)
     {
         assert(N == std::ranges::distance(range) && "range size is same as vector size");
+        [[assume(N == std::ranges::distance(range))]];
 
         for (const std::tuple<T&, const T> t : std::views::zip(this->range(), range)) {
             auto [dest, src] = t;
@@ -496,9 +497,7 @@ public:
     friend auto operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        const auto func = [](const T x, const T y) {
-            return math::almost_less_than(x, y) || math::almost_equal(x, y);
-        };
+        const auto func = [](const T x, const T y) { return math::almost_less_than(x, y) || math::almost_equal(x, y); };
 
         if (std::ranges::equal(lhs.range(), rhs.range(), func)) {
             return std::partial_ordering::less;

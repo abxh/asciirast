@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <cassert>
 #include <cmath>
 #include <complex>
 #include <type_traits>

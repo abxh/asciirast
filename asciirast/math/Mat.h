@@ -165,6 +165,7 @@ public:
     explicit Mat(std::ranges::input_range auto&& it)
     {
         assert(this->size() == std::ranges::distance(it) && "range size is same as matrix size");
+        [[assume(this->size() == std::ranges::distance(it))]];
 
         for (const std::tuple<T&, const T> t : std::views::zip(this->range(), it)) {
             auto [dest, src] = t;
