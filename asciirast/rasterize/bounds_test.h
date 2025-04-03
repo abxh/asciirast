@@ -264,10 +264,10 @@ count_num_triangle_vertices_inside(const BorderType border, const Vec4_Triplet& 
 
 };
 
-static auto
-triangle_in_frustum(const math::Vec4& p0, const math::Vec4& p1, const math::Vec4& p2)
-        -> std::optional<std::tuple<math::F, math::F>>
-{
-}
+// static auto
+// triangle_in_frustum(const math::Vec4& p0, const math::Vec4& p1, const math::Vec4& p2)
+//         -> std::optional<std::tuple<math::F, math::F>>
+// {
+// }
 
 } // namespace asciirast::rasterize

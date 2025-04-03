@@ -52,7 +52,7 @@ public:
     /**
      * @brief Construct rotation object from angle in radians
      */
-    explicit Rot(const T angle)
+    Rot(const T angle)
             : m_complex{ std::exp(std::complex<T>{ 0, 1 } * angle) } {};
 
     /**

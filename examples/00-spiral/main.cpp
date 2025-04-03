@@ -105,7 +105,8 @@ public:
 
 private:
     int index(const int y, const int x) const { return m_width * y + x; }
-    void reset_printer() const {
+    void reset_printer() const
+    {
         for (int y = 0; y < m_height; y++) {
             std::cout << CSI::ESC << CSI::MOVE_UP_LINE << "\r";
         }
@@ -129,6 +130,8 @@ struct MyUniform
     const math::Rot2D& rot;
     const std::string& palette;
     const math::F& aspect_ratio;
+    const bool& should_flip;
+    static const inline auto flip_transform = math::Transform2D().rotate(math::radians(180.f)).reflectX();
 };
 
 struct MyVertex
@@ -153,7 +156,14 @@ class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVaryi
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        const auto v = u.rot.apply(vert.pos);
+        math::Vec2 v = vert.pos;
+        if (u.should_flip) {
+            v = u.flip_transform.apply(v);
+            v = u.rot.invert(v);
+        } else {
+            v = u.rot.apply(v);
+        }
+
         return Fragment{ .pos   = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
                          .attrs = Varying{ vert.id } };
     }
@@ -168,11 +178,10 @@ main(void)
 {
     const std::string palette  = "@%#*+=-:. "; // Paul Borke's palette
     const math::F aspect_ratio = 3.f / 5.f;
-
-    MyProgram p;
+    bool flip                  = false;
 
     math::Rot2D u_rot{};
-    MyUniform u{ u_rot, palette, aspect_ratio };
+    MyUniform u{ u_rot, palette, aspect_ratio, flip };
 
     asciirast::VertexBuffer<MyVertex> vb;
     {
@@ -193,9 +202,10 @@ main(void)
             vb.verticies.push_back(MyVertex{ id, v });
         }
     }
-    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.f, +1.f }) };
-    asciirast::Renderer r2{ math::AABB2D::from_min_max({ +0.f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
+    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
 
+    MyProgram p;
     TerminalBuffer t;
 
     std::binary_semaphore s{ 0 };
@@ -208,7 +218,10 @@ main(void)
     } };
 
     while (!s.try_acquire()) {
+        flip = false;
         r1.draw(p, u, vb, t);
+
+        flip = true;
         r2.draw(p, u, vb, t);
 
         t.render();
@@ -217,7 +230,7 @@ main(void)
 
         t.clear_and_update_size();
 
-        u_rot.stack(math::Rot2D{ math::radians(-45.f) });
+        u_rot.stack(math::radians(-45.f));
     }
     check_eof_program.join();
 }

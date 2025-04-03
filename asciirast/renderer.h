@@ -61,7 +61,7 @@ class Renderer
         const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
         const auto rel_min  = screen_bounds.min_get().vector_to(viewport_bounds.min_get()) / screen_bounds.size_get();
 
-        return SCREEN_BOUNDS.to_transform().reversed().stack(math::Transform2D().scale(rel_size).translate(rel_min));
+        return SCREEN_BOUNDS.to_transform().reversed().scale(rel_size).translate(rel_min);
     }
 
 public:
