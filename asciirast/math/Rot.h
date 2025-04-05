@@ -156,15 +156,8 @@ class Rot<3, T, is_col_major>
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
 
-    union
-    {
-        Vec4 m_quat; ///< as quaternion
-        struct
-        {
-            Vec3 m_dir; ///< non-normalized axis vector
-            T m_s;      ///< scalar component
-        };
-    };
+    Vec3 m_dir; ///< non-normalized axis vector
+    T m_s;      ///< scalar component
 
 public:
     /**
@@ -230,7 +223,7 @@ public:
     /**
      * @brief Get the underlying quaternion
      */
-    const Vec4& quat() const { return m_quat; }
+    Vec4 quat() const { return Vec4{ m_dir, m_s }; }
 
     /**
      * @brief Convert to (normalized) axis and angle
@@ -270,14 +263,16 @@ public:
      */
     Rot& normalize()
     {
-        m_quat = std::move(m_quat.normalized());
+        const auto v = Vec4{m_dir, m_s}.normalized();
+        m_dir = v.xyz;
+        m_s = v.w;
         return (*this);
     }
 
     /**
      * @brief Stack another rotation on top of this
      */
-    Rot& stack(const Rot& that, bool normalize = true) { return Rot{ this->m_quat, that.m_quat, normalize }; }
+    Rot& stack(const Rot& that, bool normalize = true) { return Rot{ *this, that, normalize }; }
 
     /**
      * @brief Apply the rotation to a vector

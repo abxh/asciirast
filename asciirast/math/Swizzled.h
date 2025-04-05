@@ -46,6 +46,7 @@ class Swizzled
     template<std::size_t... OtherIndicies>
     static consteval bool overlapping_indicies(const std::size_t i, const std::index_sequence<OtherIndicies...>& s2)
     {
+        (void)(s2);
         return (overlapping_indicies(i, OtherIndicies) || ...);
     }
 
@@ -53,6 +54,7 @@ class Swizzled
     static consteval bool overlapping_indicies(const std::index_sequence<ThisIndicies...>& s1,
                                                const std::index_sequence<OtherIndicies...>& s2)
     {
+        (void)(s1);
         return (overlapping_indicies(ThisIndicies, s2) || ...);
     }
 
@@ -312,7 +314,7 @@ public:
 };
 
 /**
- * @brief Class for single components
+ * @brief Class for single vector components
  *
  * @tparam N     Number of components in the vector
  * @tparam T     Type of components
@@ -320,7 +322,7 @@ public:
  */
 template<std::size_t N, typename T, std::size_t Index>
     requires(Index < N)
-class SwizzledSingle
+class SingleVectorComponent
 {
     std::array<T, N> m_components;
 
@@ -330,7 +332,7 @@ public:
     /**
      * @brief Assignment from value
      */
-    SwizzledSingle& operator=(const T value)
+    SingleVectorComponent& operator=(const T value)
     {
         m_components[Index] = value;
         return *this;
@@ -339,7 +341,7 @@ public:
     /**
      * @brief Assignment from other single swizzled component of same kind
      */
-    SwizzledSingle& operator=(const SwizzledSingle& that)
+    SingleVectorComponent& operator=(const SingleVectorComponent& that)
     {
         m_components[Index] = T{ that };
         return *this;
@@ -349,7 +351,7 @@ public:
      * @brief Assignment from other single swizzled component
      */
     template<std::size_t M, std::size_t OtherIndex>
-    SwizzledSingle& operator=(const SwizzledSingle<M, T, OtherIndex>& that)
+    SingleVectorComponent& operator=(const SingleVectorComponent<M, T, OtherIndex>& that)
     {
         m_components[Index] = T{ that };
         return *this;

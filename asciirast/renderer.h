@@ -27,9 +27,9 @@ enum class ShapeType
     LINES,
     LINE_STRIP,
     LINE_LOOP,
-    // TRIANGLES,
-    // TRIANGLE_STRIP,
-    // TRIANGLE_FAN
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN
 };
 
 template<typename Vertex, class Allocator = std::allocator<Vertex>>
@@ -122,7 +122,6 @@ private:
               std::ranges::input_range auto&& range,
               FrameBuffer& framebuffer)
     {
-        using Targets = typename FrameBuffer::Targets;
         using Vertex  = typename Program::Vertex;
         using PFrag   = ProjectedFragment<typename Program::Varying>;
 
@@ -242,7 +241,7 @@ private:
                     }
 
                     // iterate over line fragments:
-                    for (const auto [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
+                    for (const auto& [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
 
                         // apply fragment shader:
                         const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
@@ -273,13 +272,40 @@ private:
                 draw_lines(range | std::ranges::views::adjacent<2U>, looped);
             }
         } break;
-            /*
         case ShapeType::TRIANGLES:
         case ShapeType::TRIANGLE_STRIP:
         case ShapeType::TRIANGLE_FAN: {
             const auto draw_triangles = [&](std::ranges::input_range auto&& verticies, const bool fan = false) -> void {
                 const auto draw_triangle = [&](const Vertex& v0, const Vertex& v1, const Vertex& v2) -> void {
+                    // apply vertex shader
+                    // model space -> world space -> view space -> clip space:
+                    const auto frag0 = program.on_vertex(uniform, v0);
+                    const auto frag1 = program.on_vertex(uniform, v1);
+                    const auto frag2 = program.on_vertex(uniform, v2);
 
+                    // TODO: clipping
+
+                    // perspective divide
+                    // clip space -> screen space:
+                    const auto pfrag0 = rasterize::project(frag0);
+                    const auto pfrag1 = rasterize::project(frag1);
+                    const auto pfrag2 = rasterize::project(frag2);
+
+                    // screen space -> window space:
+                    const PFrag wfrag0 = screen_to_window_func(pfrag0);
+                    const PFrag wfrag1 = screen_to_window_func(pfrag1);
+                    const PFrag wfrag2 = screen_to_window_func(pfrag2);
+
+                    // iterate over line fragments:
+                    for (const auto& [pos, z_inv, w_inv, attrs] :
+                         rasterize::rasterize_triangle<decltype(wfrag0.attrs), true>(wfrag0, wfrag1, wfrag2)) {
+
+                        // apply fragment shader:
+                        const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
+
+                        // plot point in framebuffer:
+                        framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
+                    }
                 };
                 for (const auto [v0, v1, v2] : verticies) {
                     draw_triangle(v0, v1, v2);
@@ -305,7 +331,6 @@ private:
                 draw_triangles(range | std::ranges::views::adjacent<3U>, true);
             }
         } break;
-            */
         }
     }
 };

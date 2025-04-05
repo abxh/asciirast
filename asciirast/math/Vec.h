@@ -169,7 +169,7 @@ template<std::size_t N, typename T>
 static Vec<N, T>
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
-    const auto func = [=](const T lhs, const T rhs) -> T { return std::max(lhs, rhs); };
+    const auto func = [=](const T x, const T y) -> T { return std::max(x, y); };
     const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
@@ -182,7 +182,7 @@ template<std::size_t N, typename T>
 static Vec<N, T>
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 {
-    const auto func = [=](const T lhs, const T rhs) -> T { return std::min(lhs, rhs); };
+    const auto func = [=](const T x, const T y) -> T { return std::min(x, y); };
     const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
 
     return Vec<N, T>{ view };
@@ -282,6 +282,30 @@ public:
     {
         for (T& x : this->range()) {
             x = 0;
+        }
+    }
+
+    /**
+     * @brief Copy constructor
+     */
+    Vec(const Vec& that)
+    {
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
+        }
+    }
+
+    /**
+     * @brief Move constructor
+     */
+    Vec(Vec&& that)
+    {
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
         }
     }
 
@@ -758,7 +782,7 @@ struct not_a_single_value_impl
 {
     static constexpr bool value =
             sizeof...(Args) != 1 ||
-            sizeof...(Args) == 1 && !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>;
+            (sizeof...(Args) == 1 && !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>);
 };
 
 template<typename T, typename... Args>

@@ -339,7 +339,7 @@ public:
     friend bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        const auto func = [](const T lhs, const T rhs) -> bool { return almost_equals<T>(lhs, rhs); };
+        const auto func = [](const T x, const T y) -> bool { return almost_equals<T>(x, y); };
 
         return std::ranges::equal(lhs.range(), rhs.range(), func);
     }
@@ -638,7 +638,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), M_y * x) | std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) | std::ranges::views::take(M_y);
     }
 
     /**
@@ -649,7 +649,7 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), M_y * x) | std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) | std::ranges::views::take(M_y);
     }
 };
 

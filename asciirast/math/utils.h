@@ -53,7 +53,7 @@ almost_equal(const T x, const T y, const unsigned ulps_)
     const T ulps = static_cast<T>(ulps_);
     const T min  = std::min(std::fabs(x), std::fabs(y));
     const T exp  = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
-    const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+    const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), static_cast<int>(exp));
 
     return std::fabs(x - y) <= small_diff;
 }
@@ -105,7 +105,7 @@ almost_less_than(const T x, const T y, const unsigned ulps_)
     const T ulps = static_cast<T>(ulps_);
     const T min  = std::min(std::fabs(x), std::fabs(y));
     const T exp  = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
-    const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+    const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), static_cast<int>(exp));
 
     return x - y < -small_diff; // x < y - small_diff
 }

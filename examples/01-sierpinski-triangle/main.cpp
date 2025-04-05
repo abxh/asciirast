@@ -61,21 +61,22 @@ public:
     {
         // this ratio worked best for my terminal
 
-        return (5.f * m_height) / (3.f * m_width);
+        return (5.f * (float)m_height) / (3.f * (float)m_width);
     }
 
     math::Transform2D viewport_to_window() { return m_viewport_to_window; }
 
-    void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets)
+    void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
     {
-        if (!(0 <= pos.x && pos.x <= m_width && 0 <= pos.y && pos.y <= m_height)) {
+        if (!(0 <= pos.x && (std::size_t)pos.x <= m_width && 0 <= pos.y && (std::size_t)pos.y <= m_height)) {
             m_oob_error = true;
             return;
         }
 
-        const auto idx = index(pos.y, pos.x);
+        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
+        depth          = std::clamp(depth, 0.f, 1.f);
 
-        if (m_depth_buf[idx] > depth) {
+        if (m_depth_buf[idx] >= depth) {
             return;
         }
 
@@ -94,8 +95,8 @@ public:
 
         this->reset_printer();
 
-        for (int y = 0; y < m_height; y++) {
-            for (int x = 0; x < m_width; x++) {
+        for (std::size_t y = 0; y < m_height; y++) {
+            for (std::size_t x = 0; x < m_width; x++) {
                 const auto idx          = index(y, x);
                 const auto [r, g, b, c] = m_rgbc_buf[idx];
 
@@ -111,9 +112,9 @@ public:
 
     void clear(const char clear_char = ' ')
     {
-        for (int i = 0; i < m_height * m_width; i++) {
+        for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgbc_buf[i]  = { .r = 0, .g = 0, .b = 0, .c = clear_char };
-            m_depth_buf[i] = -std::numeric_limits<math::F>::infinity();
+            m_depth_buf[i] = 0.f;
         }
     }
 
@@ -122,7 +123,7 @@ public:
         int new_width = 0, new_height = 0;
         terminal_utils::get_terminal_size(new_width, new_height);
 
-        if (m_width == new_width - 1 && m_height == new_height - 1) {
+        if (m_width == (std::size_t)(new_width - 1) && m_height == (std::size_t)(new_height - 1)) {
             this->clear(clear_char);
             return;
         }
@@ -131,9 +132,10 @@ public:
 
         this->reset_printer();
 
-        m_width              = new_width;
-        m_height             = new_height;
-        m_viewport_to_window = math::Transform2D().reflectY().translate(0, 1.f).scale(m_width - 1, m_height - 1);
+        m_width  = (std::size_t)new_width;
+        m_height = (std::size_t)new_height;
+        m_viewport_to_window =
+                math::Transform2D().reflectY().translate(0, 1.f).scale((float)(m_width - 1), (float)(m_height - 1));
         m_rgbc_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
 
@@ -142,22 +144,23 @@ public:
     }
 
 private:
-    int index(const int y, const int x) const { return m_width * y + x; }
-    void reset_printer() const {
-        for (int y = 0; y < m_height; y++) {
+    std::size_t index(const std::size_t y, const std::size_t x) const { return m_width * y + x; }
+    void reset_printer() const
+    {
+        for (std::size_t y = 0; y < m_height; y++) {
             std::cout << CSI::ESC << CSI::MOVE_UP_LINE << "\r";
         }
     }
     void offset_printer() const
     {
-        for (int y = 0; y < m_height; y++) {
+        for (std::size_t y = 0; y < m_height; y++) {
             std::cout << CSI::ESC << CSI::CLEAR_LINE << "\n";
         }
     }
     bool m_oob_error;
 
-    int m_width;
-    int m_height;
+    std::size_t m_width;
+    std::size_t m_height;
     std::vector<RGBC> m_rgbc_buf;
     std::vector<math::F> m_depth_buf;
     math::Transform2D m_viewport_to_window;
