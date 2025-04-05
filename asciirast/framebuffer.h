@@ -12,9 +12,11 @@
 namespace asciirast {
 
 /**
- * @brief Abstract framebuffer that can be used to follow the framebuffer interface
+ * @brief Abstract framebuffer that can be used to follow the
+ *        framebuffer interface
  *
- * @tparam TargetTypes The types of the targets that the renderer will output to the framebuffer
+ * @tparam TargetTypes The types of the targets that the renderer will
+ *                     output to the framebuffer
  */
 template<typename... TargetTypes>
 class AbstractFrameBuffer
@@ -28,7 +30,8 @@ public:
     ~AbstractFrameBuffer() = default;
 
     /**
-     * @brief Get transform that takes points in a unit area and converts it to window area
+     * @brief Get transform that takes points in a unit area and converts
+     *        it to window area
      */
     virtual math::Transform2D viewport_to_window() = 0;
 

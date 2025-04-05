@@ -1,3 +1,8 @@
+/**
+ * @file utils.h
+ * @brief Miscellaneous functions operating on floats
+ */
+
 #pragma once
 
 #include <algorithm>
@@ -36,8 +41,8 @@ degrees(const T radians)
 }
 
 /**
- * @brief Check if equal to floating type value, given a precision for ulps
- * (units in last place).
+ * @brief Check if equal to floating type value, given a precision for
+ * ulps (units in last place).
  *
  * The lower, the more precise --- desirable for small floats.
  * The higher, the less precise --- desirable for large floats
@@ -91,8 +96,8 @@ almost_equal(const T x, const T y)
 }
 
 /**
- * @brief Check if less than floating type value, given a precision for ulps
- * (units in last place).
+ * @brief Check if less than floating type value, given a precision for
+ * ulps (units in last place).
  *
  * The lower, the more precise --- desirable for small floats.
  * The higher, the less precise --- desirable for large floats

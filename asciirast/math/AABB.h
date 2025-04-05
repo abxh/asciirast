@@ -1,6 +1,7 @@
 /**
  * @file AABB.h
  * @brief File with definition of axis-aligned bounding box
+ *
  * @todo raycast, distanceSqToPoint support?
  * @todo use min-max representation, and allow integers too
  */
@@ -34,9 +35,10 @@ public:
      */
     static AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max)
     {
-        const auto size = math::max(max - min, Vec<N, T>{ 0 });
+        const auto size   = math::max(max - min, Vec<N, T>{ 0 });
+        const auto center = min + size / 2;
 
-        return AABB{ min + size / 2, size };
+        return AABB{ center, size };
     }
 
     /**
@@ -67,8 +69,8 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes points in a unit area to converts it to the
-     * bounding box area
+     * @brief Convert to transform that takes points in a unit area
+     * to converts it to the bounding box area
      */
     Transform<N, T, is_col_major> to_transform() const
         requires(N == 2)
@@ -77,8 +79,8 @@ public:
     }
 
     /**
-     * @brief Convert to transform that takes points in a unit volume to converts it to
-     * the bounding box volume
+     * @brief Convert to transform that takes points in a unit volume
+     * to converts it to the bounding box volume
      */
     Transform<N, T, is_col_major> to_transform() const
         requires(N == 3)

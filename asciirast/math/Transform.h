@@ -1,6 +1,7 @@
 /**
  * @file Transform.h
- * @brief Class for stacking primitive transformations on top of each other
+ * @brief Class for stacking primitive transformations on top of each
+ * other
  */
 
 #pragma once
@@ -73,7 +74,7 @@ public:
     /**
      * Get reversed transformation object
      */
-    Transform reversed() const { return Transform{}.stack(this->m_mat_inv, this->m_mat); }
+    Transform reversed() const { return Transform().stack(this->m_mat_inv, this->m_mat); }
 
     /**
      * Stack a new transformation matrix and it's inverse on top
@@ -124,7 +125,9 @@ public:
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y') = (scale_x * x, scale_y * y) assuming scale_x * scale_y != 0
+     * (x', y') = (scale_x * x, scale_y * y)
+     *
+     * assuming scale_x * scale_y != 0
      */
     Transform& scale(const T scale_x, const T scale_y)
     {
@@ -149,7 +152,9 @@ public:
 
     /**
      * Stack the transformation equivalent to:
-     * (x', y') = (scale.x * x, scale.y * y) assuming scale.x * scale.y != 0
+     * (x', y') = (scale.x * x, scale.y * y)
+     *
+     * assuming scale.x * scale.y != 0
      */
     Transform& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
 
@@ -171,17 +176,15 @@ public:
      */
     Transform& shearX(const T t)
     {
-        // clang-format off
         const Vec3 a  = { 1, +t, 0 };
-        const Vec3 b  = { 0,  1, 0 };
-        const Vec3 c  = { 0,  0, 1 };
+        const Vec3 b  = { 0, 1., 0 };
+        const Vec3 c  = { 0, 0., 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
         const Vec3 ai = { 1, -t, 0 };
-        const Vec3 bi = { 0,  1, 0 };
-        const Vec3 ci = { 0,  0, 1 };
+        const Vec3 bi = { 0, 1, 0 };
+        const Vec3 ci = { 0, 0, 1 };
         const auto mi = Mat3::from_rows(ai, bi, ci);
-        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -192,17 +195,15 @@ public:
      */
     Transform& shearY(const T t)
     {
-        // clang-format off
-        const Vec3 a  = {  1, 0, 0 };
+        const Vec3 a  = { 1., 0, 0 };
         const Vec3 b  = { +t, 1, 0 };
-        const Vec3 c  = {  0, 0, 1 };
+        const Vec3 c  = { 0., 0, 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
-        const Vec3 ai = {  1, 0, 0 };
+        const Vec3 ai = { 1., 0, 0 };
         const Vec3 bi = { -t, 1, 0 };
-        const Vec3 ci = {  0, 0, 1 };
+        const Vec3 ci = { 0., 0, 1 };
         const auto mi = Mat3::from_rows(ai, bi, ci);
-        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -373,19 +374,17 @@ public:
      */
     Transform& shearXY(const T s, const T t)
     {
-        // clang-format off
         const Vec4 a  = { 1, 0, +s, 0 };
         const Vec4 b  = { 0, 1, +t, 0 };
-        const Vec4 c  = { 0, 0,  1, 0 };
-        const Vec4 d  = { 0, 0,  0, 1 };
+        const Vec4 c  = { 0, 0, 1., 0 };
+        const Vec4 d  = { 0, 0, 0., 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
         const Vec4 ai = { 1, 0, -s, 0 };
         const Vec4 bi = { 0, 1, -t, 0 };
-        const Vec4 ci = { 0, 0,  1, 0 };
-        const Vec4 di = { 0, 0,  0, 1 };
+        const Vec4 ci = { 0, 0, 1., 0 };
+        const Vec4 di = { 0, 0, 0., 1 };
         const auto mi = Mat4::from_rows(ai, bi, ci, di);
-        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -396,19 +395,17 @@ public:
      */
     Transform& shearXZ(const T s, const T t)
     {
-        // clang-format off
         const Vec4 a  = { 1, +s, 0, 0 };
-        const Vec4 b  = { 0,  1, 0, 0 };
+        const Vec4 b  = { 0, 1., 0, 0 };
         const Vec4 c  = { 0, +t, 1, 0 };
-        const Vec4 d  = { 0,  0, 0, 1 };
+        const Vec4 d  = { 0, 0., 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
         const Vec4 ai = { 1, -s, 0, 0 };
-        const Vec4 bi = { 0,  1, 0, 0 };
+        const Vec4 bi = { 0, 1., 0, 0 };
         const Vec4 ci = { 0, -t, 1, 0 };
-        const Vec4 di = { 0,  0, 0, 1 };
+        const Vec4 di = { 0, 0., 0, 1 };
         const auto mi = Mat4::from_rows(ai, bi, ci, di);
-        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -419,19 +416,17 @@ public:
      */
     Transform& shearYZ(const T s, const T t)
     {
-        // clang-format off
-        const Vec4 a  = {  1, 0, 0, 0 };
+        const Vec4 a  = { 1., 0, 0, 0 };
         const Vec4 b  = { +s, 1, 0, 0 };
         const Vec4 c  = { +t, 0, 1, 0 };
-        const Vec4 d  = {  0, 0, 0, 1 };
+        const Vec4 d  = { 0., 0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        const Vec4 ai = {  1, 0, 0, 0 };
+        const Vec4 ai = { 1., 0, 0, 0 };
         const Vec4 bi = { -s, 1, 0, 0 };
         const Vec4 ci = { -t, 0, 1, 0 };
-        const Vec4 di = {  0, 0, 0, 1 };
+        const Vec4 di = { 0., 0, 0, 1 };
         const auto mi = Mat4::from_rows(ai, bi, ci, di);
-        // clang-format on
 
         return this->stack(mr, mi);
     }

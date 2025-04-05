@@ -122,8 +122,8 @@ private:
               std::ranges::input_range auto&& range,
               FrameBuffer& framebuffer)
     {
-        using Vertex  = typename Program::Vertex;
-        using PFrag   = ProjectedFragment<typename Program::Varying>;
+        using Vertex = typename Program::Vertex;
+        using PFrag  = ProjectedFragment<typename Program::Varying>;
 
         if (const math::Transform2D viewport_to_window = framebuffer.viewport_to_window();
             !std::ranges::equal(m_viewport_to_window.mat().range(), viewport_to_window.mat().range())) {
@@ -242,7 +242,6 @@ private:
 
                     // iterate over line fragments:
                     for (const auto& [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
-
                         // apply fragment shader:
                         const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
 
@@ -299,7 +298,6 @@ private:
                     // iterate over triangle fragments:
                     for (const auto& [pos, z_inv, w_inv, attrs] :
                          rasterize::rasterize_triangle<decltype(wfrag0.attrs), true>(wfrag0, wfrag1, wfrag2)) {
-
                         // apply fragment shader:
                         const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
 
@@ -335,4 +333,4 @@ private:
     }
 };
 
-};
+}; // namespace asciirast

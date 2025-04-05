@@ -1,20 +1,17 @@
 #pragma once
 
-#include "../math/types.h"
 #include <list>
+
+#include "../math/types.h"
 
 namespace asciirast::rasterize {
 
-/*
-static bool
-point_in_screen(const math::Vec2& p)
-{
-    const bool x_in_bounds = -1 <= p.x && p.x <= +1;
-    const bool y_in_bounds = -1 <= p.y && p.y <= +1;
-
-    return x_in_bounds && y_in_bounds;
-}
-*/
+// static bool point_in_screen(const math::Vec2& p) {
+//   const bool x_in_bounds = -1 <= p.x && p.x <= +1;
+//   const bool y_in_bounds = -1 <= p.y && p.y <= +1;
+//
+//   return x_in_bounds && y_in_bounds;
+// }
 
 static bool
 point_in_unit_square(const math::Vec2& p)
@@ -28,7 +25,7 @@ point_in_unit_square(const math::Vec2& p)
 static bool
 point_in_frustum(const math::Vec4& p)
 {
-    if (p.w < 0) [[unlikely]] {
+    if (p.w < 0) {
         return false;
     }
 
@@ -63,7 +60,7 @@ next_border_type(BorderType b)
     return static_cast<BorderType>(static_cast<std::size_t>(b) + 1);
 }
 
-}
+} // namespace detail
 
 // Liang-Barsky clipping algorithm:
 // - https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
@@ -73,16 +70,19 @@ static inline bool
 line_in_bounds(const T q, const T p, T& t0, T& t1)
 {
     // q: delta from border to vector tail
-    // p: delta from vector tail to vector head. sign flipped to face border
+    // p: delta from vector tail to vector head. sign flipped to face
+    // border
 
-    if (math::almost_equal<T>(p, 0)) { // Check if line is parallel to the clipping boundary
+    if (math::almost_equal<T>(p,
+                              0)) { // Check if line is parallel to the clipping boundary
         if (q < 0.f) {
-            return false; // Line is outside and parallel, so completely discarded
+            return false; // Line is outside and parallel, so completely
+                          // discarded
         }
         return true; // Line is inside and parallel, so kept as is
     }
-    const float t = q / p; // t for the intersection point of the line and the
-                           // window edge (possibly projected)
+    const float t = q / p; // t for the intersection point of the line
+                           // and the window edge (possibly projected)
 
     if (p < 0.f) { // the line proceeds outside to inside the clip window
         if (t1 < t) {
@@ -169,13 +169,12 @@ line_in_bounds(const math::Vec2& p0, const math::Vec2& p1, const math::Vec2& min
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
-/*
-static auto
-line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::F, math::F>>
-{
-    return line_in_bounds(p0, p1, math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-}
-*/
+// static auto line_in_screen(const math::Vec2& p0, const math::Vec2&
+// p1)
+//     -> std::optional<std::tuple<math::F, math::F>> {
+//   return line_in_bounds(p0, p1, math::Vec2{-1, -1}, math::Vec2{+1,
+//   +1});
+// }
 
 static auto
 line_in_unit_square(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::F, math::F>>
@@ -186,7 +185,7 @@ line_in_unit_square(const math::Vec2& p0, const math::Vec2& p1) -> std::optional
 static auto
 line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::F, math::F>>
 {
-    if (p0.w < 0 && p1.w < 0) [[unlikely]] {
+    if (p0.w < 0 && p1.w < 0) {
         return {};
     }
 
@@ -303,7 +302,7 @@ count_num_triangle_vertices_inside(const BorderType border, const Vec4_Triplet& 
 
 template<bool is_clockwise_winding_order>
 static inline auto
-get_ordered_triangle_verticies_1_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
+get_ordered_triangle_verticies_with_1_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
 {
     // first point is inside. others are outside.
 
@@ -335,7 +334,7 @@ get_ordered_triangle_verticies_1_inside(const std::array<bool, 3>& inside) -> st
 
 template<bool is_CW_winding_order>
 static inline auto
-get_ordered_triangle_verticies_2_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
+get_ordered_triangle_verticies_with_2_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
 {
     // first two points are inside. last one is outside.
 
@@ -365,7 +364,7 @@ get_ordered_triangle_verticies_2_inside(const std::array<bool, 3>& inside) -> st
     return { 3, 3, 3 };
 }
 
-};
+}; // namespace detail
 
 template<bool is_CW_winding_order>
 static bool
@@ -374,7 +373,7 @@ triangle_in_frustum(std::list<Vec4_Triplet>& vecs_queue, std::list<Attr_Triplet>
     assert(vecs_queue.size() > 0U);
     assert(vecs_queue.size() == attr_queue.size());
 
-    if (const auto [v0, v1, v2] = *vecs_queue.begin(); v0.w < 0 && v1.w < 0 && v2.w < 0) [[unlikely]] {
+    if (const auto [v0, v1, v2] = *vecs_queue.begin(); v0.w < 0 && v1.w < 0 && v2.w < 0) {
         return false;
     }
 
@@ -392,7 +391,8 @@ triangle_in_frustum(std::list<Vec4_Triplet>& vecs_queue, std::list<Attr_Triplet>
             case 1: {
                 const auto vecs_triplet = *it_vecs;
                 const auto attr_triplet = *it_attr;
-                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies_1_inside<is_CW_winding_order>(inside);
+                const auto [i0, i1, i2] =
+                        detail::get_ordered_triangle_verticies_with_1_inside<is_CW_winding_order>(inside);
                 const auto [p0, p1, p2] = { vecs_triplet[i0], vecs_triplet[i1], vecs_triplet[i2] };
                 const auto [a0, a1, a2] = { attr_triplet[i0], attr_triplet[i1], attr_triplet[i2] };
 
@@ -429,7 +429,8 @@ triangle_in_frustum(std::list<Vec4_Triplet>& vecs_queue, std::list<Attr_Triplet>
             case 2: {
                 const auto vecs_triplet = *it_vecs;
                 const auto attr_triplet = *it_attr;
-                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies_2_inside<is_CW_winding_order>(inside);
+                const auto [i0, i1, i2] =
+                        detail::get_ordered_triangle_verticies_with_2_inside<is_CW_winding_order>(inside);
                 const auto [p0, p1, p2] = { vecs_triplet[i0], vecs_triplet[i1], vecs_triplet[i2] };
                 const auto [a0, a1, a2] = { attr_triplet[i0], attr_triplet[i1], attr_triplet[i2] };
 

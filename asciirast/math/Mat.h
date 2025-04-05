@@ -29,7 +29,7 @@ namespace detail {
  * @tparam T                Type of elements
  * @tparam is_col_major     Whether the matrix is in column major
  * @tparam Args             Arguments consisting of vectors and smaller
- * matrices.
+ *                          matrices.
  */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
 struct mat_constructible_from;
@@ -70,6 +70,22 @@ template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
     requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
 class Mat
 {
+    template<typename... Args>
+    static constexpr bool constructible_from_cols_v =
+            (detail::vec_info<Args>::value && ...) && (0 < sizeof...(Args) && sizeof...(Args) <= N_x) &&
+            ((detail::vec_info<Args>::size <= M_y) && ...);
+
+    template<typename... Args>
+    static constexpr bool constructible_from_rows_v =
+            (detail::vec_info<Args>::value && ...) && (0 < sizeof...(Args) && sizeof...(Args) <= M_y) &&
+            ((detail::vec_info<Args>::size <= N_x) && ...);
+
+    template<typename... Args>
+    static constexpr bool constructible_from_args_v =
+            (sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
+             detail::not_a_single_value<Mat, Args...>::value) &&
+            (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
+
 protected:
     std::array<T, M_y * N_x> m_elements; ///< 1D array of elements
 
@@ -99,14 +115,17 @@ public:
      * @brief Create matrix from columns
      */
     template<typename... Args>
-        requires(detail::vec_info<Args>::value && ...)
+        requires(constructible_from_cols_v<Args...>)
     static Mat from_cols(Args&&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= N_x) && ((detail::vec_info<Args>::size <= M_y) && ...))
     {
         if constexpr (is_col_major) {
-            return Mat<M_y, N_x, T, is_col_major>{ std::forward<Args>(args)... };
+            using MatType = Mat<M_y, N_x, T, is_col_major>;
+
+            return MatType{ std::forward<Args>(args)... };
         } else {
-            return Mat<N_x, M_y, T, is_col_major>{ std::forward<Args>(args)... }.transposed();
+            using MatType = Mat<N_x, M_y, T, is_col_major>;
+
+            return MatType{ std::forward<Args>(args)... }.transposed();
         }
     }
 
@@ -114,14 +133,17 @@ public:
      * @brief Create matrix from rows
      */
     template<typename... Args>
-        requires(detail::vec_info<Args>::value && ...)
+        requires(constructible_from_rows_v<Args...>)
     static Mat from_rows(Args&&... args)
-        requires((0 < sizeof...(Args) && sizeof...(Args) <= M_y) && ((detail::vec_info<Args>::size <= N_x) && ...))
     {
         if constexpr (is_col_major) {
-            return Mat<N_x, M_y, T, is_col_major>{ std::forward<Args>(args)... }.transposed();
+            using MatType = Mat<N_x, M_y, T, is_col_major>;
+
+            return MatType{ std::forward<Args>(args)... }.transposed();
         } else {
-            return Mat<M_y, N_x, T, is_col_major>{ std::forward<Args>(args)... };
+            using MatType = Mat<M_y, N_x, T, is_col_major>;
+
+            return MatType{ std::forward<Args>(args)... };
         }
     }
 
@@ -141,12 +163,12 @@ public:
      * padding the rest of the elements with zeroes.
      */
     template<typename... Args>
-        requires(sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
-                 detail::not_a_single_value<Mat, Args...>::value)
+        requires(constructible_from_args_v<Args...>)
     Mat(Args&&... args)
-        requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
     {
-        detail::mat_initializer<M_y, N_x, T, is_col_major>::init_from(*this, std::forward<Args>(args)...);
+        using initializer = detail::mat_initializer<M_y, N_x, T, is_col_major>;
+
+        initializer::init_from(*this, std::forward<Args>(args)...);
     };
 
     /**
@@ -154,7 +176,11 @@ public:
      */
     explicit Mat(const T diagonal_element)
     {
-        for (const auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
+        const auto ys       = std::views::iota(0U, M_y);
+        const auto xs       = std::views::iota(0U, N_x);
+        const auto indicies = std::views::cartesian_product(ys, xs);
+
+        for (const auto [y, x] : indicies) {
             (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
         }
     }
@@ -164,11 +190,13 @@ public:
      */
     explicit Mat(std::ranges::input_range auto&& it)
     {
-        assert(this->size() == std::ranges::distance(it) && "range size is same as matrix size");
+        assert(this->size() == std::ranges::distance(it));
         [[assume(this->size() == std::ranges::distance(it))]];
 
-        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), it)) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->range(), it);
+
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
 
             dest = src;
         }
@@ -247,7 +275,9 @@ public:
      */
     friend std::ostream& operator<<(std::ostream& out, const Mat& m)
     {
-        return detail::mat_printer<M_y, N_x, T, is_col_major>::print(out, m);
+        using mat_printer = detail::mat_printer<M_y, N_x, T, is_col_major>;
+
+        return mat_printer::print(out, m);
     }
 
     /**
@@ -255,9 +285,12 @@ public:
      */
     Mat<N_x, M_y, T, is_col_major> transposed() const
     {
-        Mat<N_x, M_y, T, is_col_major> out{};
+        const auto ys       = std::views::iota(0U, M_y);
+        const auto xs       = std::views::iota(0U, N_x);
+        const auto indicies = std::views::cartesian_product(ys, xs);
 
-        for (const auto [y, x] : std::views::cartesian_product(std::views::iota(0U, M_y), std::views::iota(0U, N_x))) {
+        Mat<N_x, M_y, T, is_col_major> out{};
+        for (const auto [y, x] : indicies) {
             out[x, y] = (*this)[y, x];
         }
         return out;
@@ -290,8 +323,10 @@ public:
     {
         assert(y < M_y && "index is inside bounds");
 
-        for (const std::tuple<T&, const T> t : std::views::zip(this->row_range(y), v.range())) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->row_range(y), v.range());
+
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
 
             dest = src;
         }
@@ -315,8 +350,10 @@ public:
     {
         assert(x < M_y && "index is inside bounds");
 
-        for (const std::tuple<T&, const T> t : std::views::zip(this->col_range(x), v.range())) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->col_range(x), v.range());
+
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
 
             dest = src;
         }
@@ -359,9 +396,10 @@ public:
      */
     Mat& operator+=(const Mat& that)
     {
-        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->range(), that.range());
 
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
             dest += src;
         }
         return *this;
@@ -372,9 +410,10 @@ public:
      */
     Mat& operator-=(const Mat& that)
     {
-        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->range(), that.range());
 
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
             dest -= src;
         }
         return *this;
@@ -385,9 +424,10 @@ public:
      */
     Mat& operator*=(const Mat& that)
     {
-        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
-            auto [dest, src] = t;
+        const auto tups = std::views::zip(this->range(), that.range());
 
+        for (const std::tuple<T&, const T> tup : tups) {
+            auto [dest, src] = tup;
             dest *= src;
         }
         return *this;
@@ -412,7 +452,6 @@ public:
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != T{ 0 } && "non-zero division");
         }
-
         for (T& x : this->range()) {
             x /= scalar;
         }
@@ -426,7 +465,7 @@ public:
     Mat operator-() const
     {
         const auto func = [](const T x) -> T { return -x; };
-        const auto view = std::ranges::views::transform(this->range(), func);
+        const auto view = std::ranges::views::transform(range(), func);
 
         return Mat{ view };
     }
@@ -483,7 +522,6 @@ public:
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != T{ 0 } && "non-zero division");
         }
-
         const auto func = [=](const T x) -> T { return x / scalar; };
         const auto view = std::views::transform(lhs.range(), func);
 
@@ -495,7 +533,8 @@ public:
      * @brief Perform matrix-matrix multiplication.
      *
      * Does a small optimisation of using the transposed matrix for
-     * optimal access. But the transposed matrix does take extra time to create.
+     * optimal access. But the transposed matrix does take extra time to
+     * create.
      */
     friend Mat<M_y, M_y, T, is_col_major> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
                                                     const Mat<N_x, M_y, T, is_col_major>& rhs)
@@ -508,10 +547,10 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.col_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
-                    res[idx++] = std::ranges::fold_left(
-                            std::ranges::views::zip_transform(std::multiplies(), rhs.col_range(i), lhs_T.col_range(j)),
-                            T{ 0 },
-                            std::plus());
+                    const auto view =
+                            std::ranges::views::zip_transform(std::multiplies(), rhs.col_range(i), lhs_T.col_range(j));
+
+                    res[idx++] = std::ranges::fold_left(view, T{ 0 }, std::plus());
                 }
             }
         } else {
@@ -520,10 +559,10 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    res[idx++] = std::ranges::fold_left(
-                            std::ranges::views::zip_transform(std::multiplies(), lhs.row_range(i), rhs_T.row_range(j)),
-                            T{ 0 },
-                            std::plus());
+                    const auto view =
+                            std::ranges::views::zip_transform(std::multiplies(), lhs.row_range(i), rhs_T.row_range(j));
+
+                    res[idx++] = std::ranges::fold_left(view, T{ 0 }, std::plus());
                 }
             }
         }
@@ -546,10 +585,9 @@ public:
             }
         } else {
             for (std::size_t y = 0; y < mat.row_count(); y++) {
-                res[y] = std::ranges::fold_left(
-                        std::ranges::views::zip_transform(std::multiplies(), mat.row_range(y), vec.range()),
-                        T{ 0 },
-                        std::plus());
+                const auto view = std::ranges::views::zip_transform(std::multiplies(), mat.row_range(y), vec.range());
+
+                res[y] = std::ranges::fold_left(view, T{ 0 }, std::plus());
             }
         }
         return res;
@@ -637,9 +675,11 @@ private:
         requires(is_col_major)
     {
         assert(x < this->col_count() && "index is inside bounds");
+        static_assert(size() < std::numeric_limits<std::ptrdiff_t>::max());
 
-        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) |
-               std::ranges::views::take(M_y);
+        const auto n = static_cast<std::ptrdiff_t>(M_y * x);
+
+        return std::ranges::views::drop(this->range(), n) | std::ranges::views::take(M_y);
     }
 
     /**
@@ -649,9 +689,11 @@ private:
         requires(is_col_major)
     {
         assert(x < this->col_count() && "index is inside bounds");
+        static_assert(size() < std::numeric_limits<std::ptrdiff_t>::max());
 
-        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) |
-               std::ranges::views::take(M_y);
+        const auto n = static_cast<std::ptrdiff_t>(M_y * x);
+
+        return std::ranges::views::drop(this->range(), n) | std::ranges::views::take(M_y);
     }
 };
 
@@ -660,10 +702,10 @@ namespace detail {
 template<typename TT>
 struct mat_info_impl
 {
-    using value_type                    = void;  ///< value type
-    static constexpr bool value         = false; ///< whether the type is a matrix
-    static constexpr std::size_t height = 0;     ///< matrix height
-    static constexpr std::size_t width  = 0;     ///< matrix width
+    using value_type                    = void;  ///< default value type
+    static constexpr bool value         = false; ///< default type
+    static constexpr std::size_t height = 0;     ///< default height
+    static constexpr std::size_t width  = 0;     ///< default width
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
@@ -699,14 +741,17 @@ private:
 
     static constexpr std::size_t mat_max_height = std::max({ mat_info<Args>::height... });
 
-    static constexpr bool total_area_in_bounds = (is_col_major && (std::max(vec_max_length, mat_max_height) <= M_y) &&
-                                                  (num_vecs + (mat_info<Args>::width + ...) <= N_x)) ||
-                                                 (!is_col_major && (std::max(vec_max_length, mat_max_width) <= N_x) &&
-                                                  (num_vecs + (mat_info<Args>::height + ...) <= M_y));
+    static constexpr bool total_area_in_bounds_col_major =
+            (std::max(vec_max_length, mat_max_height) <= M_y) && (num_vecs + (mat_info<Args>::width + ...) <= N_x);
+
+    static constexpr bool total_area_in_bounds_row_major =
+            (std::max(vec_max_length, mat_max_width) <= N_x) && (num_vecs + (mat_info<Args>::height + ...) <= M_y);
+
+    static constexpr bool total_area_in_bounds =
+            (is_col_major && total_area_in_bounds_col_major) || (!is_col_major && total_area_in_bounds_row_major);
 
 public:
-    static constexpr bool value = accepted_types && total_area_in_bounds; ///< whether the arguments are of acceptable
-                                                                          ///< types and total area is inside bounds
+    static constexpr bool value = accepted_types && total_area_in_bounds;
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
@@ -729,12 +774,17 @@ public:
     {
         std::size_t idx = 0;
         init_from_inner(idx, out, std::forward<Args>(args)...);
+
         if constexpr (is_col_major) {
-            for (const std::size_t i : std::views::iota(idx, out.col_count())) {
+            const auto rest_cols = std::views::iota(idx, out.col_count());
+
+            for (const std::size_t i : rest_cols) {
                 out.col_set(i, Vec<M_y, T>{ T{ 0 } });
             }
         } else {
-            for (const std::size_t i : std::views::iota(idx, out.row_count())) {
+            const auto rest_rows = std::views::iota(idx, out.row_count());
+
+            for (const std::size_t i : rest_rows) {
                 out.row_set(i, Vec<N_x, T>{ T{ 0 } });
             }
         }
@@ -782,12 +832,16 @@ private:
                                           auto&&... rest)
     {
         if constexpr (is_col_major) {
-            for (const std::size_t i : std::ranges::views::iota(0U, arg.col_count())) {
+            const auto col_indicies = std::ranges::views::iota(0U, arg.col_count());
+
+            for (const std::size_t i : col_indicies) {
                 out.col_set(idx + i, Vec<M_y, T>{ arg.col_get(i) });
             }
             idx += arg.col_count();
         } else {
-            for (const std::size_t i : std::ranges::views::iota(0U, arg.row_count())) {
+            const auto row_indicies = std::ranges::views::iota(0U, arg.row_count());
+
+            for (const std::size_t i : row_indicies) {
                 out.row_set(idx + i, Vec<N_x, T>{ arg.row_get(i) });
             }
             idx += arg.row_count();

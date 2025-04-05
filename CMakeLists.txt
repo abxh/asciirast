@@ -7,9 +7,38 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic")
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
+
+set(SDL_BASED_EXAMPLES ON)
+
+if (SDL_BASED_EXAMPLES)
+    find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+    find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+endif()
+
+add_subdirectory(external/terminal_utils)
+# add_subdirectory(external/tiny_obj_loader)
+# add_subdirectory(external/stb_image)
+
+add_subdirectory(asciirast)
+
+add_subdirectory(examples/00-spiral)
+add_subdirectory(examples/01-sierpinski-triangle)
+
+if (SDL_BASED_EXAMPLES)
+	add_subdirectory(examples/02-hello-triangle)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo") 
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3")
+endif()
 
 # set(CMAKE_BUILD_TYPE "Debug")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3")
+
 	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
@@ -35,20 +64,3 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	# 	message(WARNING "Thread sanitizer was not found!")
 	# endif()
 endif()
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo") 
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3")
-endif()
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
-
-# add_subdirectory(external/tiny_obj_loader)
-# add_subdirectory(external/stb_image)
-add_subdirectory(external/terminal_utils)
-
-add_subdirectory(asciirast)
-
-add_subdirectory(examples/00-spiral)
-add_subdirectory(examples/01-sierpinski-triangle)
-# add_subdirectory(examples/02-hello-triangle)

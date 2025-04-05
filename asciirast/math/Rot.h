@@ -1,6 +1,7 @@
 /**
  * @file Rot.h
  * @brief File with definition of the rotation abstraction
+ *
  * @todo spherical interpolation
  */
 
@@ -178,9 +179,11 @@ public:
      * @brief Construct rotation object from the angle between two vectors
      */
     Rot(const Vec3& from_dir, const Vec3& to_dir)
-            : m_s{ 1 + dot(from_dir, to_dir) } // trick for half-angle
+            : m_s{ 1 + dot(from_dir, to_dir) }
             , m_dir{ cross(from_dir, to_dir) }
     {
+        // using trick for half-angle, with the cosine half-angle formula:
+        // cos(theta / 2) = sqrt((1 + cos(theta)/2)
         this->normalize(); // trick requires normalization
     };
 
@@ -192,14 +195,15 @@ public:
             : m_s{ lhs.m_s * rhs.m_s - dot(lhs.m_dir, rhs.m_dir) }
             , m_dir{ lhs.m_s * rhs.m_dir + lhs.m_dir * rhs.m_s + cross(lhs.m_dir, rhs.m_dir) }
     {
+        // quaternion multiplication definition in brief form
         if (normalize) {
             this->normalize();
         }
     };
 
     /**
-     * @brief Construct rotation object from the multiplication of a rotation
-     * object on a vector
+     * @brief Construct rotation object from the multiplication of a
+     * rotation object on a vector
      */
     Rot(const Rot& lhs, const Vec3& v) // like above but with rhs.s == 0
             : m_s{ -dot(lhs.m_dir, v) }
@@ -264,8 +268,9 @@ public:
     Rot& normalize()
     {
         const auto v = Vec4{ m_dir, m_s }.normalized();
-        m_dir        = v.xyz;
-        m_s          = v.w;
+
+        m_dir = v.xyz;
+        m_s   = v.w;
         return (*this);
     }
 

@@ -56,12 +56,14 @@ struct ProjectedFragment
 };
 
 /**
- * @brief Abstract (shader) program that can be used to follow the (shader) program interface
+ * @brief Abstract (shader) program that can be used to follow the
+ * (shader) program interface
  *
  * @tparam UniformType Arbitary type which contain constant values
  * @tparam VertexType  Vertex type to be used to output a fragment
  * @tparam VaryingType Fragment type that follows the Varying interface
- * @tparam FrameBuffer Framebuffer type that follows the Framebuffer interface
+ * @tparam FrameBuffer Framebuffer type that follows the Framebuffer
+ *                     interface
  */
 template<class UniformType, class VertexType, VaryingInterface VaryingType, FrameBufferInterface FrameBuffer>
 class AbstractProgram
@@ -116,6 +118,6 @@ struct can_use_program_with
                                   std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
 };
 
-};
+}; // namespace detail
 
-}
+} // namespace asciirast
