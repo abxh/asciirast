@@ -263,16 +263,20 @@ public:
      */
     Rot& normalize()
     {
-        const auto v = Vec4{m_dir, m_s}.normalized();
-        m_dir = v.xyz;
-        m_s = v.w;
+        const auto v = Vec4{ m_dir, m_s }.normalized();
+        m_dir        = v.xyz;
+        m_s          = v.w;
         return (*this);
     }
 
     /**
      * @brief Stack another rotation on top of this
      */
-    Rot& stack(const Rot& that, bool normalize = true) { return Rot{ *this, that, normalize }; }
+    Rot& stack(const Rot& that, bool normalize = true)
+    {
+        *this = std::move(Rot{ *this, that, normalize });
+        return *this;
+    }
 
     /**
      * @brief Apply the rotation to a vector
