@@ -408,6 +408,15 @@ public:
     }
 
     /**
+     * @brief Vector copy operator (redefined to work with Swizzled)
+     */
+    Vec& operator=(const Vec& that)
+    {
+        this->m_components = that.m_components;
+        return *this;
+    }
+
+    /**
      * @brief Print the vector
      */
     friend std::ostream& operator<<(std::ostream& out, const Vec& v)
@@ -739,87 +748,6 @@ public:
         requires(std::is_floating_point_v<T> && (N == 2 || N == 3))
     {
         return (*this) - T{ 2 } * this->project_onto(normal, is_normalized);
-    }
-};
-
-template<typename T>
-    requires(std::is_arithmetic_v<T>)
-class Vec<1, T> : public VecBase<Vec, 1, T>
-{
-protected:
-    using VecBase<Vec, 1, T>::m_components;
-
-public:
-    using value_type = T; ///@< value type
-
-    /**
-     * @brief Get number of components
-     */
-    static constexpr std::size_t size() { return 1; }
-
-    /**
-     * @brief Explicitly construct 1d-vector from value
-     */
-    explicit Vec(const T value) { m_components[0] = value; };
-
-    /**
-     * @brief Implicitly convert to number
-     */
-    operator T() { return m_components[0]; }
-
-    /**
-     * @brief Assignment from number
-     */
-    T operator=(const T value) { return (m_components[0] = value); }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    T* data() { return &m_components[0]; }
-
-    /**
-     * @brief Get pointer over underlying data
-     */
-    const T* data() const { return &m_components[0]; }
-
-    /**
-     * @brief Get underlying array
-     */
-    std::array<T, 1>& array() { return m_components; }
-
-    /**
-     * @brief Get underlying array
-     */
-    const std::array<T, 1>& array() const { return m_components; }
-
-    /**
-     * @brief Get range over vector component.
-     */
-    std::ranges::view auto range() { return std::ranges::views::single(m_components[0]); }
-
-    /**
-     * @brief Get range over vector component.
-     */
-    std::ranges::view auto range() const { return std::ranges::views::single(m_components[0]); }
-
-    /**
-     * @brief Index the vector component.
-     */
-    T& operator[](const std::size_t i)
-    {
-        assert(i == 0UL && "index is inside bounds");
-
-        return m_components[0];
-    }
-
-    /**
-     * @brief Index the vector component.
-     */
-    T operator[](const std::size_t i) const
-    {
-        assert(i == 0UL && "index is inside bounds");
-
-        return m_components[0];
     }
 };
 

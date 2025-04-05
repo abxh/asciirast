@@ -138,6 +138,10 @@ public:
     }
 };
 
+// Quaternion implementation based on following:
+// - https://marctenbosch.com/quaternions/
+// - https://mathworld.wolfram.com/Quaternion.html
+
 /**
  * @brief 3D rotation abstraction (unit quaternion)
  *

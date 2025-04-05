@@ -9,7 +9,8 @@
  * `.to_vec()` method.
  *
  * Inspiration:
- * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
+ * - https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
+ * - https://jojendersie.de/performance-optimal-vector-swizzling-in-c/
  */
 
 #pragma once
@@ -34,7 +35,7 @@ namespace asciirast::math {
  * @tparam Indicies The indicies
  */
 template<class Vec, std::size_t N, typename T, std::size_t... Indicies>
-    requires(sizeof...(Indicies) > 0 && ((Indicies < N) && ...))
+    requires(sizeof...(Indicies) > 1U && ((Indicies < N) && ...))
 class Swizzled
 {
     static constexpr std::array INDICIES = { Indicies... };
@@ -55,10 +56,6 @@ class Swizzled
         return (overlapping_indicies(ThisIndicies, s2) || ...);
     }
 
-    T* data() { return &m_components[0]; }
-
-    const T* data() const { return &m_components[0]; }
-
     template<std::size_t M, std::size_t... OtherIndicies>
     bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
     {
@@ -67,8 +64,30 @@ class Swizzled
                 !overlapping_indicies(std::index_sequence<Indicies...>{}, std::index_sequence<OtherIndicies...>{}));
     }
 
+    template<std::size_t... ThisIndicies>
+    struct non_duplicate_indicies;
+
+    template<std::size_t First, std::size_t... Rest>
+    struct non_duplicate_indicies<First, Rest...>
+    {
+        static constexpr bool value = (!((First == Rest) || ...)) && non_duplicate_indicies<Rest...>::value;
+    };
+
+    template<std::size_t Last>
+    struct non_duplicate_indicies<Last>
+    {
+        static constexpr bool value = true;
+    };
+
+    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
+
 public:
     using value_type = T; ///@< value type
+
+    /**
+     * @brief Underlying data pointer
+     */
+    const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Size of swizzled component
@@ -128,7 +147,8 @@ public:
     /**
      * @brief In-place assignment with vector
      */
-    Swizzled operator=(const Vec& that)
+    Swizzled& operator=(const Vec& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         for (const std::size_t i : INDICIES) {
             m_components[i] = that[i];
@@ -139,7 +159,8 @@ public:
     /**
      * @brief In-place component-wise addition with vector
      */
-    Swizzled operator+=(const Vec& that)
+    Swizzled& operator+=(const Vec& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         for (const std::size_t i : INDICIES) {
             m_components[i] += that[i];
@@ -150,7 +171,8 @@ public:
     /**
      * @brief In-place component-wise subtraction with vector
      */
-    Swizzled operator-=(const Vec& that)
+    Swizzled& operator-=(const Vec& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         for (const std::size_t i : INDICIES) {
             m_components[i] -= that[i];
@@ -161,7 +183,8 @@ public:
     /**
      * @brief In-place component-wise multiplication with vector
      */
-    Swizzled operator*=(const Vec& that)
+    Swizzled& operator*=(const Vec& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         for (const std::size_t i : INDICIES) {
             m_components[i] *= that[i];
@@ -170,10 +193,29 @@ public:
     }
 
     /**
+     * @brief In-place component-wise assignment with other Swizzled of same kind
+     */
+    Swizzled& operator=(const Swizzled& that)
+        requires(lvalue_has_non_duplicate_indicies)
+    {
+        assert(this->does_not_overlap(that) &&
+               "inplace operations with no overlapping indicies. use .to_vec() if needed");
+
+        for (const std::tuple<T&, const T> t : std::views::zip(this->range(), that.range())) {
+            auto [dest, src] = t;
+
+            dest = src;
+        }
+
+        return *this;
+    }
+
+    /**
      * @brief In-place component-wise assignment with other Swizzled
      */
     template<std::size_t M, std::size_t... OtherIndicies>
-    Swizzled operator=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+    Swizzled& operator=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         assert(this->does_not_overlap(that) &&
                "inplace operations with no overlapping indicies. use .to_vec() if needed");
@@ -190,7 +232,8 @@ public:
      * @brief In-place component-wise addition with other Swizzled
      */
     template<std::size_t M, std::size_t... OtherIndicies>
-    Swizzled operator+=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+    Swizzled& operator+=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         assert(this->does_not_overlap(that) &&
                "inplace operations with no overlapping indicies. use .to_vec() if needed");
@@ -207,7 +250,8 @@ public:
      * @brief In-place component-wise subtraction with other Swizzled
      */
     template<std::size_t M, std::size_t... OtherIndicies>
-    Swizzled operator-=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+    Swizzled& operator-=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         assert(this->does_not_overlap(that) &&
                "inplace operations with no overlapping indicies. use .to_vec() if needed");
@@ -224,7 +268,8 @@ public:
      * @brief In-place component-wise multiplication with other Swizzled
      */
     template<std::size_t M, std::size_t... OtherIndicies>
-    Swizzled operator*=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+    Swizzled& operator*=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         assert(this->does_not_overlap(that) &&
                "inplace operations with no overlapping indicies. use .to_vec() if needed");
@@ -240,7 +285,8 @@ public:
     /**
      * @brief In-place scalar multiplication
      */
-    Swizzled operator*=(const T scalar)
+    Swizzled& operator*=(const T scalar)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         for (T& x : this->range()) {
             x *= scalar;
@@ -251,7 +297,8 @@ public:
     /**
      * @brief In-place scalar division
      */
-    Swizzled operator/=(const T scalar)
+    Swizzled& operator/=(const T scalar)
+        requires(lvalue_has_non_duplicate_indicies)
     {
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != T{ 0 } && "non-zero division");
@@ -265,17 +312,15 @@ public:
 };
 
 /**
- * @brief Specialized Swizzled class for single components, given a single
- * index.
+ * @brief Class for single components
  *
- * @tparam Vec   Vector type instansiated with the correct size and type.
  * @tparam N     Number of components in the vector
  * @tparam T     Type of components
- * @tparam INDEX The index
+ * @tparam Index The index
  */
-template<class Vec, std::size_t N, typename T, std::size_t INDEX>
-    requires(INDEX < N)
-class Swizzled<Vec, N, T, INDEX>
+template<std::size_t N, typename T, std::size_t Index>
+    requires(Index < N)
+class SwizzledSingle
 {
     std::array<T, N> m_components;
 
@@ -283,59 +328,42 @@ public:
     using value_type = T; ///@< value type
 
     /**
-     * @brief Size of swizzled component
+     * @brief Assignment from value
      */
-    static constexpr std::size_t size() { return 1UL; }
+    SwizzledSingle& operator=(const T value)
+    {
+        m_components[Index] = value;
+        return *this;
+    }
+
+    /**
+     * @brief Assignment from other single swizzled component of same kind
+     */
+    SwizzledSingle& operator=(const SwizzledSingle& that)
+    {
+        m_components[Index] = T{ that };
+        return *this;
+    }
+
+    /**
+     * @brief Assignment from other single swizzled component
+     */
+    template<std::size_t M, std::size_t OtherIndex>
+    SwizzledSingle& operator=(const SwizzledSingle<M, T, OtherIndex>& that)
+    {
+        m_components[Index] = T{ that };
+        return *this;
+    }
 
     /**
      * @brief Implicit conversion to number
      */
-    operator T() const { return m_components[INDEX]; }
+    operator T() const { return m_components[Index]; }
 
     /**
      * @brief Implicit conversion to number reference
      */
-    operator T&() { return m_components[INDEX]; }
-
-    /**
-     * @brief Assignment from number
-     */
-    T operator=(const T value) { return (m_components[INDEX] = value); }
-
-    /**
-     * @brief Range of swizzled component
-     */
-    std::ranges::view auto range() { return std::ranges::views::single(m_components[INDEX]); }
-
-    /**
-     * @brief Range of swizzled component
-     */
-    std::ranges::view auto range() const { return std::ranges::views::single(m_components[INDEX]); }
-
-    /**
-     * @brief Convert this to a temporary vector copy
-     */
-    Vec to_vec() const { return Vec{ (*this) }; }
-
-    /**
-     * @brief Index the swizzled component.
-     */
-    T& operator[](const std::size_t i)
-    {
-        assert(i == 0UL && "index is inside bounds");
-
-        return m_components[INDEX];
-    }
-
-    /**
-     * @brief Index the swizzled component.
-     */
-    T operator[](const std::size_t i) const
-    {
-        assert(i == 0UL && "index is inside bounds");
-
-        return m_components[INDEX];
-    }
+    operator T&() { return m_components[Index]; }
 };
 
 } // namespace asciirast::math

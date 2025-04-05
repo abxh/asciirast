@@ -44,7 +44,11 @@ class VecBase<Vec, 1, T>
     static constexpr std::size_t N = 1;
 
     template<std::size_t... Indicies>
+        requires(sizeof...(Indicies) > 1U)
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
+
+    template<std::size_t Index>
+    using SingleComponent = SwizzledSingle<N, T, Index>;
 
 public:
     union
@@ -58,7 +62,7 @@ public:
          * @{
          */
         /// @cond DO_NOT_DOCUMENT
-        Component<0> x;
+        SingleComponent<0> x;
         Component<0, 0> xx;
         Component<0, 0, 0> xxx;
         Component<0, 0, 0, 0> xxxx;
@@ -84,6 +88,9 @@ class VecBase<Vec, 2, T>
     template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
+    template<std::size_t Index>
+    using SingleComponent = SwizzledSingle<N, T, Index>;
+
 public:
     union
     {
@@ -96,8 +103,8 @@ public:
          * @{
          */
         /// @cond DO_NOT_DOCUMENT
-        Component<0> x;
-        Component<1> y;
+        SingleComponent<0> x;
+        SingleComponent<1> y;
 
         Component<0, 0> xx;
         Component<0, 1> xy;
@@ -152,6 +159,9 @@ class VecBase<Vec, 3, T>
     template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
+    template<std::size_t Index>
+    using SingleComponent = SwizzledSingle<N, T, Index>;
+
 public:
     union
     {
@@ -164,9 +174,9 @@ public:
          * @{
          */
         /// @cond DO_NOT_DOCUMENT
-        Component<0> x;
-        Component<1> y;
-        Component<2> z;
+        SingleComponent<0> x;
+        SingleComponent<1> y;
+        SingleComponent<2> z;
 
         Component<0, 0> xx;
         Component<0, 1> xy;
@@ -311,6 +321,9 @@ class VecBase<Vec, 4, T>
     template<std::size_t... Indicies>
     using Component = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
+    template<std::size_t Index>
+    using SingleComponent = SwizzledSingle<N, T, Index>;
+
 public:
     union
     {
@@ -323,10 +336,10 @@ public:
          * @{
          */
         /// @cond DO_NOT_DOCUMENT
-        Component<0> x;
-        Component<1> y;
-        Component<2> z;
-        Component<3> w;
+        SingleComponent<0> x;
+        SingleComponent<1> y;
+        SingleComponent<2> z;
+        SingleComponent<3> w;
 
         Component<0, 0> xx;
         Component<0, 1> xy;
