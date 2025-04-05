@@ -35,6 +35,7 @@ class Transform<2, T, is_col_major>
 {
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
+    using Mat2 = Mat<2, 2, T, is_col_major>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
     using Rot2 = Rot<2, T, is_col_major>;
 
@@ -98,8 +99,8 @@ public:
         const Vec3 vr = { +delta_x, +delta_y, 1 };
         const Vec3 vi = { -delta_x, -delta_y, 1 };
 
-        const auto mr = Mat3::identity().col_set(2, vr);
-        const auto mi = Mat3::identity().col_set(2, vi);
+        const auto mr = Mat3{ Mat2::identity(), vr };
+        const auto mi = Mat3{ Mat2::identity(), vi };
 
         return this->stack(mr, mi);
     }
@@ -170,13 +171,17 @@ public:
      */
     Transform& shearX(const T t)
     {
-        const Vec3 a  = { 1, t, 0 };
-        const Vec3 b  = { 0, 1, 0 };
-        const Vec3 c  = { 0, 0, 1 };
+        // clang-format off
+        const Vec3 a  = { 1, +t, 0 };
+        const Vec3 b  = { 0,  1, 0 };
+        const Vec3 c  = { 0,  0, 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
-        auto mi{ mr };
-        mi[0, 1] *= -1;
+        const Vec3 ai = { 1, -t, 0 };
+        const Vec3 bi = { 0,  1, 0 };
+        const Vec3 ci = { 0,  0, 1 };
+        const auto mi = Mat3::from_rows(ai, bi, ci);
+        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -187,13 +192,17 @@ public:
      */
     Transform& shearY(const T t)
     {
-        const Vec3 a  = { 1, 0, 0 };
-        const Vec3 b  = { t, 1, 0 };
-        const Vec3 c  = { 0, 0, 1 };
+        // clang-format off
+        const Vec3 a  = {  1, 0, 0 };
+        const Vec3 b  = { +t, 1, 0 };
+        const Vec3 c  = {  0, 0, 1 };
         const auto mr = Mat3::from_rows(a, b, c);
 
-        auto mi{ mr };
-        mi[1, 0] *= -1;
+        const Vec3 ai = {  1, 0, 0 };
+        const Vec3 bi = { -t, 1, 0 };
+        const Vec3 ci = {  0, 0, 1 };
+        const auto mi = Mat3::from_rows(ai, bi, ci);
+        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -211,6 +220,7 @@ class Transform<3, T, is_col_major>
 {
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
+    using Mat3 = Mat<3, 3, T, is_col_major>;
     using Mat4 = Mat<4, 4, T, is_col_major>;
     using Rot3 = Rot<3, T, is_col_major>;
 
@@ -274,10 +284,10 @@ public:
     Transform& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const Vec4 v  = { +delta_x, +delta_y, +delta_z, 1 };
-        const auto mr = Mat4::identity().col_set(3, v);
+        const auto mr = Mat4{ Mat3::identity(), v };
 
         const Vec4 vi = { -delta_x, -delta_y, -delta_z, 1 };
-        const auto mi = Mat4::identity().col_set(3, vi);
+        const auto mi = Mat4{ Mat3::identity(), vi };
 
         return this->stack(mr, mi);
     }
@@ -363,15 +373,19 @@ public:
      */
     Transform& shearXY(const T s, const T t)
     {
-        const Vec4 a  = { 1, 0, s, 0 };
-        const Vec4 b  = { 0, 1, t, 0 };
-        const Vec4 c  = { 0, 0, 1, 0 };
-        const Vec4 d  = { 0, 0, 0, 1 };
+        // clang-format off
+        const Vec4 a  = { 1, 0, +s, 0 };
+        const Vec4 b  = { 0, 1, +t, 0 };
+        const Vec4 c  = { 0, 0,  1, 0 };
+        const Vec4 d  = { 0, 0,  0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi{ mr };
-        mi[0, 2] *= -1;
-        mi[1, 2] *= -1;
+        const Vec4 ai = { 1, 0, -s, 0 };
+        const Vec4 bi = { 0, 1, -t, 0 };
+        const Vec4 ci = { 0, 0,  1, 0 };
+        const Vec4 di = { 0, 0,  0, 1 };
+        const auto mi = Mat4::from_rows(ai, bi, ci, di);
+        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -382,15 +396,19 @@ public:
      */
     Transform& shearXZ(const T s, const T t)
     {
-        const Vec4 a  = { 1, s, 0, 0 };
-        const Vec4 b  = { 0, 1, 0, 0 };
-        const Vec4 c  = { 0, t, 1, 0 };
-        const Vec4 d  = { 0, 0, 0, 1 };
+        // clang-format off
+        const Vec4 a  = { 1, +s, 0, 0 };
+        const Vec4 b  = { 0,  1, 0, 0 };
+        const Vec4 c  = { 0, +t, 1, 0 };
+        const Vec4 d  = { 0,  0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi{ mr };
-        mi[0, 1] *= -1;
-        mi[2, 1] *= -1;
+        const Vec4 ai = { 1, -s, 0, 0 };
+        const Vec4 bi = { 0,  1, 0, 0 };
+        const Vec4 ci = { 0, -t, 1, 0 };
+        const Vec4 di = { 0,  0, 0, 1 };
+        const auto mi = Mat4::from_rows(ai, bi, ci, di);
+        // clang-format on
 
         return this->stack(mr, mi);
     }
@@ -401,15 +419,19 @@ public:
      */
     Transform& shearYZ(const T s, const T t)
     {
-        const Vec4 a  = { 1, 0, 0, 0 };
-        const Vec4 b  = { s, 1, 0, 0 };
-        const Vec4 c  = { t, 0, 1, 0 };
-        const Vec4 d  = { 0, 0, 0, 1 };
+        // clang-format off
+        const Vec4 a  = {  1, 0, 0, 0 };
+        const Vec4 b  = { +s, 1, 0, 0 };
+        const Vec4 c  = { +t, 0, 1, 0 };
+        const Vec4 d  = {  0, 0, 0, 1 };
         const auto mr = Mat4::from_rows(a, b, c, d);
 
-        auto mi{ mr };
-        mi[1, 0] *= -1;
-        mi[2, 0] *= -1;
+        const Vec4 ai = {  1, 0, 0, 0 };
+        const Vec4 bi = { -s, 1, 0, 0 };
+        const Vec4 ci = { -t, 0, 1, 0 };
+        const Vec4 di = {  0, 0, 0, 1 };
+        const auto mi = Mat4::from_rows(ai, bi, ci, di);
+        // clang-format on
 
         return this->stack(mr, mi);
     }

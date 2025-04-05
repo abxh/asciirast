@@ -296,7 +296,7 @@ private:
                     const PFrag wfrag1 = screen_to_window_func(pfrag1);
                     const PFrag wfrag2 = screen_to_window_func(pfrag2);
 
-                    // iterate over line fragments:
+                    // iterate over triangle fragments:
                     for (const auto& [pos, z_inv, w_inv, attrs] :
                          rasterize::rasterize_triangle<decltype(wfrag0.attrs), true>(wfrag0, wfrag1, wfrag2)) {
 

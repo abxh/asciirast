@@ -638,7 +638,8 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) | std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) |
+               std::ranges::views::take(M_y);
     }
 
     /**
@@ -649,7 +650,8 @@ private:
     {
         assert(x < this->col_count() && "index is inside bounds");
 
-        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) | std::ranges::views::take(M_y);
+        return std::ranges::views::drop(this->range(), static_cast<std::ptrdiff_t>(M_y * x)) |
+               std::ranges::views::take(M_y);
     }
 };
 
