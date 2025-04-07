@@ -275,8 +275,7 @@ class Vec : public VecBase<Vec, N, T>
 {
     template<typename... Args>
     static constexpr bool constructible_from_args_v =
-            (sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
-             detail::not_a_single_value<Vec, Args...>::value) &&
+            (detail::not_a_single_value<T, Args...>::value && detail::not_a_single_value<Vec, Args...>::value) &&
             (detail::vec_constructible_from<N, T, Args...>::value);
 
 protected:
@@ -351,8 +350,9 @@ public:
      * padding the rest of the vector with zeroes.
      */
     template<typename... Args>
-        requires(constructible_from_args_v<Args...>)
+        requires(sizeof...(Args) > 0)
     Vec(Args&&... args)
+        requires(constructible_from_args_v<Args...>)
     {
         using initializer = detail::vec_initializer<N, T>;
 

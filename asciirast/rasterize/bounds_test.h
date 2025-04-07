@@ -1,23 +1,19 @@
 #pragma once
 
-#include <list>
-
 #include "../math/types.h"
+#include "../program.h"
+
+#include <cassert>
+#include <deque>
+#include <utility>
 
 namespace asciirast::rasterize {
 
-// static bool point_in_screen(const math::Vec2& p) {
-//   const bool x_in_bounds = -1 <= p.x && p.x <= +1;
-//   const bool y_in_bounds = -1 <= p.y && p.y <= +1;
-//
-//   return x_in_bounds && y_in_bounds;
-// }
-
 static bool
-point_in_unit_square(const math::Vec2& p)
+point_in_screen(const math::Vec2& p)
 {
-    const bool x_in_bounds = +0 <= p.x && p.x <= +1;
-    const bool y_in_bounds = +0 <= p.y && p.y <= +1;
+    const bool x_in_bounds = -1 <= p.x && p.x <= +1;
+    const bool y_in_bounds = -1 <= p.y && p.y <= +1;
 
     return x_in_bounds && y_in_bounds;
 }
@@ -155,9 +151,11 @@ line_in_bounds(const math::Vec4& p0,
 }
 
 static auto
-line_in_bounds(const math::Vec2& p0, const math::Vec2& p1, const math::Vec2& min, const math::Vec2& max)
-        -> std::optional<std::tuple<math::F, math::F>>
+line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::F, math::F>>
 {
+    const math::Vec2 min{ -1, -1 };
+    const math::Vec2 max{ +1, +1 };
+
     math::F t0 = 0;
     math::F t1 = 1;
 
@@ -167,19 +165,6 @@ line_in_bounds(const math::Vec2& p0, const math::Vec2& p1, const math::Vec2& min
         }
     }
     return std::make_optional(std::make_tuple(t0, t1));
-}
-
-// static auto line_in_screen(const math::Vec2& p0, const math::Vec2&
-// p1)
-//     -> std::optional<std::tuple<math::F, math::F>> {
-//   return line_in_bounds(p0, p1, math::Vec2{-1, -1}, math::Vec2{+1,
-//   +1});
-// }
-
-static auto
-line_in_unit_square(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::F, math::F>>
-{
-    return line_in_bounds(p0, p1, math::Vec2{ +0, +0 }, math::Vec2{ +1, +1 });
 }
 
 static auto
@@ -206,15 +191,17 @@ line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std
 // Triangle clipping algorithm based on:
 // https://youtu.be/HXSuNxpCzdM?feature=shared&t=2155
 
-using Vec2_Triplet = std::array<math::Vec2, 3>;
-using Vec4_Triplet = std::array<math::Vec4, 3>;
-using Attr_Triplet = std::array<math::Vec4, 3>;
+using Vec2Triplet = std::array<math::Vec2, 3>;
+using Vec4Triplet = std::array<math::Vec4, 3>;
+
+template<VaryingInterface VaryingType>
+using AttrsTriplet = std::array<VaryingType, 3>;
 
 namespace detail {
 
 static inline auto
 count_num_triangle_vertices_inside(const BorderType border,
-                                   const Vec2_Triplet& v,
+                                   const Vec2Triplet& v,
                                    const math::Vec2& min,
                                    const math::Vec2& max) -> std::tuple<unsigned, std::array<bool, 3>>
 {
@@ -253,7 +240,7 @@ count_num_triangle_vertices_inside(const BorderType border,
 }
 
 static inline auto
-count_num_triangle_vertices_inside(const BorderType border, const Vec4_Triplet& v)
+count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v)
         -> std::tuple<unsigned, std::array<bool, 3>>
 {
     const auto [v0, v1, v2] = v;
@@ -300,16 +287,15 @@ count_num_triangle_vertices_inside(const BorderType border, const Vec4_Triplet& 
     return { inside[0] + inside[1] + inside[2], inside };
 }
 
-template<bool is_clockwise_winding_order>
+template<unsigned count>
 static inline auto
-get_ordered_triangle_verticies_with_1_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
+get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
 {
-    // first point is inside. others are outside.
+    // order:
+    // ... -> 0 -> 1 -> 2 -> ...
 
-    if constexpr (is_clockwise_winding_order) {
-        // order:
-        // ... -> 0 -> 1 -> 2 -> ...
-
+    if constexpr (count == 1) {
+        // first point is inside. others are outside.
         if (inside[0]) {
             return { 0, 1, 2 };
         } else if (inside[1]) {
@@ -317,31 +303,8 @@ get_ordered_triangle_verticies_with_1_inside(const std::array<bool, 3>& inside) 
         } else if (inside[2]) {
             return { 2, 0, 1 };
         }
-    } else {
-        // order:
-        // ... <- 0 <- 1 <- 2 <- ...
-
-        if (inside[0]) {
-            return { 0, 2, 1 };
-        } else if (inside[1]) {
-            return { 1, 0, 2 };
-        } else if (inside[2]) {
-            return { 2, 1, 0 };
-        }
-    }
-    return { 3, 3, 3 };
-}
-
-template<bool is_CW_winding_order>
-static inline auto
-get_ordered_triangle_verticies_with_2_inside(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
-{
-    // first two points are inside. last one is outside.
-
-    if constexpr (is_CW_winding_order) {
-        // order:
-        // ... -> 0 -> 1 -> 2 -> ...
-
+    } else if constexpr (count == 2) {
+        // first two points are inside. last one is outside.
         if (inside[0] && inside[1]) {
             return { 0, 1, 2 };
         } else if (inside[0] && inside[2]) {
@@ -349,90 +312,81 @@ get_ordered_triangle_verticies_with_2_inside(const std::array<bool, 3>& inside) 
         } else if (inside[1] && inside[2]) {
             return { 1, 2, 0 };
         }
-    } else {
-        // order:
-        // ... <- 0 <- 1 <- 2 <- ...
-
-        if (inside[0] && inside[1]) {
-            return { 1, 0, 2 };
-        } else if (inside[0] && inside[2]) {
-            return { 0, 2, 1 };
-        } else if (inside[1] && inside[2]) {
-            return { 2, 1, 0 };
-        }
     }
-    return { 3, 3, 3 };
+    assert(false);
+    std::unreachable();
+
+    return { 0, 0, 0 };
 }
 
 }; // namespace detail
 
-template<bool is_CW_winding_order>
+template<VaryingInterface VaryingType, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
 static bool
-triangle_in_frustum(std::list<Vec4_Triplet>& vecs_queue, std::list<Attr_Triplet>& attr_queue)
+triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
+                    std::deque<AttrsTriplet<VaryingType>, AttrAllocatorType>& attrs_queue)
 {
-    assert(vecs_queue.size() > 0U);
-    assert(vecs_queue.size() == attr_queue.size());
+    assert(vec_queue.size() > 0);
+    assert(vec_queue.size() == attrs_queue.size());
 
-    if (const auto [v0, v1, v2] = *vecs_queue.begin(); v0.w < 0 && v1.w < 0 && v2.w < 0) {
+    if (const auto [v0, v1, v2] = *vec_queue.begin(); v0.w < 0 && v1.w < 0 && v2.w < 0) {
         return false;
     }
 
     for (auto border = BorderType::BEGIN; border < BorderType::END; border = detail::next_border_type(border)) {
-        auto it_vecs = vecs_queue.begin();
-        auto it_attr = attr_queue.begin();
+        auto it_vec  = vec_queue.begin();
+        auto it_attr = attrs_queue.begin();
 
-        while (it_vecs != vecs_queue.end()) {
-            auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vecs);
+        while (it_vec != vec_queue.end()) {
+            auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec);
             switch (count) {
             case 0:
-                it_vecs = vecs_queue.erase(it_vecs);
-                it_attr = attr_queue.erase(it_attr);
+                it_vec  = vec_queue.erase(it_vec);
+                it_attr = attrs_queue.erase(it_attr);
                 continue;
             case 1: {
-                const auto vecs_triplet = *it_vecs;
-                const auto attr_triplet = *it_attr;
-                const auto [i0, i1, i2] =
-                        detail::get_ordered_triangle_verticies_with_1_inside<is_CW_winding_order>(inside);
-                const auto [p0, p1, p2] = { vecs_triplet[i0], vecs_triplet[i1], vecs_triplet[i2] };
-                const auto [a0, a1, a2] = { attr_triplet[i0], attr_triplet[i1], attr_triplet[i2] };
+                const auto vec_triplet   = *it_vec;
+                const auto attrs_triplet = *it_attr;
+                const auto [i0, i1, i2]  = detail::get_ordered_triangle_verticies<1>(inside);
+                const auto [p0, p1, p2]  = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
+                const auto [a0, a1, a2]  = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
                 const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
                 const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
 
                 math::F t0a = 0.f;
                 math::F t0b = 0.f;
-                math::F t1a = 1.f;
-                math::F t2b = 1.f;
+                math::F t01 = 1.f;
+                math::F t02 = 1.f;
 
-                const bool b01 = line_in_bounds(p0, p1, border, min, max, t0a, t1a);
-                const bool b02 = line_in_bounds(p0, p2, border, min, max, t0b, t2b);
+                const bool b01 = line_in_bounds(p0, p1, border, min, max, t0a, t01);
+                const bool b02 = line_in_bounds(p0, p2, border, min, max, t0b, t02);
 
                 assert(b01);
                 assert(t0a == 0.f);
-                assert(t1a != 1.f);
+                assert(t01 != 1.f);
 
                 assert(b02);
                 assert(t0b == 0.f);
-                assert(t2b != 1.f);
+                assert(t02 != 1.f);
 
                 [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
-                [[assume(t1a != 1.f)]];
+                [[assume(t01 != 1.f)]];
 
                 [[assume(b02 == true)]];
                 [[assume(t0b == 0.f)]];
-                [[assume(t2b != 1.f)]];
+                [[assume(t02 != 1.f)]];
 
-                *it_vecs = Vec4_Triplet{ p0, math::lerp(p0, p1, t1a), math::lerp(p0, p2, t2b) };
-                *it_attr = Attr_Triplet{ a0, lerp_varying(a0, a1, t1a), lerp_varying(a0, a2, t2b) };
+                *it_vec  = Vec4Triplet{ p0, math::lerp(p0, p1, t01), math::lerp(p0, p2, t02) };
+                *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
             } break;
             case 2: {
-                const auto vecs_triplet = *it_vecs;
-                const auto attr_triplet = *it_attr;
-                const auto [i0, i1, i2] =
-                        detail::get_ordered_triangle_verticies_with_2_inside<is_CW_winding_order>(inside);
-                const auto [p0, p1, p2] = { vecs_triplet[i0], vecs_triplet[i1], vecs_triplet[i2] };
-                const auto [a0, a1, a2] = { attr_triplet[i0], attr_triplet[i1], attr_triplet[i2] };
+                const auto vec_triplet   = *it_vec;
+                const auto attrs_triplet = *it_attr;
+                const auto [i0, i1, i2]  = detail::get_ordered_triangle_verticies<2>(inside);
+                const auto [p0, p1, p2]  = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
+                const auto [a0, a1, a2]  = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
                 const math::Vec3 min0 = { -p0.w, -p0.w, -p0.w };
                 const math::Vec3 max0 = { +p0.w, +p0.w, +p0.w };
@@ -440,63 +394,61 @@ triangle_in_frustum(std::list<Vec4_Triplet>& vecs_queue, std::list<Attr_Triplet>
                 const math::Vec3 min1 = { -p1.w, -p1.w, -p1.w };
                 const math::Vec3 max1 = { +p1.w, +p1.w, +p1.w };
 
-                math::F t0a = 0.f;
-                math::F t1b = 0.f;
-                math::F t2a = 1.f;
-                math::F t2b = 1.f;
+                math::F t0  = 0.f;
+                math::F t1  = 0.f;
+                math::F t02 = 1.f;
+                math::F t12 = 1.f;
 
-                const bool b2a = line_in_bounds(p0, p2, border, min0, max0, t0a, t2a);
-                const bool b2b = line_in_bounds(p1, p2, border, min1, max1, t1b, t2b);
+                const bool b02 = line_in_bounds(p0, p2, border, min0, max0, t0, t02);
+                const bool b12 = line_in_bounds(p1, p2, border, min1, max1, t1, t12);
 
-                assert(b2a);
-                assert(t0a == 0.f);
-                assert(t2a != 1.f);
+                assert(b02);
+                assert(t0 == 0.f);
+                assert(t02 != 1.f);
 
-                assert(b2b);
-                assert(t1b == 0.f);
-                assert(t2b != 1.f);
+                assert(b12);
+                assert(t1 == 0.f);
+                assert(t12 != 1.f);
 
-                [[assume(b2a == true)]];
-                [[assume(t0a == 0.f)]];
-                [[assume(t2a != 1.f)]];
+                [[assume(b02 == true)]];
+                [[assume(t0 == 0.f)]];
+                [[assume(t02 != 1.f)]];
 
-                [[assume(b2b == true)]];
-                [[assume(t1b == 0.f)]];
-                [[assume(t2b != 1.f)]];
+                [[assume(b12 == true)]];
+                [[assume(t1 == 0.f)]];
+                [[assume(t12 != 1.f)]];
 
-                const auto p2a = math::lerp(p0, p2, t2a);
-                const auto p2b = math::lerp(p1, p2, t2b);
+                const auto p02 = math::lerp(p0, p2, t02);
+                const auto p12 = math::lerp(p1, p2, t12);
 
-                const auto a2a = lerp_varying(a0, a2, t2a);
-                const auto a2b = lerp_varying(a1, a2, t2b);
+                const auto a02 = lerp_varying(a0, a2, t02);
+                const auto a12 = lerp_varying(a1, a2, t12);
 
-                vecs_queue.insert(it_vecs, Vec4_Triplet{ p0, p1, p2a });
-                attr_queue.insert(it_attr, Vec4_Triplet{ p0, p1, a2a });
+                *it_vec  = Vec4Triplet{ p0, p1, p02 };
+                *it_attr = AttrsTriplet{ a0, a1, a02 };
 
-                if constexpr (is_CW_winding_order) {
-                    *it_vecs = Vec4_Triplet{ p2, p2b, p2a };
-                    *it_attr = Attr_Triplet{ a2, a2b, a2a };
-                } else {
-                    *it_vecs = Vec4_Triplet{ p2, p2a, p2b };
-                    *it_attr = Attr_Triplet{ a2, p2a, p2b };
-                }
+                vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
+                attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
             } break;
             case 3:
+                break;
             default:
+                assert(false);
+                std::unreachable();
                 break;
             }
-            ++it_vecs;
+            ++it_vec;
             ++it_attr;
         }
     }
-    return vecs_queue.size() == 0;
+    return vec_queue.size() != 0;
 }
 
 // template<bool is_CW_winding_order>
 // static bool
-// triangle_in_borders(std::list<Vec2_Triplet>& vecs_queue,
+// triangle_in_borders(std::list<Vec2_Triplet>& vec_queue,
 //                     std::list<math::F>& z_inv_queue,
-//                     std::list<Attr_Triplet>& attr_queue,
+//                     std::list<Attrs_Triplet>& attrs_queue,
 //                     const math::Vec2& min,
 //                     const math::Vec2& max)
 // {

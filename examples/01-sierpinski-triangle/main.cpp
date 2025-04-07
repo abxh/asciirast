@@ -61,14 +61,14 @@ public:
     {
         // this ratio worked best for my terminal
 
-        return (5.f * (float)m_height) / (3.f * (float)m_width);
+        return (5.f * (math::F)m_height) / (3.f * (math::F)m_width);
     }
 
-    math::Transform2D viewport_to_window() { return m_viewport_to_window; }
+    math::Transform2D screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
     {
-        if (!(0 <= pos.x && (std::size_t)pos.x <= m_width && 0 <= pos.y && (std::size_t)pos.y <= m_height)) {
+        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
             m_oob_error = true;
             return;
         }
@@ -134,8 +134,11 @@ public:
 
         m_width  = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
-        m_viewport_to_window =
-                math::Transform2D().reflectY().translate(0, 1.f).scale((float)(m_width - 1), (float)(m_height - 1));
+
+        const math::Vec2 scale = { m_width - 1, m_height - 1 };
+        m_screen_to_window =
+                asciirast::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+
         m_rgbc_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
 
@@ -163,7 +166,7 @@ private:
     std::size_t m_height;
     std::vector<RGBC> m_rgbc_buf;
     std::vector<math::F> m_depth_buf;
-    math::Transform2D m_viewport_to_window;
+    math::Transform2D m_screen_to_window;
 };
 
 static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
@@ -176,15 +179,20 @@ struct MyUniform
 
 struct MyVertex
 {
-    float id;
+    math::F id;
     math::Vec2 pos;
     RGB color;
 
+    MyVertex operator-() const { return { -this->id, -this->pos, -this->color }; }
     MyVertex operator+(const MyVertex& that) const
     {
         return { this->id + that.id, this->pos + that.pos, this->color + that.color };
     }
-    MyVertex operator/(const float scalar) const
+    MyVertex operator*(const math::F scalar) const
+    {
+        return { this->id * scalar, this->pos * scalar, this->color * scalar };
+    }
+    MyVertex operator/(const math::F scalar) const
     {
         return { this->id / scalar, this->pos / scalar, this->color / scalar };
     }
@@ -192,11 +200,13 @@ struct MyVertex
 
 struct MyVarying
 {
-    float id;
+    math::F id;
     RGB color;
 
+    MyVarying operator-() const { return { -this->id, -this->color }; }
     MyVarying operator+(const MyVarying& that) const { return { this->id + that.id, this->color + that.color }; }
-    MyVarying operator*(const float scalar) const { return { this->id * scalar, this->color * scalar }; }
+    MyVarying operator*(const math::F scalar) const { return { this->id * scalar, this->color * scalar }; }
+    MyVarying operator/(const math::F scalar) const { return { this->id / scalar, this->color / scalar }; }
 };
 
 class MyProgram
@@ -269,7 +279,7 @@ main(void)
     sierpinski_triangle(vb.verticies, V1, V2, V3, i);
 
     MyProgram p;
-    asciirast::Renderer r;
+    asciirast::Renderer<MyVarying> r;
     TerminalBuffer t;
 
     t.clear_and_update_size();

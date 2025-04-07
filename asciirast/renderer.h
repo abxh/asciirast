@@ -10,16 +10,27 @@
 
 #include <cassert>
 #include <cstddef>
+#include <deque>
 #include <ranges>
 #include <vector>
 
 #include "./math/types.h"
 #include "./program.h"
+
 #include "./rasterize/bounds_test.h"
-#include "./rasterize/lerp.h"
-#include "./rasterize/rasterize.h"
+#include "./rasterize/interpolate.h"
+#include "./rasterize/rasterizate.h"
 
 namespace asciirast {
+
+static inline const auto SCREEN_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
+
+enum class TriangleWindingOrder
+{
+    CLOCKWISE,
+    COUNTER_CLOCKWISE,
+    NEITHER,
+};
 
 enum class ShapeType
 {
@@ -32,25 +43,34 @@ enum class ShapeType
     TRIANGLE_FAN
 };
 
-template<typename Vertex, class Allocator = std::allocator<Vertex>>
+struct RendererOptions
+{
+    TriangleWindingOrder triangle_winding_order = TriangleWindingOrder::NEITHER;
+};
+
+template<typename Vertex, class VertexAllocator = std::allocator<Vertex>>
 struct VertexBuffer
 {
     ShapeType shape_type;
-    std::vector<Vertex, Allocator> verticies;
+    std::vector<Vertex, VertexAllocator> verticies;
 };
 
-template<typename Vertex, class Allocator = std::allocator<Vertex>>
-struct IndexedVertexBuffer : VertexBuffer<Vertex>
+template<typename Vertex,
+         class VertexAllocator = std::allocator<Vertex>,
+         class IndexAllocator  = std::allocator<std::size_t>>
+struct IndexedVertexBuffer : VertexBuffer<Vertex, VertexAllocator>
 {
-    std::vector<std::size_t, Allocator> indicies;
+    std::vector<std::size_t, IndexAllocator> indicies;
 };
 
+template<VaryingInterface Varying,
+         typename Vec4TripletAllocator  = std::allocator<rasterize::Vec4Triplet>,
+         typename AttrsTripletAllocator = std::allocator<rasterize::AttrsTriplet<Varying>>>
 class Renderer
 {
-    bool m_requires_viewport_clipping;
-    math::Transform2D m_screen_to_viewport; ///@< screen -> viewport
-    math::Transform2D m_viewport_to_window; ///@< viewport -> window
-    math::Transform2D m_screen_to_window;   ///@< screen -> viewport -> window
+    bool m_requires_screen_clipping        = false;
+    math::Transform2D m_screen_to_viewport = {};
+    math::Transform2D m_screen_to_window   = {};
 
     static inline math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
                                                                  const math::AABB2D& screen_bounds)
@@ -59,50 +79,45 @@ class Renderer
         assert(viewport_bounds.size_get().y != math::F{ 0 });
 
         const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
-        const auto rel_min  = screen_bounds.min_get().vector_to(viewport_bounds.min_get()) / screen_bounds.size_get();
+        const auto min_vec  = screen_bounds.min_get().vector_to(viewport_bounds.min_get());
 
-        return SCREEN_BOUNDS.to_transform().reversed().scale(rel_size).translate(rel_min);
+        return math::Transform2D().scale(rel_size).translate(min_vec);
     }
 
 public:
-    static inline const auto SCREEN_BOUNDS = math::AABB2D::from_min_max(math::Vec2{ -1, -1 }, math::Vec2{ +1, +1 });
-
-    Renderer()
-            : m_requires_viewport_clipping{ false }
-            , m_screen_to_viewport{ SCREEN_BOUNDS.to_transform().reversed() }
-            , m_viewport_to_window{}
-            , m_screen_to_window{ m_screen_to_viewport } {};
+    Renderer() {};
 
     Renderer(const math::AABB2D& viewport_bounds)
-            : m_requires_viewport_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
-            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) }
-            , m_viewport_to_window{}
-            , m_screen_to_window{ m_screen_to_viewport } {};
+            : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
+            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
-             class VertexAllocator,
-             FrameBufferInterface FrameBuffer>
-        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
+             FrameBufferInterface FrameBuffer,
+             class VertexAllocator>
+        requires(detail::can_use_program_with<Program, Uniform, Vertex, Varying, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
               const VertexBuffer<Vertex, VertexAllocator>& verts,
-              FrameBuffer& out)
+              FrameBuffer& out,
+              RendererOptions options = {})
     {
-        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), out);
+        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), out, options);
     }
 
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
+             FrameBufferInterface FrameBuffer,
              class VertexAllocator,
-             FrameBufferInterface FrameBuffer>
-        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
+             class IndexAllocator>
+        requires(detail::can_use_program_with<Program, Uniform, Vertex, Varying, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
-              const IndexedVertexBuffer<Vertex, VertexAllocator>& verts,
-              FrameBuffer& out)
+              const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
+              FrameBuffer& out,
+              RendererOptions options = {})
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             assert(i < verts.verticies.size() && "index is inside bounds");
@@ -111,40 +126,42 @@ public:
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
-        draw(program, uniform, verts.shape_type, view, out);
+        draw(program, uniform, verts.shape_type, view, out, options);
     }
 
 private:
+    std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator> vec_queue                     = {};
+    std::deque<rasterize::AttrsTriplet<Varying>, AttrsTripletAllocator> vertex_attrs_queue = {};
+
     template<ProgramInterface Program, class Uniform, FrameBufferInterface FrameBuffer>
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
               std::ranges::input_range auto&& range,
-              FrameBuffer& framebuffer)
+              FrameBuffer& framebuffer,
+              const RendererOptions& options)
     {
-        using Vertex = typename Program::Vertex;
-        using PFrag  = ProjectedFragment<typename Program::Varying>;
+        using Vertex  = typename Program::Vertex;
+        using Frag    = Fragment<Varying>;
+        using PFrag   = ProjectedFragment<Varying>;
+        using Targets = typename Program::Targets;
 
-        if (const math::Transform2D viewport_to_window = framebuffer.viewport_to_window();
-            !std::ranges::equal(m_viewport_to_window.mat().range(), viewport_to_window.mat().range())) {
-            m_viewport_to_window = std::move(viewport_to_window);
-            m_screen_to_window   = math::Transform2D().stack(m_screen_to_viewport).stack(m_viewport_to_window);
+        const bool clockwise_winding_order = options.triangle_winding_order == TriangleWindingOrder::CLOCKWISE;
+        const bool neither_winding_order   = options.triangle_winding_order == TriangleWindingOrder::NEITHER;
+
+        if (const math::Transform2D screen_to_window = framebuffer.screen_to_window();
+            !std::ranges::equal(m_screen_to_window.mat().range(), screen_to_window.mat().range())) {
+            m_screen_to_window = std::move(screen_to_window);
         }
 
         const auto round_pos = [](const math::Vec2& pos) -> math::Vec2 {
             return math::floor(pos + math::Vec2{ 0.5f, 0.5f });
         };
-        const auto screen_to_viewport_func = [this](const PFrag& pfrag) -> PFrag {
+        const auto scale_to_viewport_func = [this](const PFrag& pfrag) -> PFrag {
             return PFrag{ .pos   = m_screen_to_viewport.apply(pfrag.pos),
                           .z_inv = pfrag.z_inv,
                           .w_inv = pfrag.w_inv,
                           .attrs = pfrag.attrs };
-        };
-        const auto viewport_to_window_func = [this, round_pos](const PFrag& vfrag) -> PFrag {
-            return PFrag{ .pos   = round_pos(m_viewport_to_window.apply(vfrag.pos)),
-                          .z_inv = vfrag.z_inv,
-                          .w_inv = vfrag.w_inv,
-                          .attrs = vfrag.attrs };
         };
         const auto screen_to_window_func = [this, round_pos](const PFrag& vfrag) -> PFrag {
             return PFrag{ .pos   = round_pos(m_screen_to_window.apply(vfrag.pos)),
@@ -158,7 +175,7 @@ private:
             for (const Vertex& vert : range) {
                 // apply vertex shader
                 // model space -> world space -> view space -> clip space:
-                const auto frag = program.on_vertex(uniform, vert);
+                const Frag frag = program.on_vertex(uniform, vert);
 
                 // cull points outside of viewing volume:
                 if (!rasterize::point_in_frustum(frag.pos)) {
@@ -167,26 +184,21 @@ private:
 
                 // perspective divide
                 // clip space -> screen space:
-                const auto pfrag = rasterize::project(frag);
+                const PFrag pfrag = rasterize::project(frag);
 
-                // screen space -> window space:
-                PFrag wfrag;
-                if (m_requires_viewport_clipping) {
-                    // scale up to viewport:
-                    const auto vfrag = screen_to_viewport_func(pfrag);
+                // scale up to viewport:
+                const PFrag vfrag = scale_to_viewport_func(pfrag);
 
-                    // cull points outside of viewport:
-                    if (!rasterize::point_in_unit_square(vfrag.pos)) {
-                        continue;
-                    }
-
-                    wfrag = viewport_to_window_func(vfrag);
-                } else {
-                    wfrag = screen_to_window_func(pfrag);
+                // cull points outside of screen:
+                if (m_requires_screen_clipping && !rasterize::point_in_screen(vfrag.pos)) {
+                    continue;
                 }
 
+                // screen space -> window space:
+                const PFrag wfrag = screen_to_window_func(vfrag);
+
                 // apply fragment shader:
-                const auto targets = program.on_fragment(uniform, wfrag);
+                const Targets targets = program.on_fragment(uniform, wfrag);
 
                 // plot in framebuffer:
                 framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.z_inv, targets);
@@ -199,8 +211,8 @@ private:
                 const auto draw_line = [&](const Vertex& v0, const Vertex& v1) -> void {
                     // apply vertex shader
                     // model space -> world space -> view space -> clip space:
-                    const auto frag0 = program.on_vertex(uniform, v0);
-                    const auto frag1 = program.on_vertex(uniform, v1);
+                    const Frag frag0 = program.on_vertex(uniform, v0);
+                    const Frag frag1 = program.on_vertex(uniform, v1);
 
                     // clip line so it's inside the viewing volume:
                     const auto tup = rasterize::line_in_frustum(frag0.pos, frag1.pos);
@@ -208,46 +220,48 @@ private:
                         return;
                     }
                     const auto [t0, t1] = tup.value(); // interpolate line using t values
-                    const auto tfrag0   = rasterize::lerp(frag0, frag1, t0);
-                    const auto tfrag1   = rasterize::lerp(frag0, frag1, t1);
+                    const Frag tfrag0   = rasterize::lerp(frag0, frag1, t0);
+                    const Frag tfrag1   = rasterize::lerp(frag0, frag1, t1);
 
                     // perspective divide
                     // clip space -> screen space:
-                    const auto pfrag0 = rasterize::project(tfrag0);
-                    const auto pfrag1 = rasterize::project(tfrag1);
+                    const PFrag pfrag0 = rasterize::project(tfrag0);
+                    const PFrag pfrag1 = rasterize::project(tfrag1);
 
-                    // screen space -> window space:
-                    PFrag wfrag0;
-                    PFrag wfrag1;
-                    if (m_requires_viewport_clipping) {
-                        // scale up to viewport:
-                        const auto vfrag0 = screen_to_viewport_func(pfrag0);
-                        const auto vfrag1 = screen_to_viewport_func(pfrag1);
+                    // scale up to viewport:
+                    const PFrag vfrag0 = scale_to_viewport_func(pfrag0);
+                    const PFrag vfrag1 = scale_to_viewport_func(pfrag1);
 
-                        // clip line so it's inside the viewport:
-                        const auto vtup = rasterize::line_in_unit_square(vfrag0.pos, vfrag1.pos);
+                    // clip line so it's inside the screen:
+                    PFrag vtfrag0 = vfrag0;
+                    PFrag vtfrag1 = vfrag1;
+                    if (m_requires_screen_clipping) {
+                        const auto vtup = rasterize::line_in_screen(vfrag0.pos, vfrag1.pos);
                         if (!vtup.has_value()) {
                             return;
                         }
                         const auto [vt0, vt1] = vtup.value();
-                        const auto vtfrag0    = rasterize::lerp(vfrag0, vfrag1, vt0);
-                        const auto vtfrag1    = rasterize::lerp(vfrag0, vfrag1, vt1);
 
-                        wfrag0 = viewport_to_window_func(vtfrag0);
-                        wfrag1 = viewport_to_window_func(vtfrag1);
-                    } else {
-                        wfrag0 = screen_to_window_func(pfrag0);
-                        wfrag1 = screen_to_window_func(pfrag1);
+                        vtfrag0 = rasterize::lerp(vfrag0, vfrag1, vt0);
+                        vtfrag1 = rasterize::lerp(vfrag0, vfrag1, vt1);
                     }
 
+                    // screen space -> window space:
+                    const PFrag wfrag0 = screen_to_window_func(vtfrag0);
+                    const PFrag wfrag1 = screen_to_window_func(vtfrag1);
+
                     // iterate over line fragments:
-                    for (const auto& [pos, z_inv, w_inv, attrs] : rasterize::rasterize_line(wfrag0, wfrag1)) {
+                    const auto func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
+                                                                         const math::F z_inv,
+                                                                         const math::F w_inv,
+                                                                         const Varying& attrs) -> void {
                         // apply fragment shader:
-                        const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
+                        const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
 
                         // plot point in framebuffer:
                         framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
-                    }
+                    };
+                    rasterize::rasterize_line(wfrag0, wfrag1, func);
                 };
                 for (const auto [v0, v1] : verticies) {
                     draw_line(v0, v1);
@@ -274,35 +288,79 @@ private:
         case ShapeType::TRIANGLES:
         case ShapeType::TRIANGLE_STRIP:
         case ShapeType::TRIANGLE_FAN: {
+            assert(!m_requires_screen_clipping && "not supported yet");
+
             const auto draw_triangles = [&](std::ranges::input_range auto&& verticies, const bool fan = false) -> void {
                 const auto draw_triangle = [&](const Vertex& v0, const Vertex& v1, const Vertex& v2) -> void {
                     // apply vertex shader
                     // model space -> world space -> view space -> clip space:
-                    const auto frag0 = program.on_vertex(uniform, v0);
-                    const auto frag1 = program.on_vertex(uniform, v1);
-                    const auto frag2 = program.on_vertex(uniform, v2);
+                    const Frag frag0 = program.on_vertex(uniform, v0);
+                    const Frag frag1 = program.on_vertex(uniform, v1);
+                    const Frag frag2 = program.on_vertex(uniform, v2);
 
-                    // TODO: clipping
+                    const auto signed_area_2 = math::cross(frag0.pos.vector_to(frag2.pos).xyz.to_vec(),
+                                                           frag0.pos.vector_to(frag1.pos).xyz.to_vec());
 
-                    // perspective divide
-                    // clip space -> screen space:
-                    const auto pfrag0 = rasterize::project(frag0);
-                    const auto pfrag1 = rasterize::project(frag1);
-                    const auto pfrag2 = rasterize::project(frag2);
+                    // perform backface culling:
+                    if (!neither_winding_order && 0 >= signed_area_2) {
+                        return;
+                    }
 
-                    // screen space -> window space:
-                    const PFrag wfrag0 = screen_to_window_func(pfrag0);
-                    const PFrag wfrag1 = screen_to_window_func(pfrag1);
-                    const PFrag wfrag2 = screen_to_window_func(pfrag2);
+                    vec_queue.clear();
+                    vertex_attrs_queue.clear();
 
-                    // iterate over triangle fragments:
-                    for (const auto& [pos, z_inv, w_inv, attrs] :
-                         rasterize::rasterize_triangle<decltype(wfrag0.attrs), true>(wfrag0, wfrag1, wfrag2)) {
-                        // apply fragment shader:
-                        const auto targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
+                    // sort vertices after winding order:
+                    if (clockwise_winding_order || (neither_winding_order && 0 < signed_area_2)) {
+                        vec_queue.insert(vec_queue.end(), { frag0.pos, frag1.pos, frag2.pos });
+                        vertex_attrs_queue.insert(vertex_attrs_queue.end(), { frag0.attrs, frag1.attrs, frag2.attrs });
+                    } else {
+                        vec_queue.insert(vec_queue.end(), { frag0.pos, frag2.pos, frag1.pos });
+                        vertex_attrs_queue.insert(vertex_attrs_queue.end(), { frag0.attrs, frag2.attrs, frag1.attrs });
+                    }
 
-                        // plot point in framebuffer:
-                        framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
+                    // clip triangle so it's inside the viewing volume:
+                    if (!rasterize::triangle_in_frustum(vec_queue, vertex_attrs_queue)) {
+                        return;
+                    }
+                    for (const auto& [vec_triplet, attrs_triplet] :
+                         std::ranges::views::zip(vec_queue, vertex_attrs_queue)) {
+                        const auto [vec0, vec1, vec2]       = vec_triplet;
+                        const auto [attrs0, attrs1, attrs2] = attrs_triplet;
+
+                        const Frag tfrag0 = { .pos = vec0, .attrs = attrs0 };
+                        const Frag tfrag1 = { .pos = vec1, .attrs = attrs1 };
+                        const Frag tfrag2 = { .pos = vec2, .attrs = attrs2 };
+
+                        // perspective divide
+                        // clip space -> screen space:
+                        const PFrag pfrag0 = rasterize::project(tfrag0);
+                        const PFrag pfrag1 = rasterize::project(tfrag1);
+                        const PFrag pfrag2 = rasterize::project(tfrag2);
+
+                        // scale to viewport:
+                        const PFrag vfrag0 = scale_to_viewport_func(pfrag0);
+                        const PFrag vfrag1 = scale_to_viewport_func(pfrag1);
+                        const PFrag vfrag2 = scale_to_viewport_func(pfrag2);
+
+                        // TODO: clipping after viewport
+
+                        // screen space -> window space:
+                        const PFrag wfrag0 = screen_to_window_func(vfrag0);
+                        const PFrag wfrag1 = screen_to_window_func(vfrag1);
+                        const PFrag wfrag2 = screen_to_window_func(vfrag2);
+
+                        // iterate over triangle fragments:
+                        const auto func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
+                                                                             const math::F z_inv,
+                                                                             const math::F w_inv,
+                                                                             const Varying& attrs) -> void {
+                            // apply fragment shader:
+                            const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
+
+                            // plot point in framebuffer:
+                            framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
+                        };
+                        rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, func);
                     }
                 };
                 for (const auto [v0, v1, v2] : verticies) {
@@ -332,5 +390,4 @@ private:
         }
     }
 };
-
 }; // namespace asciirast

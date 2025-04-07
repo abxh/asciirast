@@ -18,9 +18,12 @@ namespace asciirast {
  * Varying are the interpolated attributes of verticies.
  */
 template<typename T>
-concept VaryingInterface = requires(T x) {
+concept VaryingInterface = requires(const T x, T y) {
+    { -x } -> std::same_as<T>;
     { x + x } -> std::same_as<T>;
-    { x * -1.f } -> std::same_as<T>;
+    { x * math::F{ 2 } } -> std::same_as<T>;
+    { x / math::F{ 2 } } -> std::same_as<T>;
+    { y = std::move(x) } -> std::same_as<T&>;
 };
 
 /**
@@ -110,11 +113,12 @@ concept ProgramInterface = requires(const T t) {
 
 namespace detail {
 
-template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
+template<ProgramInterface Program, class Uniform, class Vertex, class Varying, FrameBufferInterface FrameBuffer>
 struct can_use_program_with
 {
     static constexpr bool value = std::is_same_v<typename Program::Uniform, Uniform> &&
                                   std::is_same_v<typename Program::Vertex, Vertex> &&
+                                  std::is_same_v<typename Program::Varying, Varying> &&
                                   std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
 };
 

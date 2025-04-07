@@ -30,10 +30,10 @@ public:
     ~AbstractFrameBuffer() = default;
 
     /**
-     * @brief Get transform that takes points in a unit area and converts
-     *        it to window area
+     * @brief Get transform that converts points from the screen to
+     *        the points in the window
      */
-    virtual math::Transform2D viewport_to_window() = 0;
+    virtual math::Transform2D screen_to_window() = 0;
 
     /**
      * @brief Plot a point in the framebuffer
@@ -47,7 +47,7 @@ public:
 template<class T>
 concept FrameBufferInterface = requires(T t) {
     typename T::Targets;
-    { t.viewport_to_window() } -> std::same_as<math::Transform2D>;
+    { t.screen_to_window() } -> std::same_as<math::Transform2D>;
     {
         t.plot(std::declval<const math::Vec2Int&>(),
                std::declval<const math::F>(),

@@ -40,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    math::Transform2D viewport_to_window() override { return m_viewport_to_window; }
+    math::Transform2D screen_to_window() override { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets) override
     {
@@ -96,8 +96,11 @@ public:
 
         m_width  = (std::size_t)(new_width);
         m_height = (std::size_t)(new_height);
-        m_viewport_to_window =
-                math::Transform2D().reflectY().translate(0, 1.f).scale((math::F)(m_width - 1), (math::F)(m_height - 1));
+
+        const math::Vec2 scale = { m_width - 1, m_height - 1 };
+        m_screen_to_window =
+                asciirast::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+
         m_charbuf.resize(m_width * m_height);
         m_depthbuf.resize(m_width * m_height);
 
@@ -124,7 +127,7 @@ private:
     std::size_t m_height;
     std::vector<char> m_charbuf;
     std::vector<math::F> m_depthbuf;
-    math::Transform2D m_viewport_to_window;
+    math::Transform2D m_screen_to_window;
 };
 
 struct MyUniform
@@ -138,16 +141,18 @@ struct MyUniform
 
 struct MyVertex
 {
-    float id;
+    math::F id;
     math::Vec2 pos;
 };
 
 struct MyVarying
 {
-    float id;
+    math::F id;
 
-    MyVarying operator+(const MyVarying& that) const { return MyVarying{ this->id + that.id }; }
-    MyVarying operator*(const float that) const { return MyVarying{ this->id * that }; }
+    MyVarying operator-() const { return { -this->id }; }
+    MyVarying operator+(const MyVarying& that) const { return { this->id + that.id }; }
+    MyVarying operator*(const math::F scalar) const { return { this->id * scalar }; }
+    MyVarying operator/(const math::F scalar) const { return { this->id / scalar }; }
 };
 
 class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
@@ -158,7 +163,7 @@ class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVaryi
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        float id     = vert.id;
+        math::F id   = vert.id;
         math::Vec2 v = vert.pos;
         if (u.should_flip) {
             v = u.flip_transform.apply(v);
@@ -205,8 +210,8 @@ main(void)
             vb.verticies.push_back(MyVertex{ id, v });
         }
     }
-    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
-    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::Renderer<MyVarying> r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
+    asciirast::Renderer<MyVarying> r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
 
     MyProgram p;
     TerminalBuffer t;

@@ -82,8 +82,7 @@ class Mat
 
     template<typename... Args>
     static constexpr bool constructible_from_args_v =
-            (sizeof...(Args) > 0 && detail::not_a_single_value<T, Args...>::value &&
-             detail::not_a_single_value<Mat, Args...>::value) &&
+            (detail::not_a_single_value<T, Args...>::value && detail::not_a_single_value<Mat, Args...>::value) &&
             (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
 
 protected:
@@ -163,8 +162,9 @@ public:
      * padding the rest of the elements with zeroes.
      */
     template<typename... Args>
-        requires(constructible_from_args_v<Args...>)
+        requires(sizeof...(Args) > 0)
     Mat(Args&&... args)
+        requires(constructible_from_args_v<Args...>)
     {
         using initializer = detail::mat_initializer<M_y, N_x, T, is_col_major>;
 

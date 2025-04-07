@@ -183,7 +183,8 @@ public:
             , m_dir{ cross(from_dir, to_dir) }
     {
         // using trick for half-angle, with the cosine half-angle formula:
-        // cos(theta / 2) = sqrt((1 + cos(theta)/2)
+        // cos(theta / 2) = sqrt((1 + cos(theta))/2)
+
         this->normalize(); // trick requires normalization
     };
 
