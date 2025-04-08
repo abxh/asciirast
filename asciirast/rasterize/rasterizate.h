@@ -41,7 +41,8 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
 
     if (std::isfinite(z_inv0) && std::isfinite(z_inv1)) {
         for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
-            const auto attrs = lerp_varying_perspective_corrected(proj0.attrs, proj1.attrs, z_inv0, z_inv1, acc_z_inv);
+            const auto attrs =
+                    lerp_varying_perspective_corrected(proj0.attrs, proj1.attrs, acc_t, z_inv0, z_inv1, acc_z_inv);
 
             plot(math::floor(acc_v), acc_z_inv, acc_w_inv, attrs);
 
@@ -168,7 +169,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                     const auto weights = math::Vec3{ w0, w1, w2 } / triangle_area_2;
                     const auto acc_z_inv = barycentric(z_inv, weights);
                     const auto acc_w_inv = barycentric(w_inv, weights);
-                    const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, z_inv);
+                    const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, z_inv, acc_z_inv);
 
                     plot(p, acc_z_inv, acc_w_inv, acc_attrs);
                 }

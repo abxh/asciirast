@@ -21,25 +21,6 @@ lerp_varying_perspective_corrected(const Varying& a,
                                    const Varying& b,
                                    const math::F t,
                                    const math::F z_inv0,
-                                   const math::F z_inv1)
-{
-    assert(std::isfinite(z_inv0));
-    assert(std::isfinite(z_inv1));
-
-    const auto z_inv_interpolated = std::lerp(z_inv0, z_inv1, t);
-
-    const auto l = a * z_inv0 * (1 - t);
-    const auto r = b * z_inv1 * t;
-
-    return (l + r) / z_inv_interpolated;
-}
-
-template<VaryingInterface Varying>
-static Varying
-lerp_varying_perspective_corrected(const Varying& a,
-                                   const Varying& b,
-                                   const math::F t,
-                                   const math::F z_inv0,
                                    const math::F z_inv1,
                                    const math::F z_inv_interpolated)
 {
@@ -76,11 +57,13 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
     }
 
     if (std::isfinite(a.z_inv) && std::isfinite(b.z_inv)) {
+        const auto z_inv_interpolated = std::lerp(a.z_inv, b.z_inv, t);
+
         return ProjectedFragment<T>{ .pos = math::lerp(a.pos, b.pos, t),
-                                     .z_inv = std::lerp(a.z_inv, b.z_inv, t),
+                                     .z_inv = z_inv_interpolated,
                                      .w_inv = std::lerp(a.w_inv, b.w_inv, t),
                                      .attrs = lerp_varying_perspective_corrected(
-                                             a.attrs, b.attrs, t, a.z_inv, b.z_inv) };
+                                             a.attrs, b.attrs, t, a.z_inv, b.z_inv, z_inv_interpolated) };
     } else {
         return ProjectedFragment<T>{ .pos = math::lerp(a.pos, b.pos, t),
                                      .z_inv = std::lerp(a.z_inv, b.z_inv, t),
@@ -122,32 +105,10 @@ template<VaryingInterface Varying>
 static Varying
 barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& weights,
-                                  const math::Vec3& z_inv)
-{
-    const auto z_inv_interpolated = barycentric(z_inv, weights);
-
-    assert(z_inv_interpolated != math::F{ 0 });
-
-    const auto wzi = weights * z_inv;
-    const auto aw0 = attrs[0] * wzi[0];
-    const auto aw1 = attrs[1] * wzi[1];
-    const auto aw2 = attrs[2] * wzi[2];
-
-    return (aw0 + aw1 + aw2) / z_inv_interpolated;
-}
-
-/**
- * @brief Interpolation of fragments with barycentric coordinates of
- *        triangles
- */
-template<VaryingInterface Varying>
-static Varying
-barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
-                                  const math::Vec3& weights,
                                   const math::Vec3& z_inv,
                                   const math::F& z_inv_interpolated)
 {
-    assert(z_inv_interpolated != math::F{ 0 });
+    assert(std::isfinite(z_inv_interpolated));
 
     const auto wzi = weights * z_inv;
     const auto aw0 = attrs[0] * wzi[0];
