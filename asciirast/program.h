@@ -21,9 +21,10 @@ template<typename T>
 concept VaryingInterface = requires(const T x, T y) {
     { -x } -> std::same_as<T>;
     { x + x } -> std::same_as<T>;
-    { x * math::F{ 2 } } -> std::same_as<T>;
-    { x / math::F{ 2 } } -> std::same_as<T>;
-    { y = std::move(x) } -> std::same_as<T&>;
+    { x * 2.f } -> std::same_as<T>;
+    { x / 2.f } -> std::same_as<T>;
+    { y = x } -> std::same_as<T&>;
+    { T() } -> std::same_as<T>;
 };
 
 /**
@@ -59,6 +60,19 @@ struct ProjectedFragment
 };
 
 /**
+ * @brief Project a Fragment to converted it to ProjectFragment
+ */
+template<VaryingInterface T>
+static ProjectedFragment<T>
+project_fragment(const Fragment<T>& frag)
+{
+    const auto w_inv = 1 / frag.pos.w;
+    const auto vec = frag.pos.xyz * w_inv;
+
+    return ProjectedFragment<T>{ .pos = vec.xy, .z_inv = 1 / vec.z, .w_inv = w_inv, .attrs = frag.attrs };
+}
+
+/**
  * @brief Abstract (shader) program that can be used to follow the
  * (shader) program interface
  *
@@ -73,7 +87,7 @@ class AbstractProgram
 {
 public:
     using Uniform = UniformType;          ///@< uniform(s) type
-    using Vertex  = VertexType;           ///@< vertex type
+    using Vertex = VertexType;            ///@< vertex type
     using Varying = VaryingType;          ///@< varying type
     using Targets = FrameBuffer::Targets; ///@< framebuffer targets
 

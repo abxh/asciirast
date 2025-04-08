@@ -36,12 +36,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 
-set(SDL_BASED_EXAMPLES OFF)
+set(SDL_BASED_EXAMPLES ON)
 
-# if (SDL_BASED_EXAMPLES)
-#     find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-#     find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
-# endif()
+if (SDL_BASED_EXAMPLES)
+    find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+    find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+endif()
 
 add_subdirectory(external/terminal_utils)
 # add_subdirectory(external/tiny_obj_loader)
@@ -52,8 +52,8 @@ add_subdirectory(asciirast)
 add_subdirectory(examples/00-spiral)
 add_subdirectory(examples/01-sierpinski-triangle)
 
-# if (SDL_BASED_EXAMPLES)
-# 	add_subdirectory(examples/02-hello-triangle)
-# endif()
+if (SDL_BASED_EXAMPLES)
+	# add_subdirectory(examples/SDL-00-hello-triangle)
+endif()
 
 

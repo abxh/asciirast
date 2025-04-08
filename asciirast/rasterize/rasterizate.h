@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cfloat>
 
+#include "../constants.h"
 #include "../math/types.h"
 #include "../program.h"
 #include "./interpolate.h"
@@ -15,25 +16,25 @@ static void
 rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Callable plot)
 {
     // DDA Line algorithm:
-    // - https://www.redblobgames.com/grids/line-drawing/#more
-    // - https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
+    // https://www.redblobgames.com/grids/line-drawing/#more
+    // https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
 
     const auto [v0, z_inv0, w_inv0, attrs0] = proj0;
     const auto [v1, z_inv1, w_inv1, attrs1] = proj1;
 
-    const auto delta   = v1 - v0;
-    const auto size    = math::abs(delta);
-    const auto len     = std::max<math::F>(size.x, size.y);
+    const auto delta = v1 - v0;
+    const auto size = math::abs(delta);
+    const auto len = std::max<math::F>(size.x, size.y);
     const auto len_inv = 1 / len; // division by zero let through
 
-    const auto inc_t     = len_inv;
-    const auto inc_v     = (v1 - v0) * len_inv;
+    const auto inc_t = len_inv;
+    const auto inc_v = (v1 - v0) * len_inv;
     const auto inc_z_inv = (z_inv1 - z_inv0) * len_inv;
     const auto inc_w_inv = (w_inv1 - w_inv0) * len_inv;
     const auto inc_attrs = (attrs1 + attrs0 * -1) * len_inv;
 
-    auto acc_t     = math::F{ 0 };
-    auto acc_v     = v0;
+    auto acc_t = math::F{ 0 };
+    auto acc_v = v0;
     auto acc_z_inv = z_inv0;
     auto acc_w_inv = w_inv0;
     auto acc_attrs = attrs0;
@@ -51,7 +52,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
         }
     } else {
         for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
-            plot(math::floor(acc_v), max_depth, acc_w_inv, acc_attrs);
+            plot(math::floor(acc_v), DEFAULT_DEPTH, acc_w_inv, acc_attrs);
 
             acc_v += inc_v;
             acc_w_inv += inc_w_inv;
@@ -68,9 +69,9 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest)
     // note: (y > 0) since y-axis points up
 
     const bool points_right = math::almost_less_than<math::F>(0, edge.x);
-    const bool points_up    = math::almost_less_than<math::F>(0, edge.y);
+    const bool points_up = math::almost_less_than<math::F>(0, edge.y);
 
-    const bool is_top_edge  = math::almost_equal<math::F>(0, edge.y) && points_right;
+    const bool is_top_edge = math::almost_equal<math::F>(0, edge.y) && points_right;
     const bool is_left_edge = points_up;
 
     return is_top_edge || is_left_edge;
@@ -84,7 +85,8 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj2,
                    const Callable plot)
 {
-    // Algorithm using cross products and bayesian coordinates for triangles:
+    // Algorithm using cross products and bayesian coordinates for
+    // triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
@@ -95,6 +97,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const auto [v1, z_inv1, w_inv1, attrs1] = proj1;
     const auto [v2, z_inv2, w_inv2, attrs2] = proj2;
 
+    const auto attrs = std::array{ attrs0, attrs1, attrs2 };
     const auto z_inv = math::Vec3{ z_inv0, z_inv1, z_inv2 };
     const auto w_inv = math::Vec3{ w_inv0, w_inv1, w_inv2 };
 
@@ -162,10 +165,10 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
             for (std::size_t x = min_x_int; x <= max_x_int; x++) {
                 if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                    const auto weights   = math::Vec3{ w0, w1, w2 } / triangle_area_2;
+                    const auto weights = math::Vec3{ w0, w1, w2 } / triangle_area_2;
                     const auto acc_z_inv = barycentric(z_inv, weights);
                     const auto acc_w_inv = barycentric(w_inv, weights);
-                    const auto acc_attrs = barycentric_perspective_corrected(attrs0, attrs1, attrs2, weights, z_inv);
+                    const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, z_inv);
 
                     plot(p, acc_z_inv, acc_w_inv, acc_attrs);
                 }
@@ -189,11 +192,11 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
             for (std::size_t x = min_x_int; x <= max_x_int; x++) {
                 if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                    const auto weights   = math::Vec3{ w0, w1, w2 } / triangle_area_2;
+                    const auto weights = math::Vec3{ w0, w1, w2 } / triangle_area_2;
                     const auto acc_w_inv = barycentric(w_inv, weights);
-                    const auto acc_attrs = barycentric(attrs0, attrs1, attrs2, weights);
+                    const auto acc_attrs = barycentric(attrs, weights);
 
-                    plot(p, max_depth, acc_w_inv, acc_attrs);
+                    plot(p, DEFAULT_DEPTH, acc_w_inv, acc_attrs);
                 }
                 w0 += delta_w0_x;
                 w1 += delta_w1_x;

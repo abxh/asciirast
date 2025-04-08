@@ -1,7 +1,7 @@
 /**
  * @file VecBase.h
  * @brief File with definitions of the generic and specialized vector
- * base classes
+ *        base classes
  */
 
 #pragma once
@@ -26,7 +26,7 @@ template<template<std::size_t, typename> class Vec, std::size_t N, typename T>
 class VecBase
 {
 public:
-    std::array<T, N> m_components; ///< array of components
+    std::array<T, N> m_components = {}; ///< array of components
 };
 
 /**
@@ -52,7 +52,7 @@ class VecBase<Vec, 1, T>
 public:
     union
     {
-        std::array<T, N> m_components; ///< array of components
+        std::array<T, N> m_components = {}; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x} or {r} of max size 4 as
@@ -92,7 +92,7 @@ class VecBase<Vec, 2, T>
 public:
     union
     {
-        std::array<T, N> m_components; ///< array of components
+        std::array<T, N> m_components = {}; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y}, {r, g} of max size 4 as
@@ -162,7 +162,7 @@ class VecBase<Vec, 3, T>
 public:
     union
     {
-        std::array<T, N> m_components; ///< array of components
+        std::array<T, N> m_components = {}; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y, z} or {r, g, b} of max size
@@ -333,7 +333,7 @@ class VecBase<Vec, 4, T>
 public:
     union
     {
-        std::array<T, N> m_components; ///< array of components
+        std::array<T, N> m_components = {}; ///< array of components
 
         /**
          * @name Swizzled permutatons of {x, y, z, w} or {r, g, b, a} of max

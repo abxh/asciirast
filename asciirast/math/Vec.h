@@ -8,12 +8,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <compare>
 #include <complex>
-#include <cstdlib>
-#include <functional>
+#include <numeric>
 #include <ostream>
-#include <ranges>
 #include <type_traits>
 
 #include "./VecBase.h"
@@ -70,12 +67,13 @@ class Vec;
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-static T
-dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static constexpr auto
+dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
 {
-    const auto view = std::views::zip_transform(std::multiplies(), lhs.range(), rhs.range());
+    const std::array<T, N>& l = lhs.array();
+    const std::array<T, N>& r = rhs.array();
 
-    return std::ranges::fold_left(view, T{ 0 }, std::plus());
+    return std::inner_product(l.begin(), l.end(), r.begin(), T{});
 }
 
 /**
@@ -85,8 +83,8 @@ dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * vectors.
  */
 template<std::size_t N, typename T>
-static T
-cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static constexpr auto
+cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2)
 {
     return lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
@@ -96,8 +94,8 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Vector 3d cross product
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static constexpr auto
+cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
     requires(N == 3)
 {
     /*
@@ -122,10 +120,11 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
 
 /**
  * @brief Vector signed angle ranging from -pi and pi radians
+ * @todo make this function constexpr in c++26 or use library
  */
 template<std::size_t N, typename T>
-static T
-angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static auto
+angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2 && std::is_floating_point_v<T>)
 {
     /*
@@ -142,8 +141,8 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
  * @brief Vector signed angle ranging from -pi and pi radians
  */
 template<std::size_t N, typename T>
-static T
-angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized)
+static auto
+angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized) -> T
     requires(N == 3 && std::is_floating_point_v<T>)
 {
     const Vec<N, T>& up = up_is_normalized ? up_ : up_.normalized();
@@ -156,111 +155,119 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
  * parameter t ranging from 0 to 1.
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t)
+static constexpr auto
+lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
-    const auto func = [=](const T x, const T y) -> T { return std::lerp(x, y, t); };
-    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::lerp(lhs[i], rhs[i], t);
+    }
+    return res;
 }
 
 /**
  * @brief Take the max value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-max(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static constexpr auto
+max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
-    const auto func = [=](const T x, const T y) -> T { return std::max(x, y); };
-    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::max(lhs[i], rhs[i]);
+    }
+    return res;
 }
 
 /**
  * @brief Take the min value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-min(const Vec<N, T>& lhs, const Vec<N, T>& rhs)
+static constexpr auto
+min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
-    const auto func = [=](const T x, const T y) -> T { return std::min(x, y); };
-    const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::min(lhs[i], rhs[i]);
+    }
+    return res;
 }
 
 /**
  * @brief Clamp each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high)
+static constexpr auto
+clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N, T>
+
     requires(std::is_integral_v<T>)
 {
-    const auto func = [=](const T x, const T low_val, const T high_val) -> T {
-        return std::clamp(x, low_val, high_val);
-    };
-    const auto view = std::views::zip_transform(func, v.range(), low.range(), high.range());
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::clamp(v[i], low, high);
+    }
+    return res;
 }
 
 /**
  * @brief Take the absolute value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-abs(const Vec<N, T>& v)
+static constexpr auto
+abs(const Vec<N, T>& v) -> Vec<N, T>
 {
-    const auto func = [](const T x) { return std::abs(x); };
-    const auto view = std::ranges::views::transform(v.range(), func);
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::abs(v[i]);
+    }
+    return res;
 }
 
 /**
  * @brief Take the rounded value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-round(const Vec<N, T>& v)
+static constexpr auto
+round(const Vec<N, T>& v) -> Vec<N, T>
+
     requires(std::is_floating_point_v<T>)
 {
-    const auto func = [](const T x) { return std::round(x); };
-    const auto view = std::ranges::views::transform(v.range(), func);
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::round(v[i]);
+    }
+    return res;
 }
 
 /**
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-ceil(const Vec<N, T>& v)
+static constexpr auto
+ceil(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
-    const auto func = [](const T x) { return std::ceil(x); };
-    const auto view = std::ranges::views::transform(v.range(), func);
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::ceil(v[i]);
+    }
+    return res;
 }
 
 /**
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-static Vec<N, T>
-floor(const Vec<N, T>& v)
+static constexpr auto
+floor(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
-    const auto func = [](const T x) { return std::floor(x); };
-    const auto view = std::ranges::views::transform(v.range(), func);
-
-    return Vec<N, T>{ view };
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::floor(v[i]);
+    }
+    return res;
 }
 
 /**
@@ -287,36 +294,25 @@ public:
     /**
      * @brief Construct default vector with all zeroes
      */
-    Vec()
-    {
-        for (T& x : this->range()) {
-            x = 0;
-        }
-    }
+    constexpr Vec() {};
 
     /**
      * @brief Copy constructor
      */
-    Vec(const Vec& that)
+    constexpr Vec(const Vec& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-
-            dest = src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
         }
     }
 
     /**
      * @brief Move constructor
      */
-    Vec(Vec&& that)
+    constexpr Vec(Vec&& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-
-            dest = src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
         }
     }
 
@@ -325,20 +321,17 @@ public:
      */
     template<std::size_t M, std::size_t... Is>
         requires(M > 1)
-    Vec(const Swizzled<Vec, M, T, Is...>& that)
+    constexpr Vec(const Swizzled<Vec, M, T, Is...>& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-
-            dest = src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
         }
     }
 
     /**
      * @brief Implicitly construct vector from complex number
      */
-    Vec(const std::complex<T>& v)
+    constexpr Vec(const std::complex<T>& v)
         requires(N == 2)
     {
         m_components[0] = std::real(v);
@@ -351,7 +344,7 @@ public:
      */
     template<typename... Args>
         requires(sizeof...(Args) > 0)
-    Vec(Args&&... args)
+    constexpr Vec(Args&&... args)
         requires(constructible_from_args_v<Args...>)
     {
         using initializer = detail::vec_initializer<N, T>;
@@ -362,10 +355,10 @@ public:
     /**
      * @brief Construct vector with given value for all components.
      */
-    explicit Vec(const T y)
+    explicit constexpr Vec(const T value)
     {
-        for (T& x : this->range()) {
-            x = y;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = value;
         }
     }
 
@@ -374,29 +367,10 @@ public:
      */
     template<std::size_t M>
         requires(M > N)
-    explicit Vec(const Vec<M, T>& that)
+    explicit constexpr Vec(const Vec<M, T>& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-
-            dest = src;
-        }
-    }
-
-    /**
-     * @brief Construct vector from input range.
-     */
-    explicit Vec(std::ranges::input_range auto&& range)
-    {
-        assert(N == std::ranges::distance(range));
-        [[assume(N == std::ranges::distance(range))]];
-
-        const auto tups = std::views::zip(this->range(), range);
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-
-            dest = src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
         }
     }
 
@@ -409,27 +383,27 @@ public:
     /**
      * @brief Get pointer over underlying data
      */
-    T* data() { return &m_components[0]; }
+    constexpr T* data() { return &m_components[0]; }
 
     /**
      * @brief Get pointer over underlying data
      */
-    const T* data() const { return &m_components[0]; }
+    constexpr const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Get underlying array
      */
-    std::array<T, N>& array() { return m_components; }
+    constexpr std::array<T, N>& array() { return m_components; }
 
     /**
      * @brief Get underlying array
      */
-    const std::array<T, N>& array() const { return m_components; }
+    constexpr const std::array<T, N>& array() const { return m_components; }
 
     /**
      * @brief Index the vector.
      */
-    T& operator[](const std::size_t i)
+    constexpr T& operator[](const std::size_t i)
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -439,7 +413,7 @@ public:
     /**
      * @brief Index the vector.
      */
-    T operator[](const std::size_t i) const
+    constexpr T operator[](const std::size_t i) const
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -449,9 +423,10 @@ public:
     /**
      * @brief Vector copy operator (redefined to work with Swizzled)
      */
-    Vec& operator=(const Vec& that)
+    constexpr Vec& operator=(const Vec& that)
     {
         this->m_components = that.m_components;
+
         return *this;
     }
 
@@ -460,13 +435,12 @@ public:
      */
     friend std::ostream& operator<<(std::ostream& out, const Vec& v)
     {
-        auto view = v.range();
+        const auto& array = v.array();
 
         out << "[";
-        for (auto it = view.begin(); it != view.end(); ++it) {
+        for (auto it = array.begin(); it != array.end(); ++it) {
             out << *it;
-
-            if (std::next(it) != view.end()) {
+            if (std::next(it) != array.end()) {
                 out << ", ";
             }
         }
@@ -476,19 +450,9 @@ public:
     }
 
     /**
-     * @brief Get range over vector components.
-     */
-    std::ranges::view auto range() { return std::ranges::views::all(m_components); }
-
-    /**
-     * @brief Get range over vector components.
-     */
-    std::ranges::view auto range() const { return std::ranges::views::all(m_components); }
-
-    /**
      * @brief Convert to complex number
      */
-    std::complex<T> to_complex() const
+    constexpr std::complex<T> to_complex() const
         requires(N == 2)
     {
         return std::complex(m_components[0], m_components[1]);
@@ -498,26 +462,33 @@ public:
     /**
      * @brief Check if equal to other vector
      */
-    friend bool operator==(const Vec& lhs, const Vec& rhs)
+    friend constexpr bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T>)
     {
-        return std::ranges::equal(lhs.range(), rhs.range());
+        bool res = true;
+        for (std::size_t i = 0; i < N; i++) {
+            res &= lhs[i] == rhs[i];
+        }
+        return res;
     }
 
     /**
      * @brief Check if approximately equal to other vector
      */
-    friend bool operator==(const Vec& lhs, const Vec& rhs)
+    friend constexpr bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        const auto func = [](const T x, const T y) -> bool { return math::almost_equal<T>(x, y); };
-        return std::ranges::equal(lhs.range(), rhs.range(), func);
+        bool res = true;
+        for (std::size_t i = 0; i < N; i++) {
+            res &= almost_equal(lhs[i], rhs[i]);
+        }
+        return res;
     }
 
     /**
      * @brief Check if approximately not equal to other vector
      */
-    friend bool operator!=(const Vec& lhs, const Vec& rhs)
+    friend constexpr bool operator!=(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
         return !(lhs == rhs);
@@ -526,13 +497,20 @@ public:
     /**
      * @brief Compare lexigraphically with other vector
      */
-    friend auto operator<=>(const Vec& lhs, const Vec& rhs)
+    friend constexpr auto operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T>)
     {
-        if (std::ranges::lexicographical_compare(lhs.range(), rhs.range())) {
+        const auto lexicographical_compare = [](const Vec& l, const Vec& r) -> bool {
+            bool res = true;
+            for (std::size_t i = 0; i < N; i++) {
+                res &= l[i] <= r[i];
+            }
+            return res;
+        };
+        if (lexicographical_compare(lhs, rhs)) {
             return std::strong_ordering::less;
         }
-        if (std::ranges::lexicographical_compare(rhs.range(), lhs.range())) {
+        if (lexicographical_compare(rhs, lhs)) {
             return std::strong_ordering::greater;
         }
         return std::strong_ordering::equal;
@@ -541,17 +519,20 @@ public:
     /**
      * @brief Compare lexigraphically with other vector
      */
-    friend auto operator<=>(const Vec& lhs, const Vec& rhs)
+    friend constexpr auto operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        const auto func = [](const T x, const T y) -> bool {
-            return math::almost_less_than(x, y) || math::almost_equal(x, y);
+        const auto lexicographical_compare = [](const Vec& l, const Vec& r) -> bool {
+            bool res = true;
+            for (std::size_t i = 0; i < N; i++) {
+                res &= math::almost_less_than(l[i], r[i]) || math::almost_equal(l[i], r[i]);
+            }
+            return res;
         };
-
-        if (std::ranges::all_of(std::ranges::views::zip_transform(func, lhs.range(), rhs.range()), std::identity())) {
+        if (lexicographical_compare(lhs, rhs)) {
             return std::partial_ordering::less;
         }
-        if (std::ranges::all_of(std::ranges::views::zip_transform(func, rhs.range(), lhs.range()), std::identity())) {
+        if (lexicographical_compare(rhs, lhs)) {
             return std::partial_ordering::greater;
         }
         return std::partial_ordering::equivalent;
@@ -561,25 +542,21 @@ public:
     /**
      * @brief In-place component-wise addition with vector
      */
-    Vec& operator+=(const Vec& that)
+    constexpr Vec& operator+=(const Vec& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-            dest += src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] += that[i];
         }
-        return *this;
+        return (*this);
     }
 
     /**
      * @brief In-place component-wise subtraction with vector
      */
-    Vec& operator-=(const Vec& that)
+    constexpr Vec& operator-=(const Vec& that)
     {
-        const auto tups = std::views::zip(this->range(), that.range());
-        for (const std::tuple<T&, const T> tup : tups) {
-            auto [dest, src] = tup;
-            dest -= src;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] -= that[i];
         }
         return *this;
     }
@@ -587,10 +564,10 @@ public:
     /**
      * @brief In-place vector-scalar multiplication
      */
-    Vec& operator*=(const T scalar)
+    constexpr Vec& operator*=(const T scalar)
     {
-        for (T& x : this->range()) {
-            x *= scalar;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] *= scalar;
         }
         return *this;
     }
@@ -598,13 +575,13 @@ public:
     /**
      * @brief In-place vector-scalar division
      */
-    Vec& operator/=(const T scalar)
+    constexpr Vec& operator/=(const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != 0 && "non-zero division");
         }
-        for (T& x : this->range()) {
-            x /= scalar;
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] /= scalar;
         }
         return *this;
     }
@@ -613,102 +590,108 @@ public:
     /**
      * @brief Unary minus vector operator
      */
-    Vec operator-() const
+    constexpr Vec operator-() const
     {
-        const auto func = [](const T x) -> T { return -x; };
-        const auto view = std::ranges::views::transform(range(), func);
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = -(*this)[i];
+        }
+        return res;
     }
 
     /**
      * @brief Vector-vector component-wise addition
      */
-    friend Vec operator+(const Vec& lhs, const Vec& rhs)
+    friend constexpr Vec operator+(const Vec& lhs, const Vec& rhs)
     {
-        const auto func = std::plus();
-        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] + rhs[i];
+        }
+        return res;
     }
 
     /**
      * @brief Vector-vector component-wise subtraction
      */
-    friend Vec operator-(const Vec& lhs, const Vec& rhs)
+    friend constexpr Vec operator-(const Vec& lhs, const Vec& rhs)
     {
-        const auto func = std::minus();
-        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] - rhs[i];
+        }
+        return res;
     }
 
     /**
      * @brief Scalar-vector multiplication
      */
-    friend Vec operator*(const T scalar, const Vec& rhs)
+    friend constexpr Vec operator*(const T scalar, const Vec& rhs)
     {
-        const auto func = [=](const T x) -> T { return scalar * x; };
-        const auto view = std::views::transform(rhs.range(), func);
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = scalar * rhs[i];
+        }
+        return res;
     }
 
     /**
      * @brief Vector-scalar multiplication
      */
-    friend Vec operator*(const Vec& lhs, const T scalar)
+    friend constexpr Vec operator*(const Vec& lhs, const T scalar)
     {
-        const auto func = [=](const T x) -> T { return x * scalar; };
-        const auto view = std::views::transform(lhs.range(), func);
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] * scalar;
+        }
+        return res;
     }
 
     /**
      * @brief Vector-vector component-wise multiplication (hadamard
      * product)
      */
-    friend Vec operator*(const Vec& lhs, const Vec& rhs)
+    friend constexpr Vec operator*(const Vec& lhs, const Vec& rhs)
     {
-        const auto func = std::multiplies();
-        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] * rhs[i];
+        }
+        return res;
     }
 
     /**
      * @brief Vector-scalar division
      */
-    friend Vec operator/(const Vec& lhs, const T scalar)
+    friend constexpr Vec operator/(const Vec& lhs, const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != 0 && "non-zero division");
         }
-        const auto func = [=](const T x) -> T { return x / scalar; };
-        const auto view = std::views::transform(lhs.range(), func);
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] / scalar;
+        }
+        return res;
     }
 
     /**
      * @brief Vector-vector component-wise division (hadamard divsion)
      */
-    friend Vec operator/(const Vec& lhs, const Vec& rhs)
+    friend constexpr Vec operator/(const Vec& lhs, const Vec& rhs)
     {
         if constexpr (std::is_integral_v<T>) {
-            const auto is_zero = [](const T x) { return x == 0; };
-
-            assert(std::ranges::none_of(lhs.range(), is_zero) && "non-zero division");
-            assert(std::ranges::none_of(rhs.range(), is_zero) && "non-zero division");
-
-            (void)(is_zero); // if asserts are turned off
+#ifndef NDEBUG
+            for (std::size_t i = 0; i < N; i++) {
+                assert(rhs[i] != 0 && "non-zero division");
+            }
+#endif
         }
-
-        const auto func = std::divides();
-        const auto view = std::views::zip_transform(func, lhs.range(), rhs.range());
-
-        return Vec{ view };
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = lhs[i] / rhs[i];
+        }
+        return res;
     }
 
 public:
@@ -716,23 +699,23 @@ public:
      * @brief Get a vector from this pointing to that. Alias to
      * that - (*this).
      */
-    Vec vector_to(const Vec& that) const { return that - (*this); }
+    constexpr Vec vector_to(const Vec& that) const { return that - (*this); }
 
     /**
      * @brief Calculate the norm of the vector.
      */
-    T norm() const
+    constexpr T norm() const
         requires(std::is_floating_point_v<T>)
     {
         const Vec v = (*this);
 
-        return std::sqrt(dot(v, v));
+        return math::sqrt(dot(v, v));
     }
 
     /**
      * @brief Calculate the normalized vector
      */
-    Vec normalized() const
+    constexpr Vec normalized() const
         requires(std::is_floating_point_v<T>)
     {
         return (*this) / this->norm();
@@ -741,7 +724,7 @@ public:
     /**
      * @brief Calculate the length of the vector. Alias to .norm()
      */
-    T length() const
+    constexpr T length() const
         requires(std::is_floating_point_v<T>)
     {
         return this->norm();
@@ -750,7 +733,7 @@ public:
     /**
      * @brief Calculate the magnitude of the vector. Alias to .norm()
      */
-    T magnitude() const
+    constexpr T magnitude() const
         requires(std::is_floating_point_v<T>)
     {
         return this->norm();
@@ -760,7 +743,7 @@ public:
      * @brief Calculate the normalized direction of the vector. Alias to
      * .normalized()
      */
-    Vec direction() const
+    constexpr Vec direction() const
         requires(std::is_floating_point_v<T>)
     {
         return this->normalized();
@@ -773,10 +756,10 @@ public:
      *
      * @note Can pre-normalize vector and set second parameter to true.
      */
-    Vec project_onto(const Vec& that, const bool is_normalized = false) const
+    constexpr Vec project_onto(const Vec& that, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T>)
     {
-        const Vec v         = (*this);
+        const Vec v = (*this);
         const Vec that_unit = is_normalized ? that : that.normalized();
 
         return dot(v, that_unit) * v;
@@ -788,7 +771,7 @@ public:
      *
      * @note Can pre-normalize vector and set second parameter to true.
      */
-    Vec reflect(const Vec& normal, const bool is_normalized = false) const
+    constexpr Vec reflect(const Vec& normal, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T> && (N == 2 || N == 3))
     {
         return (*this) - T{ 2 } * this->project_onto(normal, is_normalized);
@@ -815,8 +798,8 @@ struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>
 template<typename TT>
 struct vec_info_impl
 {
-    static constexpr bool value       = false; ///< default value
-    static constexpr std::size_t size = 0;     ///< default size
+    static constexpr bool value = false;   ///@< default value
+    static constexpr std::size_t size = 0; ///@< default size
 };
 
 /**
@@ -825,8 +808,8 @@ struct vec_info_impl
 template<std::size_t M, typename U>
 struct vec_info_impl<Vec<M, U>>
 {
-    static constexpr bool value       = true; ///< whether the type is vector like
-    static constexpr std::size_t size = M;    ///< vector size
+    static constexpr bool value = true;    ///@< whether the type is vector like
+    static constexpr std::size_t size = M; ///@< vector size
 };
 
 /**
@@ -836,8 +819,8 @@ template<std::size_t M, typename T, std::size_t... Is>
     requires(sizeof...(Is) > 1)
 struct vec_info_impl<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
 {
-    static constexpr bool value       = true;          ///< whether the type is vector like
-    static constexpr std::size_t size = sizeof...(Is); ///< vector size
+    static constexpr bool value = true;                ///@< whether the type is vector like
+    static constexpr std::size_t size = sizeof...(Is); ///@< vector size
 };
 
 template<typename TT>
@@ -877,12 +860,6 @@ public:
     {
         std::size_t idx = 0;
         init_from_inner(idx, out, std::forward<Args>(args)...);
-
-        const auto rest_indicies = std::views::iota(idx, N);
-
-        for (const std::size_t i : rest_indicies) {
-            out[i] = T{ 0 };
-        }
     }
 
 private:
@@ -902,11 +879,8 @@ private:
     template<std::size_t M, typename U>
     static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, auto&&... rest)
     {
-        const auto is = std::views::iota(idx, idx + M);
-        const auto js = std::views::iota(0U, M);
-
-        for (const auto [i, j] : std::views::zip(is, js)) {
-            out[i] = static_cast<T>(arg[j]);
+        for (std::size_t j = 0; j < M; j++) {
+            out[idx + j] = static_cast<T>(arg[j]);
         }
         idx += M;
         init_from_inner(idx, out, rest...);
@@ -919,11 +893,8 @@ private:
                                           const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
                                           auto&&... rest)
     {
-        const auto is     = std::views::iota(idx);
-        const auto values = arg.range();
-
-        for (const auto [i, value] : std::views::zip(is, values)) {
-            out[i] = static_cast<T>(value);
+        for (std::size_t j = 0; j < M; j++) {
+            out[idx + j] = static_cast<T>(arg[j]);
         }
         idx += sizeof...(Is);
         init_from_inner(idx, out, rest...);

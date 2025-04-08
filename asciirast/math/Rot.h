@@ -2,6 +2,7 @@
  * @file Rot.h
  * @brief File with definition of the rotation abstraction
  *
+ * @todo use library or wait for c++26 for constexpr math functions
  * @todo spherical interpolation
  */
 
@@ -50,7 +51,7 @@ public:
             : m_complex{ T{ 1 } } {};
 
     /**
-     * @brief Construct rotation object from angle in radians
+     * @brief Implicitly construct rotation object from angle in radians
      */
     Rot(const T angle)
             : m_complex{ std::exp(std::complex<T>{ 0, 1 } * angle) } {};
@@ -101,7 +102,7 @@ public:
      */
     Rot reversed() const
     {
-        Rot res       = (*this);
+        Rot res = (*this);
         res.m_complex = std::move(std::conj(m_complex));
         return res;
     }
@@ -162,13 +163,6 @@ class Rot<3, T, is_col_major>
 
 public:
     /**
-     * @brief Construct identity rotation object
-     */
-    Rot()
-            : m_s{ 1 }
-            , m_dir{ 0, 0, 0 } {};
-
-    /**
      * @brief Construct rotation object from axis and angle in radians
      */
     Rot(const Vec3& axis, const T angle, bool normalize = true)
@@ -176,9 +170,16 @@ public:
             , m_dir{ std::sin(angle / 2.f) * ((normalize) ? axis.normalized() : axis) } {};
 
     /**
+     * @brief Construct identity rotation object
+     */
+    constexpr Rot()
+            : m_s{ 1 }
+            , m_dir{ 0, 0, 0 } {};
+
+    /**
      * @brief Construct rotation object from the angle between two vectors
      */
-    Rot(const Vec3& from_dir, const Vec3& to_dir)
+    constexpr Rot(const Vec3& from_dir, const Vec3& to_dir)
             : m_s{ 1 + dot(from_dir, to_dir) }
             , m_dir{ cross(from_dir, to_dir) }
     {
@@ -192,7 +193,7 @@ public:
      * @brief Construct rotation object from the multiplication of two
      * rotation objects
      */
-    Rot(const Rot& lhs, const Rot& rhs, bool normalize = true)
+    constexpr Rot(const Rot& lhs, const Rot& rhs, bool normalize = true)
             : m_s{ lhs.m_s * rhs.m_s - dot(lhs.m_dir, rhs.m_dir) }
             , m_dir{ lhs.m_s * rhs.m_dir + lhs.m_dir * rhs.m_s + cross(lhs.m_dir, rhs.m_dir) }
     {
@@ -206,9 +207,14 @@ public:
      * @brief Construct rotation object from the multiplication of a
      * rotation object on a vector
      */
-    Rot(const Rot& lhs, const Vec3& v) // like above but with rhs.s == 0
+    constexpr Rot(const Rot& lhs, const Vec3& v) // like above but with rhs.s == 0
             : m_s{ -dot(lhs.m_dir, v) }
             , m_dir{ lhs.m_s * v + cross(lhs.m_dir, v) } {};
+
+    /**
+     * @brief Get the underlying quaternion
+     */
+    constexpr Vec4 quat() const { return Vec4{ m_dir, m_s }; }
 
     /**
      * @brief Rotate by angle in x axis
@@ -226,17 +232,12 @@ public:
     Rot& rotateZ(const T angle) { return this->stack(Rot{ Vec3{ 0, 0, 1 }, angle }); }
 
     /**
-     * @brief Get the underlying quaternion
-     */
-    Vec4 quat() const { return Vec4{ m_dir, m_s }; }
-
-    /**
      * @brief Convert to (normalized) axis and angle
      */
     std::tuple<Vec3, T> to_axis_angle() const
     {
         const T half_angle = std::acos(m_s);
-        const Vec3 axis    = m_dir / std::sin(half_angle);
+        const Vec3 axis = m_dir / std::sin(half_angle);
 
         return { axis, T{ 2 } * half_angle };
     }
@@ -244,7 +245,7 @@ public:
     /**
      * @brief Convert to 3D transformation matrix
      */
-    Mat3 to_mat() const
+    constexpr Mat3 to_mat() const
     {
         const Vec3 x_hat = apply(Vec3{ 1, 0, 0 });
         const Vec3 y_hat = apply(Vec3{ 0, 1, 0 });
@@ -256,7 +257,7 @@ public:
     /**
      * @brief Get rotation that performs the reverse rotation
      */
-    Rot reversed() const
+    constexpr Rot reversed() const
     {
         Rot res = (*this);
         res.m_dir *= -1;
@@ -266,19 +267,19 @@ public:
     /**
      * @brief Normalize rotation in-place
      */
-    Rot& normalize()
+    constexpr Rot& normalize()
     {
         const auto v = Vec4{ m_dir, m_s }.normalized();
 
         m_dir = v.xyz;
-        m_s   = v.w;
+        m_s = v.w;
         return (*this);
     }
 
     /**
      * @brief Stack another rotation on top of this
      */
-    Rot& stack(const Rot& that, bool normalize = true)
+    constexpr Rot& stack(const Rot& that, bool normalize = true)
     {
         *this = std::move(Rot{ *this, that, normalize });
         return *this;
@@ -287,12 +288,12 @@ public:
     /**
      * @brief Apply the rotation to a vector
      */
-    Vec3 apply(const Vec3& v) const { return Rot{ Rot{ (*this), v }, reversed(), false }.m_dir; }
+    constexpr Vec3 apply(const Vec3& v) const { return Rot{ Rot{ (*this), v }, reversed(), false }.m_dir; }
 
     /**
      * @brief Invert the applied rotation from a vector
      */
-    Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this), false }.m_dir; }
+    constexpr Vec3 invert(const Vec3& v) const { return Rot{ Rot{ reversed(), v }, (*this), false }.m_dir; }
 };
 
 } // namespace asciirast::math
