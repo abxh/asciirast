@@ -15,7 +15,7 @@
 #include <vector>
 
 namespace math = asciirast::math;
-namespace CSI  = terminal_utils::CSI;
+namespace CSI = terminal_utils::CSI;
 
 using RGB = math::Vec3;
 
@@ -74,18 +74,18 @@ public:
         }
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth          = std::clamp(depth, 0.f, 1.f);
+        depth = std::clamp(depth, 0.f, 1.f);
 
         if (m_depth_buf[idx] >= depth) {
             return;
         }
 
-        const auto rgb    = std::get<RGB>(targets);
-        m_rgbc_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb.x);
-        m_rgbc_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb.y);
-        m_rgbc_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb.z);
+        const auto rgb = std::get<RGB>(targets);
+        m_rgbc_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb.r);
+        m_rgbc_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb.g);
+        m_rgbc_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb.b);
         m_rgbc_buf[idx].c = std::get<char>(targets);
-        m_depth_buf[idx]  = depth;
+        m_depth_buf[idx] = depth;
     }
 
     void render() const
@@ -97,7 +97,7 @@ public:
 
         for (std::size_t y = 0; y < m_height; y++) {
             for (std::size_t x = 0; x < m_width; x++) {
-                const auto idx          = index(y, x);
+                const auto idx = index(y, x);
                 const auto [r, g, b, c] = m_rgbc_buf[idx];
 
                 std::cout << CSI::ESC << CSI::SET_FG_RGB_COLOR << int{ r } << ";" << int{ g } << ";" << int{ b } << "m"
@@ -113,7 +113,7 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
-            m_rgbc_buf[i]  = { .r = 0, .g = 0, .b = 0, .c = clear_char };
+            m_rgbc_buf[i] = { .r = 0, .g = 0, .b = 0, .c = clear_char };
             m_depth_buf[i] = 0.f;
         }
     }
@@ -127,12 +127,12 @@ public:
             this->clear(clear_char);
             return;
         }
-        new_width  = std::max(2, new_width - 1);
+        new_width = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
 
         this->reset_printer();
 
-        m_width  = (std::size_t)new_width;
+        m_width = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
 
         const math::Vec2 scale = { m_width - 1, m_height - 1 };
@@ -211,19 +211,19 @@ struct MyVarying
 
 class MyProgram
 {
-    using Fragment          = asciirast::Fragment<MyVarying>;
+    using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     // alias to fullfill program interface:
     using Uniform = MyUniform;
-    using Vertex  = MyVertex;
+    using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
-        return Fragment{ .pos   = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
+        return Fragment{ .pos = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ vert.id, vert.color } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
@@ -271,7 +271,7 @@ main(void)
     auto V2 = MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::F> }, RGB{ 0, 1, 0 } };
     auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
 
-    int i   = 1;
+    int i = 1;
     int dir = 1;
     asciirast::VertexBuffer<MyVertex> vb{};
     vb.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES

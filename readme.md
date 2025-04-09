@@ -1,5 +1,8 @@
 # asciirast
 
+## Dependencies
+- `libSDL` (for the sdl examples)
+
 ## Build steps
 ```bash
 mkdir build
@@ -16,4 +19,3 @@ Now the executables are visible in `build/bin` directory.
 ## Inspiration
 - https://github.com/nikolausrauch/software-rasterizer
 - https://github.com/ssloy/tinyrenderer/wiki
-- https://thebookofshaders.com/

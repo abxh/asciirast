@@ -53,7 +53,7 @@ add_subdirectory(examples/00-spiral)
 add_subdirectory(examples/01-sierpinski-triangle)
 
 if (SDL_BASED_EXAMPLES)
-	# add_subdirectory(examples/SDL-00-hello-triangle)
+	add_subdirectory(examples/SDL-00-hello-triangle)
 endif()
 
 

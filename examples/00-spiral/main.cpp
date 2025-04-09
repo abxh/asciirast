@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace math = asciirast::math;
-namespace CSI  = terminal_utils::CSI;
+namespace CSI = terminal_utils::CSI;
 
 class TerminalBuffer : public asciirast::AbstractFrameBuffer<char>
 {
@@ -48,13 +48,13 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth          = std::clamp(depth, 0.f, 1.f);
+        depth = std::clamp(depth, 0.f, 1.f);
 
         if (m_depthbuf[idx] >= depth) {
             return;
         }
 
-        m_charbuf[idx]  = std::get<0>(targets);
+        m_charbuf[idx] = std::get<0>(targets);
         m_depthbuf[idx] = depth;
     }
 
@@ -75,7 +75,7 @@ public:
     void clear(const char clear_char = ' ')
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
-            m_charbuf[i]  = clear_char;
+            m_charbuf[i] = clear_char;
             m_depthbuf[i] = 0.f;
         }
     }
@@ -89,12 +89,12 @@ public:
             this->clear(clear_char);
             return;
         }
-        new_width  = std::max(2, new_width - 1);
+        new_width = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
 
         this->reset_printer();
 
-        m_width  = (std::size_t)(new_width);
+        m_width = (std::size_t)(new_width);
         m_height = (std::size_t)(new_height);
 
         const math::Vec2 scale = { m_width - 1, m_height - 1 };
@@ -157,13 +157,13 @@ struct MyVarying
 
 class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
 {
-    using Fragment          = asciirast::Fragment<Varying>;
+    using Fragment = asciirast::Fragment<Varying>;
     using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
 
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        math::F id   = vert.id;
+        math::F id = vert.id;
         math::Vec2 v = vert.pos;
         if (u.should_flip) {
             v = u.flip_transform.apply(v);
@@ -172,7 +172,7 @@ public:
             v = u.rot.apply(v);
         }
 
-        return Fragment{ .pos   = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
+        return Fragment{ .pos = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
                          .attrs = Varying{ id } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
@@ -184,9 +184,9 @@ public:
 int
 main(void)
 {
-    const std::string palette  = "@%#*+=-:. "; // Paul Borke's palette
+    const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
     const math::F aspect_ratio = 3.f / 5.f;
-    bool flip                  = false;
+    bool flip = false;
 
     math::Rot2D u_rot{};
     MyUniform u{ u_rot, palette, aspect_ratio, flip };
@@ -197,12 +197,12 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::POINTS; // Feel free to try POINTS / LINES / LINE_STRIP
-        vb.verticies  = {};
+        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
+        vb.verticies = {};
 
         auto id = 0.f;
-        auto v  = std::complex<float>{ 0.05f, 0.f }; // 0.05f instead of 1.f to scale it down
-        auto f  = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
+        auto v = std::complex<float>{ 0.05f, 0.f }; // 0.05f instead of 1.f to scale it down
+        auto f = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
 
         for (int i = 0; i < 50; i++) {
             id = std::min((id + 0.2f), (float)palette.size() - 1);
