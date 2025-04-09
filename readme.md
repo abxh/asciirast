@@ -1,7 +1,10 @@
 # asciirast
 
+A software rasterizer based on OpenGL graphics pipeline made for educational purposes. It is
+meant to both render ascii art and real images.
+
 ## Dependencies
-- `libsdl2-dev` or similar (for the sdl example(s), which can be turned off in the cmake file)
+- `libsdl2-dev` [for the sdl example(s)]
 
 ## Build steps
 ```bash
