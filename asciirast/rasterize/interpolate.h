@@ -13,7 +13,7 @@ namespace asciirast::rasterize {
 // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
 
 // note: not sure how to interpolate w, but guessing it's similar to
-//       interpolate z.
+//       interpolating z.
 
 template<VaryingInterface Varying>
 static Varying

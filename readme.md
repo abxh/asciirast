@@ -1,7 +1,7 @@
 # asciirast
 
-A software rasterizer based on OpenGL graphics pipeline made for educational purposes. It is
-meant to both render ascii art and real images.
+A software rasterizer based on the classical OpenGL graphics pipeline made for educational purposes.
+It is meant to both render ascii art and real images. It currently simulates vertex and fragment shaders.
 
 ## Dependencies
 - `libsdl2-dev` [for the sdl example(s)]
