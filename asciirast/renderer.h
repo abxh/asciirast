@@ -19,7 +19,7 @@
 
 #include "./rasterize/bounds_test.h"
 #include "./rasterize/interpolate.h"
-#include "./rasterize/rasterizate.h"
+#include "./rasterize/rasterize.h"
 
 namespace asciirast {
 
