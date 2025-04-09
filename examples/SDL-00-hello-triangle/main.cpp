@@ -34,8 +34,8 @@ public:
 
     SDLBuffer(const unsigned tex_width,
               const unsigned tex_height,
-              const int win_width = 600,
-              const int win_height = 600)
+              const int win_width = 512,
+              const int win_height = 512)
     {
         m_width = tex_width;
         m_height = tex_height;
