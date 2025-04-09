@@ -1,7 +1,7 @@
 # asciirast
 
 ## Dependencies
-- `libSDL` (for the sdl examples)
+- `libsdl2-dev` or similar (for the sdl example(s), which can be turned off in the cmake file)
 
 ## Build steps
 ```bash
