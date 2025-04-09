@@ -63,7 +63,7 @@ public:
         SDL_Quit();
     }
 
-    math::Transform2D screen_to_window() { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
     {
@@ -168,9 +168,9 @@ static_assert(asciirast::ProgramInterface<MyProgram>);
 int
 main()
 {
-    const MyVertex v0 = { .pos = { -0.5f, -0.5f, 0.f }, .color = { 1.f, 0.f, 0.f } };
-    const MyVertex v1 = { .pos = { +0.0f, +0.5f, 0.f }, .color = { 0.f, 1.f, 0.f } };
-    const MyVertex v2 = { .pos = { +0.5f, -0.5f, 0.f }, .color = { 0.f, 0.f, 1.f } };
+    const MyVertex v0 = { .pos = { -0.5f, -0.5f, 1.f }, .color = { 1.f, 0.f, 0.f } };
+    const MyVertex v1 = { .pos = { +0.0f, +0.5f, 1.f }, .color = { 0.f, 1.f, 0.f } };
+    const MyVertex v2 = { .pos = { +0.5f, -0.5f, 1.f }, .color = { 0.f, 0.f, 1.f } };
 
     asciirast::VertexBuffer<MyVertex> vb;
     vb.shape_type = asciirast::ShapeType::TRIANGLES;

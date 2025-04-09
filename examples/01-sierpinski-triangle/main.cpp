@@ -64,7 +64,7 @@ public:
         return (5.f * (math::F)m_height) / (3.f * (math::F)m_width);
     }
 
-    math::Transform2D screen_to_window() { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
     {

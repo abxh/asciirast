@@ -40,7 +40,7 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    math::Transform2D screen_to_window() override { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window() override { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets) override
     {

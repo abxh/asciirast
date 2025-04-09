@@ -144,15 +144,15 @@ private:
     template<FrameBufferInterface FrameBuffer>
     void update_screen_to_window(FrameBuffer& framebuffer)
     {
-        const math::Transform2D t = framebuffer.screen_to_window();
+        const math::Transform2D& t = framebuffer.screen_to_window();
 
-        const auto cur_mat = m_screen_to_window.mat();
-        const auto new_mat = t.mat();
+        const math::Mat3& cur_mat = m_screen_to_window.mat();
+        const math::Mat3& new_mat = t.mat();
 
         const bool bitwise_eq = std::ranges::equal(cur_mat.array(), new_mat.array());
 
         if (!bitwise_eq) {
-            m_screen_to_window = std::move(t);
+            m_screen_to_window = t;
         }
     }
 
