@@ -45,8 +45,6 @@ class Swizzled
     template<std::size_t... Is>
     struct non_duplicate_indicies;
 
-    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
-
     template<std::size_t First, std::size_t... Rest>
     struct non_duplicate_indicies<First, Rest...>
     {
@@ -58,6 +56,8 @@ class Swizzled
     {
         static constexpr bool value = true;
     };
+
+    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
 
     static consteval bool overlapping_indicies(const std::size_t i, const std::size_t j) { return i == j; }
 

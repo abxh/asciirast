@@ -166,7 +166,7 @@ public:
 static_assert(asciirast::ProgramInterface<MyProgram>);
 
 int
-main()
+main(int argc, char* argv[])
 {
     const MyVertex v0 = { .pos = { -0.5f, -0.5f, 1.f }, .color = { 1.f, 0.f, 0.f } };
     const MyVertex v1 = { .pos = { +0.0f, +0.5f, 1.f }, .color = { 0.f, 1.f, 0.f } };

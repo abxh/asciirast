@@ -318,8 +318,6 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
         }
     }
     assert(false);
-    std::unreachable();
-
     return { 0, 0, 0 };
 }
 

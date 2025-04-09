@@ -5,10 +5,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic")
+
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo") 
+if (MSVC)
+    add_compile_options(/W3)
+else()
+    add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3")
 endif()
 
@@ -19,7 +25,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
-	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_TSAN)
+	# check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_TSAN)
 
 	if(COMPILER_SUPPORTS_ASAN)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
