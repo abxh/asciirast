@@ -1,6 +1,22 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+ */
+
 /**
  * @file framebuffer.h
  * @brief Definition of framebuffer interface
+ *
+ * @todo improve documentation
  */
 
 #pragma once
@@ -38,7 +54,7 @@ public:
     /**
      * @brief Plot a point in the framebuffer
      */
-    virtual void plot(const math::Vec2Int& pos, const math::F depth, const Targets& targets) = 0;
+    virtual void plot(const math::Vec2Int& pos, const math::Float depth, const Targets& targets) = 0;
 };
 
 /**
@@ -50,7 +66,7 @@ concept FrameBufferInterface = requires(T t) {
     { t.screen_to_window() } -> std::same_as<const math::Transform2D&>;
     {
         t.plot(std::declval<const math::Vec2Int&>(),
-               std::declval<const math::F>(),
+               std::declval<const math::Float>(),
                std::declval<const typename T::Targets&>())
     } -> std::same_as<void>;
 };

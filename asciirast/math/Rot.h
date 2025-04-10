@@ -158,8 +158,8 @@ class Rot<3, T, is_col_major>
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
 
-    Vec3 m_dir; ///< non-normalized axis vector
     T m_s;      ///< scalar component
+    Vec3 m_dir; ///< non-normalized axis vector
 
 public:
     /**

@@ -1,6 +1,22 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+ */
+
 /**
  * @file program.h
  * @brief Definition of program interface and other related types
+ *
+ * @todo improve documentation
  */
 
 #pragma once
@@ -19,10 +35,8 @@ namespace asciirast {
  */
 template<typename T>
 concept VaryingInterface = requires(const T x, T y) {
-    { -x } -> std::same_as<T>;
     { x + x } -> std::same_as<T>;
-    { x * 2.f } -> std::same_as<T>;
-    { x / 2.f } -> std::same_as<T>;
+    { x * math::Float{ -1 } } -> std::same_as<T>;
     { y = x } -> std::same_as<T&>;
     { T() } -> std::same_as<T>;
 };
@@ -32,7 +46,7 @@ concept VaryingInterface = requires(const T x, T y) {
  */
 template<VaryingInterface Varying>
 static Varying
-lerp_varying(const Varying& a, const Varying& b, const math::F t)
+lerp_varying(const Varying& a, const Varying& b, const math::Float t)
 {
     return a * (1 - t) + b * t;
 }
@@ -53,10 +67,10 @@ struct Fragment
 template<VaryingInterface Varying>
 struct ProjectedFragment
 {
-    math::Vec2 pos; ///@< aka window position
-    math::F z_inv;  ///@< aka depth
-    math::F w_inv;  ///@< 1/w, useful for retrieving world position
-    Varying attrs;  ///@< fragment attributes
+    math::Vec2 pos;    ///@< aka window position
+    math::Float z_inv; ///@< aka depth
+    math::Float w_inv; ///@< 1/w, useful for retrieving world position
+    Varying attrs;     ///@< fragment attributes
 };
 
 /**

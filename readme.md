@@ -4,7 +4,8 @@ A software rasterizer based on the classical OpenGL graphics pipeline made for e
 It is meant to both render ascii art and real images. It currently simulates vertex and fragment shaders.
 
 ## Dependencies
-- `libsdl2-dev` [for the sdl example(s)]
+For SDL-based examples:
+- `libsdl2-dev`
 
 ## Build steps
 ```bash

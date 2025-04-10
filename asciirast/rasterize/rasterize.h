@@ -1,3 +1,17 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+*/
+
 #pragma once
 
 #include <cassert>
@@ -11,7 +25,7 @@
 namespace asciirast::rasterize {
 
 template<VaryingInterface Varying, typename Callable>
-    requires(std::is_invocable_v<Callable, math::Vec2, math::F, math::F, Varying>)
+    requires(std::is_invocable_v<Callable, math::Vec2, math::Float, math::Float, Varying>)
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Callable plot)
 {
@@ -24,7 +38,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
 
     const auto delta = v1 - v0;
     const auto size = math::abs(delta);
-    const auto len = std::max<math::F>(size.x, size.y);
+    const auto len = std::max<math::Float>(size.x, size.y);
     const auto len_inv = 1 / len; // division by zero let through
 
     const auto inc_t = len_inv;
@@ -33,7 +47,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
     const auto inc_w_inv = (w_inv1 - w_inv0) * len_inv;
     const auto inc_attrs = (attrs1 + attrs0 * -1) * len_inv;
 
-    auto acc_t = math::F{ 0 };
+    auto acc_t = math::Float{ 0 };
     auto acc_v = v0;
     auto acc_z_inv = z_inv0;
     auto acc_w_inv = w_inv0;
@@ -69,17 +83,17 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest)
 
     // note: (y > 0) since y-axis points up
 
-    const bool points_right = math::almost_less_than<math::F>(0, edge.x);
-    const bool points_up = math::almost_less_than<math::F>(0, edge.y);
+    const bool points_right = math::almost_less_than<math::Float>(0, edge.x);
+    const bool points_up = math::almost_less_than<math::Float>(0, edge.y);
 
-    const bool is_top_edge = math::almost_equal<math::F>(0, edge.y) && points_right;
+    const bool is_top_edge = math::almost_equal<math::Float>(0, edge.y) && points_right;
     const bool is_left_edge = points_up;
 
     return is_top_edge || is_left_edge;
 }
 
 template<VaryingInterface Varying, typename Callable>
-    requires(std::is_invocable_v<Callable, math::Vec2, math::F, math::F, Varying>)
+    requires(std::is_invocable_v<Callable, math::Vec2, math::Float, math::Float, Varying>)
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
@@ -128,27 +142,27 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const math::Vec2 v0v1 = v0.vector_to(v1);
 
     // bias to exclude bottom right edge:
-    const math::F bias0 = is_top_left_edge_of_triangle(v1, v2) ? 0.f : -1.f;
-    const math::F bias1 = is_top_left_edge_of_triangle(v2, v0) ? 0.f : -1.f;
-    const math::F bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0.f : -1.f;
+    const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2) ? 0.f : -1.f;
+    const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0) ? 0.f : -1.f;
+    const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0.f : -1.f;
 
-    const math::F triangle_area_2 = cross(v0.vector_to(v1), v0.vector_to(v2));
+    const math::Float triangle_area_2 = cross(v0.vector_to(v1), v0.vector_to(v2));
 
     math::Vec2 p{ min.x, min.y };
 
-    math::F w0_y_minx = cross(v1v2, v1.vector_to(p)) + bias0;
-    math::F w1_y_minx = cross(v2v0, v2.vector_to(p)) + bias1;
-    math::F w2_y_minx = cross(v0v1, v0.vector_to(p)) + bias2;
+    math::Float w0_y_minx = cross(v1v2, v1.vector_to(p)) + bias0;
+    math::Float w1_y_minx = cross(v2v0, v2.vector_to(p)) + bias1;
+    math::Float w2_y_minx = cross(v0v1, v0.vector_to(p)) + bias2;
 
     // cross product terms:
-    const math::F delta_w0_x = -v1v2.y;
-    const math::F delta_w0_y = +v1v2.x;
+    const math::Float delta_w0_x = -v1v2.y;
+    const math::Float delta_w0_y = +v1v2.x;
 
-    const math::F delta_w1_x = -v2v0.y;
-    const math::F delta_w1_y = +v2v0.x;
+    const math::Float delta_w1_x = -v2v0.y;
+    const math::Float delta_w1_y = +v2v0.x;
 
-    const math::F delta_w2_x = -v0v1.y;
-    const math::F delta_w2_y = +v0v1.x;
+    const math::Float delta_w2_x = -v0v1.y;
+    const math::Float delta_w2_y = +v0v1.x;
 
     // bounding box as integer:
     const auto min_x_int = static_cast<std::size_t>(min.x);
@@ -158,9 +172,9 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
     if (std::isfinite(z_inv0) && std::isfinite(z_inv1)) {
         for (std::size_t y = min_y_int; y <= max_y_int; y++) {
-            math::F w0 = w0_y_minx;
-            math::F w1 = w1_y_minx;
-            math::F w2 = w2_y_minx;
+            math::Float w0 = w0_y_minx;
+            math::Float w1 = w1_y_minx;
+            math::Float w2 = w2_y_minx;
 
             p.x = min.x;
 
@@ -185,9 +199,9 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         }
     } else {
         for (std::size_t y = min_y_int; y <= max_y_int; y++) {
-            math::F w0 = w0_y_minx;
-            math::F w1 = w1_y_minx;
-            math::F w2 = w2_y_minx;
+            math::Float w0 = w0_y_minx;
+            math::Float w1 = w1_y_minx;
+            math::Float w2 = w2_y_minx;
 
             p.x = min.x;
 

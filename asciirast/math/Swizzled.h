@@ -89,6 +89,15 @@ public:
     using value_type = T; ///@< value type
 
     /**
+     * @name default constructors
+     * @{
+     */
+    constexpr Swizzled() = default;
+    constexpr Swizzled(const Swizzled&) = default;
+    constexpr Swizzled(Swizzled&&) = default;
+    ///@}
+
+    /**
      * @brief Size of swizzled component
      */
     static constexpr std::size_t size() { return IndiciesArray.size(); }
@@ -299,6 +308,15 @@ class SingleVectorComponent
 
 public:
     using value_type = T; ///@< value type
+
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr SingleVectorComponent() = default;
+    constexpr SingleVectorComponent(const SingleVectorComponent&) = default;
+    constexpr SingleVectorComponent(SingleVectorComponent&&) = default;
+    ///@}
 
     /**
      * @brief Assignment from value

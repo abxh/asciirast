@@ -65,7 +65,7 @@ public:
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
+    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
     {
         assert(0 <= pos.x && (std::size_t)pos.x < m_width);
         assert(0 <= pos.y && (std::size_t)pos.y < m_height);
@@ -109,7 +109,7 @@ private:
     std::size_t m_width;
     std::size_t m_height;
     std::vector<RGBA_uint8> m_rgba_buf;
-    std::vector<math::F> m_depth_buf;
+    std::vector<math::Float> m_depth_buf;
     math::Transform2D m_screen_to_window;
 
     SDL_Texture* m_texture = nullptr;
@@ -128,26 +128,24 @@ struct MyVertex
     RGB color;
 };
 
-struct renderer
+struct MyVarying
 {
     RGB color;
 
-    renderer operator-() const { return { -this->color }; }
-    renderer operator+(const renderer& that) const { return { this->color + that.color }; }
-    renderer operator*(const math::F scalar) const { return { this->color * scalar }; }
-    renderer operator/(const math::F scalar) const { return { this->color / scalar }; }
+    MyVarying operator+(const MyVarying& that) const { return { this->color + that.color }; }
+    MyVarying operator*(const math::Float scalar) const { return { this->color * scalar }; }
 };
 
 class MyProgram
 {
-    using Fragment = asciirast::Fragment<renderer>;
-    using ProjectedFragment = asciirast::ProjectedFragment<renderer>;
+    using Fragment = asciirast::Fragment<MyVarying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
-    using Varying = renderer;
+    using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
@@ -166,7 +164,7 @@ public:
 static_assert(asciirast::ProgramInterface<MyProgram>);
 
 int
-main(int argc, char* argv[])
+main(int, char**)
 {
     const MyVertex v0 = { .pos = { -0.5f, -0.5f, 1.f }, .color = { 1.f, 0.f, 0.f } };
     const MyVertex v1 = { .pos = { +0.0f, +0.5f, 1.f }, .color = { 0.f, 1.f, 0.f } };
@@ -177,7 +175,7 @@ main(int argc, char* argv[])
     vb.verticies = { v0, v1, v2 };
 
     MyProgram program;
-    asciirast::Renderer<renderer> renderer;
+    asciirast::Renderer<MyVarying> renderer;
     SDLBuffer screen(512, 512);
     MyUniform u{};
 

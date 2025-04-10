@@ -42,7 +42,7 @@ public:
 
     const math::Transform2D& screen_to_window() override { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets) override
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
@@ -126,7 +126,7 @@ private:
     std::size_t m_width;
     std::size_t m_height;
     std::vector<char> m_charbuf;
-    std::vector<math::F> m_depthbuf;
+    std::vector<math::Float> m_depthbuf;
     math::Transform2D m_screen_to_window;
 };
 
@@ -134,25 +134,23 @@ struct MyUniform
 {
     const math::Rot2D& rot;
     const std::string& palette;
-    const math::F& aspect_ratio;
+    const math::Float& aspect_ratio;
     const bool& should_flip;
     static const inline auto flip_transform = math::Transform2D().rotate(math::radians(180.f)).reflectX();
 };
 
 struct MyVertex
 {
-    math::F id;
+    math::Float id;
     math::Vec2 pos;
 };
 
 struct MyVarying
 {
-    math::F id;
+    math::Float id;
 
-    MyVarying operator-() const { return { -this->id }; }
     MyVarying operator+(const MyVarying& that) const { return { this->id + that.id }; }
-    MyVarying operator*(const math::F scalar) const { return { this->id * scalar }; }
-    MyVarying operator/(const math::F scalar) const { return { this->id / scalar }; }
+    MyVarying operator*(const math::Float scalar) const { return { this->id * scalar }; }
 };
 
 class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
@@ -163,7 +161,7 @@ class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVaryi
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
     {
-        math::F id = vert.id;
+        math::Float id = vert.id;
         math::Vec2 v = vert.pos;
         if (u.should_flip) {
             v = u.flip_transform.apply(v);
@@ -185,7 +183,7 @@ int
 main(void)
 {
     const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
-    const math::F aspect_ratio = 3.f / 5.f;
+    const math::Float aspect_ratio = 3.f / 5.f;
     bool flip = false;
 
     math::Rot2D u_rot{};
@@ -197,7 +195,7 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::POINTS; // Feel free to try POINTS / LINES / LINE_STRIP
+        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
         vb.verticies = {};
 
         auto id = 0.f;

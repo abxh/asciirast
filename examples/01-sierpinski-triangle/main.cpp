@@ -57,16 +57,16 @@ public:
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
-    math::F aspect_ratio() const
+    math::Float aspect_ratio() const
     {
         // this ratio worked best for my terminal
 
-        return (5.f * (math::F)m_height) / (3.f * (math::F)m_width);
+        return (5.f * (math::Float)m_height) / (3.f * (math::Float)m_width);
     }
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::F depth, const Targets& targets)
+    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
     {
         if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
             m_oob_error = true;
@@ -165,7 +165,7 @@ private:
     std::size_t m_width;
     std::size_t m_height;
     std::vector<RGBC> m_rgbc_buf;
-    std::vector<math::F> m_depth_buf;
+    std::vector<math::Float> m_depth_buf;
     math::Transform2D m_screen_to_window;
 };
 
@@ -174,25 +174,20 @@ static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
 struct MyUniform
 {
     const std::string& palette;
-    const math::F& aspect_ratio;
+    const math::Float& aspect_ratio;
 };
 
 struct MyVertex
 {
-    math::F id;
+    math::Float id;
     math::Vec2 pos;
     RGB color;
 
-    MyVertex operator-() const { return { -this->id, -this->pos, -this->color }; }
     MyVertex operator+(const MyVertex& that) const
     {
         return { this->id + that.id, this->pos + that.pos, this->color + that.color };
     }
-    MyVertex operator*(const math::F scalar) const
-    {
-        return { this->id * scalar, this->pos * scalar, this->color * scalar };
-    }
-    MyVertex operator/(const math::F scalar) const
+    MyVertex operator/(const math::Float scalar) const
     {
         return { this->id / scalar, this->pos / scalar, this->color / scalar };
     }
@@ -200,13 +195,11 @@ struct MyVertex
 
 struct MyVarying
 {
-    math::F id;
+    math::Float id;
     RGB color;
 
-    MyVarying operator-() const { return { -this->id, -this->color }; }
     MyVarying operator+(const MyVarying& that) const { return { this->id + that.id, this->color + that.color }; }
-    MyVarying operator*(const math::F scalar) const { return { this->id * scalar, this->color * scalar }; }
-    MyVarying operator/(const math::F scalar) const { return { this->id / scalar, this->color / scalar }; }
+    MyVarying operator*(const math::Float scalar) const { return { this->id * scalar, this->color * scalar }; }
 };
 
 class MyProgram
@@ -268,7 +261,8 @@ main(void)
     const std::string palette = "@%#*+=-:."; // Paul Borke's palette
 
     auto V1 = MyVertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
-    auto V2 = MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::F> }, RGB{ 0, 1, 0 } };
+    auto V2 =
+            MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::Float> }, RGB{ 0, 1, 0 } };
     auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
 
     int i = 1;
@@ -283,7 +277,7 @@ main(void)
     TerminalBuffer t;
 
     t.clear_and_update_size();
-    math::F aspect_ratio = t.aspect_ratio();
+    math::Float aspect_ratio = t.aspect_ratio();
     MyUniform u{ palette, aspect_ratio };
 
     std::binary_semaphore s{ 0 };

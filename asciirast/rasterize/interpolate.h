@@ -1,3 +1,17 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+*/
+
 #pragma once
 
 #include <cassert>
@@ -19,10 +33,10 @@ template<VaryingInterface Varying>
 static Varying
 lerp_varying_perspective_corrected(const Varying& a,
                                    const Varying& b,
-                                   const math::F t,
-                                   const math::F z_inv0,
-                                   const math::F z_inv1,
-                                   const math::F z_inv_interpolated)
+                                   const math::Float t,
+                                   const math::Float z_inv0,
+                                   const math::Float z_inv1,
+                                   const math::Float z_inv_interpolated)
 {
     assert(std::isfinite(z_inv_interpolated));
     assert(std::isfinite(z_inv_interpolated));
@@ -30,7 +44,7 @@ lerp_varying_perspective_corrected(const Varying& a,
     const auto l = a * z_inv0 * (1 - t);
     const auto r = b * z_inv1 * t;
 
-    return (l + r) / z_inv_interpolated;
+    return (l + r) * (1 / z_inv_interpolated);
 }
 
 /**
@@ -38,7 +52,7 @@ lerp_varying_perspective_corrected(const Varying& a,
  */
 template<VaryingInterface T>
 static Fragment<T>
-lerp(const Fragment<T>& a, const Fragment<T>& b, const math::F t)
+lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t)
 {
     return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
 }
@@ -48,11 +62,11 @@ lerp(const Fragment<T>& a, const Fragment<T>& b, const math::F t)
  */
 template<VaryingInterface T>
 static ProjectedFragment<T>
-lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F t)
+lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t)
 {
-    if (t == math::F{ 0 }) {
+    if (t == math::Float{ 0 }) {
         return a;
-    } else if (t == math::F{ 1 }) {
+    } else if (t == math::Float{ 1 }) {
         return b;
     }
 
@@ -76,7 +90,7 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
  * @brief Interpolation of vectors with barycentric coordinates of
  *        triangles
  */
-static math::F
+static math::Float
 barycentric(const math::Vec3& v, const math::Vec3& weights)
 {
     return math::dot(v, weights);
@@ -106,7 +120,7 @@ static Varying
 barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& weights,
                                   const math::Vec3& z_inv,
-                                  const math::F& z_inv_interpolated)
+                                  const math::Float& z_inv_interpolated)
 {
     assert(std::isfinite(z_inv_interpolated));
 
@@ -115,7 +129,7 @@ barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
     const auto aw1 = attrs[1] * wzi[1];
     const auto aw2 = attrs[2] * wzi[2];
 
-    return (aw0 + aw1 + aw2) / z_inv_interpolated;
+    return (aw0 + aw1 + aw2) * (1 / z_inv_interpolated);
 }
 
 }; // namespace asciirast::rasterize

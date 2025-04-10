@@ -1,3 +1,17 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+*/
+
 #pragma once
 
 #include <cassert>
@@ -37,7 +51,7 @@ point_in_frustum(const math::Vec4& p)
     return x_in_bounds && y_in_bounds && z_in_bounds;
 }
 
-using T = math::F;
+using T = math::Float;
 
 enum class BorderType
 {
@@ -156,13 +170,13 @@ line_in_bounds(const math::Vec4& p0,
 }
 
 static auto
-line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::F, math::F>>
+line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
     const math::Vec2 min = SCREEN_BOUNDS.min_get();
     const math::Vec2 max = SCREEN_BOUNDS.max_get();
 
-    math::F t0 = 0;
-    math::F t1 = 1;
+    math::Float t0 = 0;
+    math::Float t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
         if (!line_in_bounds(p0, p1, border, min, max, t0, t1)) {
@@ -173,7 +187,7 @@ line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std:
 }
 
 static auto
-line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::F, math::F>>
+line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
     if (p0.w < 0 && p1.w < 0) {
         return {};
@@ -182,8 +196,8 @@ line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std
     const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
     const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
 
-    math::F t0 = 0;
-    math::F t1 = 1;
+    math::Float t0 = 0;
+    math::Float t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END; border = detail::next_border_type(border)) {
         if (!line_in_bounds(p0, p1, border, min, max, t0, t1)) {
@@ -352,10 +366,10 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                math::F t0a = 0.f;
-                math::F t0b = 0.f;
-                math::F t01 = 1.f;
-                math::F t02 = 1.f;
+                math::Float t0a = 0.f;
+                math::Float t0b = 0.f;
+                math::Float t01 = 1.f;
+                math::Float t02 = 1.f;
 
                 const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min, max, t0a, t01);
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0b, t02);
@@ -396,10 +410,10 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                math::F t0 = 0.f;
-                math::F t1 = 0.f;
-                math::F t02 = 1.f;
-                math::F t12 = 1.f;
+                math::Float t0 = 0.f;
+                math::Float t1 = 0.f;
+                math::Float t02 = 1.f;
+                math::Float t12 = 1.f;
 
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0, t02);
                 const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min, max, t1, t12);
@@ -485,10 +499,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
                 const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
 
-                math::F t0a = 0.f;
-                math::F t0b = 0.f;
-                math::F t01 = 1.f;
-                math::F t02 = 1.f;
+                math::Float t0a = 0.f;
+                math::Float t0b = 0.f;
+                math::Float t01 = 1.f;
+                math::Float t02 = 1.f;
 
                 const bool b01 = line_in_bounds(p0, p1, border, min, max, t0a, t01);
                 const bool b02 = line_in_bounds(p0, p2, border, min, max, t0b, t02);
@@ -525,10 +539,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const math::Vec3 min1 = { -p1.w, -p1.w, -p1.w };
                 const math::Vec3 max1 = { +p1.w, +p1.w, +p1.w };
 
-                math::F t0 = 0.f;
-                math::F t1 = 0.f;
-                math::F t02 = 1.f;
-                math::F t12 = 1.f;
+                math::Float t0 = 0.f;
+                math::Float t1 = 0.f;
+                math::Float t02 = 1.f;
+                math::Float t12 = 1.f;
 
                 const bool b02 = line_in_bounds(p0, p2, border, min0, max0, t0, t02);
                 const bool b12 = line_in_bounds(p1, p2, border, min1, max1, t1, t12);

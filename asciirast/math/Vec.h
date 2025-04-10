@@ -67,7 +67,7 @@ class Vec;
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
-static constexpr auto
+constexpr auto
 dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
 {
     const std::array<T, N>& l = lhs.array();
@@ -83,7 +83,7 @@ dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * vectors.
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2)
 {
@@ -94,7 +94,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * @brief Vector 3d cross product
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
     requires(N == 3)
 {
@@ -123,7 +123,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @todo make this function constexpr in c++26 or use library
  */
 template<std::size_t N, typename T>
-static auto
+auto
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2 && std::is_floating_point_v<T>)
 {
@@ -141,7 +141,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * @brief Vector signed angle ranging from -pi and pi radians
  */
 template<std::size_t N, typename T>
-static auto
+auto
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized) -> T
     requires(N == 3 && std::is_floating_point_v<T>)
 {
@@ -155,7 +155,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
  * parameter t ranging from 0 to 1.
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
@@ -170,7 +170,7 @@ lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
  * @brief Take the max value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
     Vec<N, T> res{};
@@ -184,7 +184,7 @@ max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @brief Take the min value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
     Vec<N, T> res{};
@@ -198,14 +198,12 @@ min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @brief Clamp each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N, T>
-
-    requires(std::is_integral_v<T>)
 {
     Vec<N, T> res{};
     for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::clamp(v[i], low, high);
+        res[i] = std::clamp(v[i], low[i], high[i]);
     }
     return res;
 }
@@ -214,7 +212,7 @@ clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N,
  * @brief Take the absolute value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 abs(const Vec<N, T>& v) -> Vec<N, T>
 {
     Vec<N, T> res{};
@@ -228,9 +226,8 @@ abs(const Vec<N, T>& v) -> Vec<N, T>
  * @brief Take the rounded value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 round(const Vec<N, T>& v) -> Vec<N, T>
-
     requires(std::is_floating_point_v<T>)
 {
     Vec<N, T> res{};
@@ -244,7 +241,7 @@ round(const Vec<N, T>& v) -> Vec<N, T>
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 ceil(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
@@ -259,7 +256,7 @@ ceil(const Vec<N, T>& v) -> Vec<N, T>
  * @brief Take the ceiled value of each component
  */
 template<std::size_t N, typename T>
-static constexpr auto
+constexpr auto
 floor(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
 {
@@ -292,29 +289,13 @@ public:
     using value_type = T; ///@< value type
 
     /**
-     * @brief Construct default vector with all zeroes
+     * @name default constructors
+     * @{
      */
-    constexpr Vec() {};
-
-    /**
-     * @brief Copy constructor
-     */
-    constexpr Vec(const Vec& that)
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
-        }
-    }
-
-    /**
-     * @brief Move constructor
-     */
-    constexpr Vec(Vec&& that)
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
-        }
-    }
+    constexpr Vec() = default;
+    constexpr Vec(const Vec&) = default;
+    constexpr Vec(Vec&&) = default;
+    ///@}
 
     /**
      * @brief Implicitly construct vector from swizzled components.
@@ -587,6 +568,11 @@ public:
     }
 
 public:
+    /**
+     * @brief Unary plus vector operator
+     */
+    constexpr Vec operator+() const { return *this; }
+
     /**
      * @brief Unary minus vector operator
      */
@@ -869,9 +855,11 @@ private:
         (void)(out);
     }
 
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const T arg, auto&&... rest)
+    template<typename U>
+        requires(std::convertible_to<U, T>)
+    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const U arg, auto&&... rest)
     {
-        out[idx] = arg;
+        out[idx] = static_cast<T>(arg);
         idx += 1;
         init_from_inner(idx, out, rest...);
     }

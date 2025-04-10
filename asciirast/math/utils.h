@@ -12,17 +12,11 @@
 namespace asciirast::math {
 
 /**
- * @brief Check if type conversion is a non-narrowing conversion.
- */
-template<typename From, typename To>
-concept non_narrowing_conversion = requires(From f) { To{ f }; };
-
-/**
  * @brief Convert from degrees to radians
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 radians(const T degrees) -> T
 {
     return std::numbers::pi_v<T> * degrees / T{ 180 };
@@ -33,7 +27,7 @@ radians(const T degrees) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 degrees(const T radians) -> T
 {
     return T{ 180 } * radians / std::numbers::pi_v<T>;
@@ -48,7 +42,7 @@ degrees(const T radians) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_equal(const T x, const T y, const unsigned ulps_) -> bool
 {
     // Based on:
@@ -68,7 +62,7 @@ almost_equal(const T x, const T y, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_equal(const T x, const T y) -> bool
     requires(std::is_same_v<T, float>)
 {
@@ -84,7 +78,7 @@ almost_equal(const T x, const T y) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_equal(const T x, const T y) -> bool
     requires(std::is_same_v<T, double>)
 {
@@ -103,7 +97,7 @@ almost_equal(const T x, const T y) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_less_than(const T x, const T y, const unsigned ulps_) -> bool
 {
     const T ulps = static_cast<T>(ulps_);
@@ -120,7 +114,7 @@ almost_less_than(const T x, const T y, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_less_than(const T x, const T y) -> bool
     requires(std::is_same_v<T, float>)
 {
@@ -133,7 +127,7 @@ almost_less_than(const T x, const T y) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 almost_less_than(const T x, const T y) -> bool
     requires(std::is_same_v<T, double>)
 {
@@ -144,25 +138,25 @@ namespace detail {
 
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 sqrt_newton_raphson(const T x, const T curr, const T prev) -> T
 {
     // constexpr sqrt:
     // https://stackoverflow.com/a/34134071
 
-    return curr == prev ? curr : sqrt_newton_raphson(x, 0.5 * (curr + x / curr), curr);
+    return curr == prev ? curr : sqrt_newton_raphson<T>(x, T{ 0.5 } * (curr + x / curr), curr);
 }
 
 };
 
 template<typename T>
     requires(std::is_floating_point_v<T>)
-static constexpr auto
+constexpr auto
 sqrt(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        return x >= 0 && x < std::numeric_limits<double>::infinity() ? detail::sqrt_newton_raphson(x, x, 0)
-                                                                     : std::numeric_limits<double>::quiet_NaN();
+        return x >= 0 && x < std::numeric_limits<T>::infinity() ? detail::sqrt_newton_raphson<T>(x, x, 0)
+                                                                : std::numeric_limits<T>::quiet_NaN();
     } else {
         return std::sqrt(x);
     }

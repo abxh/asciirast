@@ -27,6 +27,15 @@ class VecBase
 {
 public:
     std::array<T, N> m_components = {}; ///< array of components
+
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr VecBase() = default;
+    constexpr VecBase(const VecBase&) = default;
+    constexpr VecBase(VecBase&&) = default;
+    ///@}
 };
 
 /**
@@ -50,6 +59,15 @@ class VecBase<Vec, 1, T>
     using SwizzledComponents = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr VecBase() = default;
+    constexpr VecBase(const VecBase&) = default;
+    constexpr VecBase(VecBase&&) = default;
+    ///@}
+
     union
     {
         std::array<T, N> m_components = {}; ///< array of components
@@ -90,6 +108,15 @@ class VecBase<Vec, 2, T>
     using SwizzledComponents = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr VecBase() = default;
+    constexpr VecBase(const VecBase&) = default;
+    constexpr VecBase(VecBase&&) = default;
+    ///@}
+
     union
     {
         std::array<T, N> m_components = {}; ///< array of components
@@ -160,6 +187,15 @@ class VecBase<Vec, 3, T>
     using SwizzledComponents = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr VecBase() = default;
+    constexpr VecBase(const VecBase&) = default;
+    constexpr VecBase(VecBase&&) = default;
+    ///@}
+
     union
     {
         std::array<T, N> m_components = {}; ///< array of components
@@ -331,6 +367,15 @@ class VecBase<Vec, 4, T>
     using SwizzledComponents = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
 
 public:
+    /**
+     * @name default constructors
+     * @{
+     */
+    constexpr VecBase() = default;
+    constexpr VecBase(const VecBase&) = default;
+    constexpr VecBase(VecBase&&) = default;
+    ///@}
+
     union
     {
         std::array<T, N> m_components = {}; ///< array of components

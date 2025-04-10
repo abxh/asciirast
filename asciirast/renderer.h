@@ -1,3 +1,17 @@
+/*
+    Copyright (C) 2025 abxh
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+ */
+
 /**
  * @file renderer.h
  * @brief The renderer class and related types
@@ -132,8 +146,8 @@ private:
     static inline math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
                                                                  const math::AABB2D& screen_bounds)
     {
-        assert(viewport_bounds.size_get().x != math::F{ 0 });
-        assert(viewport_bounds.size_get().y != math::F{ 0 });
+        assert(viewport_bounds.size_get().x != math::Float{ 0 });
+        assert(viewport_bounds.size_get().y != math::Float{ 0 });
 
         const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
         const auto min_vec = screen_bounds.min_get().vector_to(viewport_bounds.min_get());
@@ -273,8 +287,8 @@ private:
         const PFrag wfrag1 = apply_screen_to_window(S_tfrag1);
 
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
-                                                                  const math::F z_inv,
-                                                                  const math::F w_inv,
+                                                                  const math::Float z_inv,
+                                                                  const math::Float w_inv,
                                                                   const Varying& attrs) -> void {
             // apply fragment shader:
             const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
@@ -351,8 +365,8 @@ private:
         }
 
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
-                                                                  const math::F z_inv,
-                                                                  const math::F w_inv,
+                                                                  const math::Float z_inv,
+                                                                  const math::Float w_inv,
                                                                   const Varying& attrs) -> void {
             // apply fragment shader:
             const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
