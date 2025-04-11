@@ -11,6 +11,7 @@
 
 namespace asciirast::rasterize {
 
+[[maybe_unused]]
 static auto
 point_in_screen(const math::Vec2& p) -> bool
 {
@@ -23,10 +24,12 @@ point_in_screen(const math::Vec2& p) -> bool
     return x_in_bounds && y_in_bounds;
 }
 
+[[maybe_unused]]
 static bool
 point_in_frustum(const math::Vec4& p)
 {
-    if (p.w < 0) {
+    if (std::ranges::equal(p.array(), math::Vec4{ 0 }.array())) [[unlikely]] {
+        // degenerate point
         return false;
     }
 
@@ -155,6 +158,7 @@ line_in_bounds(const math::Vec4& p0,
     return line_in_bounds(q[border_id], -delta.w + p[border_id], t0, t1);
 }
 
+[[maybe_unused]]
 static auto
 line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
@@ -172,10 +176,13 @@ line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std:
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
+[[maybe_unused]]
 static auto
 line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
-    if (p0.w < 0 && p1.w < 0) {
+    if (std::ranges::equal(p0.array(), math::Vec4{ 0 }.array()) ||
+        std::ranges::equal(p1.array(), math::Vec4{ 0 }.array())) [[unlikely]] {
+        // degenerate line
         return {};
     }
 
@@ -460,7 +467,11 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
     assert(vec_queue.size() > 0);
     assert(vec_queue.size() == attrs_queue.size());
 
-    if (const auto [v0, v1, v2] = *vec_queue.begin(); v0.w < 0 && v1.w < 0 && v2.w < 0) {
+    if (const auto [p0, p1, p2] = *vec_queue.begin(); std::ranges::equal(p0.array(), math::Vec4{ 0 }.array()) ||
+                                                      std::ranges::equal(p1.array(), math::Vec4{ 0 }.array()) ||
+                                                      std::ranges::equal(p2.array(), math::Vec4{ 0 }.array()))
+            [[unlikely]] {
+        // degenerate triangle
         return false;
     }
 

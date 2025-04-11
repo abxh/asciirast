@@ -17,7 +17,7 @@
 namespace math = asciirast::math;
 namespace CSI = terminal_utils::CSI;
 
-using RGB = math::Vec3;
+using RGBFloat = math::Vec3;
 
 struct RGBC
 {
@@ -30,7 +30,7 @@ struct RGBC
 class TerminalBuffer
 {
 public:
-    using Targets = std::tuple<char, RGB>;
+    using Targets = std::tuple<char, RGBFloat>;
 
     TerminalBuffer()
             : m_rgbc_buf{}
@@ -64,6 +64,17 @@ public:
         return (5.f * (math::Float)m_height) / (3.f * (math::Float)m_width);
     }
 
+    bool test_depth(const math::Vec2Int& pos, math::Float depth)
+    {
+        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+
+        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
+        depth = std::clamp(depth, 0.f, 1.f);
+
+        return depth < m_depth_buf[idx];
+    }
+
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
@@ -74,18 +85,18 @@ public:
         }
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
 
-        if (m_depth_buf[idx] >= depth) {
-            return;
+        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
+
+        if (depth < m_depth_buf[idx]) {
+            const auto [r, g, b] = std::get<RGBFloat>(targets).array();
+
+            m_rgbc_buf[idx].r = static_cast<std::uint8_t>(255.f * r);
+            m_rgbc_buf[idx].g = static_cast<std::uint8_t>(255.f * g);
+            m_rgbc_buf[idx].b = static_cast<std::uint8_t>(255.f * b);
+            m_rgbc_buf[idx].c = std::get<char>(targets);
+            m_depth_buf[idx] = depth;
         }
-
-        const auto rgb = std::get<RGB>(targets);
-        m_rgbc_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb.r);
-        m_rgbc_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb.g);
-        m_rgbc_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb.b);
-        m_rgbc_buf[idx].c = std::get<char>(targets);
-        m_depth_buf[idx] = depth;
     }
 
     void render() const
@@ -110,11 +121,12 @@ public:
         std::fflush(stdout);
     }
 
+
     void clear(const char clear_char = ' ')
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgbc_buf[i] = { .r = 0, .g = 0, .b = 0, .c = clear_char };
-            m_depth_buf[i] = 0.f;
+            m_depth_buf[i] = asciirast::DEFAULT_DEPTH;
         }
     }
 
@@ -181,7 +193,7 @@ struct MyVertex
 {
     math::Float id;
     math::Vec2 pos;
-    RGB color;
+    RGBFloat color;
 
     MyVertex operator+(const MyVertex& that) const
     {
@@ -196,7 +208,7 @@ struct MyVertex
 struct MyVarying
 {
     math::Float id;
-    RGB color;
+    RGBFloat color;
 
     MyVarying operator+(const MyVarying& that) const { return { this->id + that.id, this->color + that.color }; }
     MyVarying operator*(const math::Float scalar) const { return { this->id * scalar, this->color * scalar }; }
@@ -260,10 +272,10 @@ main(void)
 {
     const std::string palette = "@%#*+=-:."; // Paul Borke's palette
 
-    auto V1 = MyVertex{ 0, math::Vec2{ -1, -1 }, RGB{ 1, 0, 0 } };
+    auto V1 = MyVertex{ 0, math::Vec2{ -1, -1 }, RGBFloat{ 1, 0, 0 } };
     auto V2 =
-            MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::Float> }, RGB{ 0, 1, 0 } };
-    auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGB{ 0, 0, 1 } };
+            MyVertex{ palette.size() - 1.f, math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::Float> }, RGBFloat{ 0, 1, 0 } };
+    auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGBFloat{ 0, 0, 1 } };
 
     int i = 1;
     int dir = 1;

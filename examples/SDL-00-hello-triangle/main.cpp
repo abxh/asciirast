@@ -63,6 +63,17 @@ public:
         SDL_Quit();
     }
 
+    bool test_depth(const math::Vec2Int& pos, math::Float depth)
+    {
+        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+
+        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
+        depth = std::clamp(depth, 0.f, 1.f);
+
+        return depth < m_depth_buf[idx];
+    }
+
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
@@ -73,16 +84,15 @@ public:
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp(depth, 0.f, 1.f);
 
-        if (m_depth_buf[idx] >= depth) {
-            return;
-        }
+        if (depth < m_depth_buf[idx]) {
+            const auto [r, g, b] = std::get<RGB>(targets).array();
 
-        const auto rgb = std::get<RGB>(targets);
-        m_rgba_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb.r);
-        m_rgba_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb.g);
-        m_rgba_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb.b);
-        m_rgba_buf[idx].a = 255;
-        m_depth_buf[idx] = depth;
+            m_rgba_buf[idx].r = static_cast<std::uint8_t>(255.f * r);
+            m_rgba_buf[idx].g = static_cast<std::uint8_t>(255.f * g);
+            m_rgba_buf[idx].b = static_cast<std::uint8_t>(255.f * b);
+            m_rgba_buf[idx].a = 255;
+            m_depth_buf[idx] = depth;
+        }
     }
 
     void render() const
@@ -99,7 +109,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = 0.f;
+            m_depth_buf[i] = asciirast::DEFAULT_DEPTH;
         }
     }
 

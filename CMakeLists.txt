@@ -71,4 +71,4 @@ if (SDL_BASED_EXAMPLES)
 	add_subdirectory(examples/SDL-00-hello-triangle)
 endif()
 
-
+add_subdirectory(examples/PPM-00-perspective-correctness)

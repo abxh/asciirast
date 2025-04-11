@@ -38,6 +38,11 @@ public:
     virtual const math::Transform2D& screen_to_window() = 0;
 
     /**
+     * @brief Check if a pixel with depth will be accepted
+     */
+    virtual bool test_depth(const math::Vec2Int& pos, const math::Float depth) = 0;
+
+    /**
      * @brief Plot a point in the framebuffer
      */
     virtual void plot(const math::Vec2Int& pos, const math::Float depth, const Targets& targets) = 0;
@@ -50,6 +55,7 @@ template<class T>
 concept FrameBufferInterface = requires(T t) {
     typename T::Targets;
     { t.screen_to_window() } -> std::same_as<const math::Transform2D&>;
+    { t.test_depth(std::declval<const math::Vec2Int&>(), std::declval<const math::Float>()) } -> std::same_as<bool>;
     {
         t.plot(std::declval<const math::Vec2Int&>(),
                std::declval<const math::Float>(),

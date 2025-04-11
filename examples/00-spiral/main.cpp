@@ -40,6 +40,17 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
+    bool test_depth(const math::Vec2Int& pos, math::Float depth) override
+    {
+        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+
+        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
+        depth = std::clamp(depth, 0.f, 1.f);
+
+        return depth < m_depthbuf[idx];
+    }
+
     const math::Transform2D& screen_to_window() override { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets) override
@@ -50,12 +61,10 @@ public:
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp(depth, 0.f, 1.f);
 
-        if (m_depthbuf[idx] >= depth) {
-            return;
+        if (depth < m_depthbuf[idx]) {
+            m_charbuf[idx] = std::get<0>(targets);
+            m_depthbuf[idx] = depth;
         }
-
-        m_charbuf[idx] = std::get<0>(targets);
-        m_depthbuf[idx] = depth;
     }
 
     void render() const
@@ -76,7 +85,7 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_charbuf[i] = clear_char;
-            m_depthbuf[i] = 0.f;
+            m_depthbuf[i] = asciirast::DEFAULT_DEPTH;
         }
     }
 
@@ -155,8 +164,8 @@ struct MyVarying
 
 class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
 {
-    using Fragment = asciirast::Fragment<Varying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<Varying>;
+    using Fragment = asciirast::Fragment<MyVarying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override

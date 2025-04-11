@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <concepts>
 
 #include "./framebuffer.h"
@@ -54,8 +55,8 @@ template<VaryingInterface Varying>
 struct ProjectedFragment
 {
     math::Vec2 pos;    ///@< aka window position
-    math::Float z_inv; ///@< aka depth
-    math::Float w_inv; ///@< 1/w, useful for retrieving world position
+    math::Float depth; ///@< aka z
+    math::Float Z_inv; ///@< aka 1/w
     Varying attrs;     ///@< fragment attributes
 };
 
@@ -66,10 +67,18 @@ template<VaryingInterface T>
 static ProjectedFragment<T>
 project_fragment(const Fragment<T>& frag)
 {
-    const auto w_inv = 1 / frag.pos.w;
-    const auto vec = frag.pos.xyz * w_inv;
+    assert(frag.pos.w != 0 && "non-zero w coordinate. "
+                              "verticies with zeroes as w should be clipped / culled");
 
-    return ProjectedFragment<T>{ .pos = vec.xy, .z_inv = 1 / vec.z, .w_inv = w_inv, .attrs = frag.attrs };
+    const auto Z_inv = 1 / frag.pos.w;
+    const auto v = frag.pos.xyz * Z_inv;
+
+    return ProjectedFragment<T>{
+        .pos = v.xy,
+        .depth = v.z,
+        .Z_inv = Z_inv,
+        .attrs = frag.attrs,
+    };
 }
 
 /**

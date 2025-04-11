@@ -283,9 +283,8 @@ public:
     constexpr Swizzled& operator/=(const T scalar)
         requires(lvalue_has_non_duplicate_indicies)
     {
-        if constexpr (std::is_integral_v<T>) {
-            assert(scalar != T{ 0 } && "non-zero division");
-        }
+        assert(scalar != 0 && "non-zero division");
+
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] /= scalar;
         }

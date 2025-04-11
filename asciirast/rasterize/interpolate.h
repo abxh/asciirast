@@ -8,29 +8,29 @@
 
 namespace asciirast::rasterize {
 
-// perspective corrected lerp:
-// https://andrewkchan.dev/posts/perspective-interpolation.html
+// perspective corrected interpolation:
+// https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
 // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
-
-// note: not sure how to interpolate w, but guessing it's similar to
-//       interpolating z.
+// https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
 
 template<VaryingInterface Varying>
 static Varying
 lerp_varying_perspective_corrected(const Varying& a,
                                    const Varying& b,
                                    const math::Float t,
-                                   const math::Float z_inv0,
-                                   const math::Float z_inv1,
-                                   const math::Float z_inv_interpolated)
+                                   const math::Float Z_inv0,
+                                   const math::Float Z_inv1,
+                                   const math::Float acc_Z_inv)
 {
-    assert(std::isfinite(z_inv_interpolated));
-    assert(std::isfinite(z_inv_interpolated));
+    // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
 
-    const auto l = a * z_inv0 * (1 - t);
-    const auto r = b * z_inv1 * t;
+    const auto w0 = (1 - t) * Z_inv0;
+    const auto w1 = t * Z_inv1;
 
-    return (l + r) * (1 / z_inv_interpolated);
+    const auto l = a * w0;
+    const auto r = b * w1;
+
+    return (l + r) * (1 / acc_Z_inv);
 }
 
 /**
@@ -55,27 +55,21 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
     } else if (t == math::Float{ 1 }) {
         return b;
     }
+    const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);
 
-    if (std::isfinite(a.z_inv) && std::isfinite(b.z_inv)) {
-        const auto z_inv_interpolated = std::lerp(a.z_inv, b.z_inv, t);
-
-        return ProjectedFragment<T>{ .pos = math::lerp(a.pos, b.pos, t),
-                                     .z_inv = z_inv_interpolated,
-                                     .w_inv = std::lerp(a.w_inv, b.w_inv, t),
-                                     .attrs = lerp_varying_perspective_corrected(
-                                             a.attrs, b.attrs, t, a.z_inv, b.z_inv, z_inv_interpolated) };
-    } else {
-        return ProjectedFragment<T>{ .pos = math::lerp(a.pos, b.pos, t),
-                                     .z_inv = std::lerp(a.z_inv, b.z_inv, t),
-                                     .w_inv = std::lerp(a.w_inv, b.w_inv, t),
-                                     .attrs = lerp_varying(a.attrs, b.attrs, t) };
-    }
+    return ProjectedFragment<T>{
+        .pos = math::lerp(a.pos, b.pos, t),
+        .depth = lerp_varying_perspective_corrected(a.depth, b.depth, t, a.Z_inv, b.Z_inv, Z_inv_t),
+        .Z_inv = Z_inv_t,
+        .attrs = lerp_varying_perspective_corrected(a.attrs, b.attrs, t, a.Z_inv, b.Z_inv, Z_inv_t)
+    };
 }
 
 /**
  * @brief Interpolation of vectors with barycentric coordinates of
  *        triangles
  */
+[[maybe_unused]]
 static math::Float
 barycentric(const math::Vec3& v, const math::Vec3& weights)
 {
@@ -105,17 +99,33 @@ template<VaryingInterface Varying>
 static Varying
 barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& weights,
-                                  const math::Vec3& z_inv,
-                                  const math::Float& z_inv_interpolated)
+                                  const math::Vec3& Z_inv,
+                                  const math::Float& acc_Z_inv)
 {
-    assert(std::isfinite(z_inv_interpolated));
+    // acc_Z_inv := barycentric(weights, Z_inv)
 
-    const auto wzi = weights * z_inv;
-    const auto aw0 = attrs[0] * wzi[0];
-    const auto aw1 = attrs[1] * wzi[1];
-    const auto aw2 = attrs[2] * wzi[2];
+    const auto w = weights * Z_inv;
 
-    return (aw0 + aw1 + aw2) * (1 / z_inv_interpolated);
+    const auto aw0 = attrs[0] * w[0];
+    const auto aw1 = attrs[1] * w[1];
+    const auto aw2 = attrs[2] * w[2];
+
+    return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
+}
+
+/**
+ * @brief Interpolation of fragments with barycentric coordinates of
+ *        triangles
+ */
+static math::Float
+barycentric_perspective_corrected(const math::Vec3& v,
+                                  const math::Vec3& weights,
+                                  const math::Vec3& Z_inv,
+                                  const math::Float& acc_Z_inv)
+{
+    // acc_Z_inv := barycentric(weights, Z_inv)
+
+    return dot(v, weights * Z_inv) * (1 / acc_Z_inv);
 }
 
 }; // namespace asciirast::rasterize

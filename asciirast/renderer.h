@@ -160,8 +160,8 @@ private:
     ProjectedFragment<Varying> apply_scale_to_viewport(const ProjectedFragment<Varying>& pfrag) const
     {
         return ProjectedFragment<Varying>{ .pos = m_screen_to_viewport.apply(pfrag.pos),
-                                           .z_inv = pfrag.z_inv,
-                                           .w_inv = pfrag.w_inv,
+                                           .depth = pfrag.depth,
+                                           .Z_inv = pfrag.Z_inv,
                                            .attrs = pfrag.attrs };
     }
 
@@ -170,8 +170,8 @@ private:
         const math::Vec2 new_pos = m_screen_to_window.apply(pfrag.pos);
 
         return ProjectedFragment<Varying>{ .pos = math::floor(new_pos + math::Vec2{ 0.5f, 0.5f }),
-                                           .z_inv = pfrag.z_inv,
-                                           .w_inv = pfrag.w_inv,
+                                           .depth = pfrag.depth,
+                                           .Z_inv = pfrag.Z_inv,
                                            .attrs = pfrag.attrs };
     }
 
@@ -213,11 +213,7 @@ private:
         const Targets targets = program.on_fragment(uniform, wfrag);
 
         // plot in framebuffer:
-        if (std::isfinite(wfrag.z_inv)) {
-            framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.z_inv, targets);
-        } else {
-            framebuffer.plot(math::Vec2Int{ wfrag.pos }, DEFAULT_DEPTH, targets);
-        }
+        framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.depth, targets);
     }
 
     template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
@@ -272,19 +268,22 @@ private:
         const PFrag wfrag0 = apply_screen_to_window(S_tfrag0);
         const PFrag wfrag1 = apply_screen_to_window(S_tfrag1);
 
+        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
+            return framebuffer.test_depth(pos, depth);
+        };
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
-                                                                  const math::Float z_inv,
-                                                                  const math::Float w_inv,
+                                                                  const math::Float depth,
+                                                                  const math::Float Z_inv,
                                                                   const Varying& attrs) -> void {
             // apply fragment shader:
-            const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
+            const Targets targets = program.on_fragment(uniform, PFrag{ pos, depth, Z_inv, attrs });
 
             // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
+            framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
         };
 
         // iterate over line fragments:
-        rasterize::rasterize_line(wfrag0, wfrag1, plot_func);
+        rasterize::rasterize_line(wfrag0, wfrag1, plot_func, test_depth_func);
     }
 
     using Vec4TripletQueue = std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator>;
@@ -320,46 +319,25 @@ private:
         const Frag frag1 = program.on_vertex(uniform, v1);
         const Frag frag2 = program.on_vertex(uniform, v2);
 
-        const auto p0p1 = frag0.pos.vector_to(frag1.pos).xyz.to_vec();
-        const auto p0p2 = frag0.pos.vector_to(frag2.pos).xyz.to_vec();
-        const auto signed_area_2 = math::cross(p0p1, p0p2);
+        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
+            return framebuffer.test_depth(pos, depth);
+        };
+        const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
+                                                                  const math::Float depth,
+                                                                  const math::Float Z_inv,
+                                                                  const Varying& attrs) -> void {
+            // apply fragment shader:
+            const Targets targets = program.on_fragment(uniform, PFrag{ pos, depth, Z_inv, attrs });
 
-        // perform backface culling:
-        const bool backface_cull_cond = (clockwise_winding_order && 0 < signed_area_2) ||
-                                        (counter_clockwise_winding_order && 0 > signed_area_2);
-
-        if (!neither_winding_order && backface_cull_cond) {
-            return;
-        }
+            // plot point in framebuffer:
+            framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
+        };
 
         vec_queue.clear();
         attrs_queue.clear();
-
-        // sort vertices after winding order:
-        if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
-            const auto lp = rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos };
-            const auto la = rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs };
-
-            vec_queue.insert(vec_queue.end(), lp);
-            attrs_queue.insert(attrs_queue.end(), la);
-        } else {
-            const auto lp = rasterize::Vec4Triplet{ frag0.pos, frag2.pos, frag1.pos };
-            const auto la = rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag2.attrs, frag1.attrs };
-
-            vec_queue.insert(vec_queue.end(), lp);
-            attrs_queue.insert(attrs_queue.end(), la);
-        }
-
-        const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
-                                                                  const math::Float z_inv,
-                                                                  const math::Float w_inv,
-                                                                  const Varying& attrs) -> void {
-            // apply fragment shader:
-            const Targets targets = program.on_fragment(uniform, PFrag{ pos, z_inv, w_inv, attrs });
-
-            // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pos }, z_inv, targets);
-        };
+        vec_queue.insert(vec_queue.end(), rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
+        attrs_queue.insert(attrs_queue.end(),
+                           rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
 
         // clip triangle so it's inside the viewing volume:
         if (!rasterize::triangle_in_frustum(vec_queue, attrs_queue)) {
@@ -391,18 +369,45 @@ private:
                 const PFrag wfrag2 = apply_screen_to_window(vfrag2);
 
                 // iterate over triangle fragments:
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func);
+                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
             } else {
                 S_vec_queue.clear();
                 S_attrs_queue.clear();
 
-                const auto lp = rasterize::Vec4Triplet{ math::Vec4{ vfrag0.pos, vfrag0.z_inv, vfrag0.w_inv },
-                                                        math::Vec4{ vfrag1.pos, vfrag1.z_inv, vfrag1.w_inv },
-                                                        math::Vec4{ vfrag2.pos, vfrag2.z_inv, vfrag2.w_inv } };
-                const auto la = rasterize::AttrsTriplet<Varying>{ vfrag0.attrs, vfrag1.attrs, vfrag2.attrs };
+                // perform backface culling:
+                const auto p0p1 = vfrag0.pos.vector_to(vfrag1.pos);
+                const auto p0p2 = vfrag0.pos.vector_to(vfrag2.pos);
+                const auto signed_area_2 = math::cross(p0p1, p0p2);
+                const bool backface_cull_cond =
+                        !neither_winding_order && ((clockwise_winding_order && 0 < signed_area_2) ||
+                                                   (counter_clockwise_winding_order && 0 > signed_area_2));
+                if (backface_cull_cond) {
+                    return;
+                }
 
-                S_vec_queue.insert(S_vec_queue.end(), lp);
-                S_attrs_queue.insert(S_attrs_queue.end(), la);
+                // sort vertices after winding order:
+                const auto p0 = math::Vec4{ vfrag0.pos, vfrag0.depth, vfrag0.Z_inv };
+                const auto p1 = math::Vec4{ vfrag1.pos, vfrag1.depth, vfrag1.Z_inv };
+                const auto p2 = math::Vec4{ vfrag2.pos, vfrag2.depth, vfrag2.Z_inv };
+                const auto [a0, a1, a2] = rasterize::AttrsTriplet<Varying>{
+                    vfrag0.attrs,
+                    vfrag1.attrs,
+                    vfrag2.attrs,
+                };
+
+                if (clockwise_winding_order || (neither_winding_order && 0 < signed_area_2)) {
+                    const auto lp = rasterize::Vec4Triplet{ p0, p1, p2 };
+                    const auto la = rasterize::AttrsTriplet<Varying>{ a0, a1, a2 };
+
+                    S_vec_queue.insert(S_vec_queue.end(), lp);
+                    S_attrs_queue.insert(S_attrs_queue.end(), la);
+                } else {
+                    const auto lp = rasterize::Vec4Triplet{ p0, p2, p1 };
+                    const auto la = rasterize::AttrsTriplet<Varying>{ a0, a2, a1 };
+
+                    S_vec_queue.insert(S_vec_queue.end(), lp);
+                    S_attrs_queue.insert(S_attrs_queue.end(), la);
+                }
 
                 // clip line so it's inside the screen:
                 if (!rasterize::triangle_in_screen(S_vec_queue, S_attrs_queue)) {
@@ -423,7 +428,7 @@ private:
                     const PFrag wfrag2 = apply_screen_to_window(S_tfrag2);
 
                     // iterate over triangle fragments:
-                    rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func);
+                    rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
                 }
             }
         }
