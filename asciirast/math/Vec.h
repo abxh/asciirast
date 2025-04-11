@@ -50,6 +50,16 @@ struct vec_initializer;
 template<typename T, typename... Args>
 struct not_a_single_value;
 
+/**
+ * @brief Trait to check if Args doesn't contain a single value that is convertible to
+ *        given type.
+ *
+ * @tparam T    The given type
+ * @tparam Args The argument types
+ */
+template<typename T, typename... Args>
+struct not_a_single_convertible_value;
+
 } // namespace detail
 
 /**
@@ -278,9 +288,9 @@ template<std::size_t N, typename T>
 class Vec : public VecBase<Vec, N, T>
 {
     template<typename... Args>
-    static constexpr bool constructible_from_args_v =
-            (detail::not_a_single_value<T, Args...>::value && detail::not_a_single_value<Vec, Args...>::value) &&
-            (detail::vec_constructible_from<N, T, Args...>::value);
+    static constexpr bool constructible_from_args_v = (detail::not_a_single_convertible_value<T, Args...>::value &&
+                                                       detail::not_a_single_value<Vec, Args...>::value) &&
+                                                      (detail::vec_constructible_from<N, T, Args...>::value);
 
 protected:
     using VecBase<Vec, N, T>::m_components;
@@ -336,10 +346,12 @@ public:
     /**
      * @brief Construct vector with given a value for all components.
      */
-    explicit constexpr Vec(const T value)
+    template<typename U>
+        requires(std::is_convertible_v<U, T>)
+    explicit constexpr Vec(const U value)
     {
         for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = value;
+            (*this)[i] = static_cast<T>(value);
         }
     }
 
@@ -664,9 +676,9 @@ public:
     friend constexpr Vec operator/(const Vec& lhs, const Vec& rhs)
     {
 #ifndef NDEBUG
-            for (std::size_t i = 0; i < N; i++) {
-                assert(rhs[i] != 0 && "non-zero division");
-            }
+        for (std::size_t i = 0; i < N; i++) {
+            assert(rhs[i] != 0 && "non-zero division");
+        }
 #endif
         Vec res{};
         for (std::size_t i = 0; i < N; i++) {
@@ -771,6 +783,19 @@ struct not_a_single_value_impl
 
 template<typename T, typename... Args>
 struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>...>
+{};
+
+template<typename T, typename... Args>
+struct not_a_single_convertible_value_impl
+{
+    static constexpr bool value =
+            (sizeof...(Args) != 1) ||
+            (sizeof...(Args) == 1 &&
+             !std::is_convertible_v<typename std::tuple_element<0, std::tuple<Args...>>::type, T>);
+};
+
+template<typename T, typename... Args>
+struct not_a_single_convertible_value : not_a_single_convertible_value_impl<T, std::remove_cvref_t<Args>...>
 {};
 
 /**

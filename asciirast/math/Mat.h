@@ -82,7 +82,8 @@ class Mat
 
     template<typename... Args>
     static constexpr bool constructible_from_args_v =
-            (detail::not_a_single_value<T, Args...>::value && detail::not_a_single_value<Mat, Args...>::value) &&
+            (detail::not_a_single_convertible_value<T, Args...>::value &&
+             detail::not_a_single_value<Mat, Args...>::value) &&
             (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
 
 protected:
@@ -169,18 +170,20 @@ public:
     /**
      * @brief Initiate diagonal elements to some value
      */
-    explicit constexpr Mat(const T diagonal_element)
+    template<typename U>
+        requires(std::is_convertible_v<U, T>)
+    explicit constexpr Mat(const U diagonal_element)
     {
         if constexpr (is_col_major) {
             for (std::size_t x = 0; x < N_x; x++) {
                 for (std::size_t y = 0; y < M_y; y++) {
-                    (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
+                    (*this)[y, x] = (y == x) ? static_cast<T>(diagonal_element) : T{ 0 };
                 }
             }
         } else {
             for (std::size_t y = 0; y < M_y; y++) {
                 for (std::size_t x = 0; x < N_x; x++) {
-                    (*this)[y, x] = (y == x) ? diagonal_element : T{ 0 };
+                    (*this)[y, x] = (y == x) ? static_cast<T>(diagonal_element) : T{ 0 };
                 }
             }
         }
