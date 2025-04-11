@@ -213,7 +213,10 @@ private:
         const Targets targets = program.on_fragment(uniform, wfrag);
 
         // plot in framebuffer:
-        framebuffer.plot(math::Vec2Int{ wfrag.pos }, wfrag.depth, targets);
+        const auto pos_int = math::Vec2Int{ wfrag.pos };
+        if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
+            framebuffer.plot(pos_int, targets);
+        }
     }
 
     template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
@@ -268,8 +271,8 @@ private:
         const PFrag wfrag0 = apply_screen_to_window(S_tfrag0);
         const PFrag wfrag1 = apply_screen_to_window(S_tfrag1);
 
-        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
-            return framebuffer.test_depth(pos, depth);
+        const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
+            return framebuffer.test_and_set_depth(pos, depth);
         };
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
                                                                   const math::Float depth,
@@ -279,11 +282,11 @@ private:
             const Targets targets = program.on_fragment(uniform, PFrag{ pos, depth, Z_inv, attrs });
 
             // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
+            framebuffer.plot(math::Vec2Int{ pos }, targets);
         };
 
         // iterate over line fragments:
-        rasterize::rasterize_line(wfrag0, wfrag1, plot_func, test_depth_func);
+        rasterize::rasterize_line(wfrag0, wfrag1, plot_func, test_and_set_depth_func);
     }
 
     using Vec4TripletQueue = std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator>;
@@ -315,8 +318,8 @@ private:
         const Frag frag1 = program.on_vertex(uniform, v1);
         const Frag frag2 = program.on_vertex(uniform, v2);
 
-        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) -> bool {
-            return framebuffer.test_depth(pos, depth);
+        const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) -> bool {
+            return framebuffer.test_and_set_depth(pos, depth);
         };
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
                                                                   const math::Float depth,
@@ -326,9 +329,9 @@ private:
             const Targets targets = program.on_fragment(uniform, PFrag{ pos, depth, Z_inv, attrs });
 
             // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
+            framebuffer.plot(math::Vec2Int{ pos }, targets);
         };
-        const auto rasterize_triangle = [&options, plot_func, test_depth_func](
+        const auto rasterize_triangle = [&options, plot_func, test_and_set_depth_func](
                                                 const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
             const bool clockwise_winding_order = options.winding_order == WindingOrder::CLOCKWISE;
             const bool counter_clockwise_winding_order = options.winding_order == WindingOrder::COUNTER_CLOCKWISE;
@@ -347,9 +350,9 @@ private:
 
             // iterate over triangle fragments:
             if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
+                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_and_set_depth_func);
             } else {
-                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, test_depth_func);
+                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, test_and_set_depth_func);
             }
         };
 

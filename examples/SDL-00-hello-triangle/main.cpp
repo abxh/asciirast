@@ -63,36 +63,35 @@ public:
         SDL_Quit();
     }
 
-    bool test_depth(const math::Vec2Int& pos, math::Float depth)
+    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
+        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
 
-        return depth < m_depth_buf[idx];
+        if (depth < m_depth_buf[idx]) {
+            m_depth_buf[idx] = depth;
+            return true;
+        }
+        return false;
     }
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
+    void plot(const math::Vec2Int& pos, const Targets& targets)
     {
         assert(0 <= pos.x && (std::size_t)pos.x < m_width);
         assert(0 <= pos.y && (std::size_t)pos.y < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
+        const auto [r, g, b] = std::get<RGB>(targets).array();
 
-        if (depth < m_depth_buf[idx]) {
-            const auto [r, g, b] = std::get<RGB>(targets).array();
-
-            m_rgba_buf[idx].r = static_cast<std::uint8_t>(255.f * r);
-            m_rgba_buf[idx].g = static_cast<std::uint8_t>(255.f * g);
-            m_rgba_buf[idx].b = static_cast<std::uint8_t>(255.f * b);
-            m_rgba_buf[idx].a = 255;
-            m_depth_buf[idx] = depth;
-        }
+        m_rgba_buf[idx].r = static_cast<std::uint8_t>(255.f * r);
+        m_rgba_buf[idx].g = static_cast<std::uint8_t>(255.f * g);
+        m_rgba_buf[idx].b = static_cast<std::uint8_t>(255.f * b);
+        m_rgba_buf[idx].a = 255;
     }
 
     void render() const
@@ -185,7 +184,7 @@ main(int, char**)
     vb.verticies = { v0, v1, v2 };
 
     MyProgram program;
-    asciirast::Renderer<MyVarying> renderer;
+    asciirast::Renderer<MyVarying> renderer{ math::AABB2D::from_min_max({ -2, -1 }, { 1, 1 }) };
     SDLBuffer screen(512, 512);
     MyUniform u{};
 

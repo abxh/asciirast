@@ -99,36 +99,34 @@ public:
         out.close();
     }
 
-    bool test_depth(const math::Vec2Int& pos, math::Float depth)
+    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
+        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
 
-        return depth < m_depth_buf[idx];
+        if (depth < m_depth_buf[idx]) {
+            m_depth_buf[idx] = depth;
+            return true;
+        }
+        return false;
     }
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets)
+    void plot(const math::Vec2Int& pos, const Targets& targets)
     {
         assert(0 <= pos.x && (std::size_t)pos.x < m_width);
         assert(0 <= pos.y && (std::size_t)pos.y < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
+        const auto [r, g, b] = std::get<RGBFloat>(targets).array();
 
-        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
-
-        if (depth < m_depth_buf[idx]) {
-            const auto rgb_float = std::get<RGBFloat>(targets);
-
-            m_rgb_buf[idx].r = static_cast<std::uint8_t>(255.f * rgb_float.r);
-            m_rgb_buf[idx].g = static_cast<std::uint8_t>(255.f * rgb_float.g);
-            m_rgb_buf[idx].b = static_cast<std::uint8_t>(255.f * rgb_float.b);
-            m_depth_buf[idx] = depth;
-        }
+        m_rgb_buf[idx].r = static_cast<std::uint8_t>(255.f * r);
+        m_rgb_buf[idx].g = static_cast<std::uint8_t>(255.f * g);
+        m_rgb_buf[idx].b = static_cast<std::uint8_t>(255.f * b);
     }
 
     void clear()

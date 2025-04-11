@@ -40,31 +40,31 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    bool test_depth(const math::Vec2Int& pos, math::Float depth) override
+    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth) override
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
+        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
 
-        return depth < m_depthbuf[idx];
+        if (depth < m_depthbuf[idx]) {
+            m_depthbuf[idx] = depth;
+            return true;
+        }
+        return false;
     }
 
     const math::Transform2D& screen_to_window() override { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, math::Float depth, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, const Targets& targets) override
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, 0.f, 1.f);
 
-        if (depth < m_depthbuf[idx]) {
-            m_charbuf[idx] = std::get<0>(targets);
-            m_depthbuf[idx] = depth;
-        }
+        m_charbuf[idx] = std::get<0>(targets);
     }
 
     void render() const

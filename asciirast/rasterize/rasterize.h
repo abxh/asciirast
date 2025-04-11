@@ -9,14 +9,14 @@
 
 namespace asciirast::rasterize {
 
-template<VaryingInterface Varying, typename Plot, typename TestDepth>
+template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
     requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
-             std::is_invocable_v<TestDepth, math::Vec2, math::Float>)
+             std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0,
                const ProjectedFragment<Varying>& proj1,
                const Plot plot,
-               const TestDepth test_depth)
+               const TestAndSetDepth test_and_set_depth)
 {
     // DDA Line algorithm:
     // https://www.redblobgames.com/grids/line-drawing/#more
@@ -45,7 +45,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
         const auto pos = math::floor(acc_v);
         const auto acc_depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t, Z_inv0, Z_inv1, acc_Z_inv);
 
-        if (test_depth(pos, acc_depth)) {
+        if (test_and_set_depth(pos, acc_depth)) {
             const auto acc_attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv);
             plot(pos, acc_depth, acc_Z_inv, acc_attrs);
         }
@@ -72,15 +72,15 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest)
     return is_top_edge || is_left_edge;
 }
 
-template<VaryingInterface Varying, typename Plot, typename TestDepth>
+template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
     requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
-             std::is_invocable_v<TestDepth, math::Vec2, math::Float>)
+             std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
                    const Plot plot,
-                   const TestDepth test_depth)
+                   const TestAndSetDepth test_and_set_depth)
 {
     // Algorithm using cross products and bayesian coordinates for
     // triangles:
@@ -168,7 +168,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                 const auto acc_Z_inv = barycentric(Z_inv, weights);
                 const auto acc_depth = barycentric_perspective_corrected(depth, weights, Z_inv, acc_Z_inv);
 
-                if (test_depth(p, acc_depth)) {
+                if (test_and_set_depth(p, acc_depth)) {
                     const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, Z_inv, acc_Z_inv);
                     plot(p, acc_depth, acc_Z_inv, acc_attrs);
                 }
