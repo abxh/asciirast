@@ -334,7 +334,7 @@ public:
     };
 
     /**
-     * @brief Construct vector with given value for all components.
+     * @brief Construct vector with given a value for all components.
      */
     explicit constexpr Vec(const T value)
     {

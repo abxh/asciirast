@@ -383,18 +383,21 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 [[assume(t0b == 0.f)]];
                 [[assume(t02 != 1.f)]];
 
-                if (std::isfinite(p0.z) && std::isfinite(p1.z) && std::isfinite(p2.z)) {
-                    const auto p01 = math::lerp(p0, p1, t01);
-                    const auto p02 = math::lerp(p0, p2, t02);
+                const auto p01w = std::lerp(p0.w, p1.w, t01);
+                const auto p02w = std::lerp(p0.w, p2.w, t02);
 
-                    *it_vec = Vec4Triplet{ p0, p01, p02 };
-                    *it_attr = AttrsTriplet{ a0,
-                                             lerp_varying_perspective_corrected(a0, a1, t01, p0.z, p1.z, p01.z),
-                                             lerp_varying_perspective_corrected(a0, a2, t02, p0.z, p2.z, p02.z) };
-                } else {
-                    *it_vec = Vec4Triplet{ p0, math::lerp(p0, p1, t01), math::lerp(p0, p2, t02) };
-                    *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
-                }
+                *it_vec = Vec4Triplet{
+                    p0,
+                    math::Vec4{ math::lerp(p0.xy.to_vec(), p1.xy.to_vec(), t01),
+                                lerp_varying_perspective_corrected<math::Float>(p0.z, p1.z, t01, p0.w, p1.w, p01w),
+                                p01w },
+                    math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                                lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
+                                p02w },
+                };
+                *it_attr = AttrsTriplet{ a0,
+                                         lerp_varying_perspective_corrected(a0, a1, t01, p0.w, p1.w, p01w),
+                                         lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w) };
             } break;
             case 2: {
                 const auto vec_triplet = *it_vec;
@@ -427,17 +430,20 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 [[assume(t1 == 0.f)]];
                 [[assume(t12 != 1.f)]];
 
-                const auto p02 = math::lerp(p0, p2, t02);
-                const auto p12 = math::lerp(p1, p2, t12);
+                const auto p02w = std::lerp(p0.w, p2.w, t02);
+                const auto p12w = std::lerp(p1.w, p2.w, t12);
 
-                Varying a02, a12;
-                if (std::isfinite(p0.z) && std::isfinite(p1.z) && std::isfinite(p2.z)) {
-                    a02 = lerp_varying_perspective_corrected(a0, a2, t02, p0.z, p2.z, p02.z);
-                    a12 = lerp_varying_perspective_corrected(a1, a2, t12, p1.z, p2.z, p12.z);
-                } else {
-                    a02 = lerp_varying(a0, a2, t02);
-                    a12 = lerp_varying(a1, a2, t12);
-                }
+                const auto p02 =
+                        math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                                    lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
+                                    p02w };
+                const auto p12 =
+                        math::Vec4{ math::lerp(p1.xy.to_vec(), p2.xy.to_vec(), t12),
+                                    lerp_varying_perspective_corrected<math::Float>(p1.z, p2.z, t12, p1.w, p2.w, p12w),
+                                    p12w };
+
+                const Varying a02 = lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w);
+                const Varying a12 = lerp_varying_perspective_corrected(a1, a2, t12, p1.w, p2.w, p12w);
 
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };

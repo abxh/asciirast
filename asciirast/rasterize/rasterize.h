@@ -128,7 +128,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0) ? 0.f : -1.f;
     const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0.f : -1.f;
 
-    const math::Float triangle_area_2 = cross(v0.vector_to(v1), v0.vector_to(v2));
+    const math::Float triangle_area_2 = cross(v0.vector_to(v2), v0.vector_to(v1));
     if (triangle_area_2 == 0) {
         return;
     }

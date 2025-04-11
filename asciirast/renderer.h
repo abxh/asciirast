@@ -309,17 +309,13 @@ private:
         using PFrag = ProjectedFragment<Varying>;
         using Targets = typename Program::Targets;
 
-        const bool clockwise_winding_order = options.winding_order == WindingOrder::CLOCKWISE;
-        const bool counter_clockwise_winding_order = options.winding_order == WindingOrder::COUNTER_CLOCKWISE;
-        const bool neither_winding_order = options.winding_order == WindingOrder::NEITHER;
-
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
         const Frag frag0 = program.on_vertex(uniform, v0);
         const Frag frag1 = program.on_vertex(uniform, v1);
         const Frag frag2 = program.on_vertex(uniform, v2);
 
-        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
+        const auto test_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) -> bool {
             return framebuffer.test_depth(pos, depth);
         };
         const auto plot_func = [&program, &framebuffer, &uniform](const math::Vec2& pos,
@@ -331,6 +327,30 @@ private:
 
             // plot point in framebuffer:
             framebuffer.plot(math::Vec2Int{ pos }, depth, targets);
+        };
+        const auto rasterize_triangle = [&options, plot_func, test_depth_func](
+                                                const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+            const bool clockwise_winding_order = options.winding_order == WindingOrder::CLOCKWISE;
+            const bool counter_clockwise_winding_order = options.winding_order == WindingOrder::COUNTER_CLOCKWISE;
+            const bool neither_winding_order = options.winding_order == WindingOrder::NEITHER;
+
+            // perform backface culling:
+            const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
+            const auto p0p1 = wfrag0.pos.vector_to(wfrag1.pos);
+            const auto signed_area_2 = math::cross(p0p2, p0p1);
+            const bool backface_cull_cond =
+                    !neither_winding_order && ((clockwise_winding_order && 0 < signed_area_2) ||
+                                               (counter_clockwise_winding_order && 0 > signed_area_2));
+            if (backface_cull_cond) {
+                return;
+            }
+
+            // iterate over triangle fragments:
+            if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
+                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
+            } else {
+                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, test_depth_func);
+            }
         };
 
         vec_queue.clear();
@@ -369,45 +389,20 @@ private:
                 const PFrag wfrag2 = apply_screen_to_window(vfrag2);
 
                 // iterate over triangle fragments:
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
+                rasterize_triangle(wfrag0, wfrag1, wfrag2);
             } else {
                 S_vec_queue.clear();
                 S_attrs_queue.clear();
 
-                // perform backface culling:
-                const auto p0p1 = vfrag0.pos.vector_to(vfrag1.pos);
-                const auto p0p2 = vfrag0.pos.vector_to(vfrag2.pos);
-                const auto signed_area_2 = math::cross(p0p1, p0p2);
-                const bool backface_cull_cond =
-                        !neither_winding_order && ((clockwise_winding_order && 0 < signed_area_2) ||
-                                                   (counter_clockwise_winding_order && 0 > signed_area_2));
-                if (backface_cull_cond) {
-                    return;
-                }
-
-                // sort vertices after winding order:
                 const auto p0 = math::Vec4{ vfrag0.pos, vfrag0.depth, vfrag0.Z_inv };
                 const auto p1 = math::Vec4{ vfrag1.pos, vfrag1.depth, vfrag1.Z_inv };
                 const auto p2 = math::Vec4{ vfrag2.pos, vfrag2.depth, vfrag2.Z_inv };
-                const auto [a0, a1, a2] = rasterize::AttrsTriplet<Varying>{
-                    vfrag0.attrs,
-                    vfrag1.attrs,
-                    vfrag2.attrs,
-                };
+                const auto [a0, a1, a2] = rasterize::AttrsTriplet<Varying>{ vfrag0.attrs, vfrag1.attrs, vfrag2.attrs };
+                const auto lp = rasterize::Vec4Triplet{ p0, p1, p2 };
+                const auto la = rasterize::AttrsTriplet<Varying>{ a0, a1, a2 };
 
-                if (clockwise_winding_order || (neither_winding_order && 0 < signed_area_2)) {
-                    const auto lp = rasterize::Vec4Triplet{ p0, p1, p2 };
-                    const auto la = rasterize::AttrsTriplet<Varying>{ a0, a1, a2 };
-
-                    S_vec_queue.insert(S_vec_queue.end(), lp);
-                    S_attrs_queue.insert(S_attrs_queue.end(), la);
-                } else {
-                    const auto lp = rasterize::Vec4Triplet{ p0, p2, p1 };
-                    const auto la = rasterize::AttrsTriplet<Varying>{ a0, a2, a1 };
-
-                    S_vec_queue.insert(S_vec_queue.end(), lp);
-                    S_attrs_queue.insert(S_attrs_queue.end(), la);
-                }
+                S_vec_queue.insert(S_vec_queue.end(), lp);
+                S_attrs_queue.insert(S_attrs_queue.end(), la);
 
                 // clip line so it's inside the screen:
                 if (!rasterize::triangle_in_screen(S_vec_queue, S_attrs_queue)) {
@@ -428,7 +423,7 @@ private:
                     const PFrag wfrag2 = apply_screen_to_window(S_tfrag2);
 
                     // iterate over triangle fragments:
-                    rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_depth_func);
+                    rasterize_triangle(wfrag0, wfrag1, wfrag2);
                 }
             }
         }

@@ -117,6 +117,7 @@ barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
  * @brief Interpolation of fragments with barycentric coordinates of
  *        triangles
  */
+[[maybe_unused]]
 static math::Float
 barycentric_perspective_corrected(const math::Vec3& v,
                                   const math::Vec3& weights,
