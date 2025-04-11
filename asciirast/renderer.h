@@ -132,13 +132,13 @@ private:
     static inline math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
                                                                  const math::AABB2D& screen_bounds)
     {
-        assert(viewport_bounds.size_get().x != math::Float{ 0 });
-        assert(viewport_bounds.size_get().y != math::Float{ 0 });
+        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
+        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
 
         const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
-        const auto min_vec = screen_bounds.min_get().vector_to(viewport_bounds.min_get());
+        const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());
 
-        return math::Transform2D().scale(rel_size).translate(min_vec);
+        return math::Transform2D().scale(rel_size).translate(shf_size);
     }
 
     template<FrameBufferInterface FrameBuffer>

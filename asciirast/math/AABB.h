@@ -36,18 +36,21 @@ public:
     static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max)
     {
         const auto size = math::max(max - min, Vec<N, T>{ 0 });
-        const auto center = min + size / 2;
+        const auto extent = size / 2;
+        const auto center = min + extent;
 
-        return AABB{ center, size };
+        return AABB::from_center_extent(center, extent);
     }
 
     /**
-     * @brief Construct AABB from center and size
+     * @brief Construct AABB from center and extent
      */
-    constexpr AABB(const Vec<N, T>& center, const Vec<N, T>& size)
-            : m_center{ center }
-            , m_extent{ math::max(size / 2, Vec<N, T>{ 0 }) }
+    static constexpr AABB from_center_extent(const Vec<N, T>& center, const Vec<N, T>& extent)
     {
+        AABB res{};
+        res.center_set(center);
+        res.extent_set(extent);
+        return res;
     }
 
     /**
@@ -128,6 +131,20 @@ public:
     constexpr AABB& center_set(const Vec<N, T>& center)
     {
         m_center = center;
+        return *this;
+    }
+
+    /**
+     * @brief Get extent of bounding box
+     */
+    constexpr Vec<N, T> extent_get() const { return m_extent; }
+
+    /**
+     * @brief Get size of bounding box
+     */
+    constexpr AABB& extent_set(const Vec<N, T>& extent)
+    {
+        m_extent = math::max(extent, Vec<N, T>{ 0 });
         return *this;
     }
 

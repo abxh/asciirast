@@ -437,7 +437,7 @@ public:
     constexpr Mat& operator/=(const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != T{ 0 } && "non-zero division");
+            assert(scalar != 0 && "non-zero division");
         }
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] /= scalar;
@@ -512,7 +512,7 @@ public:
     friend constexpr Mat operator/(const Mat& lhs, const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != T{ 0 } && "non-zero division");
+            assert(scalar != 0 && "non-zero division");
         }
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
