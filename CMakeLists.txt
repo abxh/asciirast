@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-	add_compile_options(-DNDEBUG -O3 -flto=auto -fno-math-errno -fno-trapping-math)
+	add_compile_options(-DNDEBUG -O3 -flto=auto -ffast-math)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
