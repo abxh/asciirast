@@ -558,9 +558,8 @@ public:
      */
     constexpr Vec& operator/=(const T scalar)
     {
-        if constexpr (std::is_integral_v<T>) {
-            assert(scalar != 0 && "non-zero division");
-        }
+        assert(scalar != 0 && "non-zero division");
+
         for (std::size_t i = 0; i < N; i++) {
             (*this)[i] /= scalar;
         }
@@ -651,9 +650,7 @@ public:
      */
     friend constexpr Vec operator/(const Vec& lhs, const T scalar)
     {
-        if constexpr (std::is_integral_v<T>) {
-            assert(scalar != 0 && "non-zero division");
-        }
+        assert(scalar != 0 && "non-zero division");
         Vec res{};
         for (std::size_t i = 0; i < N; i++) {
             res[i] = lhs[i] / scalar;
@@ -666,13 +663,11 @@ public:
      */
     friend constexpr Vec operator/(const Vec& lhs, const Vec& rhs)
     {
-        if constexpr (std::is_integral_v<T>) {
 #ifndef NDEBUG
             for (std::size_t i = 0; i < N; i++) {
                 assert(rhs[i] != 0 && "non-zero division");
             }
 #endif
-        }
         Vec res{};
         for (std::size_t i = 0; i < N; i++) {
             res[i] = lhs[i] / rhs[i];
@@ -881,7 +876,7 @@ private:
                                           const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
                                           auto&&... rest)
     {
-        for (std::size_t j = 0; j < M; j++) {
+        for (std::size_t j = 0; j < sizeof...(Is); j++) {
             out[idx + j] = static_cast<T>(arg[j]);
         }
         idx += sizeof...(Is);
