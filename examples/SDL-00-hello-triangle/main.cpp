@@ -206,7 +206,7 @@ main(int, char**)
             }
         }
 
-        renderer.draw(program, u, vb, screen, {}, pipeline_data);
+        renderer.draw(program, u, vb, screen, pipeline_data);
         screen.render();
     }
 

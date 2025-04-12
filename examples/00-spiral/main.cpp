@@ -240,10 +240,10 @@ main(void)
 
     while (!s.try_acquire()) {
         flip = false;
-        r1.draw(p, u, vb, t, {}, pipeline_data);
+        r1.draw(p, u, vb, t, pipeline_data);
 
         flip = true;
-        r2.draw(p, u, vb, t, {}, pipeline_data);
+        r2.draw(p, u, vb, t, pipeline_data);
 
         t.render();
 

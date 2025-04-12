@@ -276,7 +276,7 @@ main(int, char**)
     PPMBuffer screen(512, 512);
 
     RGBProgram p1;
-    renderer.draw(p1, u, vb, screen, {}, pipeline_data);
+    renderer.draw(p1, u, vb, screen, pipeline_data);
     screen.save_to("images/rgb.ppm", ImageType::RGB);
     screen.save_to("images/red.ppm", ImageType::RED_CHANNEL);
     screen.save_to("images/green.ppm", ImageType::GREEN_CHANNEL);
@@ -285,7 +285,7 @@ main(int, char**)
     screen.clear();
 
     CheckerboardProgram p2;
-    renderer.draw(p2, u, vb, screen, {}, pipeline_data);
+    renderer.draw(p2, u, vb, screen, pipeline_data);
     screen.save_to("images/checkerboard.ppm", ImageType::RGB);
     screen.clear();
 

@@ -162,8 +162,8 @@ public:
      * @param uniform The uniform(s)
      * @param verts The vertex buffer
      * @param framebuffer The frame buffer
-     * @param options Options
      * @param pipeline_data Reusuable pipeline data buffers
+     * @param options Options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -178,8 +178,8 @@ public:
             const Uniform& uniform,
             const VertexBuffer<Vertex, VertexAllocator>& verts,
             FrameBuffer& framebuffer,
-            RendererOptions options,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data)
+            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data,
+            RendererOptions options = {})
     {
         update_screen_to_window(framebuffer);
 
@@ -231,8 +231,8 @@ public:
      * @param uniform The uniform(s)
      * @param verts The vertex buffer with indicies
      * @param framebuffer The frame buffer
-     * @param options Optional options
      * @param pipeline_data Optional reusuable pipeline data buffers
+     * @param options Optional options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -248,8 +248,8 @@ public:
             const Uniform& uniform,
             const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
             FrameBuffer& framebuffer,
-            const RendererOptions& options,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data)
+            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data,
+            RendererOptions options = {})
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             assert(i < verts.verticies.size() && "index is inside bounds");

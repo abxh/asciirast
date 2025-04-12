@@ -305,7 +305,7 @@ main(void)
     } };
 
     while (!s.try_acquire()) {
-        r.draw(p, u, vb, t, {}, pipeline_data);
+        r.draw(p, u, vb, t, pipeline_data);
 
         t.render();
 
