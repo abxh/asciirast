@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <numbers>
+#include <stdexcept>
 #include <type_traits>
 
 namespace asciirast::math {
@@ -189,7 +190,7 @@ sqrt(const T x) -> T
         if (0 <= x && x < std::numeric_limits<T>::infinity()) {
             return detail::sqrt_newton_raphson<T>(x, x, 0);
         } else {
-            throw "sqrt domain error";
+            throw std::domain_error("asciirast::math::details::sqrt() : sqrt value is not a positive real");
         }
     } else {
         return std::sqrt(x);

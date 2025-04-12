@@ -61,8 +61,8 @@ struct RendererOptions
 template<typename Vertex, class VertexAllocator = std::allocator<Vertex>>
 struct VertexBuffer
 {
-    ShapeType shape_type;                           ///< Shape type
-    std::vector<Vertex, VertexAllocator> verticies; ///< Buffer of verticies
+    ShapeType shape_type = {};                           ///< Shape type
+    std::vector<Vertex, VertexAllocator> verticies = {}; ///< Buffer of verticies
 };
 
 /**
@@ -75,7 +75,7 @@ template<typename Vertex,
          class IndexAllocator = std::allocator<std::size_t>>
 struct IndexedVertexBuffer : VertexBuffer<Vertex, VertexAllocator>
 {
-    std::vector<std::size_t, IndexAllocator> indicies; ///< Buffer of indicies
+    std::vector<std::size_t, IndexAllocator> indicies = {}; ///< Buffer of indicies
 };
 
 /**
@@ -210,8 +210,9 @@ public:
               RendererOptions options = {})
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
-            assert(i < verts.verticies.size() && "index is inside bounds");
-
+            if (i >= verts.verticies.size()) {
+                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of bounds");
+            }
             return verts.verticies[i];
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
@@ -252,8 +253,9 @@ public:
             RendererOptions options = {})
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
-            assert(i < verts.verticies.size() && "index is inside bounds");
-
+            if (i >= verts.verticies.size()) {
+                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of bounds");
+            }
             return verts.verticies[i];
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);

@@ -50,7 +50,7 @@ if (SDL_BASED_EXAMPLES)
 	# add_subdirectory(external/imgui)
 endif()
 
-# add_subdirectory(external/tiny_obj_loader)
+add_subdirectory(external/tiny_obj_loader)
 # add_subdirectory(external/stb_image)
 
 if (MSVC)
@@ -62,13 +62,14 @@ endif()
 add_subdirectory(external/terminal_utils)
 
 # add_subdirectory(asciirast)
-add_subdirectory(src)
+add_subdirectory(src) # alt to header-only asciirast
 
 add_subdirectory(examples/00-spiral)
 add_subdirectory(examples/01-sierpinski-triangle)
 
 if (SDL_BASED_EXAMPLES)
 	add_subdirectory(examples/SDL-00-hello-triangle)
+	add_subdirectory(examples/SDL-01-wireframe)
 endif()
 
 add_subdirectory(examples/PPM-00-perspective-correctness)

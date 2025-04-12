@@ -210,14 +210,6 @@ class CheckerboardProgram
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
-    static math::Float checkerboard(math::Vec2 uv, math::Float M)
-    {
-        math::Float s = std::floor(uv.x * M);
-        math::Float t = std::floor(uv.y * M);
-
-        return std::fmod(s + t, math::Float{ 2 });
-    }
-
 public:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
@@ -243,7 +235,7 @@ public:
 
         const auto uv = pfrag.attrs.uv;
         const auto M = 10.f;
-        const auto pattern = (std::fmod(uv.r * M, 1.f) > 0.5f) ^ (std::fmod(uv.g /*   */ * M, 1.f) < 0.5f);
+        const auto pattern = (std::fmod(uv.r * M, 1.f) > 0.5f) ^ (std::fmod(uv.g * M, 1.f) < 0.5f);
 
         return { pfrag.attrs.color * pattern };
     }
