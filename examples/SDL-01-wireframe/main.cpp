@@ -3,6 +3,9 @@
 // - https://www.youtube.com/watch?v=iClme2zsg3I
 // - https://github.com/tinyobjloader/tinyobjloader
 
+// based on:
+// https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm
+
 #include "asciirast/framebuffer.h"
 #include "asciirast/math/types.h"
 #include "asciirast/program.h"
