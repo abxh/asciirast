@@ -40,7 +40,7 @@ public:
     {
         const math::Vec2 scale = { m_width - 1, m_height - 1 };
         m_screen_to_window =
-                asciirast::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
 
         m_rgb_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
@@ -70,8 +70,8 @@ public:
             for (std::size_t y = 0; y < m_height; y++) {
                 for (std::size_t x = 0; x < m_width; x++) {
                     const auto idx = index(y, x);
-                    if (m_depth_buf[idx] != asciirast::DEFAULT_DEPTH) {
-                        const auto val = static_cast<int>(255.f * (asciirast::MAX_DEPTH - m_depth_buf[idx]));
+                    if (m_depth_buf[idx] != asciirast::constants::DEFAULT_DEPTH) {
+                        const auto val = static_cast<int>(255.f * (asciirast::constants::MAX_DEPTH - m_depth_buf[idx]));
                         out << val << ' ' << val << ' ' << val << '\n';
                     } else {
                         const auto [r, g, b] = m_rgb_buf[idx];
@@ -83,7 +83,7 @@ public:
             for (std::size_t y = 0; y < m_height; y++) {
                 for (std::size_t x = 0; x < m_width; x++) {
                     const auto idx = index(y, x);
-                    if (m_depth_buf[idx] != asciirast::DEFAULT_DEPTH) {
+                    if (m_depth_buf[idx] != asciirast::constants::DEFAULT_DEPTH) {
                         const auto [r, g, b] = m_rgb_buf[idx];
                         out << int(type == ImageType::RED_CHANNEL ? r : 0) << ' ';
                         out << int(type == ImageType::GREEN_CHANNEL ? g : 0) << ' ';
@@ -105,7 +105,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
+        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -133,7 +133,7 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgb_buf[i] = { .r = 128, .g = 128, .b = 128 };
-            m_depth_buf[i] = asciirast::DEFAULT_DEPTH;
+            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
         }
     }
 

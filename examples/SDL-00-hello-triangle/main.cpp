@@ -42,7 +42,7 @@ public:
 
         const math::Vec2 scale = { m_width - 1, m_height - 1 };
         m_screen_to_window =
-                asciirast::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
 
         m_rgba_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
@@ -69,7 +69,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
+        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -108,7 +108,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = asciirast::DEFAULT_DEPTH;
+            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
         }
     }
 

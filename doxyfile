@@ -8,9 +8,10 @@ USE_MDFILE_AS_MAINPAGE = readme.md
 
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
-HTML_OUTPUT            = docs
+# HTML_OUTPUT            = docs
 # LATEX_OUTPUT           = docs/latex
 
-TOC_INCLUDE_HEADINGS   = 3
-SEARCHENGINE           = YES
+# TOC_INCLUDE_HEADINGS   = 3
+# SEARCHENGINE           = YES
+
 QUIET                  = NO

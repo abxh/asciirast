@@ -1,7 +1,9 @@
 /**
  * @file Mat.h
- * @brief File with definition of a (basic) matrix class
- * @todo determinant and inverse function
+ * @brief Math matrix
+ *
+ * @todo determinant function
+ * @todo inverse function
  */
 
 #pragma once
@@ -21,40 +23,18 @@ namespace asciirast::math {
 
 namespace detail {
 
-/**
- * @brief Trait to check if matrix can constructed from arguments.
- *
- * @tparam M_y              Number of rows
- * @tparam N_x              Number of columns
- * @tparam T                Type of elements
- * @tparam is_col_major     Whether the matrix is in column major
- * @tparam Args             Arguments consisting of vectors and smaller
- *                          matrices.
- */
+/// @cond DO_NOT_DOCUMENT
+
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
 struct mat_constructible_from;
 
-/**
- * @brief Helper class to initialize matrix from arguments.
- *
- * @tparam M_y              Number of rows
- * @tparam N_x              Number of columns
- * @tparam T                Type of elements
- * @tparam is_col_major     Whether the matrix is in column major
- */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer;
 
-/**
- * @brief Helper class to print matrix.
- *
- * @tparam M_y              Number of rows
- * @tparam N_x              Number of columns
- * @tparam T                Type of elements
- * @tparam is_col_major     Whether the matrix is in column major
- */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
+
+/// @endcond
 
 } // namespace detail
 
@@ -87,11 +67,15 @@ class Mat
             (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
 
 protected:
-    std::array<T, M_y * N_x> m_elements{}; ///< 1D array of elements
+    /// 1D array of elements
+    std::array<T, M_y * N_x> m_elements = {};
 
 public:
     /**
-     * @brief Map a 2d matrix index to a 1d array index.
+     * @brief Map two-dimensional matrix indicies to a single dimensional array index
+     *
+     * @param y Zero-based row index
+     * @param x Zero-based column index
      */
     static constexpr std::size_t map_index(const std::size_t y, const std::size_t x)
     {
@@ -103,16 +87,35 @@ public:
     }
 
     /**
-     * @brief Generate the identity matrix. Only for squared matricies.
+     * @brief Get the square identity matrix
+     *
+     * @return The identity matrix
      */
     static constexpr Mat identity()
         requires(N_x == M_y)
     {
-        return Mat{ T{ 1 } };
+        Mat res{};
+        if constexpr (is_col_major) {
+            for (std::size_t x = 0; x < N_x; x++) {
+                for (std::size_t y = 0; y < M_y; y++) {
+                    res[y, x] = (y == x) ? 1 : 0;
+                }
+            }
+        } else {
+            for (std::size_t y = 0; y < M_y; y++) {
+                for (std::size_t x = 0; x < N_x; x++) {
+                    res[y, x] = (y == x) ? 1 : 0;
+                }
+            }
+        }
+        return res;
     }
 
     /**
-     * @brief Create matrix from columns
+     * @brief Create matrix from column vectors
+     *
+     * @param args The column vectors
+     * @return The matrix consisting of the column vectors with the rest padded with zero
      */
     template<typename... Args>
         requires(constructible_from_cols_v<Args...>)
@@ -130,7 +133,10 @@ public:
     }
 
     /**
-     * @brief Create matrix from rows
+     * @brief Create matrix from row vectors
+     *
+     * @param args The row vectors
+     * @return The matrix consisting of the row vectors with the rest padded with zero
      */
     template<typename... Args>
         requires(constructible_from_rows_v<Args...>)
@@ -149,13 +155,16 @@ public:
 
 public:
     /**
-     * @brief Default constructor. Set all values to zero.
+     * @brief Construct matrix with all zeroes
      */
     constexpr Mat() {};
 
     /**
-     * @brief Construct matrix from a mix smaller of matrices and vectors,
-     * padding the rest of the elements with zeroes.
+     * @brief Construct matrix from a mix of smaller matricies and vectors
+     *        with the rest padded with zeroes, initialized with the
+     *        arguments in the same order as the matrix major order.
+     *
+     * @param args A mix of smaller matricies and vectors
      */
     template<typename... Args>
         requires(sizeof...(Args) > 0)
@@ -167,66 +176,61 @@ public:
         initializer::init_from(*this, std::forward<Args>(args)...);
     };
 
-    /**
-     * @brief Initiate diagonal elements to some value
-     */
-    template<typename U>
-        requires(std::is_convertible_v<U, T>)
-    explicit constexpr Mat(const U diagonal_element)
-    {
-        if constexpr (is_col_major) {
-            for (std::size_t x = 0; x < N_x; x++) {
-                for (std::size_t y = 0; y < M_y; y++) {
-                    (*this)[y, x] = (y == x) ? static_cast<T>(diagonal_element) : T{ 0 };
-                }
-            }
-        } else {
-            for (std::size_t y = 0; y < M_y; y++) {
-                for (std::size_t x = 0; x < N_x; x++) {
-                    (*this)[y, x] = (y == x) ? static_cast<T>(diagonal_element) : T{ 0 };
-                }
-            }
-        }
-    }
-
 public:
     /**
-     * @brief Get number of rows
+     * @brief Get number of rows in the matrix
+     *
+     * @return The row count as size_t
      */
     static constexpr std::size_t row_count() { return M_y; }
 
     /**
-     * @brief Get number of columns
+     * @brief Get number of columns in the matrix
+     *
+     * @return The column count as size_t
      */
     static constexpr std::size_t col_count() { return N_x; }
 
     /**
-     * @brief Get number of elements
+     * @brief Get the total size of the matrix
+     *
+     * @return The matrix size as size_t
      */
     static constexpr std::size_t size() { return M_y * N_x; }
 
     /**
-     * @brief Get pointer over underlying data
+     * @brief Get pointer to the underlying data in the matrix major order
+     *
+     * @return The pointer to the first element of the underlying data
      */
     constexpr T* data() { return &m_elements[0]; }
 
     /**
-     * @brief Get pointer over underlying data
+     * @brief Get const pointer to the underlying data in the matrix major order
+     *
+     * @return The const pointer to the first element of the underlying data
      */
     constexpr const T* data() const { return &m_elements[0]; }
 
     /**
-     * @brief Get underlying array
+     * @brief Get underlying array in matrix major order
+     *
+     * @return A reference to the underlying array
      */
     constexpr std::array<T, M_y * N_x>& array() { return m_elements; }
 
     /**
-     * @brief Get underlying array
+     * @brief Get underlying array in matrix major order
+     *
+     * @return A const reference to the underlying array
      */
     constexpr const std::array<T, M_y * N_x>& array() const { return m_elements; }
 
     /**
      * @brief Index the underlying array
+     *
+     * @param i The index
+     * @return Reference to the value at the index
      */
     constexpr T& operator[](const std::size_t i)
     {
@@ -237,6 +241,9 @@ public:
 
     /**
      * @brief Index the underlying array
+     *
+     * @param i The index
+     * @return The value at the index
      */
     constexpr T operator[](const std::size_t i) const
     {
@@ -247,6 +254,10 @@ public:
 
     /**
      * @brief Index the matrix
+     *
+     * @param y The row index
+     * @param x The column index
+     * @return A reference to the value at the indicies
      */
     constexpr T& operator[](const std::size_t y, const std::size_t x)
     {
@@ -258,6 +269,10 @@ public:
 
     /**
      * @brief Index the matrix
+     *
+     * @param y The row index
+     * @param x The column index
+     * @return The value at the indicies
      */
     constexpr T operator[](const std::size_t y, const std::size_t x) const
     {
@@ -269,6 +284,10 @@ public:
 
     /**
      * @brief Print the matrix
+     *
+     * @param out The output stream
+     * @param m The matrix at hand
+     * @return A reference to the output stream modified
      */
     friend std::ostream& operator<<(std::ostream& out, const Mat& m)
     {
@@ -278,7 +297,9 @@ public:
     }
 
     /**
-     * @brief Get the transpose of the matrix
+     * @brief Get a copy of the transposed of the matrix
+     *
+     * @return A copy of the transposed to the matrix
      */
     constexpr Mat<N_x, M_y, T, is_col_major> transposed() const
     {
@@ -300,7 +321,10 @@ public:
     }
 
     /**
-     * @brief Get y'th row
+     * @brief Get the y'th row vector
+     *
+     * @param y The row-index
+     * @return The y'th row vector as Vec
      */
     constexpr Vec<N_x, T> row_get(const std::size_t y) const
     {
@@ -310,11 +334,16 @@ public:
         for (std::size_t x = 0; x < N_x; x++) {
             res[x] = (*this)[y, x];
         }
+
         return res;
     }
 
     /**
-     * @brief Set y'th row
+     * @brief Set the y'th row vector
+     *
+     * @param y The row-index
+     * @param v The new row vector
+     * @return This
      */
     constexpr Mat& row_set(const std::size_t y, const Vec<N_x, T>& v)
     {
@@ -323,11 +352,15 @@ public:
         for (std::size_t x = 0; x < N_x; x++) {
             (*this)[y, x] = v[x];
         }
+
         return *this;
     }
 
     /**
-     * @brief Get x'th column
+     * @brief Get the x'th column vector
+     *
+     * @param x The column-index
+     * @return The x'th column vector as Vec
      */
     constexpr Vec<M_y, T> col_get(const std::size_t x) const
     {
@@ -337,11 +370,16 @@ public:
         for (std::size_t y = 0; y < M_y; y++) {
             res[y] = (*this)[y, x];
         }
+
         return res;
     }
 
     /**
-     * @brief Set x'th column
+     * @brief Set the x'th column vector
+     *
+     * @param x The column-index
+     * @param v The new column vector
+     * @return This
      */
     constexpr Mat& col_set(const std::size_t x, const Vec<M_y, T>& v)
     {
@@ -350,12 +388,17 @@ public:
         for (std::size_t y = 0; y < M_y; y++) {
             (*this)[y, x] = v[y];
         }
+
         return *this;
     }
 
 public:
     /**
-     * @brief Check if equal to other matrix in terms of bitwise equality
+     * @brief Check if two matricies are (approximately) equal
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return Whether the matrices are (approximately) equal
      */
     friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_integral_v<T>)
@@ -368,7 +411,11 @@ public:
     }
 
     /**
-     * @brief Check if approximately equal to other matrix
+     * @brief Check if two matricies are (approximately) equal
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return Whether the matrices are (approximately) equal
      */
     friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
@@ -381,7 +428,11 @@ public:
     }
 
     /**
-     * @brief Check if approximately not equal to other matrix
+     * @brief Check if two matricies are (approximately) not equal
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return Whether the matrices are (approximately) not equal
      */
     friend constexpr bool operator!=(const Mat& lhs, const Mat& rhs)
         requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
@@ -391,7 +442,10 @@ public:
 
 public:
     /**
-     * @brief In-place component-wise addition with matrix
+     * @brief Perform in-place component-wise addition with other matrix
+     *
+     * @param that The other matrix at hand
+     * @return This
      */
     constexpr Mat& operator+=(const Mat& that)
     {
@@ -402,7 +456,10 @@ public:
     }
 
     /**
-     * @brief In-place component-wise subtraction with matrix
+     * @brief Perform in-place component-wise subtraction with other matrix
+     *
+     * @param that The other matrix at hand
+     * @return This
      */
     constexpr Mat& operator-=(const Mat& that)
     {
@@ -413,18 +470,10 @@ public:
     }
 
     /**
-     * @brief In-place component-wise multiplication with matrix
-     */
-    constexpr Mat& operator*=(const Mat& that)
-    {
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] *= that[i];
-        }
-        return *this;
-    }
-
-    /**
-     * @brief In-place matrix-scalar multiplication
+     * @brief Perform in-place matrix-scalar multiplication
+     *
+     * @param scalar The scalar at hand
+     * @return The matrix with it's element scaled by the given scalar
      */
     constexpr Mat& operator*=(const T scalar)
     {
@@ -435,7 +484,10 @@ public:
     }
 
     /**
-     * @brief In-place matrix-scalar division
+     * @brief Perform in-place matrix-scalar division
+     *
+     * @param scalar The scalar at hand
+     * @return The matrix with it's element inversely scaled by the given scalar
      */
     constexpr Mat& operator/=(const T scalar)
     {
@@ -450,7 +502,16 @@ public:
 
 public:
     /**
-     * @brief Unary minus matrix operator
+     * @brief Perform unary plus operator
+     *
+     * @return The copy of the matrix as-is
+     */
+    constexpr Mat operator+() const { return *this; }
+
+    /**
+     * @brief Perform unary minus operator
+     *
+     * @return The matrix with it's elements sign-flipped
      */
     constexpr Mat operator-() const
     {
@@ -462,7 +523,11 @@ public:
     }
 
     /**
-     * @brief Matrix-matrix component-wise addition
+     * @brief Perform matrix-matrix component-wise addition
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat operator+(const Mat& lhs, const Mat& rhs)
     {
@@ -474,7 +539,11 @@ public:
     }
 
     /**
-     * @brief Matrix-matrix component-wise subtraction
+     * @brief Perform matrix-matrix component-wise subtraction
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat operator-(const Mat& lhs, const Mat& rhs)
     {
@@ -486,7 +555,11 @@ public:
     }
 
     /**
-     * @brief Scalar-matrix multiplication
+     * @brief Perform scalar-matrix component-wise multiplication
+     *
+     * @param scalar The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat operator*(const T scalar, const Mat& rhs)
     {
@@ -498,7 +571,11 @@ public:
     }
 
     /**
-     * @brief Matrix-scalar multiplication
+     * @brief Perform matrix-scalar component-wise multiplication
+     *
+     * @param lhs The left hand side of the operand
+     * @param scalar The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat operator*(const Mat& lhs, const T scalar)
     {
@@ -510,7 +587,11 @@ public:
     }
 
     /**
-     * @brief Matrix-scalar division
+     * @brief Perform matrix-scalar component-wise division
+     *
+     * @param lhs The left hand side of the operand
+     * @param scalar The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat operator/(const Mat& lhs, const T scalar)
     {
@@ -526,11 +607,26 @@ public:
 
 public:
     /**
-     * @brief Perform matrix-matrix multiplication.
+     * @brief Perform in-place multiplication with other matrix
+     *
+     * @param that The other matrix at hand
+     * @return This modified
+     */
+    constexpr Mat& operator*=(const Mat& that)
+    {
+        *this = std::move((*this) * that);
+        return *this;
+    }
+
+    /**
+     * @brief Perform matrix-matrix multiplication
      *
      * Does a small optimisation of using the transposed matrix for
-     * optimal access. But the transposed matrix does take extra time to
-     * create.
+     * optimal access. But is not particularly optimised.
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return The resulting matrix
      */
     friend constexpr Mat<M_y, M_y, T, is_col_major> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
                                                               const Mat<N_x, M_y, T, is_col_major>& rhs)
@@ -543,9 +639,9 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.col_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
-                    auto lb = &rhs.data()[M_y * i];
-                    auto le = &rhs.data()[M_y * (i + 1)];
-                    auto rb = &lhs_T.data()[M_y * j];
+                    const T* lb = &rhs.data()[M_y * i];
+                    const T* le = &rhs.data()[M_y * (i + 1)];
+                    const T* rb = &lhs_T.data()[M_y * j];
 
                     res[idx++] = std::inner_product(lb, le, rb, T{});
                 }
@@ -556,9 +652,9 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    auto lb = &lhs.data()[N_x * i];
-                    auto le = &lhs.data()[N_x * (i + 1)];
-                    auto rb = &rhs_T.data()[N_x * j];
+                    const T* lb = &lhs.data()[N_x * i];
+                    const T* le = &lhs.data()[N_x * (i + 1)];
+                    const T* rb = &rhs_T.data()[N_x * j];
 
                     res[idx++] = std::inner_product(lb, le, rb, T{});
                 }
@@ -568,11 +664,15 @@ public:
     }
 
     /**
-     * @brief Perform matrix-vector multiplication
+     * @brief Perform matrix-matrix multiplication
      *
      * @todo simd'ify col_major matrix-vec multiplication in c++26
+     *
+     * @param lhs The left hand side of the operand
+     * @param rhs The right hand side of the operand
+     * @return The resulting matrix
      */
-    friend constexpr Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_col_major>& mat, const Vec<N_x, T>& vec)
+    friend constexpr Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs, const Vec<N_x, T>& rhs)
     {
         Vec<M_y, T> res{};
 
@@ -580,14 +680,14 @@ public:
             std::size_t idx = 0;
             for (std::size_t x = 0; x < N_x; x++) {
                 for (std::size_t y = 0; y < M_y; y++) {
-                    res[y] += mat[idx++] * vec[x];
+                    res[y] += lhs[idx++] * rhs[x];
                 }
             }
         } else {
             for (std::size_t y = 0; y < M_y; y++) {
-                auto lb = &mat.data()[N_x * y];
-                auto le = &mat.data()[N_x * (y + 1)];
-                auto rb = vec.array().begin();
+                auto lb = &lhs.data()[N_x * y];
+                auto le = &lhs.data()[N_x * (y + 1)];
+                auto rb = rhs.array().begin();
 
                 res[y] = std::inner_product(lb, le, rb, T{});
             }
@@ -598,34 +698,30 @@ public:
 
 namespace detail {
 
+/// @cond DO_NOT_DOCUMENT
+
 template<typename TT>
 struct mat_info_impl
 {
-    using value_type = void;                 ///< default value type
-    static constexpr bool value = false;     ///< default type
-    static constexpr std::size_t height = 0; ///< default height
-    static constexpr std::size_t width = 0;  ///< default width
+    using value_type = void;
+    static constexpr bool value = false;
+    static constexpr std::size_t height = 0;
+    static constexpr std::size_t width = 0;
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_info_impl<Mat<M_y, N_x, T, is_col_major>>
 {
-    using value_type = T;                      ///< value type
-    static constexpr bool value = true;        ///< whether the type is a matrix
-    static constexpr std::size_t height = M_y; ///< matrix height
-    static constexpr std::size_t width = N_x;  ///< matrix width
+    using value_type = T;
+    static constexpr bool value = true;
+    static constexpr std::size_t height = M_y;
+    static constexpr std::size_t width = N_x;
 };
 
-/**
- * @brief Matrix information trait
- */
 template<typename TT>
 struct mat_info : mat_info_impl<std::remove_cvref_t<TT>>
 {};
 
-/**
- * @brief Trait to check if matrix can constructed from arguments.
- */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
 struct mat_constructible_from_impl
 {
@@ -661,12 +757,6 @@ template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer
 {
 public:
-    /**
-     * @brief Initialize matrix from arguments
-     *
-     * @param out   The matrix to initialize
-     * @param args  The arguments
-     */
     template<typename... Args>
     static constexpr void init_from(Mat<M_y, N_x, T, is_col_major>& out, Args&&... args)
         requires(mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
@@ -734,9 +824,6 @@ private:
 template<std::size_t M_y, std::size_t N_x, typename T>
 struct mat_printer<M_y, N_x, T, false>
 {
-    /**
-     * @brief Print row-major matrix
-     */
     static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, false>& mat)
     {
         std::stringstream s{};
@@ -781,9 +868,6 @@ struct mat_printer<M_y, N_x, T, false>
 template<std::size_t M_y, std::size_t N_x, typename T>
 struct mat_printer<M_y, N_x, T, true>
 {
-    /**
-     * @brief Print column-major matrix
-     */
     static std::ostream& print(std::ostream& out, const Mat<M_y, N_x, T, true>& mat)
     {
         std::stringstream s{};
@@ -832,6 +916,8 @@ struct mat_printer<M_y, N_x, T, true>
         return out;
     }
 };
+
+/// @endcond
 
 } // namespace detail
 

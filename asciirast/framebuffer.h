@@ -1,8 +1,6 @@
 /**
  * @file framebuffer.h
  * @brief Definition of framebuffer interface
- *
- * @todo improve documentation
  */
 
 #pragma once
@@ -24,7 +22,7 @@ template<typename... TargetTypes>
 class AbstractFrameBuffer
 {
 public:
-    using Targets = std::tuple<TargetTypes...>; ///@< target types
+    using Targets = std::tuple<TargetTypes...>; ///< target types
 
     /**
      * @brief Default virtual destructor
@@ -39,17 +37,26 @@ public:
 
     /**
      * @brief Test and set the depth of a pixel
+     *
+     * @param pos The position of the pixel
+     * @param depth The proposed depth of the pixel
+     * @return Whether the depth has been set
      */
     virtual bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth) = 0;
 
     /**
-     * @brief Plot a point in the framebuffer
+     * @brief Plot a pixel in the framebuffer
+     *
+     * @param pos The position of the pixel
+     * @param targets The user-specified targets for the pixel
      */
     virtual void plot(const math::Vec2Int& pos, const Targets& targets) = 0;
 };
 
 /**
- * @brief Concept of types that follow the framebuffer interface
+ * @brief Concept for following the framebuffer interface
+ *
+ * @tparam T The type to check
  */
 template<class T>
 concept FrameBufferInterface = requires(T t) {

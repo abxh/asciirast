@@ -13,30 +13,30 @@
 
 namespace asciirast::math {
 
-using Int = int;     ///@< default integral type
-using Float = float; ///@< default floating point type
+using Int = int;     ///< default integral type
+using Float = float; ///< default floating point type
 
-static constexpr bool uses_col_major = true; ///@< Default matrix order
+static constexpr bool uses_col_major = true; ///< Default matrix order
 
-using Vec2Int = Vec<2, Int>; ///@< 2D int math vector
-using Vec3Int = Vec<3, Int>; ///@< 3D int math vector
-using Vec4Int = Vec<4, Int>; ///@< 4D int math vector
+using Vec2Int = Vec<2, Int>; ///< 2D int math vector
+using Vec3Int = Vec<3, Int>; ///< 3D int math vector
+using Vec4Int = Vec<4, Int>; ///< 4D int math vector
 
-using Vec2 = Vec<2, Float>; ///@< 2D math vector
-using Vec3 = Vec<3, Float>; ///@< 3D math vector
-using Vec4 = Vec<4, Float>; ///@< 4D math vector
+using Vec2 = Vec<2, Float>; ///< 2D math vector
+using Vec3 = Vec<3, Float>; ///< 3D math vector
+using Vec4 = Vec<4, Float>; ///< 4D math vector
 
-using Mat2 = Mat<2, 2, Float, uses_col_major>; ///@< 2x2 matrix
-using Mat3 = Mat<3, 3, Float, uses_col_major>; ///@< 3x3 matrix
-using Mat4 = Mat<4, 4, Float, uses_col_major>; ///@< 4x4 matrix
+using Mat2 = Mat<2, 2, Float, uses_col_major>; ///< 2x2 matrix
+using Mat3 = Mat<3, 3, Float, uses_col_major>; ///< 3x3 matrix
+using Mat4 = Mat<4, 4, Float, uses_col_major>; ///< 4x4 matrix
 
-using Rot2D = Rot<2, Float, uses_col_major>; ///@< 2D rotation abstraction
-using Rot3D = Rot<3, Float, uses_col_major>; ///@< 3D rotation abstraction
+using Rot2D = Rot2<Float, uses_col_major>; ///< 2D rotation abstraction
+using Rot3D = Rot3<Float, uses_col_major>; ///< 3D rotation abstraction
 
-using Transform2D = Transform<2, Float, uses_col_major>; ///@< 2D Transformation abstraction
-using Transform3D = Transform<3, Float, uses_col_major>; ///@< 3D Transformation abstraction
+using Transform2D = Transform2<Float, uses_col_major>; ///< 2D Transformation abstraction
+using Transform3D = Transform3<Float, uses_col_major>; ///< 3D Transformation abstraction
 
-using AABB2D = AABB<2, Float, uses_col_major>; ///@< 2D Axis-Aligned Bounding Box
-using AABB3D = AABB<3, Float, uses_col_major>; ///@< 3D Axis-Aligned Bounding Box
+using AABB2D = AABB<2, Float, uses_col_major>; ///< 2D Axis-Aligned Bounding Box
+using AABB3D = AABB<3, Float, uses_col_major>; ///< 3D Axis-Aligned Bounding Box
 
 }; // namespace asciirast::math

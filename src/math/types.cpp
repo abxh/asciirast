@@ -14,11 +14,11 @@ extern template class Mat<2, 2, Float, uses_col_major>;
 extern template class Mat<3, 3, Float, uses_col_major>;
 extern template class Mat<4, 4, Float, uses_col_major>;
 
-extern template class Rot<2, Float, uses_col_major>;
-extern template class Rot<3, Float, uses_col_major>;
+extern template class Rot2<Float, uses_col_major>;
+extern template class Rot2<Float, uses_col_major>;
 
-extern template class Transform<2, Float, uses_col_major>;
-extern template class Transform<3, Float, uses_col_major>;
+extern template class Transform2<Float, uses_col_major>;
+extern template class Transform3<Float, uses_col_major>;
 
 extern template class AABB<2, Float, uses_col_major>;
 extern template class AABB<3, Float, uses_col_major>;

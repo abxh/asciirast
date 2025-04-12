@@ -1,7 +1,6 @@
 /**
  * @file Transform.h
- * @brief Class for stacking primitive transformations on top of each
- *        other
+ * @brief Class for composing primitive transformation matricies and their inverses
  */
 
 #pragma once
@@ -14,88 +13,104 @@
 namespace asciirast::math {
 
 /**
- * @brief Transformation abstraction
- *
- * @tparam N             Number of dimensions being operated on.
- * @tparam T             Type of elements
- * @tparam is_col_major  Whether the matrix is in column major
- */
-template<std::size_t N, typename T, bool is_col_major>
-    requires(std::is_floating_point_v<T>)
-class Transform;
-
-/**
- * @brief 2D transformation abstraction
+ * @brief Class for composing primitive 2D transformation matricies and their inverses
  *
  * @tparam T             Type of elements
  * @tparam is_col_major  Whether the matrix is in column major
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform<2, T, is_col_major>
+class Transform2
 {
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
-    using Rot2 = Rot<2, T, is_col_major>;
+    using Rot2D = Rot2<T, is_col_major>;
 
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
 
-public:
-    /**
-     * Create a new transform object
-     */
-    constexpr Transform()
-            : m_mat{ Mat3::identity() }
-            , m_mat_inv{ Mat3::identity() } {};
+    constexpr Transform2(const Mat3& mat, const Mat3& mat_inv)
+            : m_mat{ mat }
+            , m_mat_inv{ mat_inv } {};
 
+protected:
     /**
-     * Get underlying matrix
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param inv_mat The inverse transformation matrix
+     * @return This
      */
-    constexpr const Mat3& mat() const { return m_mat; }
-
-    /**
-     * Get underlying inverse matrix
-     */
-    constexpr const Mat3& mat_inv() const { return m_mat_inv; }
-
-    /**
-     * Apply transformation to a 2D Vector
-     */
-    constexpr Vec2 apply(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 1 } }; }
-
-    /**
-     * Invert the transformation applied to a 2D Vector
-     */
-    constexpr Vec2 invert(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
-
-    /**
-     * Get reversed transformation object
-     */
-    constexpr Transform reversed() const { return Transform().stack(this->m_mat_inv, this->m_mat); }
-
-    /**
-     * Stack a new transformation matrix and it's inverse on top
-     */
-    constexpr Transform& stack(const Mat3& mat, const Mat3& inv_mat)
+    constexpr Transform2& stack(const Mat3& mat, const Mat3& inv_mat)
     {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
     }
 
+public:
     /**
-     * Stack another Transform2D on top of this
+     * @brief Construct a identity transform object that performs "nothing"
      */
-    constexpr Transform& stack(const Transform& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+    constexpr Transform2()
+            : m_mat{ Mat3::identity() }
+            , m_mat_inv{ Mat3::identity() } {};
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (x + delta_x, y + delta_y)
+     * @brief Get underlying matrix
+     *
+     * @return Const reference to the underlying matrix
      */
-    constexpr Transform& translate(const T delta_x, const T delta_y)
+    constexpr const Mat3& mat() const { return m_mat; }
+
+    /**
+     * @brief Get underlying inverse matrix
+     *
+     * @return Const reference to the underlying inverse matrix
+     */
+    constexpr const Mat3& mat_inv() const { return m_mat_inv; }
+
+    /**
+     * @brief Apply the transformation "action" on a 2D vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed
+     */
+    constexpr Vec2 apply(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 1 } }; }
+
+    /**
+     * @brief Apply the inverse transformation "action" on a 2D vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed back
+     */
+    constexpr Vec2 apply_inv(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
+
+    /**
+     * @brief Get transformation object that performs the reverse transformation
+     *
+     * @return Copy of this that performs the reverse transfromation
+     */
+    constexpr Transform2 reversed() const { return Transform2{ this->m_mat_inv, this->m_mat }; }
+
+    /**
+     * @brief Stack another Transform on top of this
+     *
+     * @param that The other Transform
+     * @return This
+     */
+    constexpr Transform2& stack(const Transform2& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+
+    /**
+     * @brief Stack (x', y') = (x + delta_x, y + delta_y)
+     *
+     * @param delta_x How much to translate in x-axis
+     * @param delta_y How much to translate in y-axis
+     * @return This
+     */
+    constexpr Transform2& translate(const T delta_x, const T delta_y)
     {
         const Vec3 vr = { +delta_x, +delta_y, 1 };
         const Vec3 vi = { -delta_x, -delta_y, 1 };
@@ -107,15 +122,20 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (x + delta.x, y + delta.y)
+     * @brief Stack (x', y') = (x + delta.x, y + delta.y)
+     *
+     * @param delta How much to translate as a Vec
+     * @return This
      */
-    constexpr Transform& translate(const Vec2& delta) { return this->translate(delta.x, delta.y); }
+    constexpr Transform2& translate(const Vec2& delta) { return this->translate(delta.x, delta.y); }
 
     /**
-     * Stack a rotation transformation
+     * @brief Stack a rotation transformation
+     *
+     * @param rot The rotation object
+     * @return This
      */
-    Transform& rotate(const Rot2& rot)
+    constexpr Transform2& rotate(const Rot2D& rot)
     {
         const Mat3 mr = { rot.to_mat(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
@@ -124,12 +144,13 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (scale_x * x, scale_y * y)
+     * @brief Stack (x', y') = (scale_x * x, scale_y * y), assuming scale_x * scale_y != 0
      *
-     * assuming scale_x * scale_y != 0
+     * @param scale_x How much to scale x
+     * @param scale_y How much to scale y
+     * @return This
      */
-    constexpr Transform& scale(const T scale_x, const T scale_y)
+    constexpr Transform2& scale(const T scale_x, const T scale_y)
     {
         assert(scale_x != 0);
         [[assume(scale_x != 0)]];
@@ -151,30 +172,34 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (scale.x * x, scale.y * y)
+     * @brief Stack (x', y') = (scale.x * x, scale.y * y), assuming scale.x * scale.y != 0
      *
-     * assuming scale.x * scale.y != 0
+     * @param scale How much to scale as a Vec
+     * @return This
      */
-    constexpr Transform& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
+    constexpr Transform2& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (-x, y)
+     * @brief Stack (x', y') = (-x, y)
+     *
+     * @return This
      */
-    constexpr Transform& reflectX() { return this->scale(-1, 1); }
+    constexpr Transform2& reflectX() { return this->scale(-1, 1); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (x, -y)
+     * @brief Stack (x', y') = (x, -y)
+     *
+     * @return This
      */
-    constexpr Transform& reflectY() { return this->scale(1, -1); }
+    constexpr Transform2& reflectY() { return this->scale(1, -1); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (x + t * y, y)
+     * @brief Stack (x', y') = (x + t * y, y)
+     *
+     * @param t How much y should influence x in the direction of x
+     * @return This
      */
-    constexpr Transform& shearX(const T t)
+    constexpr Transform2& shearX(const T t)
     {
         const Vec3 ar = { 1, +t, 0 };
         const Vec3 br = { 0, 1., 0 };
@@ -190,10 +215,12 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y') = (x, y + t * x)
+     * @brief Stack (x', y') = (x, y + t * x)
+     *
+     * @param t How much x should influence y in the direction of y
+     * @return This
      */
-    constexpr Transform& shearY(const T t)
+    constexpr Transform2& shearY(const T t)
     {
         const Vec3 ar = { 1., 0, 0 };
         const Vec3 br = { +t, 1, 0 };
@@ -210,79 +237,105 @@ public:
 };
 
 /**
- * @brief 3D transformation abstraction
+ * @brief Class for composing primitive 3D transformation matricies and their inverses
  *
  * @tparam T             Type of elements
  * @tparam is_col_major  Whether the matrix is in column major
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform<3, T, is_col_major>
+class Transform3
 {
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
     using Mat4 = Mat<4, 4, T, is_col_major>;
-    using Rot3 = Rot<3, T, is_col_major>;
+    using Rot3D = Rot3<T, is_col_major>;
 
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
 
-public:
-    /**
-     * Create a new transform object
-     */
-    constexpr Transform()
-            : m_mat{ Mat4::identity() }
-            , m_mat_inv{ Mat4::identity() }
-    {
-    }
+    constexpr Transform3(const Mat4& mat, const Mat4& mat_inv)
+            : m_mat{ mat }
+            , m_mat_inv{ mat_inv } {};
 
+protected:
     /**
-     * Get underlying matrix
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param inv_mat The inverse transformation matrix
+     * @return This
      */
-    constexpr const Mat4& mat() const { return m_mat; }
-
-    /**
-     * Get underlying inverse matrix
-     */
-    constexpr const Mat4& mat_inv() const { return m_mat_inv; }
-
-    /**
-     * Apply transformation to a 3D Vector
-     */
-    constexpr Vec3 apply(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 1 } }; }
-
-    /**
-     * Invert the transformation applied to a 3D Vector
-     */
-    constexpr Vec3 invert(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
-
-    /**
-     * Get reversed transformation object
-     */
-    constexpr Transform reversed() const { return Transform{}.stack(this->m_mat_inv, this->m_mat); }
-
-    /**
-     * Stack a new transformation matrix and it's inverse on top
-     */
-    constexpr Transform& stack(const Mat4& mat, const Mat4& inv_mat)
+    constexpr Transform3& stack(const Mat4& mat, const Mat4& inv_mat)
     {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
         return *this;
     }
 
+public:
     /**
-     * Stack another Transform on top of this
+     * @brief Construct a identity transform object that performs "nothing"
      */
-    constexpr Transform& stack(const Transform& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+    constexpr Transform3()
+            : m_mat{ Mat4::identity() }
+            , m_mat_inv{ Mat4::identity() } {};
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
+     * @brief Get underlying transformation matrix
+     *
+     * @return Const reference to the underlying matrix
      */
-    constexpr Transform& translate(const T delta_x, const T delta_y, const T delta_z)
+    constexpr const Mat4& mat() const { return m_mat; }
+
+    /**
+     * @brief Get underlying inverse transformation matrix
+     *
+     * @return Const reference to the underlying inverse matrix
+     */
+    constexpr const Mat4& mat_inv() const { return m_mat_inv; }
+
+    /**
+     * @brief Apply the transformation "action" on a 3D vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed
+     */
+    constexpr Vec3 apply(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 1 } }; }
+
+    /**
+     * @brief Apply the inverse transformation "action" on a 3D vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed back
+     */
+    constexpr Vec3 apply_inv(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
+
+    /**
+     * @brief Get transformation object that performs the reverse transformation
+     *
+     * @return Copy of this that performs the reverse transfromation
+     */
+    constexpr Transform3 reversed() const { return Transform3{ this->m_mat_inv, this->m_mat }; }
+
+    /**
+     * @brief Stack another Transform on top of this
+     *
+     * @param that The other Transform
+     * @return This
+     */
+    constexpr Transform3& stack(const Transform3& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+
+    /**
+     * @brief Stack (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
+     *
+     * @param delta_x How much to move in x-axis
+     * @param delta_y How much to move in y-axis
+     * @param delta_z How much to move in z-axis
+     * @return This
+     */
+    constexpr Transform3& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const Vec4 vr = { +delta_x, +delta_y, +delta_z, 1 };
         const auto mr = Mat4{ Mat3::identity(), vr };
@@ -294,15 +347,24 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x + delta.x, y + delta.y, z + delta.z)
+     * @brief Stack (x', y', z') = (x + delta.x, y + delta.y, z + delta.z)
+     *
+     * @param delta How much to move as a Vec
+     * @return This
      */
-    constexpr Transform& translate(const Vec3& delta) { return this->translate(delta.x, delta.y, delta.z); }
+    constexpr Transform3& translate(const Vec3& delta) { return this->translate(delta.x, delta.y, delta.z); }
 
     /**
-     * Stack a rotation transformation
+     * @brief Stack a rotation transformation
+     *
+     * @note A rotation object should be stored seperately,
+     * to avoid gimbal lock. When all rotations are stacked
+     * on it, then it should be added onto the Transform objects.
+     *
+     * @param rot The rotation object
+     * @return This
      */
-    Transform& rotate(const Rot3& rot)
+    constexpr Transform3& rotate(const Rot3D& rot)
     {
         const Mat4 mr = { rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();
@@ -311,12 +373,15 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (scale_x * x, scale_y * y, scale_z * z),
+     * @brief Stack (x', y', z') = (scale_x * x, scale_y * y, scale_z * z),
+     *        assuming scale_x * scale_y * scale_z != 0
      *
-     * @note assuming scale_x * scale_y * scale_z != 0
+     * @param scale_x How much to scale x
+     * @param scale_y How much to scale y
+     * @param scale_z How much to scale z
+     * @return This
      */
-    constexpr Transform& scale(const T scale_x, const T scale_y, const T scale_z)
+    constexpr Transform3& scale(const T scale_x, const T scale_y, const T scale_z)
     {
         assert(scale_x != 0);
         [[assume(scale_x != 0)]];
@@ -343,36 +408,43 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (scale.x * x, scale.y * y, scale.z * z),
+     * @brief Stack (x', y', z') = (scale.x * x, scale.y * y, scale.z * z),
+     *        assuming scale.x * scale.y * scale.z != 0
      *
-     * @note assuming scale.x * scale.y * scale.z != 0
+     * @param scale How much to scale as a Vec
+     * @return This
      */
-    constexpr Transform& scale(const Vec3& scale) { return this->scale(scale.x, scale.y, scale.z); }
+    constexpr Transform3& scale(const Vec3& scale) { return this->scale(scale.x, scale.y, scale.z); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (-x, y, z)
+     * @brief Stack (x', y', z') = (-x, y, z)
+     *
+     * @return This
      */
-    constexpr Transform& reflectX() { return this->scale(-1, 1, 1); }
+    constexpr Transform3& reflectX() { return this->scale(-1, 1, 1); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x, -y, z)
+     * @brief Stack (x', y', z') = (x, -y, z)
+     *
+     * @return This
      */
-    constexpr Transform& reflectY() { return this->scale(1, -1, 1); }
+    constexpr Transform3& reflectY() { return this->scale(1, -1, 1); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x, y, -z)
+     * @brief Stack (x', y', z') = (x, y, -z)
+     *
+     * @return This
      */
-    constexpr Transform& reflectZ() { return this->scale(1, 1, -1); }
+    constexpr Transform3& reflectZ() { return this->scale(1, 1, -1); }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x + s * z, y + t * z, z)
+     * @brief Stack (x', y', z') = (x + s * z, y + t * z, z)
+     *
+     * @param s How much z should influence x in the direction of x
+     * @param t How much z should influence y in the direction of y
+     * @return This
      */
-    constexpr Transform& shearXY(const T s, const T t)
+    constexpr Transform3& shearXY(const T s, const T t)
     {
         const Vec4 ar = { 1, 0, +s, 0 };
         const Vec4 br = { 0, 1, +t, 0 };
@@ -390,10 +462,13 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x + s * y, y, z + t * y)
+     * @brief Stack (x', y', z') = (x + s * y, y, z + t * y)
+     *
+     * @param s How much y should influence x in the direction of x
+     * @param t How much y should influence z in the direction of z
+     * @return This
      */
-    constexpr Transform& shearXZ(const T s, const T t)
+    constexpr Transform3& shearXZ(const T s, const T t)
     {
         const Vec4 ar = { 1, +s, 0, 0 };
         const Vec4 br = { 0, 1., 0, 0 };
@@ -411,10 +486,13 @@ public:
     }
 
     /**
-     * Stack the transformation equivalent to:
-     * (x', y', z') = (x, y + s * x, z + t * x)
+     * @brief Stack (x', y', z') = (x, y + s * x, z + t * x)
+     *
+     * @param s How much x should influence y in the direction of y
+     * @param t How much x should influence z in the direction of z
+     * @return This
      */
-    constexpr Transform& shearYZ(const T s, const T t)
+    constexpr Transform3& shearYZ(const T s, const T t)
     {
         const Vec4 ar = { 1., 0, 0, 0 };
         const Vec4 br = { +s, 1, 0, 0 };

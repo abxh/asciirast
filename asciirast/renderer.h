@@ -12,11 +12,9 @@
 #include <ranges>
 #include <vector>
 
-#include "./math/types.h"
-
 #include "./constants.h"
+#include "./math/types.h"
 #include "./program.h"
-
 #include "./rasterize/bounds_test.h"
 #include "./rasterize/interpolate.h"
 #include "./rasterize/rasterize.h"
@@ -35,8 +33,6 @@ enum class WindingOrder
 
 /**
  * @brief Shape primitives
- *
- * Inspired by OpenGL
  */
 enum class ShapeType
 {
@@ -54,36 +50,71 @@ enum class ShapeType
  */
 struct RendererOptions
 {
-    WindingOrder winding_order = WindingOrder::NEITHER;
+    WindingOrder winding_order = WindingOrder::NEITHER; ///< Triangle winding order
 };
 
+/**
+ * @brief Vertex buffer
+ *
+ * @tparam Vertex The vertex type
+ */
 template<typename Vertex, class VertexAllocator = std::allocator<Vertex>>
 struct VertexBuffer
 {
-    ShapeType shape_type;
-    std::vector<Vertex, VertexAllocator> verticies;
+    ShapeType shape_type;                           ///< Shape type
+    std::vector<Vertex, VertexAllocator> verticies; ///< Buffer of verticies
 };
 
+/**
+ * @brief Indexed vertex buffer
+ *
+ * @tparam Vertex Vertex type
+ */
 template<typename Vertex,
          class VertexAllocator = std::allocator<Vertex>,
          class IndexAllocator = std::allocator<std::size_t>>
 struct IndexedVertexBuffer : VertexBuffer<Vertex, VertexAllocator>
 {
-    std::vector<std::size_t, IndexAllocator> indicies;
+    std::vector<std::size_t, IndexAllocator> indicies; ///< Buffer of indicies
 };
 
+/**
+ * @brief Renderer class
+ *
+ * @tparam Varying The varying type to allocate memory for
+ */
 template<VaryingInterface Varying,
          typename Vec4TripletAllocator = std::allocator<rasterize::Vec4Triplet>,
          typename AttrsTripletAllocator = std::allocator<rasterize::AttrsTriplet<Varying>>>
 class Renderer
 {
 public:
+    /**
+     * @brief Construct renderer with default viewport
+     */
     Renderer() {};
 
+    /**
+     * @brief Construct renderer with custom viewport
+     *
+     * The portion of the viewport in the screen is shown.
+     * If the viewport is differently sized, the result is scaled accordingly.
+     *
+     * @param viewport_bounds The bounds of the viewport
+     */
     explicit Renderer(const math::AABB2D& viewport_bounds)
-            : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
-            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
+            : m_requires_screen_clipping{ !constants::SCREEN_BOUNDS.contains(viewport_bounds) }
+            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, constants::SCREEN_BOUNDS) } {};
 
+    /**
+     * @brief Draw on a framebuffer using a program given uniform(s), verticies and options
+     *
+     * @param program The shader program compatible with the Varying given
+     * @param uniform The uniform(s)
+     * @param verts The vertex buffer
+     * @param framebuffer The frame buffer
+     * @param options Optional options
+     */
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
@@ -97,9 +128,19 @@ public:
               RendererOptions options = {})
     {
         update_screen_to_window(framebuffer);
+
         draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, options);
     }
 
+    /**
+     * @brief Draw on a framebuffer using a program given uniform(s), indexed verticies and options
+     *
+     * @param program The shader program compatible with the Varying given
+     * @param uniform The uniform(s)
+     * @param verts The vertex buffer with indicies
+     * @param framebuffer The frame buffer
+     * @param options Optional options
+     */
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
@@ -121,6 +162,7 @@ public:
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
         update_screen_to_window(framebuffer);
+
         draw(program, uniform, verts.shape_type, view, framebuffer, options);
     }
 
@@ -254,22 +296,22 @@ private:
         const PFrag vfrag0 = apply_scale_to_viewport(pfrag0);
         const PFrag vfrag1 = apply_scale_to_viewport(pfrag1);
 
-        PFrag S_tfrag0 = vfrag0;
-        PFrag S_tfrag1 = vfrag1;
+        PFrag inner_tfrag0 = vfrag0;
+        PFrag inner_tfrag1 = vfrag1;
         if (m_requires_screen_clipping) {
             // clip line so it's inside the screen:
-            const auto S_tup = rasterize::line_in_screen(vfrag0.pos, vfrag1.pos);
-            if (!S_tup.has_value()) {
+            const auto inner_tup = rasterize::line_in_screen(vfrag0.pos, vfrag1.pos);
+            if (!inner_tup.has_value()) {
                 return;
             }
-            const auto [S_t0, S_t1] = S_tup.value();
-            S_tfrag0 = rasterize::lerp(vfrag0, vfrag1, S_t0);
-            S_tfrag1 = rasterize::lerp(vfrag0, vfrag1, S_t1);
+            const auto [inner_t0, inner_t1] = inner_tup.value();
+            inner_tfrag0 = rasterize::lerp(vfrag0, vfrag1, inner_t0);
+            inner_tfrag1 = rasterize::lerp(vfrag0, vfrag1, inner_t1);
         }
 
         // screen space -> window space:
-        const PFrag wfrag0 = apply_screen_to_window(S_tfrag0);
-        const PFrag wfrag1 = apply_screen_to_window(S_tfrag1);
+        const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0);
+        const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1);
 
         const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
             return framebuffer.test_and_set_depth(pos, depth);
@@ -292,11 +334,11 @@ private:
     using Vec4TripletQueue = std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator>;
     using AttrsTripletQueue = std::deque<rasterize::AttrsTriplet<Varying>, AttrsTripletAllocator>;
 
-    Vec4TripletQueue vec_queue = {};
-    AttrsTripletQueue attrs_queue = {};
+    Vec4TripletQueue m_vec_queue = {};
+    AttrsTripletQueue m_attrs_queue = {};
 
-    Vec4TripletQueue S_vec_queue = {};
-    AttrsTripletQueue S_attrs_queue = {};
+    Vec4TripletQueue m_inner_vec_queue = {};
+    AttrsTripletQueue m_inner_attrs_queue = {};
 
     template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
@@ -356,17 +398,17 @@ private:
             }
         };
 
-        vec_queue.clear();
-        attrs_queue.clear();
-        vec_queue.insert(vec_queue.end(), rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
-        attrs_queue.insert(attrs_queue.end(),
-                           rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
+        m_vec_queue.clear();
+        m_attrs_queue.clear();
+        m_vec_queue.insert(m_vec_queue.end(), rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
+        m_attrs_queue.insert(m_attrs_queue.end(),
+                             rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
 
         // clip triangle so it's inside the viewing volume:
-        if (!rasterize::triangle_in_frustum(vec_queue, attrs_queue)) {
+        if (!rasterize::triangle_in_frustum(m_vec_queue, m_attrs_queue)) {
             return;
         }
-        for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(vec_queue, attrs_queue)) {
+        for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(m_vec_queue, m_attrs_queue)) {
             const auto [vec0, vec1, vec2] = vec_triplet;
             const auto [attrs0, attrs1, attrs2] = attrs_triplet;
 
@@ -394,8 +436,8 @@ private:
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);
             } else {
-                S_vec_queue.clear();
-                S_attrs_queue.clear();
+                m_inner_vec_queue.clear();
+                m_inner_attrs_queue.clear();
 
                 const auto p0 = math::Vec4{ vfrag0.pos, vfrag0.depth, vfrag0.Z_inv };
                 const auto p1 = math::Vec4{ vfrag1.pos, vfrag1.depth, vfrag1.Z_inv };
@@ -404,26 +446,26 @@ private:
                 const auto lp = rasterize::Vec4Triplet{ p0, p1, p2 };
                 const auto la = rasterize::AttrsTriplet<Varying>{ a0, a1, a2 };
 
-                S_vec_queue.insert(S_vec_queue.end(), lp);
-                S_attrs_queue.insert(S_attrs_queue.end(), la);
+                m_inner_vec_queue.insert(m_inner_vec_queue.end(), lp);
+                m_inner_attrs_queue.insert(m_inner_attrs_queue.end(), la);
 
                 // clip line so it's inside the screen:
-                if (!rasterize::triangle_in_screen(S_vec_queue, S_attrs_queue)) {
+                if (!rasterize::triangle_in_screen(m_inner_vec_queue, m_inner_attrs_queue)) {
                     return;
                 }
-                for (const auto& [S_vec_triplet, S_attrs_triplet] :
-                     std::ranges::views::zip(S_vec_queue, S_attrs_queue)) {
-                    const auto [S_vec0, S_vec1, S_vec2] = S_vec_triplet;
-                    const auto [S_attrs0, S_attrs1, S_attrs2] = S_attrs_triplet;
+                for (const auto& [inner_vec_triplet, inner_attrs_triplet] :
+                     std::ranges::views::zip(m_inner_vec_queue, m_inner_attrs_queue)) {
+                    const auto [inner_vec0, inner_vec1, inner_vec2] = inner_vec_triplet;
+                    const auto [inner_attrs0, inner_attrs1, inner_attrs2] = inner_attrs_triplet;
 
-                    const PFrag S_tfrag0 = { S_vec0.xy, S_vec0.z, S_vec0.w, S_attrs0 };
-                    const PFrag S_tfrag1 = { S_vec1.xy, S_vec1.z, S_vec1.w, S_attrs1 };
-                    const PFrag S_tfrag2 = { S_vec2.xy, S_vec2.z, S_vec2.w, S_attrs2 };
+                    const PFrag inner_tfrag0 = { inner_vec0.xy, inner_vec0.z, inner_vec0.w, inner_attrs0 };
+                    const PFrag inner_tfrag1 = { inner_vec1.xy, inner_vec1.z, inner_vec1.w, inner_attrs1 };
+                    const PFrag inner_tfrag2 = { inner_vec2.xy, inner_vec2.z, inner_vec2.w, inner_attrs2 };
 
                     // screen space -> window space:
-                    const PFrag wfrag0 = apply_screen_to_window(S_tfrag0);
-                    const PFrag wfrag1 = apply_screen_to_window(S_tfrag1);
-                    const PFrag wfrag2 = apply_screen_to_window(S_tfrag2);
+                    const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0);
+                    const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1);
+                    const PFrag wfrag2 = apply_screen_to_window(inner_tfrag2);
 
                     // iterate over triangle fragments:
                     rasterize_triangle(wfrag0, wfrag1, wfrag2);

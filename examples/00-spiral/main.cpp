@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <complex>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -46,7 +47,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::MIN_DEPTH, asciirast::MAX_DEPTH);
+        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
 
         if (depth < m_depthbuf[idx]) {
             m_depthbuf[idx] = depth;
@@ -85,7 +86,7 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_charbuf[i] = clear_char;
-            m_depthbuf[i] = asciirast::DEFAULT_DEPTH;
+            m_depthbuf[i] = asciirast::constants::DEFAULT_DEPTH;
         }
     }
 
@@ -108,7 +109,7 @@ public:
 
         const math::Vec2 scale = { m_width - 1, m_height - 1 };
         m_screen_to_window =
-                asciirast::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
 
         m_charbuf.resize(m_width * m_height);
         m_depthbuf.resize(m_width * m_height);
@@ -174,7 +175,7 @@ public:
         math::Vec2 v = vert.pos;
         if (u.should_flip) {
             v = u.flip_transform.apply(v);
-            v = u.rot.invert(v);
+            v = u.rot.apply_inv(v);
         } else {
             v = u.rot.apply(v);
         }
@@ -214,7 +215,7 @@ main(void)
         for (int i = 0; i < 50; i++) {
             id = std::min((id + 0.2f), (float)palette.size() - 1);
             v *= f;
-            vb.verticies.push_back(MyVertex{ id, v });
+            vb.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
         }
     }
     asciirast::Renderer<MyVarying> r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };

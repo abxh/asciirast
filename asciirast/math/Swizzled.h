@@ -2,12 +2,9 @@
  * @file Swizzled.h
  * @brief File with definition of the swizzled class
  *
- * This file contains the Swizzled class. With a single index provided,
- * it is specialized to behave as an number implicitly. With multiple
- * indicies provided, it supports in-place operations with other
- * Swizzled and vectors of same size, and can be explictly converted to
- * a vector temporary copy with the
- * `.to_vec()` method.
+ * This file contains the Swizzled class. It supports in-place operations
+ * with other Swizzled and vectors of same size, and can be explictly converted
+ * to a vector temporary copy with the `.to_vec()` method.
  *
  * Inspiration:
  * https://kiorisyshen.github.io/2018/08/27/Vector%20Swizzling%20and%20Parameter%20Pack%20in%20C++/
@@ -22,15 +19,14 @@
 namespace asciirast::math {
 
 /**
- * @brief Class to swizzle vector components
+ * @brief Class for swizzled vector components
  *
- * This class takes the vector type as template parameter input, and
- * defines in-place operators and `.to_vec()` with it. The number of
- * indicies given is used to determine the size of this swizzled
- * component.
+ * This class takes the vector type as template parameter input.
  *
- * @tparam Vec      Vector type instansiated with the correct size and
- * type.
+ * The number of indicies given is used to determine the size of
+ * the resulting swizzled component.
+ *
+ * @tparam Vec      Vec assumed to be instantiated with the correct size and type.
  * @tparam N        Number of components in the vector
  * @tparam T        Type of components
  * @tparam Indicies The indicies
@@ -40,8 +36,8 @@ template<class Vec, std::size_t N, typename T, std::size_t... Indicies>
 class Swizzled
 {
     static constexpr std::array IndiciesArray = { Indicies... };
-    std::array<T, N> m_components;
 
+private:
     template<std::size_t... Is>
     struct non_duplicate_indicies;
 
@@ -57,8 +53,7 @@ class Swizzled
         static constexpr bool value = true;
     };
 
-    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
-
+private:
     static consteval bool overlapping_indicies(const std::size_t i, const std::size_t j) { return i == j; }
 
     template<std::size_t... Js>
@@ -76,6 +71,52 @@ class Swizzled
         return (overlapping_indicies(Is, s2) || ...);
     }
 
+private:
+    std::array<T, N> m_components;
+
+public:
+    /// value type
+    using value_type = T;
+
+    /// Whether, in case this is used as a lvalue, it has doesn't have duplicate indicies
+    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
+
+    /**
+     * @brief Default constructor
+     */
+    constexpr Swizzled() = default;
+
+    /**
+     * @brief Default copy constructor
+     */
+    constexpr Swizzled(const Swizzled&) = default;
+
+    /**
+     * @brief Default move constructor
+     */
+    constexpr Swizzled(Swizzled&&) = default;
+
+    /**
+     * @brief Size of swizzled component
+     *
+     * @return number of indicies as size_t
+     */
+    static constexpr std::size_t size() { return IndiciesArray.size(); }
+
+    /**
+     * @brief Underlying data pointer of the vector
+     *
+     * @return Pointer to the first element of the vector
+     */
+    constexpr const T* data() const { return &m_components[0]; }
+
+    /**
+     * @brief Check if this does not overlap with another swizzled,
+     * when both are part of the same vector
+     *
+     * @param that The other Swizzled
+     * @return Whether the Swizzled objects overlap
+     */
     template<std::size_t M, std::size_t... OtherIndicies>
     constexpr bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
     {
@@ -85,35 +126,18 @@ class Swizzled
         return (this->data() != that.data()) || (this->data() == that.data() && indicies_do_not_overlap);
     }
 
-public:
-    using value_type = T; ///@< value type
-
-    /**
-     * @name default constructors
-     * @{
-     */
-    constexpr Swizzled() = default;
-    constexpr Swizzled(const Swizzled&) = default;
-    constexpr Swizzled(Swizzled&&) = default;
-    ///@}
-
-    /**
-     * @brief Size of swizzled component
-     */
-    static constexpr std::size_t size() { return IndiciesArray.size(); }
-
-    /**
-     * @brief Underlying data pointer
-     */
-    constexpr const T* data() const { return &m_components[0]; }
-
     /**
      * @brief Convert this to a temporary vector copy
+     *
+     * @return A vector of size equal to the number of indicies
      */
     constexpr Vec to_vec() const { return Vec{ (*this) }; }
 
     /**
      * @brief Index the swizzled component.
+     *
+     * @param i The index
+     * @return A reference to the value at the index swizzled
      */
     constexpr T& operator[](const std::size_t i)
     {
@@ -124,6 +148,9 @@ public:
 
     /**
      * @brief Index the swizzled component.
+     *
+     * @param i The index
+     * @return Value at the index swizzled
      */
     constexpr T operator[](const std::size_t i) const
     {
@@ -134,11 +161,23 @@ public:
 
     /**
      * @brief Unary minus vector operator
+     *
+     * @return The resulting vector of size equal to the number of indicies
+     */
+    constexpr Vec operator+() const { return +to_vec(); }
+
+    /**
+     * @brief Unary minus vector operator
+     *
+     * @return The resulting vector of size equal to the number of indicies
      */
     constexpr Vec operator-() const { return -to_vec(); }
 
     /**
      * @brief In-place assignment with vector
+     *
+     * @param that The vector
+     * @return This
      */
     constexpr Swizzled& operator=(const Vec& that)
         requires(lvalue_has_non_duplicate_indicies)
@@ -151,6 +190,9 @@ public:
 
     /**
      * @brief In-place component-wise addition with vector
+     *
+     * @param that The vector
+     * @return This
      */
     constexpr Swizzled& operator+=(const Vec& that)
         requires(lvalue_has_non_duplicate_indicies)
@@ -163,6 +205,9 @@ public:
 
     /**
      * @brief In-place component-wise subtraction with vector
+     *
+     * @param that The vector
+     * @return This
      */
     constexpr Swizzled& operator-=(const Vec& that)
         requires(lvalue_has_non_duplicate_indicies)
@@ -175,6 +220,9 @@ public:
 
     /**
      * @brief In-place component-wise multiplication with vector
+     *
+     * @param that The vector
+     * @return This
      */
     constexpr Swizzled& operator*=(const Vec& that)
         requires(lvalue_has_non_duplicate_indicies)
@@ -188,6 +236,12 @@ public:
     /**
      * @brief In-place component-wise assignment with other Swizzled of
      * same kind
+     *
+     * @note this is neccessary to define since c++ defaults to a
+     * implicit non-templated assignment operator
+     *
+     * @param that Other swizzled object
+     * @return This
      */
     constexpr Swizzled& operator=(const Swizzled& that)
         requires(lvalue_has_non_duplicate_indicies)
@@ -203,6 +257,9 @@ public:
 
     /**
      * @brief In-place component-wise assignment with other Swizzled
+     *
+     * @param that Other swizzled object
+     * @return This
      */
     template<std::size_t M, std::size_t... OtherIndicies>
     constexpr Swizzled& operator=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
@@ -219,6 +276,9 @@ public:
 
     /**
      * @brief In-place component-wise addition with other Swizzled
+     *
+     * @param that Other swizzled object
+     * @return This
      */
     template<std::size_t M, std::size_t... OtherIndicies>
     constexpr Swizzled& operator+=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
@@ -235,6 +295,9 @@ public:
 
     /**
      * @brief In-place component-wise subtraction with other Swizzled
+     *
+     * @param that Other swizzled object
+     * @return This
      */
     template<std::size_t M, std::size_t... OtherIndicies>
     constexpr Swizzled& operator-=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
@@ -251,6 +314,9 @@ public:
 
     /**
      * @brief In-place component-wise multiplication with other Swizzled
+     *
+     * @param that Other swizzled object
+     * @return This
      */
     template<std::size_t M, std::size_t... OtherIndicies>
     constexpr Swizzled& operator*=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
@@ -267,6 +333,9 @@ public:
 
     /**
      * @brief In-place scalar multiplication
+     *
+     * @param scalar Scalar value
+     * @return This
      */
     constexpr Swizzled& operator*=(const T scalar)
         requires(lvalue_has_non_duplicate_indicies)
@@ -279,6 +348,9 @@ public:
 
     /**
      * @brief In-place scalar division
+     *
+     * @param scalar Scalar value
+     * @return This
      */
     constexpr Swizzled& operator/=(const T scalar)
         requires(lvalue_has_non_duplicate_indicies)
@@ -293,7 +365,7 @@ public:
 };
 
 /**
- * @brief Class for single vector components
+ * @brief Class for single vector component
  *
  * @tparam N     Number of components in the vector
  * @tparam T     Type of components
@@ -301,45 +373,65 @@ public:
  */
 template<std::size_t N, typename T, std::size_t Index>
     requires(Index < N)
-class SingleVectorComponent
+class SwizzledSingle
 {
+private:
     std::array<T, N> m_components;
 
 public:
-    using value_type = T; ///@< value type
+    /// value type
+    using value_type = T;
 
     /**
-     * @name default constructors
-     * @{
+     * @brief Default constructor
      */
-    constexpr SingleVectorComponent() = default;
-    constexpr SingleVectorComponent(const SingleVectorComponent&) = default;
-    constexpr SingleVectorComponent(SingleVectorComponent&&) = default;
-    ///@}
+    constexpr SwizzledSingle() = default;
+
+    /**
+     * @brief Default copy constructor
+     */
+    constexpr SwizzledSingle(const SwizzledSingle&) = default;
+
+    /**
+     * @brief Default move constructor
+     */
+    constexpr SwizzledSingle(SwizzledSingle&&) = default;
 
     /**
      * @brief Assignment from value
+     *
+     * @param value The new value at the swizzled index
+     * @return This
      */
-    constexpr SingleVectorComponent& operator=(const T value)
+    constexpr SwizzledSingle& operator=(const T value)
     {
         m_components[Index] = value;
         return *this;
     }
 
     /**
-     * @brief Assignment from other single swizzled component of same kind
+     * @brief Assignment from other SwizzledSingle of same kind
+     *
+     * @note this is neccessary to define since c++ defaults to a
+     * implicit non-templated assignment operator
+     *
+     * @param that Other SwizzledSingle object
+     * @return This
      */
-    constexpr SingleVectorComponent& operator=(const SingleVectorComponent& that)
+    constexpr SwizzledSingle& operator=(const SwizzledSingle& that)
     {
         m_components[Index] = T{ that };
         return *this;
     }
 
     /**
-     * @brief Assignment from other single swizzled component
+     * @brief Assignment from other SwizzledSingle component
+     *
+     * @param that Other SwizzledSingle object
+     * @return This
      */
     template<std::size_t M, std::size_t OtherIndex>
-    constexpr auto& operator=(const SingleVectorComponent<M, T, OtherIndex>& that)
+    constexpr auto& operator=(const SwizzledSingle<M, T, OtherIndex>& that)
     {
         m_components[Index] = T{ that };
         return *this;
@@ -347,11 +439,15 @@ public:
 
     /**
      * @brief Implicit conversion to number
+     *
+     * @return The swizzled component
      */
     constexpr operator T() const { return m_components[Index]; }
 
     /**
      * @brief Implicit conversion to number reference
+     *
+     * @return The reference to the swizzled component
      */
     constexpr operator T&() { return m_components[Index]; }
 };

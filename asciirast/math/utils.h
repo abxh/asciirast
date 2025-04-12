@@ -13,6 +13,9 @@ namespace asciirast::math {
 
 /**
  * @brief Convert from degrees to radians
+ *
+ * @param degrees The angle in degrees
+ * @return The angle in radians
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
@@ -24,6 +27,9 @@ radians(const T degrees) -> T
 
 /**
  * @brief Convert from radians to degrees
+ *
+ * @param radians The angle in radians
+ * @return The angle in degrees
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
@@ -34,107 +40,134 @@ degrees(const T radians) -> T
 }
 
 /**
- * @brief Check if equal to floating type value, given a precision for
- *        ulps (units in last place).
+ * @brief Check if two floating point values are approximately equal,
+ *        given a precision for ulps (units in last place).
  *
  * The lower, the more precise --- desirable for small floats.
  * The higher, the less precise --- desirable for large floats
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @param ulps_ Units in last place
+ * @return Whether the two numbers are approximately equal
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_equal(const T x, const T y, const unsigned ulps_) -> bool
+almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
     // Based on:
     // https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
 
     const T ulps = static_cast<T>(ulps_);
-    const T min = std::min(std::fabs(x), std::fabs(y));
+    const T min = std::min(std::fabs(lhs), std::fabs(rhs));
     const T exp = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
     const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), static_cast<int>(exp));
 
-    return std::fabs(x - y) <= small_diff;
+    return std::fabs(lhs - rhs) <= small_diff;
 }
 
 /**
- * @brief Check if almost equal to another floating value with default
- *        precision.
+ * @brief Check two float's are approximately equal with default precision
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @return Whether the two numbers are approximately equal
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_equal(const T x, const T y) -> bool
+almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
 {
     // default precision based on:
     // https://en.wikipedia.org/wiki/Single-precision_floating-point_format
 
-    return almost_equal(x, y, 9);
+    return almost_equal(lhs, rhs, 9);
 }
 
 /**
- * @brief Check if almost equal to another floating value with default
- *        precision.
+ * @brief Check two double's are approximately equal with default precision
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @return Whether the two numbers are approximately equal
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_equal(const T x, const T y) -> bool
+almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)
 {
     // default precision based on:
     // https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 
-    return almost_equal(x, y, 17);
+    return almost_equal(lhs, rhs, 17);
 }
 
 /**
- * @brief Check if less than floating type value, given a precision for
- * ulps (units in last place).
+ * @brief Check if two floating point values are approximately less than one another,
+ *        given a precision for ulps (units in last place).
  *
  * The lower, the more precise --- desirable for small floats.
  * The higher, the less precise --- desirable for large floats
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @param ulps_ Units in last place
+ * @return Whether lhs < rhs, with given precision
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_less_than(const T x, const T y, const unsigned ulps_) -> bool
+almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
     const T ulps = static_cast<T>(ulps_);
-    const T min = std::min(std::fabs(x), std::fabs(y));
+    const T min = std::min(std::fabs(lhs), std::fabs(rhs));
     const T exp = min < std::numeric_limits<T>::min() ? std::numeric_limits<T>::min_exponent - 1 : std::ilogb(min);
     const T small_diff = ulps * std::ldexp(std::numeric_limits<T>::epsilon(), static_cast<int>(exp));
 
-    return x - y < -small_diff; // x < y - small_diff
+    return lhs - rhs < -small_diff; // lhs < rhs - small_diff
 }
 
 /**
- * @brief Check if almost less than another floating value with default
- *        precision.
+ * @brief Check two float's are approximately less than one another with default precision
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @return Whether lhs < rhs, with default precision
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_less_than(const T x, const T y) -> bool
+almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
 {
-    return almost_less_than(x, y, 9);
+    return almost_less_than(lhs, rhs, 9);
 }
 
 /**
- * @brief Check if almost less than another floating value with default
- *        precision.
+ * @brief Check two double's are approximately less than one another with default precision
+ *
+ * @param lhs left hand side of operand
+ * @param rhs right hand side of operand
+ * @return Whether lhs < rhs, with default precision
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
-almost_less_than(const T x, const T y) -> bool
+almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)
 {
-    return almost_less_than(x, y, 17);
+    return almost_less_than(lhs, rhs, 17);
 }
 
 namespace detail {
+
+/// @cond DO_NOT_DOCUMENT
+
+// square root with newton-raphson
+// -------------------------------
 
 template<typename T>
     requires(std::is_floating_point_v<T>)
@@ -144,10 +177,8 @@ sqrt_newton_raphson(const T x, const T curr, const T prev) -> T
     // constexpr sqrt:
     // https://stackoverflow.com/a/34134071
 
-    return curr == prev ? curr : sqrt_newton_raphson<T>(x, T{ 0.5 } * (curr + x / curr), curr);
+    return almost_equal(curr, prev) ? curr : sqrt_newton_raphson<T>(x, T{ 0.5 } * (curr + x / curr), curr);
 }
-
-};
 
 template<typename T>
     requires(std::is_floating_point_v<T>)
@@ -155,11 +186,18 @@ constexpr auto
 sqrt(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        return x >= 0 && x < std::numeric_limits<T>::infinity() ? detail::sqrt_newton_raphson<T>(x, x, 0)
-                                                                : std::numeric_limits<T>::quiet_NaN();
+        if (0 <= x && x < std::numeric_limits<T>::infinity()) {
+            return detail::sqrt_newton_raphson<T>(x, x, 0);
+        } else {
+            throw "sqrt domain error";
+        }
     } else {
         return std::sqrt(x);
     }
 }
+
+/// @endcond
+
+};
 
 } // namespace asciirast::math

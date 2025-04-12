@@ -1,8 +1,6 @@
 /**
  * @file program.h
  * @brief Definition of program interface and other related types
- *
- * @todo improve documentation
  */
 
 #pragma once
@@ -16,9 +14,11 @@
 namespace asciirast {
 
 /**
- * @brief Concept of types that follow the varying interface
+ * @brief Concept to follow the varying interface
  *
  * Varying are the interpolated attributes of verticies.
+ *
+ * @tparam T The type to check
  */
 template<typename T>
 concept VaryingInterface = requires(const T x, T y) {
@@ -30,6 +30,11 @@ concept VaryingInterface = requires(const T x, T y) {
 
 /**
  * @brief Linear interpolation of varying types
+ *
+ * @param a Left hand side varying
+ * @param b Right hand side varying
+ * @param t How much to interpolate between the two
+ * @return The interpolated varying
  */
 template<VaryingInterface Varying>
 static Varying
@@ -39,36 +44,39 @@ lerp_varying(const Varying& a, const Varying& b, const math::Float t)
 }
 
 /**
- * @brief Fragment (aka pixel)
+ * @brief Fragment type
  */
 template<VaryingInterface Varying>
 struct Fragment
 {
-    math::Vec4 pos; ///@< world position in homogenous space
-    Varying attrs;  ///@< vertex attributes
+    math::Vec4 pos; ///< world position in homogenous space
+    Varying attrs;  ///< vertex attributes
 };
 
 /**
- * @brief (Projected) fragment (aka pixel)
+ * @brief Projected fragment type
  */
 template<VaryingInterface Varying>
 struct ProjectedFragment
 {
-    math::Vec2 pos;    ///@< aka window position
-    math::Float depth; ///@< aka z
-    math::Float Z_inv; ///@< aka 1/w
-    Varying attrs;     ///@< fragment attributes
+    math::Vec2 pos;    ///< window position
+    math::Float depth; ///< aka z
+    math::Float Z_inv; ///< aka 1/w
+    Varying attrs;     ///< fragment attributes
 };
 
 /**
- * @brief Project a Fragment to converted it to ProjectFragment
+ * @brief Project a Fragment to convert it to ProjectFragment
+ *
+ * @param frag The Fragment object
+ * @return The ProjectedFragment object
  */
 template<VaryingInterface T>
 static ProjectedFragment<T>
 project_fragment(const Fragment<T>& frag)
 {
-    assert(frag.pos.w != 0 && "non-zero w coordinate. "
-                              "verticies with zeroes as w should be clipped / culled");
+    assert(frag.pos.w != 0 && "non-zero w coordinate."
+                              "this fragment should be culled by this point");
 
     const auto Z_inv = 1 / frag.pos.w;
     const auto v = frag.pos.xyz * Z_inv;
@@ -83,7 +91,7 @@ project_fragment(const Fragment<T>& frag)
 
 /**
  * @brief Abstract (shader) program that can be used to follow the
- * (shader) program interface
+ *        program interface
  *
  * @tparam UniformType Arbitary type which contain constant values
  * @tparam VertexType  Vertex type to be used to output a fragment
@@ -95,10 +103,10 @@ template<class UniformType, class VertexType, VaryingInterface VaryingType, Fram
 class AbstractProgram
 {
 public:
-    using Uniform = UniformType;          ///@< uniform(s) type
-    using Vertex = VertexType;            ///@< vertex type
-    using Varying = VaryingType;          ///@< varying type
-    using Targets = FrameBuffer::Targets; ///@< framebuffer targets
+    using Uniform = UniformType;          ///< uniform(s) type
+    using Vertex = VertexType;            ///< vertex type
+    using Varying = VaryingType;          ///< varying type
+    using Targets = FrameBuffer::Targets; ///< framebuffer targets
 
     /**
      * @brief Default virtual destructor
@@ -117,7 +125,9 @@ public:
 };
 
 /**
- * @brief Concept of types that follow the (shader) program interface
+ * @brief Concept to follow the (shader) program interface
+ *
+ * @tparam T The type to check
  */
 template<class T>
 concept ProgramInterface = requires(const T t) {
@@ -136,6 +146,8 @@ concept ProgramInterface = requires(const T t) {
 
 namespace detail {
 
+/// @cond DO_NOT_DOCUMENT
+
 template<ProgramInterface Program, class Uniform, class Vertex, class Varying, FrameBufferInterface FrameBuffer>
 struct can_use_program_with
 {
@@ -144,6 +156,8 @@ struct can_use_program_with
                                   std::is_same_v<typename Program::Varying, Varying> &&
                                   std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
 };
+
+/// @endcond
 
 }; // namespace detail
 
