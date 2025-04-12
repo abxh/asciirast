@@ -107,9 +107,12 @@ public:
         m_width = (std::size_t)(new_width);
         m_height = (std::size_t)(new_height);
 
-        const math::Vec2 scale = { m_width - 1, m_height - 1 };
-        m_screen_to_window =
-                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+                                     .to_transform()
+                                     .reversed()
+                                     .reflectY()
+                                     .translate(0, 1.f)
+                                     .scale(m_width - 1, m_height - 1);
 
         m_charbuf.resize(m_width * m_height);
         m_depthbuf.resize(m_width * m_height);
@@ -135,9 +138,10 @@ private:
 
     std::size_t m_width;
     std::size_t m_height;
+    math::Transform2D m_screen_to_window;
+
     std::vector<char> m_charbuf;
     std::vector<math::Float> m_depthbuf;
-    math::Transform2D m_screen_to_window;
 };
 
 struct MyUniform
@@ -218,8 +222,9 @@ main(void)
             vb.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
         }
     }
-    asciirast::Renderer<MyVarying> r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
-    asciirast::Renderer<MyVarying> r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
+    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::RendererPipelineData<MyVarying> pipeline_data;
 
     MyProgram p;
     TerminalBuffer t;
@@ -235,10 +240,10 @@ main(void)
 
     while (!s.try_acquire()) {
         flip = false;
-        r1.draw(p, u, vb, t);
+        r1.draw(p, u, vb, t, {}, pipeline_data);
 
         flip = true;
-        r2.draw(p, u, vb, t);
+        r2.draw(p, u, vb, t, {}, pipeline_data);
 
         t.render();
 

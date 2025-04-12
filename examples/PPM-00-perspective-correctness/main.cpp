@@ -38,9 +38,12 @@ public:
             : m_width{ width }
             , m_height{ height }
     {
-        const math::Vec2 scale = { m_width - 1, m_height - 1 };
-        m_screen_to_window =
-                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+                                     .to_transform()
+                                     .reversed()
+                                     .reflectY()
+                                     .translate(0, 1.f)
+                                     .scale(m_width - 1, m_height - 1);
 
         m_rgb_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
@@ -142,10 +145,10 @@ private:
 
     std::size_t m_width;
     std::size_t m_height;
+    math::Transform2D m_screen_to_window;
 
     std::vector<RGB> m_rgb_buf;
     std::vector<math::Float> m_depth_buf;
-    math::Transform2D m_screen_to_window;
 };
 
 static_assert(asciirast::FrameBufferInterface<PPMBuffer>);
@@ -266,13 +269,14 @@ main(int, char**)
     vb.verticies = { MyVertex{ v2, c2, st2 }, MyVertex{ v0, c0, st0 }, MyVertex{ v1, c1, st1 } };
 
     MyUniform u{ .z_near = std::min({ v0.z, v1.z, v2.z }), .z_far = std::max({ v0.z, v1.z, v2.z }) };
-    asciirast::Renderer<MyVarying> renderer;
+    asciirast::Renderer renderer;
+    asciirast::RendererPipelineData<MyVarying> pipeline_data;
     std::filesystem::create_directory("images");
 
     PPMBuffer screen(512, 512);
 
     RGBProgram p1;
-    renderer.draw(p1, u, vb, screen);
+    renderer.draw(p1, u, vb, screen, {}, pipeline_data);
     screen.save_to("images/rgb.ppm", ImageType::RGB);
     screen.save_to("images/red.ppm", ImageType::RED_CHANNEL);
     screen.save_to("images/green.ppm", ImageType::GREEN_CHANNEL);
@@ -281,7 +285,7 @@ main(int, char**)
     screen.clear();
 
     CheckerboardProgram p2;
-    renderer.draw(p2, u, vb, screen);
+    renderer.draw(p2, u, vb, screen, {}, pipeline_data);
     screen.save_to("images/checkerboard.ppm", ImageType::RGB);
     screen.clear();
 

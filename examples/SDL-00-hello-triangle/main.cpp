@@ -40,9 +40,12 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        const math::Vec2 scale = { m_width - 1, m_height - 1 };
-        m_screen_to_window =
-                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+                                     .to_transform()
+                                     .reversed()
+                                     .reflectY()
+                                     .translate(0, 1.f)
+                                     .scale(m_width - 1, m_height - 1);
 
         m_rgba_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
@@ -117,9 +120,10 @@ private:
 
     std::size_t m_width;
     std::size_t m_height;
+    math::Transform2D m_screen_to_window;
+
     std::vector<RGBA_uint8> m_rgba_buf;
     std::vector<math::Float> m_depth_buf;
-    math::Transform2D m_screen_to_window;
 
     SDL_Texture* m_texture = nullptr;
     SDL_Window* m_window = nullptr;
@@ -184,7 +188,8 @@ main(int, char**)
     vb.verticies = { v0, v1, v2 };
 
     MyProgram program;
-    asciirast::Renderer<MyVarying> renderer;
+    asciirast::Renderer renderer;
+    asciirast::RendererPipelineData<MyVarying> pipeline_data;
     SDLBuffer screen(512, 512);
     MyUniform u{};
 
@@ -201,7 +206,7 @@ main(int, char**)
             }
         }
 
-        renderer.draw(program, u, vb, screen);
+        renderer.draw(program, u, vb, screen, {}, pipeline_data);
         screen.render();
     }
 

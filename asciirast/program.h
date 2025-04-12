@@ -148,12 +148,11 @@ namespace detail {
 
 /// @cond DO_NOT_DOCUMENT
 
-template<ProgramInterface Program, class Uniform, class Vertex, class Varying, FrameBufferInterface FrameBuffer>
+template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
 struct can_use_program_with
 {
     static constexpr bool value = std::is_same_v<typename Program::Uniform, Uniform> &&
                                   std::is_same_v<typename Program::Vertex, Vertex> &&
-                                  std::is_same_v<typename Program::Varying, Varying> &&
                                   std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
 };
 

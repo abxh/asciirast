@@ -144,9 +144,12 @@ public:
         m_width = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
 
-        const math::Vec2 scale = { m_width - 1, m_height - 1 };
-        m_screen_to_window =
-                asciirast::constants::SCREEN_BOUNDS.to_transform().reversed().reflectY().translate(0, 1.f).scale(scale);
+        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+                                     .to_transform()
+                                     .reversed()
+                                     .reflectY()
+                                     .translate(0, 1.f)
+                                     .scale(m_width - 1, m_height - 1);
 
         m_rgbc_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
@@ -173,9 +176,10 @@ private:
 
     std::size_t m_width;
     std::size_t m_height;
+    math::Transform2D m_screen_to_window;
+
     std::vector<RGBC> m_rgbc_buf;
     std::vector<math::Float> m_depth_buf;
-    math::Transform2D m_screen_to_window;
 };
 
 static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
@@ -283,7 +287,8 @@ main(void)
     sierpinski_triangle(vb.verticies, V1, V2, V3, i);
 
     MyProgram p;
-    asciirast::Renderer<MyVarying> r;
+    asciirast::Renderer r;
+    asciirast::RendererPipelineData<MyVarying> pipeline_data;
     TerminalBuffer t;
 
     t.clear_and_update_size();
@@ -300,7 +305,7 @@ main(void)
     } };
 
     while (!s.try_acquire()) {
-        r.draw(p, u, vb, t);
+        r.draw(p, u, vb, t, {}, pipeline_data);
 
         t.render();
 
