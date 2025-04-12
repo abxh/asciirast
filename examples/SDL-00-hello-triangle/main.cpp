@@ -184,7 +184,7 @@ main(int, char**)
     vb.verticies = { v0, v1, v2 };
 
     MyProgram program;
-    asciirast::Renderer<MyVarying> renderer{ math::AABB2D::from_min_max({ -2, -1 }, { 1, 1 }) };
+    asciirast::Renderer<MyVarying> renderer;
     SDLBuffer screen(512, 512);
     MyUniform u{};
 
