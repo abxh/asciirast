@@ -1,10 +1,6 @@
 
-// On the obj file:
-// - https://www.youtube.com/watch?v=iClme2zsg3I
-// - https://github.com/tinyobjloader/tinyobjloader
-
 // based on:
-// https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm
+// https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
 
 #include "asciirast/framebuffer.h"
 #include "asciirast/math/types.h"
@@ -143,7 +139,10 @@ private:
 static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 
 struct MyUniform
-{};
+{
+    math::Float z_near;
+    math::Float z_far;
+};
 
 struct MyVertex
 {
@@ -172,9 +171,10 @@ public:
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
-        (void)u;
-        return Fragment{ .pos = math::Vec4{ vert.pos.x, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
-                         .attrs = Varying{ math::Vec3{ 1, 1, 1 } } };
+        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
+        const auto depth = vert.pos.z * depth_scalar - u.z_near * depth_scalar;
+
+        return Fragment{ .pos = math::Vec4{ vert.pos.x, vert.pos.y, 0, 1 }, .attrs = Varying{ math::Vec3{ depth } } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
     {
@@ -221,7 +221,7 @@ main(int argc, char* argv[])
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
 
     asciirast::IndexedVertexBuffer<MyVertex> vb{};
-    vb.shape_type = asciirast::ShapeType::LINES;
+    vb.shape_type = asciirast::ShapeType::TRIANGLES;
     vb.verticies = attrib.vertices                                                                    //
                    | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
                    | std::ranges::views::chunk(3U)                                                    //
@@ -234,23 +234,33 @@ main(int argc, char* argv[])
         for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
             const std::size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
 
-            for (std::size_t v = 0; v < fv; v++) {
-                tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + v];
-                tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + ((v + 1) % fv)];
+            if (fv == 3) {
+                tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + 0];
+                tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + 1];
+                tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 2];
 
                 vb.indicies.push_back(static_cast<std::size_t>(idx0.vertex_index));
                 vb.indicies.push_back(static_cast<std::size_t>(idx1.vertex_index));
+                vb.indicies.push_back(static_cast<std::size_t>(idx2.vertex_index));
             }
 
             index_offset += fv;
         }
     }
+    MyUniform u;
+    u.z_near = std::ranges::fold_left(
+            vb.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+            math::Float{},
+            [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); });
+    u.z_far = std::ranges::fold_left(
+            vb.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+            math::Float{},
+            [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
 
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererPipelineData<MyVarying> pipeline_data;
     SDLBuffer screen(512, 512);
-    MyUniform u;
 
     bool running = true;
     while (running) {
@@ -258,7 +268,8 @@ main(int argc, char* argv[])
 
         handle_events(running);
 
-        renderer.draw(program, u, vb, screen, pipeline_data);
+        renderer.draw(
+                program, u, vb, screen, pipeline_data, { .winding_order = asciirast::WindingOrder::COUNTER_CLOCKWISE });
 
         screen.render();
     }

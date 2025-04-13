@@ -70,6 +70,8 @@ add_subdirectory(examples/01-sierpinski-triangle)
 if (SDL_BASED_EXAMPLES)
 	add_subdirectory(examples/SDL-00-hello-triangle)
 	add_subdirectory(examples/SDL-01-wireframe)
+	add_subdirectory(examples/SDL-02-flat-shading)
+	add_subdirectory(examples/SDL-03-shading-with-depth)
 endif()
 
 add_subdirectory(examples/PPM-00-perspective-correctness)

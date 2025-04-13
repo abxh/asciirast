@@ -1,10 +1,9 @@
 
-// On the obj file:
-// - https://www.youtube.com/watch?v=iClme2zsg3I
-// - https://github.com/tinyobjloader/tinyobjloader
-
 // based on:
-// https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm
+// https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling
+
+// <random>:
+// https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
 
 #include "asciirast/framebuffer.h"
 #include "asciirast/math/types.h"
@@ -21,6 +20,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
+#include <random>
 #include <ranges>
 #include <vector>
 
@@ -148,6 +148,7 @@ struct MyUniform
 struct MyVertex
 {
     math::Vec3 pos;
+    RGB color;
 };
 
 struct MyVarying
@@ -174,7 +175,7 @@ public:
     {
         (void)u;
         return Fragment{ .pos = math::Vec4{ vert.pos.x, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
-                         .attrs = Varying{ math::Vec3{ 1, 1, 1 } } };
+                         .attrs = Varying{ vert.color } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
     {
@@ -220,26 +221,36 @@ main(int argc, char* argv[])
     const tinyobj::attrib_t& attrib = obj_reader.GetAttrib();
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
 
-    asciirast::IndexedVertexBuffer<MyVertex> vb{};
-    vb.shape_type = asciirast::ShapeType::LINES;
-    vb.verticies = attrib.vertices                                                                    //
-                   | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
-                   | std::ranges::views::chunk(3U)                                                    //
-                   | std::ranges::views::transform([](auto&& range) {                                 //
-                         return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
-                     }) //
-                   | std::ranges::to<decltype(vb.verticies)>();
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(0., 1.);
+
+    asciirast::VertexBuffer<MyVertex> vb{};
+    vb.shape_type = asciirast::ShapeType::TRIANGLES;
+    std::vector<math::Vec3> positions =
+            attrib.vertices                                                                    //
+            | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
+            | std::ranges::views::chunk(3U)                                                    //
+            | std::ranges::views::transform([](auto&& range) {                                 //
+                  return math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) };
+              }) //
+            | std::ranges::to<decltype(positions)>();
+
     for (std::size_t s = 0; s < shapes.size(); s++) {
         std::size_t index_offset = 0;
         for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
             const std::size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
 
-            for (std::size_t v = 0; v < fv; v++) {
-                tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + v];
-                tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + ((v + 1) % fv)];
+            if (fv == 3) {
+                tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + 0];
+                tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + 1];
+                tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 2];
 
-                vb.indicies.push_back(static_cast<std::size_t>(idx0.vertex_index));
-                vb.indicies.push_back(static_cast<std::size_t>(idx1.vertex_index));
+                const auto color = math::Vec3{ dis(gen), dis(gen), dis(gen) };
+
+                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx0.vertex_index)], color });
+                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx1.vertex_index)], color });
+                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx2.vertex_index)], color });
             }
 
             index_offset += fv;
