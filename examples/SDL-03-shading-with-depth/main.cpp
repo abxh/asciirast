@@ -221,7 +221,7 @@ main(int argc, char* argv[])
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
 
     asciirast::IndexedVertexBuffer<MyVertex> vertex_buf{};
-    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
+    vertex_buf.shape_type = asciirast::ShapeType::Triangles;
     vertex_buf.verticies =
             attrib.vertices                                                                    //
             | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
@@ -262,7 +262,7 @@ main(int argc, char* argv[])
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions<asciirast::WindingOrder::COUNTER_CLOCKWISE> renderer_options{};
+    asciirast::RendererOptions<asciirast::WindingOrder::CounterClockwise> renderer_options;
 
     bool running = true;
     while (running) {

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 project(asciirast VERSION 0.1)
 
-set(HEADER_ONLY ON) # note: turn this off for slightly faster compile times
+set(HEADER_ONLY OFF) # note: turn this off for slightly faster compile times
 set(EXAMPLES ON)
 set(SDL_BASED_EXAMPLES ON)
 
@@ -69,11 +69,9 @@ endif()
 
 if (HEADER_ONLY)
 	add_subdirectory(asciirast)
-	target_include_directories(asciirast INTERFACE external/stb_image)
 else()
 	# with source files for faster compilation:
 	add_subdirectory(src)
-	target_include_directories(asciirast PRIVATE external/stb_image)
 endif()
 
 if (EXAMPLES)
@@ -87,5 +85,6 @@ if (EXAMPLES)
 		add_subdirectory(examples/SDL-03-shading-with-depth)
 	endif()
 
-	add_subdirectory(examples/PPM-00-perspective-correctness)
+	add_subdirectory(examples/IMG-00-perspective-correctness)
+	add_subdirectory(examples/IMG-01-mipmapping)
 endif()

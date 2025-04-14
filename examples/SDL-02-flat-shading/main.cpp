@@ -225,7 +225,7 @@ main(int argc, char* argv[])
     std::uniform_real_distribution<> dis(0., 1.);
 
     asciirast::VertexBuffer<MyVertex> vertex_buf{};
-    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
+    vertex_buf.shape_type = asciirast::ShapeType::Triangles;
     std::vector<math::Vec3> positions =
             attrib.vertices                                                                    //
             | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //

@@ -210,7 +210,7 @@ main(void)
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vertex_buf.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
+        vertex_buf.shape_type = asciirast::ShapeType::LineStrip; // Feel free to try Points / Lines / LineStrip
         vertex_buf.verticies = {};
 
         auto id = 0.f;

@@ -8,6 +8,8 @@ extern template Int
 dot(const Vec3Int&, const Vec3Int&);
 extern template Int
 dot(const Vec4Int&, const Vec4Int&);
+extern template std::uint8_t
+dot(const RGBA_8bit&, const RGBA_8bit&);
 extern template Float
 dot(const Vec2&, const Vec2&);
 extern template Float
@@ -42,6 +44,8 @@ extern template Vec3Int
 max(const Vec3Int&, const Vec3Int&);
 extern template Vec4Int
 max(const Vec4Int&, const Vec4Int&);
+extern template RGBA_8bit
+max(const RGBA_8bit&, const RGBA_8bit&);
 extern template Vec2
 max(const Vec2&, const Vec2&);
 extern template Vec3
@@ -55,6 +59,8 @@ extern template Vec3Int
 min(const Vec3Int&, const Vec3Int&);
 extern template Vec4Int
 min(const Vec4Int&, const Vec4Int&);
+extern template RGBA_8bit
+min(const RGBA_8bit&, const RGBA_8bit&);
 extern template Vec2
 min(const Vec2&, const Vec2&);
 extern template Vec3
@@ -68,6 +74,8 @@ extern template Vec3Int
 clamp(const Vec3Int&, const Vec3Int&, const Vec3Int&);
 extern template Vec4Int
 clamp(const Vec4Int&, const Vec4Int&, const Vec4Int&);
+extern template RGBA_8bit
+clamp(const RGBA_8bit&, const RGBA_8bit&, const RGBA_8bit&);
 extern template Vec2
 clamp(const Vec2&, const Vec2&, const Vec2&);
 extern template Vec3
@@ -81,6 +89,8 @@ extern template Vec3Int
 abs(const Vec3Int&);
 extern template Vec4Int
 abs(const Vec4Int&);
+extern template RGBA_8bit
+abs(const RGBA_8bit&);
 extern template Vec2
 abs(const Vec2&);
 extern template Vec3

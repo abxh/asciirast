@@ -283,7 +283,7 @@ main(void)
     int i = 1;
     int dir = 1;
     asciirast::VertexBuffer<MyVertex> vertex_buf{};
-    vertex_buf.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES
+    vertex_buf.shape_type = asciirast::ShapeType::Lines; // Feel free to try Points / Lines
     vertex_buf.verticies.clear();
     sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 

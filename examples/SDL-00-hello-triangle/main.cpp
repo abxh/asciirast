@@ -184,7 +184,7 @@ main(int, char**)
     const MyVertex v2 = { .pos = { +0.5f, -0.5f, 1.f }, .color = { 0.f, 0.f, 1.f } };
 
     asciirast::VertexBuffer<MyVertex> vertex_buf;
-    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
+    vertex_buf.shape_type = asciirast::ShapeType::Triangles;
     vertex_buf.verticies = { v0, v1, v2 };
 
     SDLBuffer screen(512, 512);

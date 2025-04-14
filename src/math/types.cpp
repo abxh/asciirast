@@ -5,6 +5,7 @@ namespace asciirast::math {
 extern template class Vec<2, Int>;
 extern template class Vec<3, Int>;
 extern template class Vec<4, Int>;
+extern template class Vec<4, std::uint8_t>;
 
 extern template class Vec<2, Float>;
 extern template class Vec<3, Float>;

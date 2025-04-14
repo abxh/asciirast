@@ -11,6 +11,8 @@
 #include "./Transform.h"
 #include "./Vec.h"
 
+#include <cstdint>
+
 namespace asciirast::math {
 
 using Int = int;     ///< default integral type
@@ -21,6 +23,8 @@ static constexpr bool uses_col_major = true; ///< Default matrix order
 using Vec2Int = Vec<2, Int>; ///< 2D int math vector
 using Vec3Int = Vec<3, Int>; ///< 3D int math vector
 using Vec4Int = Vec<4, Int>; ///< 4D int math vector
+
+using RGBA_8bit = Vec<4, std::uint8_t>; ///< RGBA 8 bit encoding
 
 using Vec2 = Vec<2, Float>; ///< 2D math vector
 using Vec3 = Vec<3, Float>; ///< 3D math vector

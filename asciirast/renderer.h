@@ -25,9 +25,9 @@ namespace asciirast {
  */
 enum class WindingOrder
 {
-    CLOCKWISE,
-    COUNTER_CLOCKWISE,
-    NEITHER,
+    Clockwise,
+    CounterClockwise,
+    Neither,
 };
 
 /**
@@ -35,13 +35,13 @@ enum class WindingOrder
  */
 enum class ShapeType
 {
-    POINTS,
-    LINES,
-    LINE_STRIP,
-    LINE_LOOP,
-    TRIANGLES,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN
+    Points,
+    Lines,
+    LineStrip,
+    LineLoop,
+    Triangles,
+    TriangleStrip,
+    TriangleFan,
 };
 
 /**
@@ -49,7 +49,7 @@ enum class ShapeType
  *
  * @tparam WindingOrderOption Triangle winding order
  */
-template<WindingOrder WindingOrderOption = WindingOrder::NEITHER>
+template<WindingOrder WindingOrderOption = WindingOrder::Neither>
 struct RendererOptions
 {};
 
@@ -178,7 +178,7 @@ public:
              class VertexAllocator,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator,
-             WindingOrder WindingOrderOption = WindingOrder::NEITHER>
+             WindingOrder WindingOrderOption = WindingOrder::Neither>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
@@ -211,7 +211,7 @@ public:
              class IndexAllocator,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator,
-             WindingOrder WindingOrderOption = WindingOrder::NEITHER>
+             WindingOrder WindingOrderOption = WindingOrder::Neither>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
@@ -429,9 +429,9 @@ private:
         };
         const auto rasterize_triangle = [plot_func, test_and_set_depth_func](
                                                 const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
-            const bool clockwise_winding_order = WindingOrderOption == WindingOrder::CLOCKWISE;
-            const bool counter_clockwise_winding_order = WindingOrderOption == WindingOrder::COUNTER_CLOCKWISE;
-            const bool neither_winding_order = WindingOrderOption == WindingOrder::NEITHER;
+            const bool clockwise_winding_order = WindingOrderOption == WindingOrder::Clockwise;
+            const bool counter_clockwise_winding_order = WindingOrderOption == WindingOrder::CounterClockwise;
+            const bool neither_winding_order = WindingOrderOption == WindingOrder::Neither;
 
             // perform backface culling:
             const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
@@ -547,12 +547,12 @@ private:
         using Vertex = typename Program::Vertex;
 
         switch (shape_type) {
-        case ShapeType::POINTS: {
+        case ShapeType::Points: {
             for (const Vertex& vert : vert_range) {
                 draw_point(program, uniform, framebuffer, data, vert);
             }
         } break;
-        case ShapeType::LINES: {
+        case ShapeType::Lines: {
             const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex> {
                 return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U));
             };
@@ -564,14 +564,14 @@ private:
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
-        case ShapeType::LINE_STRIP: {
+        case ShapeType::LineStrip: {
             const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
 
             for (const auto [v0, v1] : verticies) {
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
-        case ShapeType::LINE_LOOP: {
+        case ShapeType::LineLoop: {
             const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
 
             for (const auto [v0, v1] : verticies) {
@@ -584,7 +584,7 @@ private:
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             };
         } break;
-        case ShapeType::TRIANGLES: {
+        case ShapeType::Triangles: {
             const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex, Vertex> {
                 return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U), *(range.cbegin() + 2U));
             };
@@ -596,14 +596,14 @@ private:
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
-        case ShapeType::TRIANGLE_STRIP: {
+        case ShapeType::TriangleStrip: {
             const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
 
             for (const auto [v0, v1, v2] : verticies) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
-        case ShapeType::TRIANGLE_FAN: {
+        case ShapeType::TriangleFan: {
             const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
 
             for (const auto [v0, v1, v2] : verticies) {

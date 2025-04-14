@@ -36,16 +36,14 @@ class Rot2
     using Vec2 = Vec<2, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
 
-    T m_real; // real component
-    T m_imag; // imaginary component
+    T m_real = 1; // real component
+    T m_imag = 0; // imaginary component
 
 public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    constexpr Rot2()
-            : m_real{ 1 }
-            , m_imag{ 0 } {};
+    constexpr Rot2() {};
 
     /**
      * @brief (Implicitly) construct rotation object from angle
@@ -175,10 +173,15 @@ class Rot3
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
 
-    T m_s;      ///< scalar component
-    Vec3 m_dir; ///< non-normalized axis vector
+    T m_s = 1;          ///< scalar component
+    Vec3 m_dir = { 0 }; ///< non-normalized axis vector
 
 public:
+    /**
+     * @brief Construct identity rotation object that does "nothing"
+     */
+    constexpr Rot3() {};
+
     /**
      * @brief Construct rotation object from axis and angle in radians
      *
@@ -189,13 +192,6 @@ public:
     Rot3(const Vec3& axis, const T angle, bool normalize = true)
             : m_s{ std::cos(angle / 2.f) }
             , m_dir{ std::sin(angle / 2.f) * ((normalize) ? axis.normalized() : axis) } {};
-
-    /**
-     * @brief Construct identity rotation object that does "nothing"
-     */
-    constexpr Rot3()
-            : m_s{ 1 }
-            , m_dir{ 0, 0, 0 } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors

@@ -221,7 +221,7 @@ main(int argc, char* argv[])
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
 
     asciirast::IndexedVertexBuffer<MyVertex> vertex_buf{};
-    vertex_buf.shape_type = asciirast::ShapeType::LINES;
+    vertex_buf.shape_type = asciirast::ShapeType::Lines;
     vertex_buf.verticies =
             attrib.vertices                                                                    //
             | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //

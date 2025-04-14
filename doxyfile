@@ -1,7 +1,8 @@
 PROJECT_NAME = "asciirast"
 
 RECURSIVE = YES
-INPUT     = "./asciirast"
+INPUT     = "./asciirast/"
+EXCLUDE_PATTERNS = */external/*
 
 INPUT                 += readme.md
 USE_MDFILE_AS_MAINPAGE = readme.md
