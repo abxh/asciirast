@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 project(asciirast VERSION 0.1)
 
+set(HEADER_ONLY ON) # note: turn this off for slightly faster compile times
+set(EXAMPLES ON)
 set(SDL_BASED_EXAMPLES ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -50,28 +52,40 @@ if (SDL_BASED_EXAMPLES)
 	# add_subdirectory(external/imgui)
 endif()
 
-add_subdirectory(external/tiny_obj_loader)
-# add_subdirectory(external/stb_image)
+# neccessary dependencies for asciirast:
+add_subdirectory(external/stb_image) 
 
-if (MSVC)
-	add_compile_options(/W3)
+if (EXAMPLES)
+	add_subdirectory(external/tiny_obj_loader)
+
+	if (MSVC)
+		add_compile_options(/W3)
+	else()
+		add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
+	endif()
+
+	add_subdirectory(external/terminal_utils)
+endif()
+
+if (HEADER_ONLY)
+	add_subdirectory(asciirast)
+	target_include_directories(asciirast INTERFACE external/stb_image)
 else()
-	add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
+	# with source files for faster compilation:
+	add_subdirectory(src)
+	target_include_directories(asciirast PRIVATE external/stb_image)
 endif()
 
-add_subdirectory(external/terminal_utils)
+if (EXAMPLES)
+	add_subdirectory(examples/00-spiral)
+	add_subdirectory(examples/01-sierpinski-triangle)
 
-# add_subdirectory(asciirast)
-add_subdirectory(src) # alt to header-only asciirast
+	if (SDL_BASED_EXAMPLES)
+		add_subdirectory(examples/SDL-00-hello-triangle)
+		add_subdirectory(examples/SDL-01-wireframe)
+		add_subdirectory(examples/SDL-02-flat-shading)
+		add_subdirectory(examples/SDL-03-shading-with-depth)
+	endif()
 
-add_subdirectory(examples/00-spiral)
-add_subdirectory(examples/01-sierpinski-triangle)
-
-if (SDL_BASED_EXAMPLES)
-	add_subdirectory(examples/SDL-00-hello-triangle)
-	add_subdirectory(examples/SDL-01-wireframe)
-	add_subdirectory(examples/SDL-02-flat-shading)
-	add_subdirectory(examples/SDL-03-shading-with-depth)
+	add_subdirectory(examples/PPM-00-perspective-correctness)
 endif()
-
-add_subdirectory(examples/PPM-00-perspective-correctness)
