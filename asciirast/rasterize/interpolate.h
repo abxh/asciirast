@@ -14,13 +14,13 @@ namespace asciirast::rasterize {
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
 
 template<VaryingInterface Varying>
-static Varying
+static auto
 lerp_varying_perspective_corrected(const Varying& a,
                                    const Varying& b,
                                    const math::Float t,
                                    const math::Float Z_inv0,
                                    const math::Float Z_inv1,
-                                   const math::Float acc_Z_inv)
+                                   const math::Float acc_Z_inv) -> Varying
 {
     // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
 
@@ -37,8 +37,8 @@ lerp_varying_perspective_corrected(const Varying& a,
  * @brief Linear interpolation of fragments
  */
 template<VaryingInterface T>
-static Fragment<T>
-lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t)
+static auto
+lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
 {
     return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
 }
@@ -47,8 +47,8 @@ lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t)
  * @brief Linear interpolation of projected fragments
  */
 template<VaryingInterface T>
-static ProjectedFragment<T>
-lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t)
+static auto
+lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
 {
     if (t == math::Float{ 0 }) {
         return a;
@@ -70,8 +70,8 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
  *        triangles
  */
 [[maybe_unused]]
-static math::Float
-barycentric(const math::Vec3& v, const math::Vec3& weights)
+static auto
+barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
 {
     return math::dot(v, weights);
 }
@@ -81,8 +81,8 @@ barycentric(const math::Vec3& v, const math::Vec3& weights)
  *        triangles
  */
 template<VaryingInterface Varying>
-static Varying
-barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights)
+static auto
+barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> Varying
 {
     const auto aw0 = attrs[0] * weights[0];
     const auto aw1 = attrs[1] * weights[1];
@@ -96,11 +96,11 @@ barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights)
  *        triangles
  */
 template<VaryingInterface Varying>
-static Varying
+static auto
 barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& weights,
                                   const math::Vec3& Z_inv,
-                                  const math::Float& acc_Z_inv)
+                                  const math::Float& acc_Z_inv) -> Varying
 {
     // acc_Z_inv := barycentric(weights, Z_inv)
 
@@ -118,11 +118,11 @@ barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
  *        triangles
  */
 [[maybe_unused]]
-static math::Float
+static auto
 barycentric_perspective_corrected(const math::Vec3& v,
                                   const math::Vec3& weights,
                                   const math::Vec3& Z_inv,
-                                  const math::Float& acc_Z_inv)
+                                  const math::Float& acc_Z_inv) -> math::Float
 {
     // acc_Z_inv := barycentric(weights, Z_inv)
 

@@ -24,8 +24,8 @@ point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
 }
 
 [[maybe_unused]]
-static bool
-point_in_frustum(const math::Vec4& p)
+static auto
+point_in_frustum(const math::Vec4& p) -> bool
 {
     if (std::ranges::equal(p.array(), math::Vec4{ 0 }.array())) [[unlikely]] {
         // degenerate point
@@ -57,8 +57,8 @@ enum class BorderType
 
 namespace detail {
 
-static inline BorderType
-next_border_type(BorderType b)
+static auto
+next_border_type(BorderType b) -> BorderType
 {
     return static_cast<BorderType>(static_cast<std::size_t>(b) + 1);
 }
@@ -69,8 +69,8 @@ next_border_type(BorderType b)
 // https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
 // https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
-static inline bool
-line_in_bounds(const T q, const T p, T& t0, T& t1)
+static auto
+line_in_bounds(const T q, const T p, T& t0, T& t1) -> bool
 {
     // q: delta from border to vector tail
     // p: delta from vector tail to vector head. sign flipped to face
@@ -101,14 +101,14 @@ line_in_bounds(const T q, const T p, T& t0, T& t1)
     return true;
 }
 
-static inline bool
+static auto
 line_in_bounds(const math::Vec2& p0,
                const math::Vec2& p1,
                const BorderType border,
                const math::Vec2& min,
                const math::Vec2& max,
                T& t0,
-               T& t1)
+               T& t1) -> bool
 {
     const std::size_t border_id = static_cast<std::size_t>(border);
 
@@ -129,14 +129,14 @@ line_in_bounds(const math::Vec2& p0,
     return line_in_bounds(q[border_id], p[border_id], t0, t1);
 }
 
-static inline bool
+static auto
 line_in_bounds(const math::Vec4& p0,
                const math::Vec4& p1,
                const BorderType border,
                const math::Vec3& min,
                const math::Vec3& max,
                T& t0,
-               T& t1)
+               T& t1) -> bool
 {
     const std::size_t border_id = static_cast<std::size_t>(border);
 
@@ -210,7 +210,7 @@ using AttrsTriplet = std::array<VaryingType, 3>;
 
 namespace detail {
 
-static inline auto
+static auto
 count_num_triangle_vertices_inside(const BorderType border,
                                    const Vec4Triplet& v,
                                    const math::Vec2& min,
@@ -250,7 +250,7 @@ count_num_triangle_vertices_inside(const BorderType border,
     return { inside[0] + inside[1] + inside[2], inside };
 }
 
-static inline auto
+static auto
 count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v)
         -> std::tuple<unsigned, std::array<bool, 3>>
 {
@@ -299,7 +299,7 @@ count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v
 }
 
 template<unsigned count>
-static inline auto
+static auto
 get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<unsigned, 3>
 {
     // order:
@@ -331,7 +331,7 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
 }; // namespace detail
 
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
-static bool
+static auto
 triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                    std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
                    const math::AABB2D& SCREEN_BOUNDS)
@@ -467,7 +467,7 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
 }
 
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
-static bool
+static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
 {
