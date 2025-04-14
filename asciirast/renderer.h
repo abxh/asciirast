@@ -101,7 +101,7 @@ public:
     /**
      * @brief Construct renderer data
      *
-     * @param screen_to_window The screen to window transfrom to use
+     * @param screen_to_window_ The screen to window transfrom to use
      */
     RendererData(const math::Transform2D& screen_to_window_)
             : screen_to_window{ screen_to_window_ } {};
@@ -213,7 +213,7 @@ public:
               const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              RendererOptions options = {})
+              RendererOptions options = {}) const
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             if (i >= verts.verticies.size()) {
