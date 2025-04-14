@@ -50,7 +50,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -82,7 +82,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -121,7 +121,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depth_buf[i] = 2; // or +infty
         }
     }
 
@@ -220,15 +220,16 @@ main(int argc, char* argv[])
     const tinyobj::attrib_t& attrib = obj_reader.GetAttrib();
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
 
-    asciirast::IndexedVertexBuffer<MyVertex> vb{};
-    vb.shape_type = asciirast::ShapeType::LINES;
-    vb.verticies = attrib.vertices                                                                    //
-                   | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
-                   | std::ranges::views::chunk(3U)                                                    //
-                   | std::ranges::views::transform([](auto&& range) {                                 //
-                         return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
-                     }) //
-                   | std::ranges::to<decltype(vb.verticies)>();
+    asciirast::IndexedVertexBuffer<MyVertex> vertex_buf{};
+    vertex_buf.shape_type = asciirast::ShapeType::LINES;
+    vertex_buf.verticies =
+            attrib.vertices                                                                    //
+            | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
+            | std::ranges::views::chunk(3U)                                                    //
+            | std::ranges::views::transform([](auto&& range) {                                 //
+                  return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
+              }) //
+            | std::ranges::to<decltype(vertex_buf.verticies)>();
     for (std::size_t s = 0; s < shapes.size(); s++) {
         std::size_t index_offset = 0;
         for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
@@ -238,19 +239,19 @@ main(int argc, char* argv[])
                 tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + v];
                 tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + ((v + 1) % fv)];
 
-                vb.indicies.push_back(static_cast<std::size_t>(idx0.vertex_index));
-                vb.indicies.push_back(static_cast<std::size_t>(idx1.vertex_index));
+                vertex_buf.indicies.push_back(static_cast<std::size_t>(idx0.vertex_index));
+                vertex_buf.indicies.push_back(static_cast<std::size_t>(idx1.vertex_index));
             }
 
             index_offset += fv;
         }
     }
 
+    SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
-    SDLBuffer screen(512, 512);
-    MyUniform u;
+    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    MyUniform uniforms;
 
     bool running = true;
     while (running) {
@@ -258,7 +259,7 @@ main(int argc, char* argv[])
 
         handle_events(running);
 
-        renderer.draw(program, u, vb, screen, pipeline_data);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
 
         screen.render();
     }

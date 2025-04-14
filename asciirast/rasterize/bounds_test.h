@@ -4,7 +4,6 @@
 #include <deque>
 #include <utility>
 
-#include "../constants.h"
 #include "../math/types.h"
 #include "../program.h"
 #include "./interpolate.h"
@@ -13,10 +12,10 @@ namespace asciirast::rasterize {
 
 [[maybe_unused]]
 static auto
-point_in_screen(const math::Vec2& p) -> bool
+point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
 {
-    const auto min = constants::SCREEN_BOUNDS.min_get();
-    const auto max = constants::SCREEN_BOUNDS.max_get();
+    const auto min = SCREEN_BOUNDS.min_get();
+    const auto max = SCREEN_BOUNDS.max_get();
 
     const bool x_in_bounds = min.x <= p.x && p.x <= max.x;
     const bool y_in_bounds = min.y <= p.y && p.y <= max.y;
@@ -160,10 +159,11 @@ line_in_bounds(const math::Vec4& p0,
 
 [[maybe_unused]]
 static auto
-line_in_screen(const math::Vec2& p0, const math::Vec2& p1) -> std::optional<std::tuple<math::Float, math::Float>>
+line_in_screen(const math::Vec2& p0, const math::Vec2& p1, const math::AABB2D& SCREEN_BOUNDS)
+        -> std::optional<std::tuple<math::Float, math::Float>>
 {
-    const math::Vec2 min = constants::SCREEN_BOUNDS.min_get();
-    const math::Vec2 max = constants::SCREEN_BOUNDS.max_get();
+    const math::Vec2 min = SCREEN_BOUNDS.min_get();
+    const math::Vec2 max = SCREEN_BOUNDS.max_get();
 
     math::Float t0 = 0;
     math::Float t1 = 1;
@@ -333,10 +333,11 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
 static bool
 triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
-                   std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
+                   std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
+                   const math::AABB2D& SCREEN_BOUNDS)
 {
-    const math::Vec2 min = constants::SCREEN_BOUNDS.min_get();
-    const math::Vec2 max = constants::SCREEN_BOUNDS.max_get();
+    const math::Vec2 min = SCREEN_BOUNDS.min_get();
+    const math::Vec2 max = SCREEN_BOUNDS.max_get();
 
     assert(vec_queue.size() > 0);
     assert(vec_queue.size() == attrs_queue.size());

@@ -40,7 +40,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -72,7 +72,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -111,7 +111,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depth_buf[i] = 2; // or +infty
         }
     }
 
@@ -183,15 +183,15 @@ main(int, char**)
     const MyVertex v1 = { .pos = { +0.0f, +0.5f, 1.f }, .color = { 0.f, 1.f, 0.f } };
     const MyVertex v2 = { .pos = { +0.5f, -0.5f, 1.f }, .color = { 0.f, 0.f, 1.f } };
 
-    asciirast::VertexBuffer<MyVertex> vb;
-    vb.shape_type = asciirast::ShapeType::TRIANGLES;
-    vb.verticies = { v0, v1, v2 };
+    asciirast::VertexBuffer<MyVertex> vertex_buf;
+    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
+    vertex_buf.verticies = { v0, v1, v2 };
 
+    SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
-    SDLBuffer screen(512, 512);
-    MyUniform u{};
+    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    MyUniform uniforms{};
 
     bool running = true;
     while (running) {
@@ -206,7 +206,7 @@ main(int, char**)
             }
         }
 
-        renderer.draw(program, u, vb, screen, pipeline_data);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
     }
 

@@ -47,7 +47,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depthbuf[idx]) {
             m_depthbuf[idx] = depth;
@@ -56,7 +56,7 @@ public:
         return false;
     }
 
-    const math::Transform2D& screen_to_window() override { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, const Targets& targets) override
     {
@@ -86,18 +86,18 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_charbuf[i] = clear_char;
-            m_depthbuf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depthbuf[i] = 2; // or +infty
         }
     }
 
-    void clear_and_update_size(const char clear_char = ' ')
+    bool clear_and_update_size(const char clear_char = ' ')
     {
         int new_width = 0, new_height = 0;
         terminal_utils::get_terminal_size(new_width, new_height);
 
         if (m_width == (std::size_t)(new_width - 1) && m_height == (std::size_t)(new_height - 1)) {
             this->clear(clear_char);
-            return;
+            return false;
         }
         new_width = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
@@ -107,7 +107,7 @@ public:
         m_width = (std::size_t)(new_width);
         m_height = (std::size_t)(new_height);
 
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -119,6 +119,7 @@ public:
 
         this->offset_printer();
         this->clear(clear_char);
+        return true;
     }
 
 private:
@@ -201,16 +202,16 @@ main(void)
     bool flip = false;
 
     math::Rot2D u_rot{};
-    MyUniform u{ u_rot, palette, aspect_ratio, flip };
+    MyUniform uniforms{ u_rot, palette, aspect_ratio, flip };
 
-    asciirast::VertexBuffer<MyVertex> vb;
+    asciirast::VertexBuffer<MyVertex> vertex_buf;
     {
         /*
            raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
            so-called logarithmic spiral which goes outwards.
         */
-        vb.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
-        vb.verticies = {};
+        vertex_buf.shape_type = asciirast::ShapeType::LINE_STRIP; // Feel free to try POINTS / LINES / LINE_STRIP
+        vertex_buf.verticies = {};
 
         auto id = 0.f;
         auto v = std::complex<float>{ 0.05f, 0.f }; // 0.05f instead of 1.f to scale it down
@@ -219,37 +220,40 @@ main(void)
         for (int i = 0; i < 50; i++) {
             id = std::min((id + 0.2f), (float)palette.size() - 1);
             v *= f;
-            vb.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
+            vertex_buf.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
         }
     }
+
+    MyProgram program;
+    TerminalBuffer framebuffer;
+
     asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
     asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
+    asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
-    MyProgram p;
-    TerminalBuffer t;
+    std::binary_semaphore sem{ 0 };
 
-    std::binary_semaphore s{ 0 };
-
-    std::thread check_eof_program{ [&s] {
+    std::thread check_eof_program{ [&sem] {
         while (std::cin.get() != EOF) {
             continue;
         }
-        s.release();
+        sem.release();
     } };
 
-    while (!s.try_acquire()) {
+    while (!sem.try_acquire()) {
         flip = false;
-        r1.draw(p, u, vb, t, pipeline_data);
+        r1.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
 
         flip = true;
-        r2.draw(p, u, vb, t, pipeline_data);
+        r2.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
 
-        t.render();
+        framebuffer.render();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        t.clear_and_update_size();
+        if (framebuffer.clear_and_update_size()) {
+            renderer_data.screen_to_window = framebuffer.screen_to_window();
+        }
 
         u_rot.stack(math::radians(-45.f));
     }

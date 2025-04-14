@@ -12,7 +12,6 @@
 #include <ranges>
 #include <vector>
 
-#include "./constants.h"
 #include "./math/types.h"
 #include "./program.h"
 #include "./rasterize/bounds_test.h"
@@ -79,21 +78,33 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex, VertexAllocator>
 };
 
 /**
- * @brief Reusuable renderer pipeline data buffers
+ * @brief Reusuable renderer data
  */
 template<VaryingInterface Varying,
          typename Vec4TripletAllocator = std::allocator<rasterize::Vec4Triplet>,
          typename AttrsTripletAllocator = std::allocator<rasterize::AttrsTriplet<Varying>>>
-struct RendererPipelineData
+class RendererData
 {
-    using Vec4TripletQueue = std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator>; ///< Vec4 queue alias
-    using AttrsTripletQueue =
-            std::deque<rasterize::AttrsTriplet<Varying>, AttrsTripletAllocator>; ///< Attrs queue alias
+    using Vec4TripletQueue = std::deque<rasterize::Vec4Triplet, Vec4TripletAllocator>;             ///< Vec4 queue
+    using AttrsTripletQueue = std::deque<rasterize::AttrsTriplet<Varying>, AttrsTripletAllocator>; ///< Attrs queue
 
-    Vec4TripletQueue vec_queue = {};          ///< Vec4 Queue
-    AttrsTripletQueue attrs_queue = {};       ///< Attrs Queue
-    Vec4TripletQueue inner_vec_queue = {};    ///< Another Vec4 Queue
-    AttrsTripletQueue inner_attrs_queue = {}; ///< Another Attrs Queue
+    Vec4TripletQueue m_vec_queue = {};          ///< Vec4 queue
+    AttrsTripletQueue m_attrs_queue = {};       ///< Attrs queue
+    Vec4TripletQueue m_inner_vec_queue = {};    ///< Vec4 queue used in inner loops
+    AttrsTripletQueue m_inner_attrs_queue = {}; ///< Attrs queue used in inner loops
+
+    friend class Renderer;
+
+public:
+    math::Transform2D screen_to_window; ///< Screen to window transform
+
+    /**
+     * @brief Construct renderer data
+     *
+     * @param screen_to_window The screen to window transfrom to use
+     */
+    RendererData(const math::Transform2D& screen_to_window_)
+            : screen_to_window{ screen_to_window_ } {};
 };
 
 /**
@@ -101,7 +112,36 @@ struct RendererPipelineData
  */
 class Renderer
 {
+    bool m_requires_screen_clipping = false;
+    math::Transform2D m_screen_to_viewport = {};
+
 public:
+    /**
+     * @brief Screen boundary
+     *
+     * Verticies outside of this boundary are not shown.
+     */
+    static constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
+
+    /**
+     * @brief Calculate the transform to convert screen_bounds points to viewport_bounds poins
+     *
+     * @param viewport_bounds The viewport bounds AABB
+     * @param screen_bounds The screen bounds AABB
+     * @return The transform that converts points from the screen to the viewport
+     */
+    static math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
+                                                          const math::AABB2D& screen_bounds)
+    {
+        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
+        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
+
+        const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
+        const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());
+
+        return math::Transform2D().scale(rel_size).translate(shf_size);
+    }
+
     /**
      * @brief Construct renderer with default viewport
      */
@@ -116,54 +156,19 @@ public:
      * @param viewport_bounds The bounds of the viewport
      */
     explicit Renderer(const math::AABB2D& viewport_bounds)
-            : m_requires_screen_clipping{ !constants::SCREEN_BOUNDS.contains(viewport_bounds) }
-            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, constants::SCREEN_BOUNDS) } {};
+            : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
+            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * verticies and options
+     * verticies, options and reusable data buffers
      *
      * @param program The shader program
      * @param uniform The uniform(s)
      * @param verts The vertex buffer
      * @param framebuffer The frame buffer
-     * @param options Optional options
-     */
-    template<ProgramInterface Program,
-             class Uniform,
-             class Vertex,
-             FrameBufferInterface FrameBuffer,
-             class VertexAllocator>
-        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
-    void draw(const Program& program,
-              const Uniform& uniform,
-              const VertexBuffer<Vertex, VertexAllocator>& verts,
-              FrameBuffer& framebuffer,
-              RendererOptions options = {})
-    {
-        update_screen_to_window(framebuffer);
-
-        auto temp_pipeline_data = RendererPipelineData<typename Program::Varying>{};
-
-        draw(program,
-             uniform,
-             verts.shape_type,
-             std::views::all(verts.verticies),
-             framebuffer,
-             options,
-             temp_pipeline_data);
-    }
-
-    /**
-     * @brief Draw on a framebuffer using a program given uniform(s),
-     * verticies, options and pipeline data
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param verts The vertex buffer
-     * @param framebuffer The frame buffer
-     * @param pipeline_data Reusuable pipeline data buffers
-     * @param options Options
+     * @param data Renderer data
+     * @param options Renderer Options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -173,67 +178,26 @@ public:
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
-    void draw(
-            const Program& program,
-            const Uniform& uniform,
-            const VertexBuffer<Vertex, VertexAllocator>& verts,
-            FrameBuffer& framebuffer,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data,
-            RendererOptions options = {})
-    {
-        update_screen_to_window(framebuffer);
-
-        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, options, pipeline_data);
-    }
-
-    /**
-     * @brief Draw on a framebuffer using a program given uniform(s),
-     * indexed verticies and options
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param verts The vertex buffer with indicies
-     * @param framebuffer The frame buffer
-     * @param options Optional options
-     */
-    template<ProgramInterface Program,
-             class Uniform,
-             class Vertex,
-             FrameBufferInterface FrameBuffer,
-             class VertexAllocator,
-             class IndexAllocator>
-        requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
-              const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
+              const VertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& framebuffer,
-              RendererOptions options = {})
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+              RendererOptions options = {}) const
     {
-        const auto func = [&verts](const std::size_t i) -> Vertex {
-            if (i >= verts.verticies.size()) {
-                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of bounds");
-            }
-            return verts.verticies[i];
-        };
-        const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
-
-        update_screen_to_window(framebuffer);
-
-        auto temp_pipeline_data = RendererPipelineData<typename Program::Varying>{};
-
-        draw(program, uniform, verts.shape_type, view, framebuffer, options, temp_pipeline_data);
+        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, data, options);
     }
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * indexed verticies, options and pipeline data
+     * indexed verticies, renderer data and options
      *
      * @param program The shader program
      * @param uniform The uniform(s)
      * @param verts The vertex buffer with indicies
      * @param framebuffer The frame buffer
-     * @param pipeline_data Optional reusuable pipeline data buffers
-     * @param options Optional options
+     * @param data Renderer data
+     * @param options Renderer options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -244,13 +208,12 @@ public:
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
-    void draw(
-            const Program& program,
-            const Uniform& uniform,
-            const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
-            FrameBuffer& framebuffer,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data,
-            RendererOptions options = {})
+    void draw(const Program& program,
+              const Uniform& uniform,
+              const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
+              FrameBuffer& framebuffer,
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+              RendererOptions options = {})
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             if (i >= verts.verticies.size()) {
@@ -260,41 +223,7 @@ public:
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
-        update_screen_to_window(framebuffer);
-
-        draw(program, uniform, verts.shape_type, view, framebuffer, options, pipeline_data);
-    }
-
-private:
-    bool m_requires_screen_clipping = false;
-    math::Transform2D m_screen_to_viewport = {};
-    math::Transform2D m_screen_to_window = {};
-
-    static inline math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
-                                                                 const math::AABB2D& screen_bounds)
-    {
-        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
-        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
-
-        const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
-        const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());
-
-        return math::Transform2D().scale(rel_size).translate(shf_size);
-    }
-
-    template<FrameBufferInterface FrameBuffer>
-    void update_screen_to_window(FrameBuffer& framebuffer)
-    {
-        const math::Transform2D& t = framebuffer.screen_to_window();
-
-        const math::Mat3& cur_mat = m_screen_to_window.mat();
-        const math::Mat3& new_mat = t.mat();
-
-        const bool bitwise_eq = std::ranges::equal(cur_mat.array(), new_mat.array());
-
-        if (!bitwise_eq) {
-            m_screen_to_window = t;
-        }
+        draw(program, uniform, verts.shape_type, view, framebuffer, data, options);
     }
 
 private:
@@ -307,10 +236,12 @@ private:
                                            .attrs = pfrag.attrs };
     }
 
-    template<VaryingInterface Varying>
-    ProjectedFragment<Varying> apply_screen_to_window(const ProjectedFragment<Varying>& pfrag) const
+    template<VaryingInterface Varying, class Vec4TripletAllocator, class AttrsTripletAllocator>
+    ProjectedFragment<Varying> apply_screen_to_window(
+            const ProjectedFragment<Varying>& pfrag,
+            const RendererData<Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        const math::Vec2 new_pos = m_screen_to_window.apply(pfrag.pos);
+        const math::Vec2 new_pos = data.screen_to_window.apply(pfrag.pos);
 
         return ProjectedFragment<Varying>{ .pos = math::floor(new_pos + math::Vec2{ 0.5f, 0.5f }),
                                            .depth = pfrag.depth,
@@ -318,9 +249,18 @@ private:
                                            .attrs = pfrag.attrs };
     }
 
-    template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             FrameBufferInterface FrameBuffer,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
-    void draw_point(const Program& program, const Uniform& uniform, FrameBuffer& framebuffer, const Vertex& vert) const
+    void draw_point(const Program& program,
+                    const Uniform& uniform,
+                    FrameBuffer& framebuffer,
+                    const RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+                    const Vertex& vert) const
     {
         using Varying = typename Program::Varying;
         using Frag = Fragment<Varying>;
@@ -345,13 +285,13 @@ private:
 
         if (m_requires_screen_clipping) {
             // cull points outside of screen:
-            if (!rasterize::point_in_screen(vfrag.pos)) {
+            if (!rasterize::point_in_screen(vfrag.pos, SCREEN_BOUNDS)) {
                 return;
             }
         }
 
         // screen space -> window space:
-        const PFrag wfrag = apply_screen_to_window(vfrag);
+        const PFrag wfrag = apply_screen_to_window(vfrag, data);
 
         // apply fragment shader:
         const Targets targets = program.on_fragment(uniform, wfrag);
@@ -363,11 +303,17 @@ private:
         }
     }
 
-    template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             FrameBufferInterface FrameBuffer,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
     void draw_line(const Program& program,
                    const Uniform& uniform,
                    FrameBuffer& framebuffer,
+                   const RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
                    const Vertex& v0,
                    const Vertex& v1) const
     {
@@ -403,7 +349,7 @@ private:
         PFrag inner_tfrag1 = vfrag1;
         if (m_requires_screen_clipping) {
             // clip line so it's inside the screen:
-            const auto inner_tup = rasterize::line_in_screen(vfrag0.pos, vfrag1.pos);
+            const auto inner_tup = rasterize::line_in_screen(vfrag0.pos, vfrag1.pos, SCREEN_BOUNDS);
             if (!inner_tup.has_value()) {
                 return;
             }
@@ -413,8 +359,8 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0);
-        const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1);
+        const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0, data);
+        const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
 
         const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) {
             return framebuffer.test_and_set_depth(pos, depth);
@@ -441,15 +387,14 @@ private:
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
-    void draw_triangle(
-            const Program& program,
-            const Uniform& uniform,
-            FrameBuffer& framebuffer,
-            const RendererOptions& options,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data,
-            const Vertex& v0,
-            const Vertex& v1,
-            const Vertex& v2)
+    void draw_triangle(const Program& program,
+                       const Uniform& uniform,
+                       FrameBuffer& framebuffer,
+                       RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+                       const RendererOptions& options,
+                       const Vertex& v0,
+                       const Vertex& v1,
+                       const Vertex& v2) const
     {
         using Varying = typename Program::Varying;
         using Frag = Fragment<Varying>;
@@ -500,19 +445,17 @@ private:
             }
         };
 
-        pipeline_data.vec_queue.clear();
-        pipeline_data.attrs_queue.clear();
-        pipeline_data.vec_queue.insert(pipeline_data.vec_queue.end(),
-                                       rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
-        pipeline_data.attrs_queue.insert(pipeline_data.attrs_queue.end(),
-                                         rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
+        data.m_vec_queue.clear();
+        data.m_attrs_queue.clear();
+        data.m_vec_queue.insert(data.m_vec_queue.end(), rasterize::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
+        data.m_attrs_queue.insert(data.m_attrs_queue.end(),
+                                  rasterize::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
 
         // clip triangle so it's inside the viewing volume:
-        if (!rasterize::triangle_in_frustum(pipeline_data.vec_queue, pipeline_data.attrs_queue)) {
+        if (!rasterize::triangle_in_frustum(data.m_vec_queue, data.m_attrs_queue)) {
             return;
         }
-        for (const auto& [vec_triplet, attrs_triplet] :
-             std::ranges::views::zip(pipeline_data.vec_queue, pipeline_data.attrs_queue)) {
+        for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(data.m_vec_queue, data.m_attrs_queue)) {
 
             const auto [vec0, vec1, vec2] = vec_triplet;
             const auto [attrs0, attrs1, attrs2] = attrs_triplet;
@@ -534,15 +477,15 @@ private:
 
             if (!m_requires_screen_clipping) {
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window(vfrag0);
-                const PFrag wfrag1 = apply_screen_to_window(vfrag1);
-                const PFrag wfrag2 = apply_screen_to_window(vfrag2);
+                const PFrag wfrag0 = apply_screen_to_window(vfrag0, data);
+                const PFrag wfrag1 = apply_screen_to_window(vfrag1, data);
+                const PFrag wfrag2 = apply_screen_to_window(vfrag2, data);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);
             } else {
-                pipeline_data.inner_vec_queue.clear();
-                pipeline_data.inner_attrs_queue.clear();
+                data.m_inner_vec_queue.clear();
+                data.m_inner_attrs_queue.clear();
 
                 const auto p0 = math::Vec4{ vfrag0.pos, vfrag0.depth, vfrag0.Z_inv };
                 const auto p1 = math::Vec4{ vfrag1.pos, vfrag1.depth, vfrag1.Z_inv };
@@ -551,15 +494,15 @@ private:
                 const auto lp = rasterize::Vec4Triplet{ p0, p1, p2 };
                 const auto la = rasterize::AttrsTriplet<Varying>{ a0, a1, a2 };
 
-                pipeline_data.inner_vec_queue.insert(pipeline_data.inner_vec_queue.end(), lp);
-                pipeline_data.inner_attrs_queue.insert(pipeline_data.inner_attrs_queue.end(), la);
+                data.m_inner_vec_queue.insert(data.m_inner_vec_queue.end(), lp);
+                data.m_inner_attrs_queue.insert(data.m_inner_attrs_queue.end(), la);
 
                 // clip line so it's inside the screen:
-                if (!rasterize::triangle_in_screen(pipeline_data.inner_vec_queue, pipeline_data.inner_attrs_queue)) {
+                if (!rasterize::triangle_in_screen(data.m_inner_vec_queue, data.m_inner_attrs_queue, SCREEN_BOUNDS)) {
                     return;
                 }
                 for (const auto& [inner_vec_triplet, inner_attrs_triplet] :
-                     std::ranges::views::zip(pipeline_data.inner_vec_queue, pipeline_data.inner_attrs_queue)) {
+                     std::ranges::views::zip(data.m_inner_vec_queue, data.m_inner_attrs_queue)) {
 
                     const auto [inner_vec0, inner_vec1, inner_vec2] = inner_vec_triplet;
                     const auto [inner_attrs0, inner_attrs1, inner_attrs2] = inner_attrs_triplet;
@@ -569,9 +512,9 @@ private:
                     const PFrag inner_tfrag2 = { inner_vec2.xy, inner_vec2.z, inner_vec2.w, inner_attrs2 };
 
                     // screen space -> window space:
-                    const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0);
-                    const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1);
-                    const PFrag wfrag2 = apply_screen_to_window(inner_tfrag2);
+                    const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0, data);
+                    const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
+                    const PFrag wfrag2 = apply_screen_to_window(inner_tfrag2, data);
 
                     // iterate over triangle fragments:
                     rasterize_triangle(wfrag0, wfrag1, wfrag2);
@@ -585,21 +528,20 @@ private:
              FrameBufferInterface FrameBuffer,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
-    void draw(
-            const Program& program,
-            const Uniform& uniform,
-            const ShapeType shape_type,
-            std::ranges::input_range auto&& vert_range,
-            FrameBuffer& framebuffer,
-            const RendererOptions& options,
-            RendererPipelineData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& pipeline_data)
+    void draw(const Program& program,
+              const Uniform& uniform,
+              const ShapeType shape_type,
+              std::ranges::input_range auto&& vert_range,
+              FrameBuffer& framebuffer,
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+              const RendererOptions& options) const
     {
         using Vertex = typename Program::Vertex;
 
         switch (shape_type) {
         case ShapeType::POINTS: {
             for (const Vertex& vert : vert_range) {
-                draw_point(program, uniform, framebuffer, vert);
+                draw_point(program, uniform, framebuffer, data, vert);
             }
         } break;
         case ShapeType::LINES: {
@@ -611,27 +553,27 @@ private:
             const auto verticies = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
 
             for (const auto [v0, v1] : verticies) {
-                draw_line(program, uniform, framebuffer, v0, v1);
+                draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
         case ShapeType::LINE_STRIP: {
             const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
 
             for (const auto [v0, v1] : verticies) {
-                draw_line(program, uniform, framebuffer, v0, v1);
+                draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
         case ShapeType::LINE_LOOP: {
             const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
 
             for (const auto [v0, v1] : verticies) {
-                draw_line(program, uniform, framebuffer, v0, v1);
+                draw_line(program, uniform, framebuffer, data, v0, v1);
             }
             if (std::ranges::distance(vert_range) >= 1U) {
                 const auto v0 = std::get<1>(*(verticies.cend() - 1U));
                 const auto v1 = std::get<0>(*verticies.cbegin());
 
-                draw_line(program, uniform, framebuffer, v0, v1);
+                draw_line(program, uniform, framebuffer, data, v0, v1);
             };
         } break;
         case ShapeType::TRIANGLES: {
@@ -643,28 +585,28 @@ private:
             const auto verticies = subrange | std::ranges::views::chunk(3U) | std::ranges::views::transform(func);
 
             for (const auto [v0, v1, v2] : verticies) {
-                draw_triangle(program, uniform, framebuffer, options, pipeline_data, v0, v1, v2);
+                draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
         case ShapeType::TRIANGLE_STRIP: {
             const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
 
             for (const auto [v0, v1, v2] : verticies) {
-                draw_triangle(program, uniform, framebuffer, options, pipeline_data, v0, v1, v2);
+                draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
         case ShapeType::TRIANGLE_FAN: {
             const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
 
             for (const auto [v0, v1, v2] : verticies) {
-                draw_triangle(program, uniform, framebuffer, options, pipeline_data, v0, v1, v2);
+                draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
             if (std::ranges::distance(vert_range) >= 1U) {
                 const auto v0 = std::get<1>(*(verticies.cend() - 1U));
                 const auto v1 = std::get<2>(*(verticies.cend() - 1U));
                 const auto v2 = std::get<0>(*verticies.cbegin());
 
-                draw_triangle(program, uniform, framebuffer, options, pipeline_data, v0, v1, v2);
+                draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             };
         } break;
         }

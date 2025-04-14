@@ -30,12 +30,6 @@ public:
     ~AbstractFrameBuffer() = default;
 
     /**
-     * @brief Get transform that converts points from the screen to
-     *        the points in the window
-     */
-    virtual const math::Transform2D& screen_to_window() = 0;
-
-    /**
      * @brief Test and set the depth of a pixel
      *
      * @param pos The position of the pixel
@@ -61,7 +55,6 @@ public:
 template<class T>
 concept FrameBufferInterface = requires(T t) {
     typename T::Targets;
-    { t.screen_to_window() } -> std::same_as<const math::Transform2D&>;
     {
         t.test_and_set_depth(std::declval<const math::Vec2Int&>(), std::declval<const math::Float>())
     } -> std::same_as<bool>;

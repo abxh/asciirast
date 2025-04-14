@@ -70,7 +70,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -123,18 +123,18 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgbc_buf[i] = { .r = 0, .g = 0, .b = 0, .c = clear_char };
-            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depth_buf[i] = 2; // or +infty
         }
     }
 
-    void clear_and_update_size(const char clear_char = ' ')
+    bool clear_and_update_size(const char clear_char = ' ')
     {
         int new_width = 0, new_height = 0;
         terminal_utils::get_terminal_size(new_width, new_height);
 
         if (m_width == (std::size_t)(new_width - 1) && m_height == (std::size_t)(new_height - 1)) {
             this->clear(clear_char);
-            return;
+            return false;
         }
         new_width = std::max(2, new_width - 1);
         new_height = std::max(2, new_height - 1);
@@ -144,7 +144,7 @@ public:
         m_width = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
 
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -156,6 +156,7 @@ public:
 
         this->offset_printer();
         this->clear(clear_char);
+        return true;
     }
 
 private:
@@ -281,35 +282,35 @@ main(void)
 
     int i = 1;
     int dir = 1;
-    asciirast::VertexBuffer<MyVertex> vb{};
-    vb.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES
-    vb.verticies.clear();
-    sierpinski_triangle(vb.verticies, V1, V2, V3, i);
+    asciirast::VertexBuffer<MyVertex> vertex_buf{};
+    vertex_buf.shape_type = asciirast::ShapeType::LINES; // Feel free to try POINTS / LINES
+    vertex_buf.verticies.clear();
+    sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
-    MyProgram p;
-    asciirast::Renderer r;
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
-    TerminalBuffer t;
+    MyProgram program;
+    TerminalBuffer framebuffer;
+    asciirast::Renderer renderer;
+    asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
-    t.clear_and_update_size();
-    math::Float aspect_ratio = t.aspect_ratio();
-    MyUniform u{ palette, aspect_ratio };
+    framebuffer.clear_and_update_size();
+    math::Float aspect_ratio = framebuffer.aspect_ratio();
+    MyUniform uniforms{ palette, aspect_ratio };
 
-    std::binary_semaphore s{ 0 };
+    std::binary_semaphore sem{ 0 };
 
-    std::thread check_eof_program{ [&s] {
+    std::thread check_eof_program{ [&sem] {
         while (std::cin.get() != EOF) {
             continue;
         }
-        s.release();
+        sem.release();
     } };
 
-    while (!s.try_acquire()) {
-        r.draw(p, u, vb, t, pipeline_data);
+    while (!sem.try_acquire()) {
+        renderer.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
 
-        t.render();
+        framebuffer.render();
 
-        if (t.out_of_bounds_error_occurred()) {
+        if (framebuffer.out_of_bounds_error_occurred()) {
             std::cout << "error: point plotted outside of border! the library should not allow this.\n";
             break;
         }
@@ -323,11 +324,13 @@ main(void)
         }
         i += dir;
 
-        vb.verticies.clear();
-        sierpinski_triangle(vb.verticies, V1, V2, V3, i);
+        vertex_buf.verticies.clear();
+        sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
-        t.clear_and_update_size();
-        aspect_ratio = t.aspect_ratio();
+        if (framebuffer.clear_and_update_size()) {
+            renderer_data.screen_to_window = framebuffer.screen_to_window();
+        }
+        aspect_ratio = framebuffer.aspect_ratio();
     }
     check_eof_program.join();
 }

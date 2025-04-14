@@ -15,7 +15,6 @@
 
 #include "external/tiny_obj_loader/tiny_obj_loader.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
@@ -50,7 +49,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -82,7 +81,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -121,7 +120,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depth_buf[i] = 2; // or +ifnty
         }
     }
 
@@ -225,8 +224,8 @@ main(int argc, char* argv[])
     std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
     std::uniform_real_distribution<> dis(0., 1.);
 
-    asciirast::VertexBuffer<MyVertex> vb{};
-    vb.shape_type = asciirast::ShapeType::TRIANGLES;
+    asciirast::VertexBuffer<MyVertex> vertex_buf{};
+    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
     std::vector<math::Vec3> positions =
             attrib.vertices                                                                    //
             | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
@@ -248,20 +247,20 @@ main(int argc, char* argv[])
 
                 const auto color = math::Vec3{ dis(gen), dis(gen), dis(gen) };
 
-                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx0.vertex_index)], color });
-                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx1.vertex_index)], color });
-                vb.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx2.vertex_index)], color });
+                vertex_buf.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx0.vertex_index)], color });
+                vertex_buf.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx1.vertex_index)], color });
+                vertex_buf.verticies.push_back(MyVertex{ positions[static_cast<std::size_t>(idx2.vertex_index)], color });
             }
 
             index_offset += fv;
         }
     }
 
+    SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
-    SDLBuffer screen(512, 512);
-    MyUniform u;
+    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    MyUniform uniforms;
 
     bool running = true;
     while (running) {
@@ -269,7 +268,7 @@ main(int argc, char* argv[])
 
         handle_events(running);
 
-        renderer.draw(program, u, vb, screen, pipeline_data);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
 
         screen.render();
     }

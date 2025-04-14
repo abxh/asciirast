@@ -33,12 +33,13 @@ class PPMBuffer
 {
 public:
     using Targets = std::tuple<RGBFloat>;
+    static constexpr math::Float default_depth = 2; // or +infty
 
     PPMBuffer(const std::size_t width, const std::size_t height)
             : m_width{ width }
             , m_height{ height }
     {
-        m_screen_to_window = asciirast::constants::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -73,8 +74,8 @@ public:
             for (std::size_t y = 0; y < m_height; y++) {
                 for (std::size_t x = 0; x < m_width; x++) {
                     const auto idx = index(y, x);
-                    if (m_depth_buf[idx] != asciirast::constants::DEFAULT_DEPTH) {
-                        const auto val = static_cast<int>(255.f * (asciirast::constants::MAX_DEPTH - m_depth_buf[idx]));
+                    if (m_depth_buf[idx] != default_depth) {
+                        const auto val = static_cast<int>(255.f * (1 - m_depth_buf[idx]));
                         out << val << ' ' << val << ' ' << val << '\n';
                     } else {
                         const auto [r, g, b] = m_rgb_buf[idx];
@@ -86,7 +87,7 @@ public:
             for (std::size_t y = 0; y < m_height; y++) {
                 for (std::size_t x = 0; x < m_width; x++) {
                     const auto idx = index(y, x);
-                    if (m_depth_buf[idx] != asciirast::constants::DEFAULT_DEPTH) {
+                    if (m_depth_buf[idx] != default_depth) {
                         const auto [r, g, b] = m_rgb_buf[idx];
                         out << int(type == ImageType::RED_CHANNEL ? r : 0) << ' ';
                         out << int(type == ImageType::GREEN_CHANNEL ? g : 0) << ' ';
@@ -108,7 +109,7 @@ public:
         assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp(depth, asciirast::constants::MIN_DEPTH, asciirast::constants::MAX_DEPTH);
+        depth = std::clamp<math::Float>(depth, 0, 1);
 
         if (depth < m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
@@ -136,7 +137,7 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgb_buf[i] = { .r = 128, .g = 128, .b = 128 };
-            m_depth_buf[i] = asciirast::constants::DEFAULT_DEPTH;
+            m_depth_buf[i] = default_depth;
         }
     }
 
@@ -256,19 +257,20 @@ main(int, char**)
     const math::Vec2 st1 = { 1, 0 };
     const math::Vec2 st0 = { 0, 1 };
 
-    asciirast::VertexBuffer<MyVertex> vb;
-    vb.shape_type = asciirast::ShapeType::TRIANGLES;
-    vb.verticies = { MyVertex{ v2, c2, st2 }, MyVertex{ v0, c0, st0 }, MyVertex{ v1, c1, st1 } };
+    asciirast::VertexBuffer<MyVertex> vertex_buf;
+    vertex_buf.shape_type = asciirast::ShapeType::TRIANGLES;
+    vertex_buf.verticies = { MyVertex{ v2, c2, st2 }, MyVertex{ v0, c0, st0 }, MyVertex{ v1, c1, st1 } };
 
-    MyUniform u{ .z_near = std::min({ v0.z, v1.z, v2.z }), .z_far = std::max({ v0.z, v1.z, v2.z }) };
-    asciirast::Renderer renderer;
-    asciirast::RendererPipelineData<MyVarying> pipeline_data;
-    std::filesystem::create_directory("images");
+    MyUniform uniforms{ .z_near = std::min({ v0.z, v1.z, v2.z }), .z_far = std::max({ v0.z, v1.z, v2.z }) };
 
     PPMBuffer screen(512, 512);
+    asciirast::Renderer renderer;
+    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+
+    std::filesystem::create_directory("images");
 
     RGBProgram p1;
-    renderer.draw(p1, u, vb, screen, pipeline_data);
+    renderer.draw(p1, uniforms, vertex_buf, screen, renderer_data);
     screen.save_to("images/rgb.ppm", ImageType::RGB);
     screen.save_to("images/red.ppm", ImageType::RED_CHANNEL);
     screen.save_to("images/green.ppm", ImageType::GREEN_CHANNEL);
@@ -277,7 +279,7 @@ main(int, char**)
     screen.clear();
 
     CheckerboardProgram p2;
-    renderer.draw(p2, u, vb, screen, pipeline_data);
+    renderer.draw(p2, uniforms, vertex_buf, screen, renderer_data);
     screen.save_to("images/checkerboard.ppm", ImageType::RGB);
     screen.clear();
 
