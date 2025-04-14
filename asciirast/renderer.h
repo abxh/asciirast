@@ -46,11 +46,12 @@ enum class ShapeType
 
 /**
  * @brief Renderer options
+ *
+ * @tparam WindingOrderOption Triangle winding order
  */
+template<WindingOrder WindingOrderOption = WindingOrder::NEITHER>
 struct RendererOptions
-{
-    WindingOrder winding_order = WindingOrder::NEITHER; ///< Triangle winding order
-};
+{};
 
 /**
  * @brief Vertex buffer
@@ -176,14 +177,15 @@ public:
              FrameBufferInterface FrameBuffer,
              class VertexAllocator,
              class Vec4TripletAllocator,
-             class AttrsTripletAllocator>
+             class AttrsTripletAllocator,
+             WindingOrder WindingOrderOption = WindingOrder::NEITHER>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
               const VertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              RendererOptions options = {}) const
+              RendererOptions<WindingOrderOption> options = {}) const
     {
         draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, data, options);
     }
@@ -191,6 +193,8 @@ public:
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
      * indexed verticies, renderer data and options
+     *
+     * @exception runtime_error When the indicies are out of bounds
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -206,14 +210,15 @@ public:
              class VertexAllocator,
              class IndexAllocator,
              class Vec4TripletAllocator,
-             class AttrsTripletAllocator>
+             class AttrsTripletAllocator,
+             WindingOrder WindingOrderOption = WindingOrder::NEITHER>
         requires(detail::can_use_program_with<Program, Uniform, Vertex, FrameBuffer>::value)
     void draw(const Program& program,
               const Uniform& uniform,
               const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              RendererOptions options = {}) const
+              RendererOptions<WindingOrderOption> options = {}) const
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             if (i >= verts.verticies.size()) {
@@ -385,17 +390,19 @@ private:
              class Vertex,
              FrameBufferInterface FrameBuffer,
              class Vec4TripletAllocator,
-             class AttrsTripletAllocator>
+             class AttrsTripletAllocator,
+             WindingOrder WindingOrderOption>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
     void draw_triangle(const Program& program,
                        const Uniform& uniform,
                        FrameBuffer& framebuffer,
                        RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-                       const RendererOptions& options,
+                       const RendererOptions<WindingOrderOption> options,
                        const Vertex& v0,
                        const Vertex& v1,
                        const Vertex& v2) const
     {
+        (void)(options);
         using Varying = typename Program::Varying;
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
@@ -420,11 +427,11 @@ private:
             // plot point in framebuffer:
             framebuffer.plot(math::Vec2Int{ pos }, targets);
         };
-        const auto rasterize_triangle = [&options, plot_func, test_and_set_depth_func](
+        const auto rasterize_triangle = [plot_func, test_and_set_depth_func](
                                                 const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
-            const bool clockwise_winding_order = options.winding_order == WindingOrder::CLOCKWISE;
-            const bool counter_clockwise_winding_order = options.winding_order == WindingOrder::COUNTER_CLOCKWISE;
-            const bool neither_winding_order = options.winding_order == WindingOrder::NEITHER;
+            const bool clockwise_winding_order = WindingOrderOption == WindingOrder::CLOCKWISE;
+            const bool counter_clockwise_winding_order = WindingOrderOption == WindingOrder::COUNTER_CLOCKWISE;
+            const bool neither_winding_order = WindingOrderOption == WindingOrder::NEITHER;
 
             // perform backface culling:
             const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
@@ -527,14 +534,15 @@ private:
              class Uniform,
              FrameBufferInterface FrameBuffer,
              class Vec4TripletAllocator,
-             class AttrsTripletAllocator>
+             class AttrsTripletAllocator,
+             WindingOrder WindingOrderOption>
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
               std::ranges::input_range auto&& vert_range,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              const RendererOptions& options) const
+              const RendererOptions<WindingOrderOption> options) const
     {
         using Vertex = typename Program::Vertex;
 

@@ -186,7 +186,7 @@ public:
         }
 
         return Fragment{ .pos = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
-                         .attrs = Varying{ id } };
+                         .attrs = MyVarying{ id } };
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
     {

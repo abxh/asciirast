@@ -22,15 +22,19 @@ lerp_varying_perspective_corrected(const Varying& a,
                                    const math::Float Z_inv1,
                                    const math::Float acc_Z_inv) -> Varying
 {
-    // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
+    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
+        return EmptyVarying();
+    } else {
+        // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
 
-    const auto w0 = (1 - t) * Z_inv0;
-    const auto w1 = t * Z_inv1;
+        const auto w0 = (1 - t) * Z_inv0;
+        const auto w1 = t * Z_inv1;
 
-    const auto l = a * w0;
-    const auto r = b * w1;
+        const auto l = a * w0;
+        const auto r = b * w1;
 
-    return (l + r) * (1 / acc_Z_inv);
+        return (l + r) * (1 / acc_Z_inv);
+    }
 }
 
 /**
@@ -84,11 +88,15 @@ template<VaryingInterface Varying>
 static auto
 barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> Varying
 {
-    const auto aw0 = attrs[0] * weights[0];
-    const auto aw1 = attrs[1] * weights[1];
-    const auto aw2 = attrs[2] * weights[2];
+    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
+        return EmptyVarying();
+    } else {
+        const auto aw0 = attrs[0] * weights[0];
+        const auto aw1 = attrs[1] * weights[1];
+        const auto aw2 = attrs[2] * weights[2];
 
-    return aw0 + aw1 + aw2;
+        return aw0 + aw1 + aw2;
+    }
 }
 
 /**
@@ -102,15 +110,19 @@ barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& Z_inv,
                                   const math::Float& acc_Z_inv) -> Varying
 {
-    // acc_Z_inv := barycentric(weights, Z_inv)
+    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
+        return EmptyVarying();
+    } else {
+        // acc_Z_inv := barycentric(weights, Z_inv)
 
-    const auto w = weights * Z_inv;
+        const auto w = weights * Z_inv;
 
-    const auto aw0 = attrs[0] * w[0];
-    const auto aw1 = attrs[1] * w[1];
-    const auto aw2 = attrs[2] * w[2];
+        const auto aw0 = attrs[0] * w[0];
+        const auto aw1 = attrs[1] * w[1];
+        const auto aw2 = attrs[2] * w[2];
 
-    return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
+        return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
+    }
 }
 
 /**

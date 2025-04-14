@@ -262,7 +262,7 @@ main(int argc, char* argv[])
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions renderer_options{ .winding_order = asciirast::WindingOrder::COUNTER_CLOCKWISE };
+    asciirast::RendererOptions<asciirast::WindingOrder::COUNTER_CLOCKWISE> renderer_options{};
 
     bool running = true;
     while (running) {

@@ -14,6 +14,12 @@
 namespace asciirast {
 
 /**
+ * @brief Empty varying type
+ */
+struct EmptyVarying
+{};
+
+/**
  * @brief Concept to follow the varying interface
  *
  * Varying are the interpolated attributes of verticies.
@@ -21,7 +27,7 @@ namespace asciirast {
  * @tparam T The type to check
  */
 template<typename T>
-concept VaryingInterface = requires(const T x, T y) {
+concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x, T y) {
     { x + x } -> std::same_as<T>;
     { x * math::Float{ -1 } } -> std::same_as<T>;
     { y = x } -> std::same_as<T&>;
@@ -40,7 +46,11 @@ template<VaryingInterface Varying>
 static Varying
 lerp_varying(const Varying& a, const Varying& b, const math::Float t)
 {
-    return a * (1 - t) + b * t;
+    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
+        return EmptyVarying();
+    } else {
+        return a * (1 - t) + b * t;
+    }
 }
 
 /**
@@ -72,8 +82,8 @@ struct ProjectedFragment
  * @return The ProjectedFragment object
  */
 template<VaryingInterface T>
-static ProjectedFragment<T>
-project_fragment(const Fragment<T>& frag)
+static auto
+project_fragment(const Fragment<T>& frag) -> ProjectedFragment<T>
 {
     assert(frag.pos.w != 0 && "non-zero w coordinate."
                               "this fragment should be culled by this point");
@@ -102,11 +112,15 @@ project_fragment(const Fragment<T>& frag)
 template<class UniformType, class VertexType, VaryingInterface VaryingType, FrameBufferInterface FrameBuffer>
 class AbstractProgram
 {
+protected:
+    using Frag = Fragment<VaryingType>;
+    using PFrag = ProjectedFragment<VaryingType>;
+
 public:
     using Uniform = UniformType;          ///< uniform(s) type
     using Vertex = VertexType;            ///< vertex type
     using Varying = VaryingType;          ///< varying type
-    using Targets = FrameBuffer::Targets; ///< framebuffer targets
+    using Targets = FrameBuffer::Targets; ///< user framebuffer targets
 
     /**
      * @brief Default virtual destructor
@@ -116,12 +130,12 @@ public:
     /**
      * @brief Function run on every vertex
      */
-    virtual Fragment<VaryingType> on_vertex(const UniformType&, const VertexType&) const = 0;
+    virtual Frag on_vertex(const UniformType&, const VertexType&) const = 0;
 
     /**
      * @brief Function run on every fragment (or pixel)
      */
-    virtual Targets on_fragment(const UniformType&, const ProjectedFragment<VaryingType>&) const = 0;
+    virtual Targets on_fragment(const UniformType&, const PFrag&) const = 0;
 };
 
 /**
