@@ -34,7 +34,7 @@ public:
      * @param max The maximum of the AABB as Vec
      * @return The AABB that spans from the minimum to the maximum
      */
-    static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max)
+    static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max) noexcept
     {
         const auto size = math::max(max - min, Vec<N, T>{ 0 });
         const auto center = min + size / 2;
@@ -48,7 +48,7 @@ public:
      * @param center The center of the AABB
      * @param size The Vec spanning from the minimum to the maximum
      */
-    constexpr explicit AABB(const Vec<N, T>& center, const Vec<N, T>& size)
+    constexpr explicit AABB(const Vec<N, T>& center, const Vec<N, T>& size) noexcept
             : m_center{ center }
             , m_extent{ math::max(size / 2, math::Vec<N, T>{ 0 }) } {};
 

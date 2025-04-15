@@ -50,7 +50,7 @@ public:
      *
      * @param angle The angle at hand in radians
      */
-    Rot2(const T angle)
+    Rot2(const T angle) noexcept
             : m_real{ std::cos(angle) }
             , m_imag{ std::sin(angle) } {};
 
@@ -64,7 +64,7 @@ public:
      * @param to_dir The destination direction vector
      * @param normalize Normalize the resulting complex number
      */
-    constexpr Rot2(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
+    constexpr Rot2(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true) noexcept
             : m_real{ dot(from_dir, to_dir) }
             , m_imag{ cross(from_dir, to_dir) }
     {

@@ -347,7 +347,7 @@ public:
      */
     template<std::size_t M, std::size_t... Is>
         requires(M > 1)
-    constexpr Vec(const Swizzled<Vec, M, T, Is...>& that)
+    constexpr Vec(const Swizzled<Vec, M, T, Is...>& that) noexcept
     {
         for (std::size_t i = 0; i < N; i++) {
             (*this)[i] = that[i];
@@ -362,7 +362,7 @@ public:
      */
     template<typename... Args>
         requires(sizeof...(Args) > 0)
-    constexpr Vec(Args&&... args)
+    constexpr Vec(Args&&... args) noexcept
         requires(constructible_from_args_v<Args...>)
     {
         using initializer = detail::vec_initializer<N, T>;
@@ -377,7 +377,7 @@ public:
      */
     template<typename U>
         requires(std::is_convertible_v<U, T>)
-    explicit constexpr Vec(const U value)
+    explicit constexpr Vec(const U value) noexcept
     {
         for (std::size_t i = 0; i < N; i++) {
             (*this)[i] = static_cast<T>(value);
@@ -391,7 +391,7 @@ public:
      */
     template<std::size_t M>
         requires(M > N)
-    explicit constexpr Vec(const Vec<M, T>& that)
+    explicit constexpr Vec(const Vec<M, T>& that) noexcept
     {
         for (std::size_t i = 0; i < N; i++) {
             (*this)[i] = that[i];

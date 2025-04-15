@@ -119,7 +119,7 @@ public:
      */
     template<typename... Args>
         requires(constructible_from_cols_v<Args...>)
-    static constexpr Mat from_cols(Args&&... args)
+    static constexpr Mat from_cols(Args&&... args) noexcept
     {
         if constexpr (is_col_major) {
             using MatType = Mat<M_y, N_x, T, is_col_major>;
@@ -140,7 +140,7 @@ public:
      */
     template<typename... Args>
         requires(constructible_from_rows_v<Args...>)
-    static constexpr Mat from_rows(Args&&... args)
+    static constexpr Mat from_rows(Args&&... args) noexcept
     {
         if constexpr (is_col_major) {
             using MatType = Mat<N_x, M_y, T, is_col_major>;
@@ -168,7 +168,7 @@ public:
      */
     template<typename... Args>
         requires(sizeof...(Args) > 0)
-    constexpr Mat(Args&&... args)
+    constexpr Mat(Args&&... args) noexcept
         requires(constructible_from_args_v<Args...>)
     {
         using initializer = detail::mat_initializer<M_y, N_x, T, is_col_major>;

@@ -146,7 +146,7 @@ public:
     /**
      * @brief Construct renderer with default viewport
      */
-    Renderer() {};
+    Renderer() = default;
 
     /**
      * @brief Construct renderer with custom viewport
@@ -156,7 +156,7 @@ public:
      *
      * @param viewport_bounds The bounds of the viewport
      */
-    explicit Renderer(const math::AABB2D& viewport_bounds)
+    explicit Renderer(const math::AABB2D& viewport_bounds) noexcept
             : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
             , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
