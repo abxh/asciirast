@@ -236,7 +236,9 @@ public:
 
         const auto uv = pfrag.attrs.uv;
         const auto M = 10.f;
-        const auto pattern = (std::fmod(uv.r * M, 1.f) > 0.5f) ^ (std::fmod(uv.g * M, 1.f) < 0.5f);
+        const auto uM_decimal_part = std::fmod(uv.r * M, 1.f);
+        const auto vM_decimal_part = std::fmod(uv.g * M, 1.f);
+        const auto pattern = (uM_decimal_part > 0.5f) ^ (vM_decimal_part < 0.5f);
 
         return { pfrag.attrs.color * pattern };
     }
