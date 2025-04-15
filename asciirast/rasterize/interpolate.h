@@ -14,6 +14,7 @@ namespace asciirast::rasterize {
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
 
 template<VaryingInterface Varying>
+[[maybe_unused]]
 static auto
 lerp_varying_perspective_corrected(const Varying& a,
                                    const Varying& b,
@@ -41,6 +42,7 @@ lerp_varying_perspective_corrected(const Varying& a,
  * @brief Linear interpolation of fragments
  */
 template<VaryingInterface T>
+[[maybe_unused]]
 static auto
 lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
 {
@@ -51,6 +53,7 @@ lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragmen
  * @brief Linear interpolation of projected fragments
  */
 template<VaryingInterface T>
+[[maybe_unused]]
 static auto
 lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
 {
@@ -85,6 +88,7 @@ barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
  *        triangles
  */
 template<VaryingInterface Varying>
+[[maybe_unused]]
 static auto
 barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> Varying
 {
@@ -104,6 +108,7 @@ barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> V
  *        triangles
  */
 template<VaryingInterface Varying>
+[[maybe_unused]]
 static auto
 barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
                                   const math::Vec3& weights,

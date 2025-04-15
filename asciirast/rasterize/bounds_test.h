@@ -57,6 +57,7 @@ enum class BorderType
 
 namespace detail {
 
+[[maybe_unused]]
 static auto
 next_border_type(BorderType b) -> BorderType
 {
@@ -69,6 +70,7 @@ next_border_type(BorderType b) -> BorderType
 // https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
 // https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
+[[maybe_unused]]
 static auto
 line_in_bounds(const T q, const T p, T& t0, T& t1) -> bool
 {
@@ -210,6 +212,7 @@ using AttrsTriplet = std::array<VaryingType, 3>;
 
 namespace detail {
 
+[[maybe_unused]]
 static auto
 count_num_triangle_vertices_inside(const BorderType border,
                                    const Vec4Triplet& v,
@@ -250,6 +253,7 @@ count_num_triangle_vertices_inside(const BorderType border,
     return { inside[0] + inside[1] + inside[2], inside };
 }
 
+[[maybe_unused]]
 static auto
 count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v)
         -> std::tuple<unsigned, std::array<bool, 3>>
@@ -331,6 +335,7 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
 }; // namespace detail
 
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
+[[maybe_unused]]
 static auto
 triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                    std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
@@ -467,6 +472,7 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
 }
 
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
+[[maybe_unused]]
 static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)

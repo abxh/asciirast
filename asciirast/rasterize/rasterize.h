@@ -12,6 +12,7 @@ namespace asciirast::rasterize {
 template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
     requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
              std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
+[[maybe_unused]]
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0,
                const ProjectedFragment<Varying>& proj1,
@@ -56,8 +57,9 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
     }
 }
 
-static inline bool
-is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest)
+[[maybe_unused]]
+static auto
+is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> bool
 {
     const auto edge = src.vector_to(dest);
 
@@ -75,6 +77,7 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest)
 template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
     requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
              std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
+[[maybe_unused]]
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
