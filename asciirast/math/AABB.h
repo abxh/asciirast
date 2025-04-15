@@ -34,7 +34,7 @@ public:
      * @param max The maximum of the AABB as Vec
      * @return The AABB that spans from the minimum to the maximum
      */
-    static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max) noexcept
+    [[nodiscard]] static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max) noexcept
     {
         const auto size = math::max(max - min, Vec<N, T>{ 0 });
         const auto center = min + size / 2;
@@ -58,7 +58,7 @@ public:
      * @param v_ The point at hand
      * @return Whether the point is contained in the AABB
      */
-    constexpr bool contains(const Vec<N, T>& v_) const
+    [[nodiscard]] constexpr bool contains(const Vec<N, T>& v_) const
     {
         const auto v = v_ - m_center;
 
@@ -71,7 +71,7 @@ public:
      * @param that The another AABB
      * @return Whether another AABB is contained in this AABB
      */
-    constexpr bool contains(const AABB& that) const
+    [[nodiscard]] constexpr bool contains(const AABB& that) const
     {
         return this->min_get() <= that.min_get() && that.max_get() <= this->max_get();
     }
@@ -82,7 +82,7 @@ public:
      *
      * @return The Transform object that converts a unit area to the AABB's area
      */
-    constexpr Transform2<T, is_col_major> to_transform() const
+    [[nodiscard]] constexpr Transform2<T, is_col_major> to_transform() const
         requires(N == 2)
     {
         return Transform2<T, is_col_major>().scale(this->size_get()).translate(this->min_get());
@@ -94,7 +94,7 @@ public:
      *
      * @return The Transform object tha converts a unit volume to the AABB's voume
      */
-    constexpr Transform3<T, is_col_major> to_transform() const
+    [[nodiscard]] constexpr Transform3<T, is_col_major> to_transform() const
         requires(N == 3)
     {
         return Transform3<T, is_col_major>().scale(this->size_get()).translate(this->min_get());
@@ -106,7 +106,7 @@ public:
      *
      * @return The minimum as a Vec
      */
-    constexpr Vec<N, T> min_get() const { return m_center - m_extent; }
+    [[nodiscard]] constexpr Vec<N, T> min_get() const { return m_center - m_extent; }
 
     /**
      * @brief Set the minimum of this AABB
@@ -125,7 +125,7 @@ public:
      *
      * @return The maximum as a Vec
      */
-    constexpr Vec<N, T> max_get() const { return m_center + m_extent; }
+    [[nodiscard]] constexpr Vec<N, T> max_get() const { return m_center + m_extent; }
 
     /**
      * @brief Set the maximum of this AABB
@@ -144,7 +144,7 @@ public:
      *
      * @return The center as Vec
      */
-    constexpr Vec<N, T> center_get() const { return m_center; }
+    [[nodiscard]] constexpr Vec<N, T> center_get() const { return m_center; }
 
     /**
      * @brief Set the center of the AABB
@@ -163,7 +163,7 @@ public:
      *
      * @return The size of the AABB as Vec
      */
-    constexpr Vec<N, T> size_get() const { return m_extent + m_extent; }
+    [[nodiscard]] constexpr Vec<N, T> size_get() const { return m_extent + m_extent; }
 
     /**
      * @brief Set the size of the AABB

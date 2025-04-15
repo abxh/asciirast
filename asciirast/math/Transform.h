@@ -78,7 +78,7 @@ public:
      * @param v The vector at hand
      * @return A copy of the vector transformed
      */
-    constexpr Vec2 apply(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec2 apply(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 1 } }; }
 
     /**
      * @brief Apply the inverse transformation "action" on a 2D vector
@@ -86,14 +86,14 @@ public:
      * @param v The vector at hand
      * @return A copy of the vector transformed back
      */
-    constexpr Vec2 apply_inv(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec2 apply_inv(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
 
     /**
      * @brief Get transformation object that performs the reverse transformation
      *
      * @return Copy of this that performs the reverse transfromation
      */
-    constexpr Transform2 reversed() const { return Transform2{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform2 reversed() const { return Transform2{ this->m_mat_inv, this->m_mat }; }
 
     /**
      * @brief Stack another Transform on top of this
@@ -287,14 +287,14 @@ public:
      *
      * @return Const reference to the underlying matrix
      */
-    constexpr const Mat4& mat() const { return m_mat; }
+    [[nodiscard]] constexpr const Mat4& mat() const { return m_mat; }
 
     /**
      * @brief Get underlying inverse transformation matrix
      *
      * @return Const reference to the underlying inverse matrix
      */
-    constexpr const Mat4& mat_inv() const { return m_mat_inv; }
+    [[nodiscard]] constexpr const Mat4& mat_inv() const { return m_mat_inv; }
 
     /**
      * @brief Apply the transformation "action" on a 3D vector
@@ -302,7 +302,7 @@ public:
      * @param v The vector at hand
      * @return A copy of the vector transformed
      */
-    constexpr Vec3 apply(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 1 } }; }
 
     /**
      * @brief Apply the inverse transformation "action" on a 3D vector
@@ -310,14 +310,14 @@ public:
      * @param v The vector at hand
      * @return A copy of the vector transformed back
      */
-    constexpr Vec3 apply_inv(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec3 apply_inv(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
 
     /**
      * @brief Get transformation object that performs the reverse transformation
      *
      * @return Copy of this that performs the reverse transfromation
      */
-    constexpr Transform3 reversed() const { return Transform3{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform3 reversed() const { return Transform3{ this->m_mat_inv, this->m_mat }; }
 
     /**
      * @brief Stack another Transform on top of this

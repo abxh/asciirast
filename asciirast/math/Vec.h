@@ -56,6 +56,7 @@ class Vec;
  */
 template<std::size_t N, typename T>
     requires(N > 0 && std::is_arithmetic_v<T>)
+[[nodiscard]]
 constexpr auto
 dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
 {
@@ -76,6 +77,7 @@ dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * @return The resulting number
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2)
@@ -89,6 +91,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
     requires(N == 3)
@@ -123,6 +126,7 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @return The resulting angle
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 auto
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
     requires(N == 2 && std::is_floating_point_v<T>)
@@ -147,6 +151,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
  * @return The resulting angle
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 auto
 angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized) -> T
     requires(N == 3 && std::is_floating_point_v<T>)
@@ -166,6 +171,7 @@ angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bo
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
@@ -185,6 +191,7 @@ lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
@@ -203,6 +210,7 @@ max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
 {
@@ -222,6 +230,7 @@ min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N, T>
 {
@@ -239,6 +248,7 @@ clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N,
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 abs(const Vec<N, T>& v) -> Vec<N, T>
 {
@@ -256,6 +266,7 @@ abs(const Vec<N, T>& v) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 round(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
@@ -274,6 +285,7 @@ round(const Vec<N, T>& v) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 ceil(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
@@ -292,6 +304,7 @@ ceil(const Vec<N, T>& v) -> Vec<N, T>
  * @return The resulting vector
  */
 template<std::size_t N, typename T>
+[[nodiscard]]
 constexpr auto
 floor(const Vec<N, T>& v) -> Vec<N, T>
     requires(std::is_floating_point_v<T>)
@@ -404,35 +417,55 @@ public:
      *
      * @return Number of components as size_t
      */
-    static constexpr std::size_t size() { return N; }
+    [[nodiscard]]
+    static constexpr std::size_t size()
+    {
+        return N;
+    }
 
     /**
      * @brief Get pointer to the underlying data
      *
      * @return The pointer to the first component of the underlying data
      */
-    constexpr T* data() { return &m_components[0]; }
+    [[nodiscard]]
+    constexpr T* data()
+    {
+        return &m_components[0];
+    }
 
     /**
      * @brief Get pointer to the underlying data
      *
      * @return The pointer to the first component of the underlying data
      */
-    constexpr const T* data() const { return &m_components[0]; }
+    [[nodiscard]]
+    constexpr const T* data() const
+    {
+        return &m_components[0];
+    }
 
     /**
      * @brief Get underlying array
      *
      * @return A reference to the underlying array
      */
-    constexpr std::array<T, N>& array() { return m_components; }
+    [[nodiscard]]
+    constexpr std::array<T, N>& array()
+    {
+        return m_components;
+    }
 
     /**
      * @brief Get underlying array
      *
      * @return A const reference to the underlying array
      */
-    constexpr const std::array<T, N>& array() const { return m_components; }
+    [[nodiscard]]
+    constexpr const std::array<T, N>& array() const
+    {
+        return m_components;
+    }
 
     /**
      * @brief Index the vector
@@ -440,6 +473,7 @@ public:
      * @param i The index
      * @return Reference to the value at the index
      */
+    [[nodiscard]]
     constexpr T& operator[](const std::size_t i)
     {
         assert(i < this->size() && "index is inside bounds");
@@ -453,6 +487,7 @@ public:
      * @param i The index
      * @return The value at the index
      */
+    [[nodiscard]]
     constexpr T operator[](const std::size_t i) const
     {
         assert(i < this->size() && "index is inside bounds");
@@ -506,6 +541,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the vectors are equal
      */
+    [[nodiscard]]
     friend constexpr bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T>)
     {
@@ -523,6 +559,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the vectors are (approximately) equal
      */
+    [[nodiscard]]
     friend constexpr bool operator==(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
@@ -540,6 +577,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the vectors are (approximately) not equal
      */
+    [[nodiscard]]
     friend constexpr bool operator!=(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
@@ -553,6 +591,7 @@ public:
      * @param rhs right hand side
      * @return boolean convertible depending on operator
      */
+    [[nodiscard]]
     friend constexpr std::strong_ordering operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_integral_v<T>)
     {
@@ -582,6 +621,7 @@ public:
      * @param rhs right hand side
      * @return boolean convertible depending on operator
      */
+    [[nodiscard]]
     friend constexpr std::partial_ordering operator<=>(const Vec& lhs, const Vec& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
@@ -669,13 +709,18 @@ public:
      *
      * @return The copy of the vector as-is
      */
-    constexpr Vec operator+() const { return *this; }
+    [[nodiscard]]
+    constexpr Vec operator+() const
+    {
+        return *this;
+    }
 
     /**
      * @brief Unary minus vector operator
      *
      * @return The vector with it's components sign-flipped
      */
+    [[nodiscard]]
     constexpr Vec operator-() const
     {
         Vec res{};
@@ -692,6 +737,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator+(const Vec& lhs, const Vec& rhs)
     {
         Vec res{};
@@ -708,6 +754,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator-(const Vec& lhs, const Vec& rhs)
     {
         Vec res{};
@@ -724,6 +771,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator*(const T scalar, const Vec& rhs)
     {
         Vec res{};
@@ -740,6 +788,7 @@ public:
      * @param scalar The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator*(const Vec& lhs, const T scalar)
     {
         Vec res{};
@@ -757,6 +806,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator*(const Vec& lhs, const Vec& rhs)
     {
         Vec res{};
@@ -773,6 +823,7 @@ public:
      * @param scalar The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator/(const Vec& lhs, const T scalar)
     {
         assert(scalar != 0 && "non-zero division");
@@ -790,6 +841,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting vector
      */
+    [[nodiscard]]
     friend constexpr Vec operator/(const Vec& lhs, const Vec& rhs)
     {
 #ifndef NDEBUG
@@ -813,13 +865,18 @@ public:
      * @param that Where the head of the resulting vector lies
      * @return A vector with it's tail at This and it's head at that
      */
-    constexpr Vec vector_to(const Vec& that) const { return that - (*this); }
+    [[nodiscard]]
+    constexpr Vec vector_to(const Vec& that) const
+    {
+        return that - (*this);
+    }
 
     /**
      * @brief Calculate the norm of the vector
      *
      * @return The norm of this vector as a number
      */
+    [[nodiscard]]
     constexpr T norm() const
         requires(std::is_floating_point_v<T>)
     {
@@ -833,6 +890,7 @@ public:
      *
      * @return Copy of this normalized
      */
+    [[nodiscard]]
     constexpr Vec normalized() const
         requires(std::is_floating_point_v<T>)
     {
@@ -846,6 +904,7 @@ public:
      *
      * @return The length of this as a number
      */
+    [[nodiscard]]
     constexpr T length() const
         requires(std::is_floating_point_v<T>)
     {
@@ -859,6 +918,7 @@ public:
      *
      * @return The magnitude of this as a number
      */
+    [[nodiscard]]
     constexpr T magnitude() const
         requires(std::is_floating_point_v<T>)
     {
@@ -872,6 +932,7 @@ public:
      *
      * @return The direction of this as a normalized vector
      */
+    [[nodiscard]]
     constexpr Vec direction() const
         requires(std::is_floating_point_v<T>)
     {
@@ -887,6 +948,7 @@ public:
      * @param is_normalized Whether the other vector is pre-normalized
      * @return The projection of this onto that as a vector
      */
+    [[nodiscard]]
     constexpr Vec project_onto(const Vec& that, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T>)
     {
@@ -903,6 +965,7 @@ public:
      * @param is_normalized Whether the normal is pre-normalized
      * @return This reflected accross the plane
      */
+    [[nodiscard]]
     constexpr Vec reflect(const Vec& normal, const bool is_normalized = false) const
         requires(std::is_floating_point_v<T> && (N == 2 || N == 3))
     {

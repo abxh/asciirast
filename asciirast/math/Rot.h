@@ -79,21 +79,21 @@ public:
      *
      * @return The underlying complex number
      */
-    constexpr Vec2 complex() const { return Vec2{ m_real, m_imag }; }
+    [[nodiscard]] constexpr Vec2 complex() const { return Vec2{ m_real, m_imag }; }
 
     /**
      * @brief Convert to angle in radians
      *
      * @return The angle in radians
      */
-    T to_angle() const { return std::atan2(m_imag, m_real); }
+    [[nodiscard]] T to_angle() const { return std::atan2(m_imag, m_real); }
 
     /**
      * @brief Convert to 2D transformation matrix
      *
      * @return The tranformation matrix that performs the same rotation as this
      */
-    constexpr Mat2 to_mat() const
+    [[nodiscard]] constexpr Mat2 to_mat() const
     {
         const Vec2 x_hat = apply(Vec2{ 1, 0 });
         const Vec2 y_hat = apply(Vec2{ 0, 1 });
@@ -119,7 +119,7 @@ public:
      *
      * @return Copy of this that performs the reverse rotation
      */
-    constexpr Rot2 reversed() const
+    [[nodiscard]] constexpr Rot2 reversed() const
     {
         Rot2 res = (*this);
         res.m_imag *= -1;
@@ -148,7 +148,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    constexpr Vec2 apply(const Vec2& v) const { return Rot2{ reversed().complex(), v, false }.complex(); }
+    [[nodiscard]] constexpr Vec2 apply(const Vec2& v) const { return Rot2{ reversed().complex(), v, false }.complex(); }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -156,7 +156,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    constexpr Vec2 apply_inv(const Vec2& v) const { return Rot2{ complex(), v, false }.complex(); }
+    [[nodiscard]] constexpr Vec2 apply_inv(const Vec2& v) const { return Rot2{ complex(), v, false }.complex(); }
 };
 
 /**
@@ -228,20 +228,6 @@ public:
         }
     };
 
-protected:
-    /**
-     * @brief Construct rotation object from the quaternion-vector product
-     *
-     * This is defined for internal code convienience
-     *
-     * @param lhs the left-hand side
-     * @param rhs the right-hand side
-     */
-    constexpr Rot3(const Rot3& lhs, const Vec3& rhs) // like above but with rhs.s == 0
-            : m_s{ -dot(lhs.m_dir, rhs) }
-            , m_dir{ lhs.m_s * rhs + cross(lhs.m_dir, rhs) } {};
-
-public:
     /**
      * @brief Get the underlying quaternion as Vec4
      *
@@ -250,14 +236,14 @@ public:
      *
      * @return Copy of the underlying quaternion as Vec4
      */
-    constexpr Vec4 quat() const { return Vec4{ m_dir, m_s }; }
+    [[nodiscard]] constexpr Vec4 quat() const { return Vec4{ m_dir, m_s }; }
 
     /**
      * @brief Convert to (normalized) axis and angle
      *
      * @return Tuple of unit axis vector and angle
      */
-    std::tuple<Vec3, T> to_axis_angle() const
+    [[nodiscard]] std::tuple<Vec3, T> to_axis_angle() const
     {
         const T half_angle = std::acos(m_s);
         const Vec3 axis = m_dir / std::sin(half_angle);
@@ -270,7 +256,7 @@ public:
      *
      * @return Matrix performing the same rotation as this
      */
-    constexpr Mat3 to_mat() const
+    [[nodiscard]] constexpr Mat3 to_mat() const
     {
         const Vec3 x_hat = apply(Vec3{ 1, 0, 0 });
         const Vec3 y_hat = apply(Vec3{ 0, 1, 0 });
@@ -309,7 +295,7 @@ public:
      *
      * @return Copy of this performing the inverse rotation
      */
-    constexpr Rot3 reversed() const
+    [[nodiscard]] constexpr Rot3 reversed() const
     {
         Rot3 res = (*this);
         res.m_dir *= -1;
@@ -350,7 +336,10 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    constexpr Vec3 apply(const Vec3& v) const { return Rot3{ Rot3{ (*this), v }, reversed(), false }.m_dir; }
+    [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const
+    {
+        return Rot3{ Rot3{ (*this), v }, reversed(), false }.m_dir;
+    }
 
     /**
      * @brief Apply the inverse rotation "action" on
@@ -359,7 +348,23 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    constexpr Vec3 apply_inv(const Vec3& v) const { return Rot3{ Rot3{ reversed(), v }, (*this), false }.m_dir; }
+    [[nodiscard]] constexpr Vec3 apply_inv(const Vec3& v) const
+    {
+        return Rot3{ Rot3{ reversed(), v }, (*this), false }.m_dir;
+    }
+
+protected:
+    /**
+     * @brief Construct rotation object from the quaternion-vector product
+     *
+     * This is defined for internal code convienience
+     *
+     * @param lhs the left-hand side
+     * @param rhs the right-hand side
+     */
+    constexpr Rot3(const Rot3& lhs, const Vec3& rhs) // like Rot3 * Rot3 but with rhs.s == 0
+            : m_s{ -dot(lhs.m_dir, rhs) }
+            , m_dir{ lhs.m_s * rhs + cross(lhs.m_dir, rhs) } {};
 };
 
 } // namespace asciirast::math

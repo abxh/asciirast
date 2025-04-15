@@ -20,6 +20,7 @@ namespace asciirast::math {
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 radians(const T degrees) -> T
 {
@@ -34,6 +35,7 @@ radians(const T degrees) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 degrees(const T radians) -> T
 {
@@ -54,6 +56,7 @@ degrees(const T radians) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
@@ -77,6 +80,7 @@ almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
@@ -96,6 +100,7 @@ almost_equal(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)
@@ -120,6 +125,7 @@ almost_equal(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
@@ -140,6 +146,7 @@ almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
@@ -156,6 +163,7 @@ almost_less_than(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
+[[nodiscard]]
 constexpr auto
 almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)

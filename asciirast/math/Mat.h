@@ -77,7 +77,7 @@ public:
      * @param y Zero-based row index
      * @param x Zero-based column index
      */
-    static constexpr std::size_t map_index(const std::size_t y, const std::size_t x)
+    [[nodiscard]] static constexpr std::size_t map_index(const std::size_t y, const std::size_t x)
     {
         if constexpr (is_col_major) {
             return M_y * x + y;
@@ -91,7 +91,7 @@ public:
      *
      * @return The identity matrix
      */
-    static constexpr Mat identity()
+    [[nodiscard]] static constexpr Mat identity()
         requires(N_x == M_y)
     {
         Mat res{};
@@ -119,7 +119,7 @@ public:
      */
     template<typename... Args>
         requires(constructible_from_cols_v<Args...>)
-    static constexpr Mat from_cols(Args&&... args) noexcept
+    [[nodiscard]] static constexpr Mat from_cols(Args&&... args) noexcept
     {
         if constexpr (is_col_major) {
             using MatType = Mat<M_y, N_x, T, is_col_major>;
@@ -140,7 +140,7 @@ public:
      */
     template<typename... Args>
         requires(constructible_from_rows_v<Args...>)
-    static constexpr Mat from_rows(Args&&... args) noexcept
+    [[nodiscard]] static constexpr Mat from_rows(Args&&... args) noexcept
     {
         if constexpr (is_col_major) {
             using MatType = Mat<N_x, M_y, T, is_col_major>;
@@ -182,49 +182,49 @@ public:
      *
      * @return The row count as size_t
      */
-    static constexpr std::size_t row_count() { return M_y; }
+    [[nodiscard]] static constexpr std::size_t row_count() { return M_y; }
 
     /**
      * @brief Get number of columns in the matrix
      *
      * @return The column count as size_t
      */
-    static constexpr std::size_t col_count() { return N_x; }
+    [[nodiscard]] static constexpr std::size_t col_count() { return N_x; }
 
     /**
      * @brief Get the total size of the matrix
      *
      * @return The matrix size as size_t
      */
-    static constexpr std::size_t size() { return M_y * N_x; }
+    [[nodiscard]] static constexpr std::size_t size() { return M_y * N_x; }
 
     /**
      * @brief Get pointer to the underlying data in the matrix major order
      *
      * @return The pointer to the first element of the underlying data
      */
-    constexpr T* data() { return &m_elements[0]; }
+    [[nodiscard]] constexpr T* data() { return &m_elements[0]; }
 
     /**
      * @brief Get const pointer to the underlying data in the matrix major order
      *
      * @return The const pointer to the first element of the underlying data
      */
-    constexpr const T* data() const { return &m_elements[0]; }
+    [[nodiscard]] constexpr const T* data() const { return &m_elements[0]; }
 
     /**
      * @brief Get underlying array in matrix major order
      *
      * @return A reference to the underlying array
      */
-    constexpr std::array<T, M_y * N_x>& array() { return m_elements; }
+    [[nodiscard]] constexpr std::array<T, M_y * N_x>& array() { return m_elements; }
 
     /**
      * @brief Get underlying array in matrix major order
      *
      * @return A const reference to the underlying array
      */
-    constexpr const std::array<T, M_y * N_x>& array() const { return m_elements; }
+    [[nodiscard]] constexpr const std::array<T, M_y * N_x>& array() const { return m_elements; }
 
     /**
      * @brief Index the underlying array
@@ -232,7 +232,7 @@ public:
      * @param i The index
      * @return Reference to the value at the index
      */
-    constexpr T& operator[](const std::size_t i)
+    [[nodiscard]] constexpr T& operator[](const std::size_t i)
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -245,7 +245,7 @@ public:
      * @param i The index
      * @return The value at the index
      */
-    constexpr T operator[](const std::size_t i) const
+    [[nodiscard]] constexpr T operator[](const std::size_t i) const
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -259,7 +259,7 @@ public:
      * @param x The column index
      * @return A reference to the value at the indicies
      */
-    constexpr T& operator[](const std::size_t y, const std::size_t x)
+    [[nodiscard]] constexpr T& operator[](const std::size_t y, const std::size_t x)
     {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
@@ -274,7 +274,7 @@ public:
      * @param x The column index
      * @return The value at the indicies
      */
-    constexpr T operator[](const std::size_t y, const std::size_t x) const
+    [[nodiscard]] constexpr T operator[](const std::size_t y, const std::size_t x) const
     {
         assert(y < M_y && "index is inside bounds");
         assert(x < N_x && "index is inside bounds");
@@ -301,7 +301,7 @@ public:
      *
      * @return A copy of the transposed to the matrix
      */
-    constexpr Mat<N_x, M_y, T, is_col_major> transposed() const
+    [[nodiscard]] constexpr Mat<N_x, M_y, T, is_col_major> transposed() const
     {
         Mat<N_x, M_y, T, is_col_major> res{};
         if constexpr (is_col_major) {
@@ -326,7 +326,7 @@ public:
      * @param y The row-index
      * @return The y'th row vector as Vec
      */
-    constexpr Vec<N_x, T> row_get(const std::size_t y) const
+    [[nodiscard]] constexpr Vec<N_x, T> row_get(const std::size_t y) const
     {
         assert(y < M_y && "index is inside bounds");
 
@@ -362,7 +362,7 @@ public:
      * @param x The column-index
      * @return The x'th column vector as Vec
      */
-    constexpr Vec<M_y, T> col_get(const std::size_t x) const
+    [[nodiscard]] constexpr Vec<M_y, T> col_get(const std::size_t x) const
     {
         assert(x < N_x && "index is inside bounds");
 
@@ -400,7 +400,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the matrices are (approximately) equal
      */
-    friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
+    [[nodiscard]] friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_integral_v<T>)
     {
         bool res = true;
@@ -417,7 +417,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the matrices are (approximately) equal
      */
-    friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
+    [[nodiscard]] friend constexpr bool operator==(const Mat& lhs, const Mat& rhs)
         requires(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
         bool res = true;
@@ -434,7 +434,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return Whether the matrices are (approximately) not equal
      */
-    friend constexpr bool operator!=(const Mat& lhs, const Mat& rhs)
+    [[nodiscard]] friend constexpr bool operator!=(const Mat& lhs, const Mat& rhs)
         requires(std::is_integral_v<T> || std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
         return !(lhs == rhs);
@@ -506,14 +506,14 @@ public:
      *
      * @return The copy of the matrix as-is
      */
-    constexpr Mat operator+() const { return *this; }
+    [[nodiscard]] constexpr Mat operator+() const { return *this; }
 
     /**
      * @brief Perform unary minus operator
      *
      * @return The matrix with it's elements sign-flipped
      */
-    constexpr Mat operator-() const
+    [[nodiscard]] constexpr Mat operator-() const
     {
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
@@ -529,7 +529,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat operator+(const Mat& lhs, const Mat& rhs)
+    [[nodiscard]] friend constexpr Mat operator+(const Mat& lhs, const Mat& rhs)
     {
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
@@ -545,7 +545,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat operator-(const Mat& lhs, const Mat& rhs)
+    [[nodiscard]] friend constexpr Mat operator-(const Mat& lhs, const Mat& rhs)
     {
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
@@ -561,7 +561,7 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat operator*(const T scalar, const Mat& rhs)
+    [[nodiscard]] friend constexpr Mat operator*(const T scalar, const Mat& rhs)
     {
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
@@ -577,7 +577,7 @@ public:
      * @param scalar The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat operator*(const Mat& lhs, const T scalar)
+    [[nodiscard]] friend constexpr Mat operator*(const Mat& lhs, const T scalar)
     {
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {
@@ -593,7 +593,7 @@ public:
      * @param scalar The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat operator/(const Mat& lhs, const T scalar)
+    [[nodiscard]] friend constexpr Mat operator/(const Mat& lhs, const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
             assert(scalar != 0 && "non-zero division");
@@ -628,8 +628,8 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Mat<M_y, M_y, T, is_col_major> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
-                                                              const Mat<N_x, M_y, T, is_col_major>& rhs)
+    [[nodiscard]] friend constexpr Mat<M_y, M_y, T, is_col_major> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
+                                                                            const Mat<N_x, M_y, T, is_col_major>& rhs)
     {
         Mat<M_y, M_y, T, is_col_major> res{};
 
@@ -672,7 +672,8 @@ public:
      * @param rhs The right hand side of the operand
      * @return The resulting matrix
      */
-    friend constexpr Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs, const Vec<N_x, T>& rhs)
+    [[nodiscard]] friend constexpr Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
+                                                         const Vec<N_x, T>& rhs)
     {
         Vec<M_y, T> res{};
 

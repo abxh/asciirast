@@ -101,14 +101,14 @@ public:
      *
      * @return number of indicies as size_t
      */
-    static constexpr std::size_t size() { return IndiciesArray.size(); }
+    [[nodiscard]] static constexpr std::size_t size() { return IndiciesArray.size(); }
 
     /**
      * @brief Underlying data pointer of the vector
      *
      * @return Pointer to the first element of the vector
      */
-    constexpr const T* data() const { return &m_components[0]; }
+    [[nodiscard]] constexpr const T* data() const { return &m_components[0]; }
 
     /**
      * @brief Check if this does not overlap with another swizzled,
@@ -118,7 +118,7 @@ public:
      * @return Whether the Swizzled objects overlap
      */
     template<std::size_t M, std::size_t... OtherIndicies>
-    constexpr bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
+    [[nodiscard]] constexpr bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
     {
         constexpr bool indicies_do_not_overlap =
                 !overlapping_indicies(std::index_sequence<Indicies...>{}, std::index_sequence<OtherIndicies...>{});
@@ -131,7 +131,7 @@ public:
      *
      * @return A vector of size equal to the number of indicies
      */
-    constexpr Vec to_vec() const { return Vec{ (*this) }; }
+    [[nodiscard]] constexpr Vec to_vec() const { return Vec{ (*this) }; }
 
     /**
      * @brief Index the swizzled component.
@@ -139,7 +139,7 @@ public:
      * @param i The index
      * @return A reference to the value at the index swizzled
      */
-    constexpr T& operator[](const std::size_t i)
+    [[nodiscard]] constexpr T& operator[](const std::size_t i)
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -152,7 +152,7 @@ public:
      * @param i The index
      * @return Value at the index swizzled
      */
-    constexpr T operator[](const std::size_t i) const
+    [[nodiscard]] constexpr T operator[](const std::size_t i) const
     {
         assert(i < this->size() && "index is inside bounds");
 
@@ -164,14 +164,14 @@ public:
      *
      * @return The resulting vector of size equal to the number of indicies
      */
-    constexpr Vec operator+() const { return +to_vec(); }
+    [[nodiscard]] constexpr Vec operator+() const { return +to_vec(); }
 
     /**
      * @brief Unary minus vector operator
      *
      * @return The resulting vector of size equal to the number of indicies
      */
-    constexpr Vec operator-() const { return -to_vec(); }
+    [[nodiscard]] constexpr Vec operator-() const { return -to_vec(); }
 
     /**
      * @brief In-place assignment with vector
@@ -442,14 +442,14 @@ public:
      *
      * @return The swizzled component
      */
-    constexpr operator T() const { return m_components[Index]; }
+    [[nodiscard]] constexpr operator T() const { return m_components[Index]; }
 
     /**
      * @brief Implicit conversion to number reference
      *
      * @return The reference to the swizzled component
      */
-    constexpr operator T&() { return m_components[Index]; }
+    [[nodiscard]] constexpr operator T&() { return m_components[Index]; }
 };
 
 } // namespace asciirast::math
