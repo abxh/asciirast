@@ -26,6 +26,11 @@ lerp_varying_perspective_corrected(const Varying& a,
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
         return EmptyVarying();
     } else {
+        if (t == 0) {
+            return a;
+        } else if (t == 1) {
+            return b;
+        }
         // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
 
         const auto w0 = (1 - t) * Z_inv0;
@@ -57,9 +62,9 @@ template<VaryingInterface T>
 static auto
 lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
 {
-    if (t == math::Float{ 0 }) {
+    if (t == 0) {
         return a;
-    } else if (t == math::Float{ 1 }) {
+    } else if (t == 1) {
         return b;
     }
     const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);

@@ -36,7 +36,12 @@ public:
      * @param depth The proposed depth of the pixel
      * @return Whether the depth has been set
      */
-    virtual bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth) = 0;
+    virtual bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    {
+        (void)(pos);
+        (void)(depth);
+        return true;
+    }
 
     /**
      * @brief Plot a pixel in the framebuffer

@@ -41,21 +41,6 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
-    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth) override
-    {
-        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
-        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
-
-        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp<math::Float>(depth, 0, 1);
-
-        if (depth < m_depthbuf[idx]) {
-            m_depthbuf[idx] = depth;
-            return true;
-        }
-        return false;
-    }
-
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, const Targets& targets) override
@@ -86,7 +71,6 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_charbuf[i] = clear_char;
-            m_depthbuf[i] = 2; // or +infty
         }
     }
 
@@ -115,7 +99,6 @@ public:
                                      .scale(m_width - 1, m_height - 1);
 
         m_charbuf.resize(m_width * m_height);
-        m_depthbuf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -140,9 +123,7 @@ private:
     std::size_t m_width;
     std::size_t m_height;
     math::Transform2D m_screen_to_window;
-
     std::vector<char> m_charbuf;
-    std::vector<math::Float> m_depthbuf;
 };
 
 struct MyUniform

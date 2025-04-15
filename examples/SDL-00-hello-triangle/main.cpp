@@ -58,6 +58,7 @@ public:
 
         const std::uint32_t pixel_format = SDL_PIXELFORMAT_ARGB8888; // use SDL_GetRendererInfo to get more info
         m_texture = SDL_CreateTexture(m_renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, m_width, m_height);
+        // SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND);
     }
     ~SDLBuffer()
     {

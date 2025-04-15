@@ -337,143 +337,6 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
 template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
 [[maybe_unused]]
 static auto
-triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
-                   std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
-                   const math::AABB2D& SCREEN_BOUNDS)
-{
-    const math::Vec2 min = SCREEN_BOUNDS.min_get();
-    const math::Vec2 max = SCREEN_BOUNDS.max_get();
-
-    assert(vec_queue.size() > 0);
-    assert(vec_queue.size() == attrs_queue.size());
-
-    for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
-        auto it_vec = vec_queue.begin();
-        auto it_attr = attrs_queue.begin();
-
-        while (it_vec != vec_queue.end()) {
-            const auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec, min, max);
-            switch (count) {
-            case 0:
-                it_vec = vec_queue.erase(it_vec);
-                it_attr = attrs_queue.erase(it_attr);
-                continue;
-            case 1: {
-                const auto vec_triplet = *it_vec;
-                const auto attrs_triplet = *it_attr;
-                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies<1>(inside);
-                const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
-                const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
-
-                math::Float t0a = 0.f;
-                math::Float t0b = 0.f;
-                math::Float t01 = 1.f;
-                math::Float t02 = 1.f;
-
-                const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min, max, t0a, t01);
-                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0b, t02);
-
-                assert(b01);
-                assert(t0a == 0.f);
-                assert(t01 != 1.f);
-
-                assert(b02);
-                assert(t0b == 0.f);
-                assert(t02 != 1.f);
-
-                [[assume(b01 == true)]];
-                [[assume(t0a == 0.f)]];
-                [[assume(t01 != 1.f)]];
-
-                [[assume(b02 == true)]];
-                [[assume(t0b == 0.f)]];
-                [[assume(t02 != 1.f)]];
-
-                const auto p01w = std::lerp(p0.w, p1.w, t01);
-                const auto p02w = std::lerp(p0.w, p2.w, t02);
-
-                *it_vec = Vec4Triplet{
-                    p0,
-                    math::Vec4{ math::lerp(p0.xy.to_vec(), p1.xy.to_vec(), t01),
-                                lerp_varying_perspective_corrected<math::Float>(p0.z, p1.z, t01, p0.w, p1.w, p01w),
-                                p01w },
-                    math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
-                                lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
-                                p02w },
-                };
-                *it_attr = AttrsTriplet{ a0,
-                                         lerp_varying_perspective_corrected(a0, a1, t01, p0.w, p1.w, p01w),
-                                         lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w) };
-            } break;
-            case 2: {
-                const auto vec_triplet = *it_vec;
-                const auto attrs_triplet = *it_attr;
-                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies<2>(inside);
-                const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
-                const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
-
-                math::Float t0 = 0.f;
-                math::Float t1 = 0.f;
-                math::Float t02 = 1.f;
-                math::Float t12 = 1.f;
-
-                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0, t02);
-                const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min, max, t1, t12);
-
-                assert(b02);
-                assert(t0 == 0.f);
-                assert(t02 != 1.f);
-
-                assert(b12);
-                assert(t1 == 0.f);
-                assert(t12 != 1.f);
-
-                [[assume(b02 == true)]];
-                [[assume(t0 == 0.f)]];
-                [[assume(t02 != 1.f)]];
-
-                [[assume(b12 == true)]];
-                [[assume(t1 == 0.f)]];
-                [[assume(t12 != 1.f)]];
-
-                const auto p02w = std::lerp(p0.w, p2.w, t02);
-                const auto p12w = std::lerp(p1.w, p2.w, t12);
-
-                const auto p02 =
-                        math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
-                                    lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
-                                    p02w };
-                const auto p12 =
-                        math::Vec4{ math::lerp(p1.xy.to_vec(), p2.xy.to_vec(), t12),
-                                    lerp_varying_perspective_corrected<math::Float>(p1.z, p2.z, t12, p1.w, p2.w, p12w),
-                                    p12w };
-
-                const Varying a02 = lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w);
-                const Varying a12 = lerp_varying_perspective_corrected(a1, a2, t12, p1.w, p2.w, p12w);
-
-                *it_vec = Vec4Triplet{ p0, p1, p02 };
-                *it_attr = AttrsTriplet{ a0, a1, a02 };
-
-                vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
-                attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
-            } break;
-            case 3:
-                break;
-            default:
-                assert(false);
-                std::unreachable();
-                break;
-            }
-            ++it_vec;
-            ++it_attr;
-        }
-    }
-    return vec_queue.size() != 0;
-}
-
-template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
-[[maybe_unused]]
-static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
 {
@@ -519,19 +382,19 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
 
                 assert(b01);
                 assert(t0a == 0.f);
-                assert(t01 != 1.f);
+                assert(t01 <= 1.f);
 
                 assert(b02);
                 assert(t0b == 0.f);
-                assert(t02 != 1.f);
+                assert(t02 <= 1.f);
 
                 [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
-                [[assume(t01 != 1.f)]];
+                [[assume(t01 <= 1.f)]];
 
                 [[assume(b02 == true)]];
                 [[assume(t0b == 0.f)]];
-                [[assume(t02 != 1.f)]];
+                [[assume(t02 <= 1.f)]];
 
                 *it_vec = Vec4Triplet{ p0, math::lerp(p0, p1, t01), math::lerp(p0, p2, t02) };
                 *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
@@ -559,25 +422,162 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
 
                 assert(b02);
                 assert(t0 == 0.f);
-                assert(t02 != 1.f);
+                assert(t02 <= 1.f);
 
                 assert(b12);
                 assert(t1 == 0.f);
-                assert(t12 != 1.f);
+                assert(t12 <= 1.f);
 
                 [[assume(b02 == true)]];
                 [[assume(t0 == 0.f)]];
-                [[assume(t02 != 1.f)]];
+                [[assume(t02 <= 1.f)]];
 
                 [[assume(b12 == true)]];
                 [[assume(t1 == 0.f)]];
-                [[assume(t12 != 1.f)]];
+                [[assume(t12 <= 1.f)]];
 
                 const auto p02 = math::lerp(p0, p2, t02);
                 const auto p12 = math::lerp(p1, p2, t12);
 
                 const auto a02 = lerp_varying(a0, a2, t02);
                 const auto a12 = lerp_varying(a1, a2, t12);
+
+                *it_vec = Vec4Triplet{ p0, p1, p02 };
+                *it_attr = AttrsTriplet{ a0, a1, a02 };
+
+                vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
+                attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
+            } break;
+            case 3:
+                break;
+            default:
+                assert(false);
+                std::unreachable();
+                break;
+            }
+            ++it_vec;
+            ++it_attr;
+        }
+    }
+    return vec_queue.size() != 0;
+}
+
+template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
+[[maybe_unused]]
+static auto
+triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
+                   std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
+                   const math::AABB2D& SCREEN_BOUNDS)
+{
+    const math::Vec2 min = SCREEN_BOUNDS.min_get();
+    const math::Vec2 max = SCREEN_BOUNDS.max_get();
+
+    assert(vec_queue.size() > 0);
+    assert(vec_queue.size() == attrs_queue.size());
+
+    for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
+        auto it_vec = vec_queue.begin();
+        auto it_attr = attrs_queue.begin();
+
+        while (it_vec != vec_queue.end()) {
+            const auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec, min, max);
+            switch (count) {
+            case 0:
+                it_vec = vec_queue.erase(it_vec);
+                it_attr = attrs_queue.erase(it_attr);
+                continue;
+            case 1: {
+                const auto vec_triplet = *it_vec;
+                const auto attrs_triplet = *it_attr;
+                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies<1>(inside);
+                const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
+                const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
+
+                math::Float t0a = 0.f;
+                math::Float t0b = 0.f;
+                math::Float t01 = 1.f;
+                math::Float t02 = 1.f;
+
+                const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min, max, t0a, t01);
+                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0b, t02);
+
+                assert(b01);
+                assert(t0a == 0.f);
+                assert(t01 <= 1.f);
+
+                assert(b02);
+                assert(t0b == 0.f);
+                assert(t02 <= 1.f);
+
+                [[assume(b01 == true)]];
+                [[assume(t0a == 0.f)]];
+                [[assume(t01 <= 1.f)]];
+
+                [[assume(b02 == true)]];
+                [[assume(t0b == 0.f)]];
+                [[assume(t02 <= 1.f)]];
+
+                const auto p01w = std::lerp(p0.w, p1.w, t01);
+                const auto p02w = std::lerp(p0.w, p2.w, t02);
+
+                *it_vec = Vec4Triplet{
+                    p0,
+                    math::Vec4{ math::lerp(p0.xy.to_vec(), p1.xy.to_vec(), t01),
+                                lerp_varying_perspective_corrected<math::Float>(p0.z, p1.z, t01, p0.w, p1.w, p01w),
+                                p01w },
+                    math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                                lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
+                                p02w },
+                };
+                *it_attr = AttrsTriplet{ a0,
+                                         lerp_varying_perspective_corrected(a0, a1, t01, p0.w, p1.w, p01w),
+                                         lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w) };
+            } break;
+            case 2: {
+                const auto vec_triplet = *it_vec;
+                const auto attrs_triplet = *it_attr;
+                const auto [i0, i1, i2] = detail::get_ordered_triangle_verticies<2>(inside);
+                const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
+                const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
+
+                math::Float t0 = 0.f;
+                math::Float t1 = 0.f;
+                math::Float t02 = 1.f;
+                math::Float t12 = 1.f;
+
+                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0, t02);
+                const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min, max, t1, t12);
+
+                assert(b02);
+                assert(t0 == 0.f);
+                assert(t02 <= 1.f);
+
+                assert(b12);
+                assert(t1 == 0.f);
+                assert(t12 <= 1.f);
+
+                [[assume(b02 == true)]];
+                [[assume(t0 == 0.f)]];
+                [[assume(t02 <= 1.f)]];
+
+                [[assume(b12 == true)]];
+                [[assume(t1 == 0.f)]];
+                [[assume(t12 <= 1.f)]];
+
+                const auto p02w = std::lerp(p0.w, p2.w, t02);
+                const auto p12w = std::lerp(p1.w, p2.w, t12);
+
+                const auto p02 =
+                        math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                                    lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
+                                    p02w };
+                const auto p12 =
+                        math::Vec4{ math::lerp(p1.xy.to_vec(), p2.xy.to_vec(), t12),
+                                    lerp_varying_perspective_corrected<math::Float>(p1.z, p2.z, t12, p1.w, p2.w, p12w),
+                                    p12w };
+
+                const Varying a02 = lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w);
+                const Varying a12 = lerp_varying_perspective_corrected(a1, a2, t12, p1.w, p2.w, p12w);
 
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };

@@ -3,6 +3,9 @@
  * @brief Definition of program interface and other related types
  */
 
+// On 2x2 block processing:
+// https://www.gamedev.net/forums/topic/614000-ddxddy-functions-software-rasterization-and-texture-filtering/
+
 #pragma once
 
 #include <cassert>
@@ -104,7 +107,7 @@ project_fragment(const Fragment<T>& frag) -> ProjectedFragment<T>
  *        program interface
  *
  * @tparam UniformType Arbitary type which contain constant values
- * @tparam VertexType  Vertex type to be used to output a fragment
+ * @tparam VertexType Vertex type to be used to output a fragment
  * @tparam VaryingType Fragment type that follows the Varying interface
  * @tparam FrameBuffer Framebuffer type that follows the Framebuffer
  *                     interface
@@ -113,8 +116,8 @@ template<class UniformType, class VertexType, VaryingInterface VaryingType, Fram
 class AbstractProgram
 {
 protected:
-    using Frag = Fragment<VaryingType>;
-    using PFrag = ProjectedFragment<VaryingType>;
+    using Frag = Fragment<VaryingType>;           ///< Fragment alias
+    using PFrag = ProjectedFragment<VaryingType>; ///< ProjectedFragment alias
 
 public:
     using Uniform = UniformType;          ///< uniform(s) type
@@ -133,7 +136,7 @@ public:
     virtual Frag on_vertex(const UniformType&, const VertexType&) const = 0;
 
     /**
-     * @brief Function run on every fragment (or pixel)
+     * @brief Function run on every fragment
      */
     virtual Targets on_fragment(const UniformType&, const PFrag&) const = 0;
 };

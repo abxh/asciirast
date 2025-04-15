@@ -14,7 +14,7 @@
 
 // on mipmap generation:
 // https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/texture.h
-// https://web.archive.org/web/20250314123030/https://vulkan-tutorial.com/Generating_Mipmaps
+// https://web.archive.org/web/20250324123030/https://vulkan-tutorial.com/Generating_Mipmaps
 
 #pragma once
 
@@ -32,9 +32,25 @@
 namespace asciirast {
 
 namespace detail {
+
 #include "external/stb_image/stb_image.h"
 #include "external/stb_image/stb_image_write.h"
+
+#include <cassert>
 #include <cerrno>
+
+[[maybe_unused]]
+static auto
+texture_index(math::Int width, math::Int height, math::Int x, math::Int y) -> std::size_t
+{
+    assert(0 <= y && "index is non-negative");
+    assert(0 <= x && "index is non-negative");
+    assert(width * y + x < width * height && "index is in bounds");
+    (void)(height);
+
+    return static_cast<std::size_t>(width * y + x);
+}
+
 }
 
 /**
@@ -45,8 +61,8 @@ namespace detail {
 template<typename T, typename Allocator = std::allocator<T>>
 class TextureStorage
 {
-    std::size_t m_width;
-    std::size_t m_height;
+    math::Int m_width;
+    math::Int m_height;
     std::vector<T, Allocator> m_pixels;
 
 public:
@@ -57,27 +73,28 @@ public:
      * @param height The height of the texture
      * @param default_color The default color to use
      */
-    TextureStorage(const std::size_t width = 1, const std::size_t height = 1, const T default_color = T())
-            : m_width{ std::max<std::size_t>(1, width) }
-            , m_height{ std::max<std::size_t>(1, height) }
+    TextureStorage(const math::Int width = 1, const math::Int height = 1, const T default_color = T()) noexcept
+            : m_width{ std::max(1, width) }
+            , m_height{ std::max(1, height) }
     {
-        m_pixels.resize(m_width * m_height);
+        m_pixels.resize(static_cast<std::size_t>(m_width * m_height));
+
         this->fill(default_color);
     }
 
     /**
      * @brief Get the width of the texture
      *
-     * @return The width as size_t
+     * @return The width as math::Int
      */
-    std::size_t width() const { return m_width; }
+    math::Int width() const { return m_width; }
 
     /**
      * @brief Get the height of the texture
      *
-     * @return The height as size_t
+     * @return The height as math::Int
      */
-    std::size_t height() const { return m_height; }
+    math::Int height() const { return m_height; }
 
     /**
      * @brief Get the pointer to the underlying data
@@ -107,11 +124,9 @@ public:
      * @param x Which pixel on the scan line?
      * @return The reference to the value at the particular index
      */
-    T& operator[](std::size_t y, std::size_t x)
+    T& operator[](const math::Int y, const math::Int x)
     {
-        const auto idx = m_width * y + x;
-        assert(idx < m_pixels.size() && "index is in bounds");
-        return m_pixels[idx];
+        return m_pixels[detail::texture_index(m_width, m_height, x, y)];
     }
 
     /**
@@ -121,43 +136,131 @@ public:
      * @param x Which pixel on the scan line?
      * @return The value at the particular index
      */
-    const T& operator[](std::size_t y, std::size_t x) const
+    const T& operator[](const math::Int y, const math::Int x) const
     {
-        const auto idx = m_width * y + x;
-        assert(idx < m_pixels.size() && "index is in bounds");
-        return m_pixels[idx];
+        return m_pixels[detail::texture_index(m_width, m_height, x, y)];
     }
 };
 
-template<typename RGBA_8bit_Allocator = std::allocator<math::RGBA_8bit>>
+/**
+ * @brief Texutre class
+ */
+template<typename RGBA_8bit_Allocator = std::allocator<math::RGBA_8bit>,
+         typename MipmapAllocator = std::allocator<TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>>>
 class Texture
 {
 protected:
     using RGBA_8bit_TextureStorage = TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>; ///< mipmap alias
+    using Mipmaps = std::vector<RGBA_8bit_TextureStorage, MipmapAllocator>;                ///< mipmaps
 
-    std::vector<RGBA_8bit_TextureStorage> m_mipmaps; ///< mipmaps
+    Mipmaps m_mipmaps;         ///< mipmaps
+    bool m_has_loaded = false; ///< whether a texture has been loaded
 
 public:
     /**
-     * @brief Get mipmaps level count
-     *
-     * @return The level count as size_t
+     * @brief Construct a unintialized texture
      */
-    std::size_t mipmaps_count() const { return m_mipmaps.size(); }
+    Texture() = default;
 
     /**
-     * @brief Get pointer to all mipmaps
+     * @brief Construct a texture from a texture file path
      *
-     * @return A pointer to the first mipmap
+     * @exception runtime_error For various errors about the texture
+     *
+     * @param file_path Path to the texture file
      */
-    RGBA_8bit_TextureStorage* mipmaps() { return m_mipmaps.data(); }
+    Texture(const std::filesystem::path& file_path) { this->load(file_path); }
 
     /**
-     * @brief Get pointer to all mipmaps
+     * @brief Check if texture has been loaded
      *
-     * @return A const pointer to the first mipmamp
+     * @return Returns whether the texture has been loaded
      */
-    const RGBA_8bit_TextureStorage* mipmaps() const { return m_mipmaps.data(); }
+    bool has_loaded() const { return m_has_loaded; }
+
+    /**
+     * @brief Get all mipmaps
+     *
+     * @return A const reference to the mipmaps container
+     */
+    const Mipmaps& mipmaps() const { return m_mipmaps; }
+
+    /**
+     * @brief Get the (first) texture storage
+     *
+     * @return Reference to the first texture storage
+     */
+    TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get()
+    {
+        assert(this->has_loaded());
+
+        return m_mipmaps.front();
+    }
+
+    /**
+     * @brief Get the (first) texture storage
+     *
+     * @return Const reference to the first texture storage
+     */
+    const TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get() const
+    {
+        assert(this->has_loaded());
+
+        return m_mipmaps.front();
+    }
+
+    /**
+     * @brief Get the width of the texture
+     *
+     * @return The width as math::Int
+     */
+    math::Int width() const { return get().width(); }
+
+    /**
+     * @brief Get the height of the texture
+     *
+     * @return The height as math::Int
+     */
+    math::Int height() const { return get().height(); }
+
+    /**
+     * @brief Get the pointer to the underlying data
+     *
+     * @return The pointer to the first pixel
+     */
+    math::RGBA_8bit* data() { return get().data(); }
+
+    /**
+     * @brief Get the pointer to the underlying data
+     *
+     * @return The const pointer to thfuck e first pixel
+     */
+    const math::RGBA_8bit* data() const { return get().data(); }
+
+    /**fuck 
+     * @brief Fill the texture with a value
+     *
+     * @param value The value at hand
+     */
+    void fill(const math::RGBA_8bit& value) { return get().fill(value); }
+
+    /**
+     * @brief Index the texture
+     *
+     * @param y Which scan line?
+     * @param x Which pixel on the scan line?
+     * @return The reference to the value at the particular index
+     */
+    math::RGBA_8bit& operator[](const math::Int y, const math::Int x) { return get()[y, x]; }
+
+    /**
+     * @brief Index the texture
+     *
+     * @param y Which scan line?
+     * @param x Which pixel on the scan line?
+     * @return The value at the particular index
+     */
+    const math::RGBA_8bit& operator[](const math::Int y, const math::Int x) const { return get()[y, x]; }
 
     /**
      * @brief Load a texture, given a texture file path
@@ -170,32 +273,30 @@ public:
     {
         static_assert(4 * sizeof(unsigned char) == sizeof(math::RGBA_8bit));
 
-        int w, h, n;
+        int width, height, n;
         detail::stbi_set_flip_vertically_on_load(true);
-        unsigned char* ptr = detail::stbi_load(file_path.c_str(), &w, &h, &n, detail::STBI_rgb_alpha);
-
+        unsigned char* ptr = detail::stbi_load(file_path.c_str(), &width, &height, &n, detail::STBI_rgb_alpha);
         if (!ptr) {
-            throw std::runtime_error("asciirast::Texture::init() : " + std::string(detail::stbi_failure_reason()));
-        } else if (n != 4) {
-            free(ptr);
-            throw std::runtime_error("asciirast::Texture::init() : desired channels is not given by stb_image");
+            throw std::runtime_error("asciirast::Texture::load() : " + std::string(detail::stbi_failure_reason()));
         }
 
-        const auto mip_levels = std::max<unsigned>(1U, static_cast<unsigned>(std::ceil(std::log2(std::max(w, h)))));
-        const auto height = static_cast<std::size_t>(h);
-        const auto width = static_cast<std::size_t>(w);
+        const auto mip_levels =
+                std::max<unsigned>(1U, static_cast<unsigned>(std::floor(std::log2(std::max(width, height)))));
         const auto ptr_rgba = reinterpret_cast<const math::RGBA_8bit*>(ptr);
 
         m_mipmaps.resize(mip_levels);
         m_mipmaps[0] = RGBA_8bit_TextureStorage(width, height);
 
-        for (std::size_t y = 0; y < height; y++) {
-            for (std::size_t x = 0; x < width; x++) {
-                m_mipmaps[0][y, x] = ptr_rgba[width * y + x];
+        for (math::Int y = 0; y < height; y++) {
+            for (math::Int x = 0; x < width; x++) {
+                const std::size_t idx = detail::texture_index(width, height, x, y);
+
+                m_mipmaps[0].data()[idx] = ptr_rgba[idx];
             }
         }
 
         free(ptr);
+        m_has_loaded = true;
     }
 
     /**
@@ -213,6 +314,8 @@ public:
                      const std::size_t min_mipmap_level = 0,
                      const std::size_t max_mipmap_level = std::numeric_limits<std::size_t>::max())
     {
+        assert(this->has_loaded());
+
         if (file_path.extension().string() != ".png") {
             throw std::runtime_error("asciirast::Texture::save() : " + file_path.string() + " is not a .png file");
         }
@@ -250,30 +353,28 @@ public:
      */
     void generate_mipmaps()
     {
-        if (m_mipmaps.size() == 0) {
-            return;
-        }
-
         const auto extract_2x2_pixels = [](const RGBA_8bit_TextureStorage& mipmap,
-                                           const std::size_t x,
-                                           const std::size_t y) -> std::array<math::Vec4Int, 4> {
+                                           const math::Int x,
+                                           const math::Int y) -> std::array<math::Vec4Int, 4> {
             return { math::Vec4Int{ mipmap[y + 0, x + 0] }, //
                      math::Vec4Int{ mipmap[y + 0, x + 1] },
                      math::Vec4Int{ mipmap[y + 1, x + 0] },
                      math::Vec4Int{ mipmap[y + 1, x + 1] } };
         };
 
-        std::size_t mip_width = m_mipmaps[0].width();
-        std::size_t mip_height = m_mipmaps[0].height();
+        assert(this->has_loaded());
+
+        math::Int mip_width = m_mipmaps[0].width();
+        math::Int mip_height = m_mipmaps[0].height();
 
         for (std::size_t i = 1; i < m_mipmaps.size(); i++) {
-            mip_width = std::max<std::size_t>(1, mip_width / 2);
-            mip_height = std::max<std::size_t>(1, mip_height / 2);
+            mip_width = std::max(1, mip_width / 2);
+            mip_height = std::max(1, mip_height / 2);
 
             m_mipmaps[i] = RGBA_8bit_TextureStorage(mip_width, mip_height);
 
-            for (std::size_t y = 0; y < m_mipmaps[i].height(); y++) {    // 300
-                for (std::size_t x = 0; x < m_mipmaps[i].width(); x++) { // 400
+            for (math::Int y = 0; y < m_mipmaps[i].height(); y++) {
+                for (math::Int x = 0; x < m_mipmaps[i].width(); x++) {
                     const auto c_arr = extract_2x2_pixels(m_mipmaps[i - 1], 2 * x, 2 * y);
                     const auto a_sum = c_arr[0].a + c_arr[1].a + c_arr[2].a + c_arr[3].a;
 

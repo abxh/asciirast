@@ -10,8 +10,8 @@
 namespace asciirast::rasterize {
 
 template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
-    requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
-             std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
+    requires(std::is_invocable_v<Plot, ProjectedFragment<Varying>> &&
+             std::is_invocable_r_v<bool, TestAndSetDepth, math::Vec2, math::Float>)
 [[maybe_unused]]
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0,
@@ -19,7 +19,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
                const Plot plot,
                const TestAndSetDepth test_and_set_depth)
 {
-    // DDA Line algorithm:
+    // Modified DDA Line algorithm:
     // https://www.redblobgames.com/grids/line-drawing/#more
     // https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
 
@@ -42,13 +42,23 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
     auto acc_v = v0;
     auto acc_Z_inv = Z_inv0;
 
-    for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
-        const auto pos = math::floor(acc_v);
-        const auto acc_depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t, Z_inv0, Z_inv1, acc_Z_inv);
+    const auto func = [&depth0, &depth1, &Z_inv0, &Z_inv1, &attrs0, &attrs1](
+                              const math::Float& acc_t_,
+                              const math::Vec2& acc_v_,
+                              const math::Float& acc_Z_inv_) -> ProjectedFragment<Varying> {
+        return ProjectedFragment<Varying>{
+            .pos = math::floor(acc_v_),
+            .depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_),
+            .Z_inv = acc_Z_inv_,
+            .attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_)
+        };
+    };
 
-        if (test_and_set_depth(pos, acc_depth)) {
-            const auto acc_attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv);
-            plot(pos, acc_depth, acc_Z_inv, acc_attrs);
+    for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
+        const ProjectedFragment<Varying> pfrag = func(acc_t, acc_v, acc_Z_inv);
+
+        if (test_and_set_depth(pfrag.pos, pfrag.depth)) {
+            plot(pfrag);
         }
 
         acc_t += inc_t;
@@ -65,8 +75,8 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
 
     // note: (y > 0) since y-axis points up
 
-    const bool points_right = math::almost_less_than<math::Float>(0, edge.x);
-    const bool points_up = math::almost_less_than<math::Float>(0, edge.y);
+    const bool points_right = math::almost_less_than<math::Float>(0, edge.x); // 0 < x
+    const bool points_up = math::almost_less_than<math::Float>(0, edge.y);    // 0 < y
 
     const bool is_top_edge = math::almost_equal<math::Float>(0, edge.y) && points_right;
     const bool is_left_edge = points_up;
@@ -75,8 +85,8 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
 }
 
 template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
-    requires(std::is_invocable_v<Plot, math::Vec2, math::Float, math::Float, Varying> &&
-             std::is_invocable_v<TestAndSetDepth, math::Vec2, math::Float>)
+    requires(std::is_invocable_v<Plot, ProjectedFragment<Varying>> &&
+             std::is_invocable_r_v<bool, TestAndSetDepth, math::Vec2, math::Float>)
 [[maybe_unused]]
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
@@ -85,8 +95,8 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const Plot plot,
                    const TestAndSetDepth test_and_set_depth)
 {
-    // Algorithm using cross products and bayesian coordinates for
-    // triangles:
+    // Modified algorithm which uses cross products
+    // and bayesian coordinates for triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
@@ -158,6 +168,16 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const auto max_x_int = static_cast<std::size_t>(max.x);
     const auto max_y_int = static_cast<std::size_t>(max.y);
 
+    const auto func = [&triangle_area_2, &Z_inv, &depth, &attrs](const math::Vec3& w,
+                                                                 const math::Vec2& pos) -> ProjectedFragment<Varying> {
+        const auto weights = w / triangle_area_2;
+        const auto acc_Z_inv = barycentric(Z_inv, weights);
+        const auto acc_depth = barycentric_perspective_corrected(depth, weights, Z_inv, acc_Z_inv);
+        const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, Z_inv, acc_Z_inv);
+
+        return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
+    };
+
     for (std::size_t y = min_y_int; y <= max_y_int; y++) {
         math::Float w0 = w0_y_minx;
         math::Float w1 = w1_y_minx;
@@ -166,14 +186,13 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         p.x = min.x;
 
         for (std::size_t x = min_x_int; x <= max_x_int; x++) {
-            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                const auto weights = math::Vec3{ w0, w1, w2 } / triangle_area_2;
-                const auto acc_Z_inv = barycentric(Z_inv, weights);
-                const auto acc_depth = barycentric_perspective_corrected(depth, weights, Z_inv, acc_Z_inv);
+            const auto w = math::Vec3{ w0, w1, w2 };
+            const bool in_triangle = w.x >= 0 && w.y >= 0 && w.z >= 0;
 
-                if (test_and_set_depth(p, acc_depth)) {
-                    const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, Z_inv, acc_Z_inv);
-                    plot(p, acc_depth, acc_Z_inv, acc_attrs);
+            if (in_triangle) {
+                const auto pfrag = func(w, p);
+                if (test_and_set_depth(pfrag.pos, pfrag.depth)) {
+                    plot(pfrag);
                 }
             }
             w0 += delta_w0_x;
