@@ -248,15 +248,6 @@ handle_events(bool& running,
             case SDLK_7:
                 sampler.wrap_method = asciirast::WrapMethod::Repeat;
                 break;
-            case SDLK_8:
-                sampler.mipmap_sample_method = asciirast::SampleMethod::Point;
-                break;
-            case SDLK_9:
-                sampler.mipmap_sample_method = asciirast::SampleMethod::Linear;
-                break;
-            case SDLK_0:
-                sampler.mipmap_sample_method = asciirast::SampleMethod::Nearest;
-                break;
             default:
                 break;
             }
@@ -277,7 +268,7 @@ main(int argc, char* argv[])
 {
     if (argc < 2) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-png>";
+        std::cout << "usage:" << " " << program_name << " " << "<path-to-png>\n";
         return EXIT_FAILURE;
     }
     const char* path_to_obj = argc >= 2 ? argv[1] : "";
@@ -301,7 +292,6 @@ main(int argc, char* argv[])
 
     sampler.sample_method = asciirast::SampleMethod::Linear;
     sampler.wrap_method = asciirast::WrapMethod::Repeat;
-    sampler.mipmap_sample_method = asciirast::SampleMethod::Nearest;
 
     asciirast::VertexBuffer<MyVertex> vertex_buf{};
     vertex_buf.shape_type = asciirast::ShapeType::TriangleStrip;

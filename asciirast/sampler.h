@@ -63,9 +63,9 @@ protected:
 public:
     static constexpr auto blank_color = math::Vec4{ 1, 0, 1, 1 }; ///< default blank color
 
-    SampleMethod sample_method = SampleMethod::Linear;         ///< pixel sampling method
-    SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
-    WrapMethod wrap_method = WrapMethod::Clamp;                ///< border wrapping method
+    SampleMethod sample_method = SampleMethod::Linear; ///< pixel sampling method
+    WrapMethod wrap_method = WrapMethod::Clamp;        ///< border wrapping method
+    // SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
 
     /**
      * @brief Initialize this sampler to sample from a texture
@@ -84,6 +84,7 @@ public:
      */
     math::Vec4 sample(const math::Vec2& uv, const std::size_t i = 0) const
     {
+        assert(i == 0); // TODO: 2x2 block processing for calculating screen gradients?...
         assert(i < m_texture.mipmaps().size());
 
         const auto size_x = m_texture.mipmaps()[i].width();
@@ -195,6 +196,7 @@ texture(const Sampler<Allocator>& sampler, const math::Vec2& uv)
  * @param lod The level of details a float to be used as a index
  * @return Color at the uv coordinate
  */
+/*
 template<typename Allocator>
 [[maybe_unused]]
 static math::Vec4
@@ -222,5 +224,6 @@ textureLOD(const Sampler<Allocator>& sampler, const math::Vec2& uv, const math::
     }
     return Sampler<Allocator>::blank_color;
 }
+*/
 
 }

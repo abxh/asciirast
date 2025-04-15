@@ -9,7 +9,7 @@ main(int argc, char* argv[])
 {
     if (argc < 2) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj>";
+        std::cout << "usage:" << " " << program_name << " " << "<path-to-png>\n";
         return EXIT_FAILURE;
     }
     const char* path_to_obj = argc >= 2 ? argv[1] : "";
