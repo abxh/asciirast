@@ -72,19 +72,19 @@ public:
      *
      * @param texture Const reference to the texture at hand
      */
-    Sampler(const Texture<RGBA_8bit_Allocator>& texture) noexcept
+    explicit Sampler(const Texture<RGBA_8bit_Allocator>& texture) noexcept
             : m_texture{ texture } {};
 
     /**
      * @brief Sample the texture at the given uv coordinate
      *
      * @param uv The uv coordinate
-     * @param i The index of the mipmap to use
      * @return The RGBA pixel color as Vec
      */
-    math::Vec4 sample(const math::Vec2& uv, const std::size_t i = 0) const
+    [[nodiscard]] math::Vec4 sample(const math::Vec2& uv) const
     {
-        assert(i == 0); // TODO: 2x2 block processing for calculating screen gradients?...
+        const std::size_t i = 0;
+
         assert(i < m_texture.mipmaps().size());
 
         const auto size_x = m_texture.mipmaps()[i].width();
@@ -171,6 +171,11 @@ protected:
     }
 };
 
+// TODO:
+// Make texture() more special with 2x2 block proccessing?
+// 2x2 block processing for calculating screen gradients, to calculate LOD?...
+// Currently keeping it disable. Resort to Sampler().sample()
+
 /**
  * @brief Sample texture at a uv coordinate
  *
@@ -180,6 +185,7 @@ protected:
  * @param uv The uv coordinate
  * @return Color at the uv coordinate
  */
+/*
 template<typename Allocator>
 [[maybe_unused]]
 static math::Vec4
@@ -187,6 +193,7 @@ texture(const Sampler<Allocator>& sampler, const math::Vec2& uv)
 {
     return sampler.sample(uv);
 }
+*/
 
 /**
  * @brief Sample texture at a uv coordinate with a specific Level-Of-Detail

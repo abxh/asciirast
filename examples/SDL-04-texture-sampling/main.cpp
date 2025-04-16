@@ -177,7 +177,7 @@ public:
     }
     Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
     {
-        return { asciirast::texture(u.sampler, pfrag.attrs.uv) };
+        return { u.sampler.sample(pfrag.attrs.uv) };
     }
 };
 
@@ -288,7 +288,7 @@ main(int argc, char* argv[])
     math::Float zoom = 1.f;
     math::Transform2D final_transform;
     asciirast::Sampler sampler{ texture };
-    const MyUniform uniforms{ sampler, final_transform};
+    const MyUniform uniforms{ sampler, final_transform };
 
     sampler.sample_method = asciirast::SampleMethod::Linear;
     sampler.wrap_method = asciirast::WrapMethod::Repeat;

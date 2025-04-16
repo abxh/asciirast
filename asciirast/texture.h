@@ -73,7 +73,7 @@ public:
      * @param height The height of the texture
      * @param default_color The default color to use
      */
-    TextureStorage(const math::Int width = 1, const math::Int height = 1, const T default_color = T()) noexcept
+    explicit TextureStorage(const math::Int width = 1, const math::Int height = 1, const T default_color = T()) noexcept
             : m_width{ std::max(1, width) }
             , m_height{ std::max(1, height) }
     {
@@ -87,28 +87,28 @@ public:
      *
      * @return The width as math::Int
      */
-    math::Int width() const { return m_width; }
+    [[nodiscard]] math::Int width() const { return m_width; }
 
     /**
      * @brief Get the height of the texture
      *
      * @return The height as math::Int
      */
-    math::Int height() const { return m_height; }
+    [[nodiscard]] math::Int height() const { return m_height; }
 
     /**
      * @brief Get the pointer to the underlying data
      *
      * @return The pointer to the first pixel
      */
-    T* data() { return m_pixels.data(); }
+    [[nodiscard]] T* data() { return m_pixels.data(); }
 
     /**
      * @brief Get the pointer to the underlying data
      *
      * @return The const pointer to the first pixel
      */
-    const T* data() const { return m_pixels.data(); }
+    [[nodiscard]] const T* data() const { return m_pixels.data(); }
 
     /**
      * @brief Fill the texture with a value
@@ -124,7 +124,7 @@ public:
      * @param x Which pixel on the scan line?
      * @return The reference to the value at the particular index
      */
-    T& operator[](const math::Int y, const math::Int x)
+    [[nodiscard]] T& operator[](const math::Int y, const math::Int x)
     {
         return m_pixels[detail::texture_index(m_width, m_height, x, y)];
     }
@@ -136,7 +136,7 @@ public:
      * @param x Which pixel on the scan line?
      * @return The value at the particular index
      */
-    const T& operator[](const math::Int y, const math::Int x) const
+    [[nodiscard]] const T& operator[](const math::Int y, const math::Int x) const
     {
         return m_pixels[detail::texture_index(m_width, m_height, x, y)];
     }
@@ -169,28 +169,28 @@ public:
      *
      * @param file_path Path to the texture file
      */
-    Texture(const std::filesystem::path& file_path) { this->load(file_path); }
+    explicit Texture(const std::filesystem::path& file_path) { this->load(file_path); }
 
     /**
      * @brief Check if texture has been loaded
      *
      * @return Returns whether the texture has been loaded
      */
-    bool has_loaded() const { return m_has_loaded; }
+    [[nodiscard]] bool has_loaded() const { return m_has_loaded; }
 
     /**
      * @brief Get all mipmaps
      *
      * @return A const reference to the mipmaps container
      */
-    const Mipmaps& mipmaps() const { return m_mipmaps; }
+    [[nodiscard]] const Mipmaps& mipmaps() const { return m_mipmaps; }
 
     /**
      * @brief Get the (first) texture storage
      *
      * @return Reference to the first texture storage
      */
-    TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get()
+    [[nodiscard]] TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get()
     {
         assert(this->has_loaded());
 
@@ -202,7 +202,7 @@ public:
      *
      * @return Const reference to the first texture storage
      */
-    const TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get() const
+    [[nodiscard]] const TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get() const
     {
         assert(this->has_loaded());
 
@@ -214,30 +214,30 @@ public:
      *
      * @return The width as math::Int
      */
-    math::Int width() const { return get().width(); }
+    [[nodiscard]] math::Int width() const { return get().width(); }
 
     /**
      * @brief Get the height of the texture
      *
      * @return The height as math::Int
      */
-    math::Int height() const { return get().height(); }
+    [[nodiscard]] math::Int height() const { return get().height(); }
 
     /**
      * @brief Get the pointer to the underlying data
      *
      * @return The pointer to the first pixel
      */
-    math::RGBA_8bit* data() { return get().data(); }
+    [[nodiscard]] math::RGBA_8bit* data() { return get().data(); }
 
     /**
      * @brief Get the pointer to the underlying data
      *
      * @return The const pointer to thfuck e first pixel
      */
-    const math::RGBA_8bit* data() const { return get().data(); }
+    [[nodiscard]] const math::RGBA_8bit* data() const { return get().data(); }
 
-    /**fuck 
+    /**fuck
      * @brief Fill the texture with a value
      *
      * @param value The value at hand
@@ -251,7 +251,7 @@ public:
      * @param x Which pixel on the scan line?
      * @return The reference to the value at the particular index
      */
-    math::RGBA_8bit& operator[](const math::Int y, const math::Int x) { return get()[y, x]; }
+    [[nodiscard]] math::RGBA_8bit& operator[](const math::Int y, const math::Int x) { return get()[y, x]; }
 
     /**
      * @brief Index the texture
@@ -260,7 +260,7 @@ public:
      * @param x Which pixel on the scan line?
      * @return The value at the particular index
      */
-    const math::RGBA_8bit& operator[](const math::Int y, const math::Int x) const { return get()[y, x]; }
+    [[nodiscard]] const math::RGBA_8bit& operator[](const math::Int y, const math::Int x) const { return get()[y, x]; }
 
     /**
      * @brief Load a texture, given a texture file path

@@ -104,7 +104,7 @@ public:
      *
      * @param screen_to_window_ The screen to window transform to use
      */
-    RendererData(const math::Transform2D& screen_to_window_)
+    explicit RendererData(const math::Transform2D& screen_to_window_) noexcept
             : screen_to_window{ screen_to_window_ } {};
 };
 
