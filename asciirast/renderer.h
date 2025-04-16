@@ -102,7 +102,7 @@ public:
     /**
      * @brief Construct renderer data
      *
-     * @param screen_to_window_ The screen to window transfrom to use
+     * @param screen_to_window_ The screen to window transform to use
      */
     RendererData(const math::Transform2D& screen_to_window_)
             : screen_to_window{ screen_to_window_ } {};

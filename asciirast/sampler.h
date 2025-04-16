@@ -63,8 +63,8 @@ protected:
 public:
     static constexpr auto blank_color = math::Vec4{ 1, 0, 1, 1 }; ///< default blank color
 
-    SampleMethod sample_method = SampleMethod::Linear; ///< pixel sampling method
-    WrapMethod wrap_method = WrapMethod::Clamp;        ///< border wrapping method
+    SampleMethod sample_method = SampleMethod::Nearest; ///< pixel sampling method
+    WrapMethod wrap_method = WrapMethod::Clamp;         ///< border wrapping method
     // SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
 
     /**

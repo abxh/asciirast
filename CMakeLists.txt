@@ -84,6 +84,7 @@ if (EXAMPLES)
 		add_subdirectory(examples/SDL-02-flat-shading)
 		add_subdirectory(examples/SDL-03-shading-with-depth)
 		add_subdirectory(examples/SDL-04-texture-sampling)
+		add_subdirectory(examples/SDL-05-shading-with-color)
 	endif()
 
 	add_subdirectory(examples/IMG-00-perspective-correctness)
