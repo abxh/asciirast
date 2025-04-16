@@ -226,7 +226,7 @@ public:
                     vert.pos.xy,
                     vert.pos.z * depth_scalar - u.z_near * depth_scalar,
                     vert.pos.z,
- , texcoords[tci0]           },
+            },
             Varying{ math::Vec3{ 1.f }, vert.uv },
         };
     }
