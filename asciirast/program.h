@@ -115,10 +115,6 @@ project_fragment(const Fragment<T>& frag) -> ProjectedFragment<T>
 template<class UniformType, class VertexType, VaryingInterface VaryingType, FrameBufferInterface FrameBuffer>
 class AbstractProgram
 {
-protected:
-    using Frag = Fragment<VaryingType>;           ///< Fragment alias
-    using PFrag = ProjectedFragment<VaryingType>; ///< ProjectedFragment alias
-
 public:
     using Uniform = UniformType;          ///< uniform(s) type
     using Vertex = VertexType;            ///< vertex type
@@ -133,12 +129,12 @@ public:
     /**
      * @brief Function run on every vertex
      */
-    virtual Frag on_vertex(const UniformType&, const VertexType&) const = 0;
+    virtual auto on_vertex(const UniformType&, const VertexType&) const -> Fragment<VaryingType> = 0;
 
     /**
      * @brief Function run on every fragment
      */
-    virtual Targets on_fragment(const UniformType&, const PFrag&) const = 0;
+    virtual auto on_fragment(const UniformType&, const ProjectedFragment<VaryingType>&) const -> Targets = 0;
 };
 
 /**
