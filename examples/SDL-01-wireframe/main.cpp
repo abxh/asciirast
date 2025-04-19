@@ -163,6 +163,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename SDLBuffer::Targets>;
 
 public:
     // alias to fullfill program interface:
@@ -170,6 +171,7 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
@@ -177,10 +179,10 @@ public:
         return Fragment{ .pos = math::Vec4{ vert.pos.x, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ math::Vec3{ 1, 1, 1 } } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
     {
         (void)u;
-        return { pfrag.attrs.color };
+        co_yield Targets{ pfrag.attrs.color };
     }
 };
 

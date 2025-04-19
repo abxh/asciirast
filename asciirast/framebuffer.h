@@ -1,7 +1,7 @@
 /**
- * @file framebuffer.h
- * @brief Definition of framebuffer interface
- */
+* @file framebuffer.h
+* @brief Definition of framebuffer interface
+*/
 
 #pragma once
 
@@ -61,9 +61,13 @@ template<class T>
 concept FrameBufferInterface = requires(T t) {
     typename T::Targets;
     {
-        t.test_and_set_depth(std::declval<const math::Vec2Int&>(), std::declval<const math::Float>())
+        t.test_and_set_depth(std::declval<const math::Vec2Int&>(), //
+                             std::declval<const math::Float>())    //
     } -> std::same_as<bool>;
-    { t.plot(std::declval<const math::Vec2Int&>(), std::declval<const typename T::Targets&>()) } -> std::same_as<void>;
+    {
+        t.plot(std::declval<const math::Vec2Int&>(),       //
+               std::declval<const typename T::Targets&>()) //
+    } -> std::same_as<void>;
 };
 
 } // namespace asciirast

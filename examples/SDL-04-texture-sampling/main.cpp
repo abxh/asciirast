@@ -163,6 +163,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename SDLBuffer::Targets>;
 
 public:
     // alias to fullfill program interface:
@@ -170,14 +171,19 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
         return Fragment{ .pos = math::Vec4{ vert.pos, 0, 1 }, .attrs = Varying{ u.transform.apply(vert.uv) } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+    std::generator<Result> on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag) const
     {
-        return { u.sampler.sample(pfrag.attrs.uv) };
+        const auto color_getter = asciirast::texture(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
+        co_yield color_getter.init();
+        const auto color = color_getter.get();
+
+        co_yield Targets{ color };
     }
 };
 
@@ -248,6 +254,15 @@ handle_events(bool& running,
             case SDLK_7:
                 sampler.wrap_method = asciirast::WrapMethod::Repeat;
                 break;
+            case SDLK_8:
+                sampler.mipmap_sample_method = asciirast::SampleMethod::Point;
+                break;
+            case SDLK_9:
+                sampler.mipmap_sample_method = asciirast::SampleMethod::Nearest;
+                break;
+            case SDLK_0:
+                sampler.mipmap_sample_method = asciirast::SampleMethod::Linear;
+                break;
             default:
                 break;
             }
@@ -290,8 +305,9 @@ main(int argc, char* argv[])
     asciirast::Sampler sampler{ texture };
     const MyUniform uniforms{ sampler, final_transform };
 
-    sampler.sample_method = asciirast::SampleMethod::Linear;
     sampler.wrap_method = asciirast::WrapMethod::Repeat;
+    sampler.sample_method = asciirast::SampleMethod::Linear;
+    sampler.mipmap_sample_method = asciirast::SampleMethod::Linear;
 
     asciirast::VertexBuffer<MyVertex> vertex_buf{};
     vertex_buf.shape_type = asciirast::ShapeType::TriangleStrip;

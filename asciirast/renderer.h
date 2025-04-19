@@ -10,6 +10,8 @@
 #include <cassert>
 #include <deque>
 #include <ranges>
+#include <stdexcept>
+#include <variant>
 #include <vector>
 
 #include "./math/types.h"
@@ -164,6 +166,8 @@ public:
      * @brief Draw on a framebuffer using a program given uniform(s),
      * verticies, options and reusable data buffers
      *
+     * @exception logic_error Fragment result related errors
+     *
      * @param program The shader program
      * @param uniform The uniform(s)
      * @param verts The vertex buffer
@@ -194,7 +198,9 @@ public:
      * @brief Draw on a framebuffer using a program given uniform(s),
      * indexed verticies, renderer data and options
      *
-     * @exception runtime_error When the indicies are out of bounds
+     * @exception
+     * - runtime_error When the indicies are out of bounds
+     * - logic_error Fragment result related errors
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -241,7 +247,7 @@ private:
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
-              std::ranges::input_range auto&& vert_range,
+              std::ranges::input_range auto&& verticies_inp,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
               const RendererOptions<WindingOrderOption>& options) const
@@ -250,7 +256,7 @@ private:
 
         switch (shape_type) {
         case ShapeType::Points: {
-            for (const Vertex& vert : vert_range) {
+            for (const Vertex& vert : verticies_inp) {
                 draw_point(program, uniform, framebuffer, data, vert);
             }
         } break;
@@ -258,28 +264,28 @@ private:
             const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex> {
                 return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U));
             };
-            const auto rem = std::ranges::distance(vert_range) % 2U;
-            const auto subrange = vert_range | std::ranges::views::take(std::ranges::distance(vert_range) - rem);
+            const auto rem = std::ranges::distance(verticies_inp) % 2U;
+            const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
             const auto verticies = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
 
-            for (const auto [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies) {
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
         case ShapeType::LineStrip: {
-            const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
+            const auto verticies = verticies_inp | std::ranges::views::adjacent<2U>;
 
-            for (const auto [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies) {
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             }
         } break;
         case ShapeType::LineLoop: {
-            const auto verticies = vert_range | std::ranges::views::adjacent<2U>;
+            const auto verticies = verticies_inp | std::ranges::views::adjacent<2U>;
 
-            for (const auto [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies) {
                 draw_line(program, uniform, framebuffer, data, v0, v1);
             }
-            if (std::ranges::distance(vert_range) >= 1U) {
+            if (std::ranges::distance(verticies) >= 1U) {
                 const auto v0 = std::get<1>(*(verticies.cend() - 1U));
                 const auto v1 = std::get<0>(*verticies.cbegin());
 
@@ -290,28 +296,28 @@ private:
             const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex, Vertex> {
                 return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U), *(range.cbegin() + 2U));
             };
-            const auto rem = std::ranges::distance(vert_range) % 3U;
-            const auto subrange = vert_range | std::ranges::views::take(std::ranges::distance(vert_range) - rem);
+            const auto rem = std::ranges::distance(verticies_inp) % 3U;
+            const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
             const auto verticies = subrange | std::ranges::views::chunk(3U) | std::ranges::views::transform(func);
 
-            for (const auto [v0, v1, v2] : verticies) {
+            for (const auto& [v0, v1, v2] : verticies) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
         case ShapeType::TriangleStrip: {
-            const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
+            const auto verticies = verticies_inp | std::ranges::views::adjacent<3U>;
 
-            for (const auto [v0, v1, v2] : verticies) {
+            for (const auto& [v0, v1, v2] : verticies) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
         case ShapeType::TriangleFan: {
-            const auto verticies = vert_range | std::ranges::views::adjacent<3U>;
+            const auto verticies = verticies_inp | std::ranges::views::adjacent<3U>;
 
-            for (const auto [v0, v1, v2] : verticies) {
+            for (const auto& [v0, v1, v2] : verticies) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
-            if (std::ranges::distance(vert_range) >= 1U) {
+            if (std::ranges::distance(verticies) >= 1U) {
                 const auto v0 = std::get<1>(*(verticies.cend() - 1U));
                 const auto v1 = std::get<2>(*(verticies.cend() - 1U));
                 const auto v2 = std::get<0>(*verticies.cbegin());
@@ -336,9 +342,7 @@ private:
             const ProjectedFragment<Varying>& pfrag,
             const RendererData<Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        const math::Vec2 new_pos = data.screen_to_window.apply(pfrag.pos);
-
-        return ProjectedFragment<Varying>{ .pos = math::floor(new_pos + math::Vec2{ 0.5f, 0.5f }),
+        return ProjectedFragment<Varying>{ .pos = math::round(data.screen_to_window.apply(pfrag.pos)),
                                            .depth = pfrag.depth,
                                            .Z_inv = pfrag.Z_inv,
                                            .attrs = pfrag.attrs };
@@ -359,9 +363,11 @@ private:
     {
         using Varying = typename Program::Varying;
         using Targets = typename Program::Targets;
+        using FragmentContext = typename Program::FragmentContext;
 
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
+        using FragResult = FragmentResult<Targets>;
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
@@ -388,14 +394,27 @@ private:
 
         // screen space -> window space:
         const PFrag wfrag = apply_screen_to_window(vfrag, data);
-
-        // apply fragment shader:
-        const Targets targets = program.on_fragment(uniform, wfrag);
-
-        // plot in framebuffer:
         const auto pos_int = math::Vec2Int{ wfrag.pos };
-        if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
-            framebuffer.plot(pos_int, targets);
+
+        // create empty fragment context
+        std::array<typename FragmentContext::ValueVariant, 4> quad;
+        auto context = FragmentContext();
+        context.m_id = 0;
+        context.m_quad_ptr = &quad[0];
+
+        // apply fragment shader and unpack results:
+        for (const auto& r : program.on_fragment(context, uniform, wfrag)) {
+            if (std::holds_alternative<typename FragResult::ContextPrepare>(r.m_value)) {
+                context.m_type = FragmentContext::Type::POINT;
+                continue; // for consistency with other kinds of shapes
+            } else if (std::holds_alternative<Targets>(r.m_value)) {
+                if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
+                    framebuffer.plot(pos_int, std::get<Targets>(r.m_value));
+                }
+                break; // do nothing special but plot point in framebuffer
+            } else {
+                break; // discard point
+            }
         }
     }
 
@@ -415,9 +434,11 @@ private:
     {
         using Varying = typename Program::Varying;
         using Targets = typename Program::Targets;
+        using FragmentContext = typename Program::FragmentContext;
 
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
+        using FragResult = FragmentResult<Targets>;
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
@@ -459,19 +480,65 @@ private:
         const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0, data);
         const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
 
-        const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) -> bool {
-            return framebuffer.test_and_set_depth(pos, depth);
-        };
-        const auto plot_func = [&program, &framebuffer, &uniform](const PFrag& pfrag) -> void {
-            // apply fragment shader:
-            const Targets targets = program.on_fragment(uniform, pfrag);
+        const auto plot_func =
+                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag,
+                                                   const std::array<bool, 2>& in_line) -> void {
+            const auto [rfrag0, rfrag1] = rfrag;
 
-            // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pfrag.pos }, targets);
+            const auto rfrag0_posi = math::Vec2Int{ rfrag0.pos };
+            const auto rfrag1_posi = math::Vec2Int{ rfrag1.pos };
+
+            const bool test_fail0 = !in_line[0] || !framebuffer.test_and_set_depth(rfrag0_posi, rfrag0.depth);
+            const bool test_fail1 = !in_line[1] || !framebuffer.test_and_set_depth(rfrag1_posi, rfrag1.depth);
+
+            // stop here if all depth tests fail:
+            if (test_fail0 && test_fail1) {
+                return;
+            }
+            // otherwise at least one of the pixels are accepted
+
+            std::array<typename FragmentContext::ValueVariant, 4> quad;
+            FragmentContext c0, c1;
+            c0.m_id = 0;
+            c1.m_id = 1;
+            c0.m_is_helper_invocation = !in_line[0];
+            c1.m_is_helper_invocation = !in_line[1];
+            c0.m_quad_ptr = &quad[0];
+            c1.m_quad_ptr = &quad[0];
+
+            // apply fragment shader and unpack wrapped result:
+            for (const auto& [r0, r1] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
+                                                                program.on_fragment(c1, uniform, rfrag1))) {
+                const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
+                const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
+
+                const bool holds_prepare0 = std::holds_alternative<typename FragResult::ContextPrepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<typename FragResult::ContextPrepare>(r1.m_value);
+
+                if (holds_prepare0 || holds_prepare1) {
+                    if (!holds_prepare0 || !holds_prepare1) {
+                        throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
+                                               "prepare context in the same order in all instances");
+                    }
+                    c0.m_type = FragmentContext::Type::LINE;
+                    c1.m_type = FragmentContext::Type::LINE;
+                    continue; // prepare fragment contexts concurrently
+                } else if (holds_targets0 || holds_targets1) {
+                    if (in_line[0] && !test_fail0 && holds_targets0) {
+                        framebuffer.plot(rfrag0_posi, std::get<Targets>(r0.m_value));
+                    }
+                    if (in_line[1] && !test_fail1 && holds_targets1) {
+                        framebuffer.plot(rfrag1_posi, std::get<Targets>(r1.m_value));
+                    }
+                    break; // do nothing special but plot the point(s) in the framebuffer
+                } else {
+                    break; // both points discarded
+                }
+            }
         };
 
         // iterate over line fragments:
-        rasterize::rasterize_line(wfrag0, wfrag1, plot_func, test_and_set_depth_func);
+        rasterize::rasterize_line(wfrag0, wfrag1, plot_func);
     }
 
     template<ProgramInterface Program,
@@ -493,9 +560,11 @@ private:
     {
         using Varying = typename Program::Varying;
         using Targets = typename Program::Targets;
+        using FragmentContext = typename Program::FragmentContext;
 
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
+        using FragResult = FragmentResult<Targets>;
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
@@ -503,18 +572,88 @@ private:
         const Frag frag1 = program.on_vertex(uniform, v1);
         const Frag frag2 = program.on_vertex(uniform, v2);
 
-        const auto test_and_set_depth_func = [&framebuffer](const math::Vec2Int& pos, const math::Float depth) -> bool {
-            return framebuffer.test_and_set_depth(pos, depth);
-        };
-        const auto plot_func = [&program, &framebuffer, &uniform](const PFrag& pfrag) -> void {
-            // apply fragment shader:
-            const Targets targets = program.on_fragment(uniform, pfrag);
+        const auto plot_func =
+                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 4>& rfrag,
+                                                   const std::array<bool, 4>& in_triangle) -> void {
+            const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
-            // plot point in framebuffer:
-            framebuffer.plot(math::Vec2Int{ pfrag.pos }, targets);
+            const auto rfrag0_posi = math::Vec2Int{ rfrag0.pos };
+            const auto rfrag1_posi = math::Vec2Int{ rfrag1.pos };
+            const auto rfrag2_posi = math::Vec2Int{ rfrag2.pos };
+            const auto rfrag3_posi = math::Vec2Int{ rfrag3.pos };
+
+            const bool test_fail0 = !in_triangle[0] || !framebuffer.test_and_set_depth(rfrag0_posi, rfrag0.depth);
+            const bool test_fail1 = !in_triangle[1] || !framebuffer.test_and_set_depth(rfrag1_posi, rfrag1.depth);
+            const bool test_fail2 = !in_triangle[2] || !framebuffer.test_and_set_depth(rfrag2_posi, rfrag2.depth);
+            const bool test_fail3 = !in_triangle[3] || !framebuffer.test_and_set_depth(rfrag3_posi, rfrag3.depth);
+
+            // stop here if all depth tests fail:
+            if (test_fail0 && test_fail1 && test_fail2 && test_fail3) {
+                return;
+            }
+            // otherwise at least one of the pixels are accepted
+
+            std::array<typename FragmentContext::ValueVariant, 4> quad;
+            FragmentContext c0, c1, c2, c3;
+            c0.m_id = 0;
+            c1.m_id = 1;
+            c2.m_id = 2;
+            c3.m_id = 3;
+            c0.m_is_helper_invocation = !in_triangle[0];
+            c1.m_is_helper_invocation = !in_triangle[1];
+            c2.m_is_helper_invocation = !in_triangle[2];
+            c3.m_is_helper_invocation = !in_triangle[3];
+            c0.m_quad_ptr = &quad[0];
+            c1.m_quad_ptr = &quad[0];
+            c2.m_quad_ptr = &quad[0];
+            c3.m_quad_ptr = &quad[0];
+
+            // apply fragment shader and unpack wrapped result:
+            for (const auto& [r0, r1, r2, r3] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
+                                                                        program.on_fragment(c1, uniform, rfrag1),
+                                                                        program.on_fragment(c2, uniform, rfrag2),
+                                                                        program.on_fragment(c3, uniform, rfrag3))) {
+                const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
+                const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
+                const bool holds_targets2 = std::holds_alternative<Targets>(r2.m_value);
+                const bool holds_targets3 = std::holds_alternative<Targets>(r3.m_value);
+
+                const bool holds_prepare0 = std::holds_alternative<typename FragResult::ContextPrepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<typename FragResult::ContextPrepare>(r1.m_value);
+                const bool holds_prepare2 = std::holds_alternative<typename FragResult::ContextPrepare>(r2.m_value);
+                const bool holds_prepare3 = std::holds_alternative<typename FragResult::ContextPrepare>(r3.m_value);
+
+                if (holds_prepare0 || holds_prepare1 || holds_prepare2 || holds_prepare3) {
+                    if (!holds_prepare0 || !holds_prepare1 || !holds_prepare2 || !holds_prepare3) {
+                        throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
+                                               "prepare context in the same order in all instances");
+                    }
+                    c0.m_type = FragmentContext::Type::FILLED;
+                    c1.m_type = FragmentContext::Type::FILLED;
+                    c2.m_type = FragmentContext::Type::FILLED;
+                    c3.m_type = FragmentContext::Type::FILLED;
+                    continue; // prepare fragment contexts concurrently
+                } else if (holds_targets0 || holds_targets1 || holds_targets2 || holds_prepare3) {
+                    if (in_triangle[0] && !test_fail0 && holds_targets0) {
+                        framebuffer.plot(rfrag0_posi, std::get<Targets>(r0.m_value));
+                    }
+                    if (in_triangle[1] && !test_fail1 && holds_targets1) {
+                        framebuffer.plot(rfrag1_posi, std::get<Targets>(r1.m_value));
+                    }
+                    if (in_triangle[2] && !test_fail2 && holds_targets2) {
+                        framebuffer.plot(rfrag2_posi, std::get<Targets>(r2.m_value));
+                    }
+                    if (in_triangle[3] && !test_fail3 && holds_targets3) {
+                        framebuffer.plot(rfrag3_posi, std::get<Targets>(r3.m_value));
+                    }
+                    break; // do nothing special but plot the point(s) in the framebuffer
+                } else {
+                    break; // both points discarded
+                }
+            }
         };
-        const auto rasterize_triangle = [plot_func, test_and_set_depth_func](
-                                                const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+        const auto rasterize_triangle =
+                [plot_func](const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
             constexpr bool clockwise_winding_order = WindingOrderOption == WindingOrder::Clockwise;
             constexpr bool cclockwise_winding_order = WindingOrderOption == WindingOrder::CounterClockwise;
             constexpr bool neither_winding_order = WindingOrderOption == WindingOrder::Neither;
@@ -532,9 +671,9 @@ private:
 
             // swap vertices after flexible winding order, and iterate over triangle fragments:
             if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, test_and_set_depth_func);
+                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func);
             } else {
-                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, test_and_set_depth_func);
+                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func);
             }
         };
 
@@ -618,5 +757,4 @@ private:
         }
     }
 };
-
 }; // namespace asciirast

@@ -153,8 +153,9 @@ protected:
     using RGBA_8bit_TextureStorage = TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>; ///< mipmap alias
     using Mipmaps = std::vector<RGBA_8bit_TextureStorage, MipmapAllocator>;                ///< mipmaps
 
-    Mipmaps m_mipmaps;         ///< mipmaps
-    bool m_has_loaded = false; ///< whether a texture has been loaded
+    Mipmaps m_mipmaps;                ///< mipmaps
+    bool m_has_loaded = false;        ///< whether a texture has been loaded
+    bool m_mipmaps_generated = false; ///< whether the mipmaps have been generated
 
 public:
     /**
@@ -163,13 +164,17 @@ public:
     Texture() = default;
 
     /**
-     * @brief Construct a texture from a texture file path
+     * @brief Construct a texture and it's mipmaps from a texture file path
      *
      * @exception runtime_error For various errors about the texture
      *
      * @param file_path Path to the texture file
      */
-    explicit Texture(const std::filesystem::path& file_path) { this->load(file_path); }
+    explicit Texture(const std::filesystem::path& file_path)
+    {
+        this->load(file_path);
+        this->generate_mipmaps();
+    }
 
     /**
      * @brief Check if texture has been loaded
@@ -179,11 +184,23 @@ public:
     [[nodiscard]] bool has_loaded() const { return m_has_loaded; }
 
     /**
+     * @brief Check if texture mipmaps have been generated
+     *
+     * @return Returns whether the texture mipmaps have been generated
+     */
+    [[nodiscard]] bool mipmaps_generated() const { return m_mipmaps_generated; }
+
+    /**
      * @brief Get all mipmaps
      *
      * @return A const reference to the mipmaps container
      */
-    [[nodiscard]] const Mipmaps& mipmaps() const { return m_mipmaps; }
+    [[nodiscard]] const Mipmaps& mipmaps() const
+    {
+        assert(this->mipmaps_generated());
+
+        return m_mipmaps;
+    }
 
     /**
      * @brief Get the (first) texture storage
@@ -392,6 +409,8 @@ public:
                 }
             }
         }
+
+        m_mipmaps_generated = true;
     }
 };
 

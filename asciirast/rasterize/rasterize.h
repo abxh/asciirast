@@ -4,20 +4,15 @@
 #include <cfloat>
 
 #include "../math/types.h"
-#include "../program.h"
 #include "./interpolate.h"
 
 namespace asciirast::rasterize {
 
-template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
-    requires(std::is_invocable_v<Plot, ProjectedFragment<Varying>> &&
-             std::is_invocable_r_v<bool, TestAndSetDepth, math::Vec2, math::Float>)
+template<VaryingInterface Varying, typename Plot>
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
 [[maybe_unused]]
 static void
-rasterize_line(const ProjectedFragment<Varying>& proj0,
-               const ProjectedFragment<Varying>& proj1,
-               const Plot plot,
-               const TestAndSetDepth test_and_set_depth)
+rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Plot plot)
 {
     // Modified DDA Line algorithm:
     // https://www.redblobgames.com/grids/line-drawing/#more
@@ -29,7 +24,8 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
     const auto delta = v1 - v0;
     const auto size = math::abs(delta);
     const auto len = std::max<math::Float>(size.x, size.y);
-    if (len == 0) {
+    const auto len_uint = static_cast<std::size_t>(len);
+    if (len_uint == 0) {
         return;
     }
     const auto len_inv = 1 / len;
@@ -54,16 +50,32 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
         };
     };
 
-    for (std::size_t i = 0; i < static_cast<std::size_t>(len); i++) {
-        const ProjectedFragment<Varying> pfrag = func(acc_t, acc_v, acc_Z_inv);
-
-        if (test_and_set_depth(pfrag.pos, pfrag.depth)) {
-            plot(pfrag);
-        }
+    // process two fragments at a time:
+    for (std::size_t i = 0; i < len_uint / 2; i++) {
+        const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
 
         acc_t += inc_t;
         acc_v += inc_v;
         acc_Z_inv += inc_Z_inv;
+
+        const auto pfrag1 = func(acc_t, acc_v, acc_Z_inv);
+
+        acc_t += inc_t;
+        acc_v += inc_v;
+        acc_Z_inv += inc_Z_inv;
+
+        plot({ pfrag0, pfrag1 }, { true, true });
+    }
+    if (len_uint % 2 == 1) {
+        const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
+
+        acc_t += inc_t;
+        acc_v += inc_v;
+        acc_Z_inv += inc_Z_inv;
+
+        const auto pfrag1 = func(acc_t, acc_v, acc_Z_inv);
+
+        plot({ pfrag0, pfrag1 }, { true, false });
     }
 }
 
@@ -84,19 +96,16 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
     return is_top_edge || is_left_edge;
 }
 
-template<VaryingInterface Varying, typename Plot, typename TestAndSetDepth>
-    requires(std::is_invocable_v<Plot, ProjectedFragment<Varying>> &&
-             std::is_invocable_r_v<bool, TestAndSetDepth, math::Vec2, math::Float>)
+template<VaryingInterface Varying, typename Plot>
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&>)
 [[maybe_unused]]
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
-                   const Plot plot,
-                   const TestAndSetDepth test_and_set_depth)
+                   const Plot plot)
 {
-    // Modified algorithm which uses cross products
-    // and bayesian coordinates for triangles:
+    // Modified algorithm which uses cross products and bayesian coordinates for triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
@@ -142,31 +151,22 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0.f : -1.f;
 
     const math::Float triangle_area_2 = cross(v0.vector_to(v2), v0.vector_to(v1));
-    if (triangle_area_2 == 0) {
+    if (std::floor(triangle_area_2) == 0) {
         return;
     }
 
-    math::Vec2 p{ min.x, min.y };
-
-    math::Float w0_y_minx = cross(v1v2, v1.vector_to(p)) + bias0;
-    math::Float w1_y_minx = cross(v2v0, v2.vector_to(p)) + bias1;
-    math::Float w2_y_minx = cross(v0v1, v0.vector_to(p)) + bias2;
+    math::Vec2 p = { min.x, min.y };
+    auto w_y_minx = math::Vec3{ cross(v1v2, v1.vector_to(p)) + bias0,
+                                cross(v2v0, v2.vector_to(p)) + bias1,
+                                cross(v0v1, v0.vector_to(p)) + bias2 };
 
     // cross product terms:
-    const math::Float delta_w0_x = -v1v2.y;
-    const math::Float delta_w0_y = +v1v2.x;
-
-    const math::Float delta_w1_x = -v2v0.y;
-    const math::Float delta_w1_y = +v2v0.x;
-
-    const math::Float delta_w2_x = -v0v1.y;
-    const math::Float delta_w2_y = +v0v1.x;
+    const auto delta_w_x = math::Vec3{ -v1v2.y, -v2v0.y, -v0v1.y };
+    const auto delta_w_y = math::Vec3{ +v1v2.x, +v2v0.x, +v0v1.x };
 
     // bounding box as integer:
-    const auto min_x_int = static_cast<std::size_t>(min.x);
-    const auto min_y_int = static_cast<std::size_t>(min.y);
-    const auto max_x_int = static_cast<std::size_t>(max.x);
-    const auto max_y_int = static_cast<std::size_t>(max.y);
+    const auto x_diff = static_cast<std::size_t>(max.x) - static_cast<std::size_t>(min.x);
+    const auto y_diff = static_cast<std::size_t>(max.y) - static_cast<std::size_t>(min.y);
 
     const auto func = [&triangle_area_2, &Z_inv, &depth, &attrs](const math::Vec3& w,
                                                                  const math::Vec2& pos) -> ProjectedFragment<Varying> {
@@ -178,32 +178,33 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };
 
-    for (std::size_t y = min_y_int; y <= max_y_int; y++) {
-        math::Float w0 = w0_y_minx;
-        math::Float w1 = w1_y_minx;
-        math::Float w2 = w2_y_minx;
-
+    for (std::size_t y = 0; y <= y_diff / 2 + 1; y++) {
+        auto w = w_y_minx;
         p.x = min.x;
 
-        for (std::size_t x = min_x_int; x <= max_x_int; x++) {
-            const auto w = math::Vec3{ w0, w1, w2 };
-            const bool in_triangle = w.x >= 0 && w.y >= 0 && w.z >= 0;
+        for (std::size_t x = 0; x <= x_diff / 2 + 1; x++) {
+            const auto w00 = w;
+            const auto w01 = w + delta_w_x;
+            const auto w10 = w + delta_w_y;
+            const auto w11 = w + delta_w_y + delta_w_x;
 
-            if (in_triangle) {
-                const auto pfrag = func(w, p);
-                if (test_and_set_depth(pfrag.pos, pfrag.depth)) {
-                    plot(pfrag);
-                }
-            }
-            w0 += delta_w0_x;
-            w1 += delta_w1_x;
-            w2 += delta_w2_x;
-            p.x += 1;
+            const auto in_triangle00 = w00.x >= 0 && w00.y >= 0 && w00.z >= 0;
+            const auto in_triangle01 = w01.x >= 0 && w01.y >= 0 && w01.z >= 0;
+            const auto in_triangle10 = w10.x >= 0 && w10.y >= 0 && w10.z >= 0;
+            const auto in_triangle11 = w11.x >= 0 && w11.y >= 0 && w11.z >= 0;
+
+            plot({ func(w00, p + math::Vec2{ 0, 0 }), //
+                   func(w01, p + math::Vec2{ 1, 0 }), // note: notation is y then x
+                   func(w10, p + math::Vec2{ 0, 1 }),
+                   func(w11, p + math::Vec2{ 1, 1 }) },
+                 { in_triangle00, in_triangle01, in_triangle10, in_triangle11 });
+
+            w += 2 * delta_w_x;
+            p.x += 2;
         }
-        w0_y_minx += delta_w0_y;
-        w1_y_minx += delta_w1_y;
-        w2_y_minx += delta_w2_y;
-        p.y += 1;
+
+        w_y_minx += 2 * delta_w_y;
+        p.y += 2;
     }
 }
 

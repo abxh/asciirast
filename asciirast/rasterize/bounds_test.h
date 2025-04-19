@@ -328,7 +328,8 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
             return { 1, 2, 0 };
         }
     }
-    assert(false);
+    assert(false && "should be unreachable");
+    std::unreachable();
     return { 0, 0, 0 };
 }
 
@@ -451,7 +452,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
             case 3:
                 break;
             default:
-                assert(false);
+                assert(false && "should be unreachable");
                 std::unreachable();
                 break;
             }
@@ -588,7 +589,7 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
             case 3:
                 break;
             default:
-                assert(false);
+                assert(false && "should be unreachable");
                 std::unreachable();
                 break;
             }

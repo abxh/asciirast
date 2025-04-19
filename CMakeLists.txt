@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-	add_compile_options(-DNDEBUG -O3 -flto=auto -ffast-math)
+	add_compile_options(-DNDEBUG -O3 -ffast-math -ffinite-math-only -flto=auto) # alternatively: -Ofast
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -20,7 +20,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_compile_options(-ggdb3)
+	add_compile_options(-ggdb3 -Og)
 
 	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)

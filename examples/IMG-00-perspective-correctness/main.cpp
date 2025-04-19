@@ -31,9 +31,10 @@ struct RGB
 
 class PPMBuffer
 {
+    static constexpr math::Float default_depth = 2; // or +infty
+
 public:
     using Targets = std::tuple<RGBFloat>;
-    static constexpr math::Float default_depth = 2; // or +infty
 
     PPMBuffer(const std::size_t width, const std::size_t height)
             : m_width{ width }
@@ -180,12 +181,14 @@ class RGBProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename PPMBuffer::Targets>;
 
 public:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
@@ -197,10 +200,10 @@ public:
                          },
                          Varying{ vert.color, vert.uv } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
     {
         (void)(u);
-        return { pfrag.attrs.color };
+        co_yield Result(pfrag.attrs.color);
     }
 };
 
@@ -210,12 +213,14 @@ class CheckerboardProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename PPMBuffer::Targets>;
 
 public:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
@@ -230,7 +235,7 @@ public:
             Varying{ math::Vec3{ 1.f }, vert.uv },
         };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
     {
         (void)(u);
 
@@ -240,9 +245,11 @@ public:
         const auto vM_decimal_part = std::fmod(uv.g * M, 1.f);
         const auto pattern = (uM_decimal_part > 0.5f) ^ (vM_decimal_part < 0.5f);
 
-        return { pfrag.attrs.color * pattern };
+        co_yield Targets{ pfrag.attrs.color * pattern };
     }
 };
+
+static_assert(asciirast::ProgramInterface<CheckerboardProgram>);
 
 int
 main(int, char**)

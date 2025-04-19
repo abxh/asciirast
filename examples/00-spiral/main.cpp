@@ -153,6 +153,7 @@ class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVaryi
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<Targets>;
 
 public:
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
@@ -169,9 +170,11 @@ public:
         return Fragment{ .pos = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
                          .attrs = MyVarying{ id } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const override
+    std::generator<Result> on_fragment(FragmentContext&,
+                                       const Uniform& u,
+                                       const ProjectedFragment& pfrag) const override
     {
-        return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
+        co_yield Targets{ u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
     }
 };
 

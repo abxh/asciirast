@@ -66,8 +66,10 @@ public:
 
     bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
-        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
-        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
+            m_oob_error = true;
+            return false;
+        }
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp<math::Float>(depth, 0, 1);
@@ -220,6 +222,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename TerminalBuffer::Targets>;
 
 public:
     // alias to fullfill program interface:
@@ -227,15 +230,16 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
         return Fragment{ .pos = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
                          .attrs = Varying{ vert.id, vert.color } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
     {
-        return { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
+        co_yield Targets{ u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
     }
 };
 

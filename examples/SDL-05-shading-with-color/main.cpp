@@ -168,6 +168,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+    using Result = asciirast::FragmentResult<typename SDLBuffer::Targets>;
 
 public:
     // alias to fullfill program interface:
@@ -175,6 +176,7 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
 
     Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
@@ -185,17 +187,19 @@ public:
         static const auto fov_scalar = tanf(fov_angle / 2.f);
         static const auto fov_scalar_inv = 1 / fov_scalar;
 
-        const auto z_shf = 1.f;
+        const auto z_shf = 2.f;
 
         return Fragment{ .pos = math::Vec4{ fov_scalar_inv * vert.pos.x,
                                             fov_scalar_inv * vert.pos.y,
-                                            1 - depth,
-                                            1 - (vert.pos.z - z_shf) },
+                                            u.z_far - depth,
+                                            -vert.pos.z + z_shf },
                          .attrs = Varying{ vert.uv } };
     }
-    Targets on_fragment(const Uniform& u, const ProjectedFragment& pfrag) const
+
+    std::generator<Result> on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag) const
     {
-        return { RGB{ u.sampler.sample(pfrag.attrs.uv) } };
+        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
+        co_yield Targets{ asciirast::texture(context, u.sampler, pfrag.attrs.uv) };
     }
 };
 
