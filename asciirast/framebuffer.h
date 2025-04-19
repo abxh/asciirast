@@ -40,6 +40,7 @@ public:
     {
         (void)(pos);
         (void)(depth);
+
         return true;
     }
 

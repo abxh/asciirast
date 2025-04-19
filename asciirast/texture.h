@@ -12,9 +12,8 @@
 // on alpha-blending:
 // https://github.com/nothings/stb/blob/master/stb_image_resize2.h
 
-// on mipmap generation:
+// mipmap generation ref:
 // https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/texture.h
-// https://web.archive.org/web/20250324123030/https://vulkan-tutorial.com/Generating_Mipmaps
 
 #pragma once
 
@@ -166,7 +165,7 @@ public:
     /**
      * @brief Construct a texture and it's mipmaps from a texture file path
      *
-     * @exception runtime_error For various errors about the texture
+     * @throws std::runtime_error For various errors about the texture
      *
      * @param file_path Path to the texture file
      */
@@ -282,7 +281,7 @@ public:
     /**
      * @brief Load a texture, given a texture file path
      *
-     * @exception runtime_error For various errors about the texture
+     * @throws std::runtime_error For various errors about the texture
      *
      * @param file_path Path to the texture file
      */
@@ -319,7 +318,7 @@ public:
     /**
      * @brief Save texture as png to file path
      *
-     * @exception runtime_error When the texture cannot be saved
+     * @throws std::runtime_error When the texture cannot be saved
      *
      * @param file_path The path to save to
      * @param overwrite Overwrite if file exists
@@ -378,6 +377,15 @@ public:
                      math::Vec4Int{ mipmap[y + 1, x + 0] },
                      math::Vec4Int{ mipmap[y + 1, x + 1] } };
         };
+        const auto blend_color = [](const std::array<math::Vec4Int, 4>& c_arr, const math::Int a_sum) -> math::Vec4Int {
+            math::Vec4Int res;
+            for (std::size_t j = 0; j < 4; j++) {
+                res.rgb += c_arr[j].rgb * c_arr[j].a;
+            }
+            res.rgb /= a_sum;
+            res.a = a_sum / 4;
+            return res;
+        };
 
         assert(this->has_loaded());
 
@@ -395,17 +403,7 @@ public:
                     const auto c_arr = extract_2x2_pixels(m_mipmaps[i - 1], 2 * x, 2 * y);
                     const auto a_sum = c_arr[0].a + c_arr[1].a + c_arr[2].a + c_arr[3].a;
 
-                    if (a_sum == 0) {
-                        m_mipmaps[i][y, x] = math::RGBA_8bit{ 0 };
-                    } else {
-                        math::Vec4Int res{};
-                        for (std::size_t j = 0; j < 4; j++) {
-                            res.rgb += c_arr[j].rgb * c_arr[j].a;
-                        }
-                        res.rgb /= a_sum;
-                        res.a = a_sum / 4;
-                        m_mipmaps[i][y, x] = math::RGBA_8bit{ res };
-                    }
+                    m_mipmaps[i][y, x] = math::RGBA_8bit{ a_sum == 0 ? math::Vec4Int{ 0 } : blend_color(c_arr, a_sum) };
                 }
             }
         }

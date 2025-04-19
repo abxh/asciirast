@@ -85,10 +85,8 @@ concept ProgramInterface = requires(const T t) {
     } -> std::same_as<std::generator<FragmentResult<typename T::Targets>>>;
 };
 
-namespace detail {
-
 /// @cond DO_NOT_DOCUMENT
-
+namespace detail {
 template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
 struct can_use_program_with
 {
@@ -96,9 +94,7 @@ struct can_use_program_with
                                   std::is_same_v<typename Program::Vertex, Vertex> &&
                                   std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
 };
-
-/// @endcond
-
 }; // namespace detail
+/// @endcond
 
 }; // namespace asciirast

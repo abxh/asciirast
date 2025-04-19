@@ -53,27 +53,17 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
     // process two fragments at a time:
     for (std::size_t i = 0; i < len_uint / 2; i++) {
         const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
-
-        acc_t += inc_t;
-        acc_v += inc_v;
-        acc_Z_inv += inc_Z_inv;
-
-        const auto pfrag1 = func(acc_t, acc_v, acc_Z_inv);
-
-        acc_t += inc_t;
-        acc_v += inc_v;
-        acc_Z_inv += inc_Z_inv;
+        const auto pfrag1 = func(acc_t + inc_t, acc_v + inc_v, acc_Z_inv + inc_Z_inv);
 
         plot({ pfrag0, pfrag1 }, { true, true });
+
+        acc_t += 2 * inc_t;
+        acc_v += 2 * inc_v;
+        acc_Z_inv += 2 * inc_Z_inv;
     }
     if (len_uint % 2 == 1) {
         const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
-
-        acc_t += inc_t;
-        acc_v += inc_v;
-        acc_Z_inv += inc_Z_inv;
-
-        const auto pfrag1 = func(acc_t, acc_v, acc_Z_inv);
+        const auto pfrag1 = func(acc_t + inc_t, acc_v + inc_v, acc_Z_inv + inc_Z_inv);
 
         plot({ pfrag0, pfrag1 }, { true, false });
     }

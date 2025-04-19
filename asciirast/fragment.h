@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cassert>
+#include <stdexcept>
 #include <type_traits>
 #include <variant>
 
@@ -73,14 +74,6 @@ struct ProjectedFragment
     math::Float depth; ///< aka z
     math::Float Z_inv; ///< aka 1/w
     Varying attrs;     ///< fragment attributes
-
-    ProjectedFragment operator-(const ProjectedFragment& that)
-    {
-        return { this->pos - that.pos, //
-                 this->depth - that.depth,
-                 this->Z_inv - that.Z_inv,
-                 this->attrs + that.attrs * -1 };
-    }
 };
 
 /**
@@ -129,19 +122,16 @@ class FragmentResultDiscard
 template<typename Targets>
 class FragmentResult
 {
-    class ContextPrepare
+    class FragmentContextPrepare
     {};
 
-    std::variant<Targets, FragmentResultDiscard, ContextPrepare> m_value;
+    std::variant<Targets, FragmentResultDiscard, FragmentContextPrepare> m_value;
 
     friend class Renderer;
 
     template<typename... ValueTypes>
         requires(detail::has_minus_operator<ValueTypes> && ...)
     friend class FragmentContextType;
-
-    FragmentResult(const ContextPrepare&)
-            : m_value{ ContextPrepare() } {};
 
 public:
     /**
@@ -157,6 +147,12 @@ public:
      */
     FragmentResult(const FragmentResultDiscard&)
             : m_value{ FragmentResultDiscard() } {};
+
+    /**
+     * @brief Implicit convertion from context prepare tag
+     */
+    FragmentResult(const FragmentContextPrepare&)
+            : m_value{ FragmentContextPrepare() } {};
 };
 
 // On 2x2 block processing:
@@ -189,29 +185,31 @@ public:
     };
 
     /**
-     * @brief Check if this fragment shader is called solely as a helper invocation
-     *
-     * @return A bool indicating whether this call is a helper invocation
-     */
-    [[nodiscard]] bool is_helper_invocation() const { return m_is_helper_invocation; }
-
-    /**
      * @brief Initialize context with value for this particular fragment
      *
+     * @throws std::logic_error If pointer unexpectedly is not initialized
+     *
      * @param value The value at hand
-     * @param targets Value to deduce return type
      * @return The result type to co_yield back to the renderer
      */
     template<typename T, typename Targets>
     [[nodiscard]] FragmentResult<Targets> init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
-        m_quad_ptr[m_id] = value;
-
-        using ContextPrepare = typename FragmentResult<Targets>::ContextPrepare;
-
-        return FragmentResult<Targets>{ ContextPrepare() };
+        if (m_quad_ptr != nullptr) {
+            m_quad_ptr[m_id] = value;
+        } else {
+            throw std::logic_error("asciirast::FragmentContextType::init() : pointer unexpectedly not initialized!");
+        }
+        return FragmentResult<Targets>{ typename FragmentResult<Targets>::FragmentContextPrepare() };
     }
+
+    /**
+     * @brief Check if this fragment shader is called solely as a helper invocation
+     *
+     * @return A bool indicating whether this call is a helper invocation
+     */
+    [[nodiscard]] bool is_helper_invocation() const { return m_is_helper_invocation; }
 
     /**
      * @brief Check fragment context (runtime) type
@@ -230,6 +228,9 @@ public:
     /**
      * @brief Get the value at the (neighbouring) fragment with id
      *
+     * @throws std::logic_error If pointer unexpectedly is not initialized
+     * @throws std::bad_access_variant If context wasn't initialized with value
+     *
      * @return The value at the fragment with value type deduced by destination type
      */
     template<typename T>
@@ -240,11 +241,18 @@ public:
         assert((id < 2 && m_type == ContextType::LINE) || (m_type != ContextType::LINE));
         assert((id < 4 && m_type == ContextType::FILLED) || (m_type != ContextType::FILLED));
 
-        return std::get<T>(m_quad_ptr[id]);
+        if (m_quad_ptr != nullptr) {
+            return std::get<T>(m_quad_ptr[id]);
+        } else {
+            throw std::logic_error("asciirast::FragmentContextType::at() : pointer unexpectedly not initialized!");
+        }
     }
 
     /**
-     * @brief Get derivative of line
+     * @brief Get derivative of straight line with respect to the direction it's drawn
+     *
+     * @throws std::logic_error If pointer unexpectedly is not initialized
+     * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
      */
@@ -253,11 +261,18 @@ public:
     {
         assert(m_type == ContextType::LINE);
 
-        return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+        if (m_quad_ptr != nullptr) {
+            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+        } else {
+            throw std::logic_error("asciirast::FragmentContextType::dFdv() : pointer unexpectedly not initialized!");
+        }
     }
 
     /**
      * @brief Get a derivative estimate of value with respect to x
+     *
+     * @throws std::logic_error If pointer unexpectedly is not initialized
+     * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
      */
@@ -273,15 +288,22 @@ public:
             2 --> 3
         */
 
-        if (m_id == 0 || m_id == 1) {
-            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+        if (m_quad_ptr != nullptr) {
+            if (m_id == 0 || m_id == 1) {
+                return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+            } else {
+                return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
+            }
         } else {
-            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
+            throw std::logic_error("asciirast::FragmentContextType::dFdx() : pointer unexpectedly not initialized!");
         }
     }
 
     /**
      * @brief Get a derivative estimate of value with respect to y
+     *
+     * @throws std::logic_error If pointer unexpectedly is not initialized
+     * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
      */
@@ -297,21 +319,31 @@ public:
             2 --> 3
         */
 
-        if (m_id == 0 || m_id == 2) {
-            return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
+        if (m_quad_ptr != nullptr) {
+            if (m_id == 0 || m_id == 2) {
+                return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
+            } else {
+                return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
+            }
         } else {
-            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
+            throw std::logic_error("asciirast::FragmentContextType::dFdy() : pointer unexpectedly not initialized!");
         }
     }
 
 private:
-    std::size_t m_id = 4;
+    std::size_t m_id;
+    ValueVariant* m_quad_ptr;
+    bool m_is_helper_invocation;
+    Type m_type;
 
-    ValueVariant* m_quad_ptr = nullptr;
-
-    Type m_type = Type::UINITIALIZED;
-
-    bool m_is_helper_invocation = false;
+    FragmentContextType(const std::size_t id,
+                        ValueVariant* quad_ptr,
+                        const bool is_helper_invocation = false,
+                        const Type type = Type::UINITIALIZED)
+            : m_id{ id }
+            , m_quad_ptr{ quad_ptr }
+            , m_is_helper_invocation{ is_helper_invocation }
+            , m_type{ type } {};
 
     friend class Renderer;
 };

@@ -166,7 +166,7 @@ public:
      * @brief Draw on a framebuffer using a program given uniform(s),
      * verticies, options and reusable data buffers
      *
-     * @exception logic_error Fragment result related errors
+     * @throws std::logic_error Fragment result related errors
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -198,9 +198,8 @@ public:
      * @brief Draw on a framebuffer using a program given uniform(s),
      * indexed verticies, renderer data and options
      *
-     * @exception
-     * - runtime_error When the indicies are out of bounds
-     * - logic_error Fragment result related errors
+     * @throws std::runtime_error When the indicies are out of bounds
+     * @throws std::logic_error Fragment result related errors
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -398,16 +397,17 @@ private:
 
         // create empty fragment context
         std::array<typename FragmentContext::ValueVariant, 4> quad;
-        auto context = FragmentContext();
-        context.m_id = 0;
-        context.m_quad_ptr = &quad[0];
+        auto context = FragmentContext{ 0, &quad[0] };
 
         // apply fragment shader and unpack results:
         for (const auto& r : program.on_fragment(context, uniform, wfrag)) {
-            if (std::holds_alternative<typename FragResult::ContextPrepare>(r.m_value)) {
+            const bool holds_prepare = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r.m_value);
+            const bool holds_targets = std::holds_alternative<Targets>(r.m_value);
+
+            if (holds_prepare) {
                 context.m_type = FragmentContext::Type::POINT;
                 continue; // for consistency with other kinds of shapes
-            } else if (std::holds_alternative<Targets>(r.m_value)) {
+            } else if (holds_targets) {
                 if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
                     framebuffer.plot(pos_int, std::get<Targets>(r.m_value));
                 }
@@ -485,26 +485,20 @@ private:
                                                    const std::array<bool, 2>& in_line) -> void {
             const auto [rfrag0, rfrag1] = rfrag;
 
-            const auto rfrag0_posi = math::Vec2Int{ rfrag0.pos };
-            const auto rfrag1_posi = math::Vec2Int{ rfrag1.pos };
+            const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
+            const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
 
-            const bool test_fail0 = !in_line[0] || !framebuffer.test_and_set_depth(rfrag0_posi, rfrag0.depth);
-            const bool test_fail1 = !in_line[1] || !framebuffer.test_and_set_depth(rfrag1_posi, rfrag1.depth);
+            const bool test_fail0 = !in_line[0] || !framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth);
+            const bool test_fail1 = !in_line[1] || !framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth);
 
             // stop here if all depth tests fail:
             if (test_fail0 && test_fail1) {
                 return;
-            }
-            // otherwise at least one of the pixels are accepted
+            } // otherwise at least one of the pixels are accepted:
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
-            FragmentContext c0, c1;
-            c0.m_id = 0;
-            c1.m_id = 1;
-            c0.m_is_helper_invocation = !in_line[0];
-            c1.m_is_helper_invocation = !in_line[1];
-            c0.m_quad_ptr = &quad[0];
-            c1.m_quad_ptr = &quad[0];
+            FragmentContext c0{ 0, &quad[0], !in_line[0] };
+            FragmentContext c1{ 1, &quad[0], !in_line[1] };
 
             // apply fragment shader and unpack wrapped result:
             for (const auto& [r0, r1] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
@@ -512,8 +506,8 @@ private:
                 const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
                 const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
 
-                const bool holds_prepare0 = std::holds_alternative<typename FragResult::ContextPrepare>(r0.m_value);
-                const bool holds_prepare1 = std::holds_alternative<typename FragResult::ContextPrepare>(r1.m_value);
+                const bool holds_prepare0 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
 
                 if (holds_prepare0 || holds_prepare1) {
                     if (!holds_prepare0 || !holds_prepare1) {
@@ -525,10 +519,10 @@ private:
                     continue; // prepare fragment contexts concurrently
                 } else if (holds_targets0 || holds_targets1) {
                     if (in_line[0] && !test_fail0 && holds_targets0) {
-                        framebuffer.plot(rfrag0_posi, std::get<Targets>(r0.m_value));
+                        framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
                     if (in_line[1] && !test_fail1 && holds_targets1) {
-                        framebuffer.plot(rfrag1_posi, std::get<Targets>(r1.m_value));
+                        framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
                     break; // do nothing special but plot the point(s) in the framebuffer
                 } else {
@@ -577,36 +571,26 @@ private:
                                                    const std::array<bool, 4>& in_triangle) -> void {
             const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
-            const auto rfrag0_posi = math::Vec2Int{ rfrag0.pos };
-            const auto rfrag1_posi = math::Vec2Int{ rfrag1.pos };
-            const auto rfrag2_posi = math::Vec2Int{ rfrag2.pos };
-            const auto rfrag3_posi = math::Vec2Int{ rfrag3.pos };
+            const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
+            const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
+            const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
+            const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
 
-            const bool test_fail0 = !in_triangle[0] || !framebuffer.test_and_set_depth(rfrag0_posi, rfrag0.depth);
-            const bool test_fail1 = !in_triangle[1] || !framebuffer.test_and_set_depth(rfrag1_posi, rfrag1.depth);
-            const bool test_fail2 = !in_triangle[2] || !framebuffer.test_and_set_depth(rfrag2_posi, rfrag2.depth);
-            const bool test_fail3 = !in_triangle[3] || !framebuffer.test_and_set_depth(rfrag3_posi, rfrag3.depth);
+            const bool test_fail0 = !in_triangle[0] || !framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth);
+            const bool test_fail1 = !in_triangle[1] || !framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth);
+            const bool test_fail2 = !in_triangle[2] || !framebuffer.test_and_set_depth(rfrag2_pos_int, rfrag2.depth);
+            const bool test_fail3 = !in_triangle[3] || !framebuffer.test_and_set_depth(rfrag3_pos_int, rfrag3.depth);
 
             // stop here if all depth tests fail:
             if (test_fail0 && test_fail1 && test_fail2 && test_fail3) {
                 return;
-            }
-            // otherwise at least one of the pixels are accepted
+            } // otherwise at least one of the pixels are accepted:
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
-            FragmentContext c0, c1, c2, c3;
-            c0.m_id = 0;
-            c1.m_id = 1;
-            c2.m_id = 2;
-            c3.m_id = 3;
-            c0.m_is_helper_invocation = !in_triangle[0];
-            c1.m_is_helper_invocation = !in_triangle[1];
-            c2.m_is_helper_invocation = !in_triangle[2];
-            c3.m_is_helper_invocation = !in_triangle[3];
-            c0.m_quad_ptr = &quad[0];
-            c1.m_quad_ptr = &quad[0];
-            c2.m_quad_ptr = &quad[0];
-            c3.m_quad_ptr = &quad[0];
+            FragmentContext c0{ 0, &quad[0], !in_triangle[0] };
+            FragmentContext c1{ 1, &quad[0], !in_triangle[1] };
+            FragmentContext c2{ 2, &quad[0], !in_triangle[2] };
+            FragmentContext c3{ 3, &quad[0], !in_triangle[3] };
 
             // apply fragment shader and unpack wrapped result:
             for (const auto& [r0, r1, r2, r3] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
@@ -618,10 +602,10 @@ private:
                 const bool holds_targets2 = std::holds_alternative<Targets>(r2.m_value);
                 const bool holds_targets3 = std::holds_alternative<Targets>(r3.m_value);
 
-                const bool holds_prepare0 = std::holds_alternative<typename FragResult::ContextPrepare>(r0.m_value);
-                const bool holds_prepare1 = std::holds_alternative<typename FragResult::ContextPrepare>(r1.m_value);
-                const bool holds_prepare2 = std::holds_alternative<typename FragResult::ContextPrepare>(r2.m_value);
-                const bool holds_prepare3 = std::holds_alternative<typename FragResult::ContextPrepare>(r3.m_value);
+                const bool holds_prepare0 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
+                const bool holds_prepare2 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r2.m_value);
+                const bool holds_prepare3 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r3.m_value);
 
                 if (holds_prepare0 || holds_prepare1 || holds_prepare2 || holds_prepare3) {
                     if (!holds_prepare0 || !holds_prepare1 || !holds_prepare2 || !holds_prepare3) {
@@ -635,16 +619,16 @@ private:
                     continue; // prepare fragment contexts concurrently
                 } else if (holds_targets0 || holds_targets1 || holds_targets2 || holds_prepare3) {
                     if (in_triangle[0] && !test_fail0 && holds_targets0) {
-                        framebuffer.plot(rfrag0_posi, std::get<Targets>(r0.m_value));
+                        framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
                     if (in_triangle[1] && !test_fail1 && holds_targets1) {
-                        framebuffer.plot(rfrag1_posi, std::get<Targets>(r1.m_value));
+                        framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
                     if (in_triangle[2] && !test_fail2 && holds_targets2) {
-                        framebuffer.plot(rfrag2_posi, std::get<Targets>(r2.m_value));
+                        framebuffer.plot(rfrag2_pos_int, std::get<Targets>(r2.m_value));
                     }
                     if (in_triangle[3] && !test_fail3 && holds_targets3) {
-                        framebuffer.plot(rfrag3_posi, std::get<Targets>(r3.m_value));
+                        framebuffer.plot(rfrag3_pos_int, std::get<Targets>(r3.m_value));
                     }
                     break; // do nothing special but plot the point(s) in the framebuffer
                 } else {

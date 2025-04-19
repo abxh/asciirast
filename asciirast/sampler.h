@@ -9,16 +9,14 @@
 // intro on texture samplers:
 // https://learnopengl.com/Getting-started/Textures
 
-// Border wrapping, and sample method:
+// border wrapping, and sample method:
 // https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
-// https://www.youtube.com/watch?v=_htjjOdXbmA (javidx9)
 
-// Reference:
+// ref:
 // https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/sampler.h
 
 // on the use of the dFdx / dFdy functions:
 // https://www.youtube.com/watch?v=J1n1yPjac1c (Ned Makes Games)
-// https://www.youtube.com/watch?v=2G0Sime3OH0 (Ned Makes Games)
 
 #pragma once
 
@@ -78,9 +76,20 @@ public:
      */
     const Texture<RGBA_8bit_Allocator>& texture() const { return m_texture; }
 
+    /**
+     * @brief Sample texture at a uv coordinate with a specific Level-Of-Detail
+     *
+     * @return Color at the uv coordinate
+     */
     template<typename Allocator>
     friend math::Vec4 textureLOD(const Sampler<Allocator>&, const math::Vec2&, const math::Float);
 
+    /**
+     * @brief Sample texture at a uv coordinate
+     *
+     * @return Return a Getter object with init() and get() methods,
+     *         where the result of init() is to be co_yield'ed back to the renderer
+     */
     template<typename Targets, typename Allocator, typename... ValueTypes>
     friend auto texture(const FragmentContextType<ValueTypes...>&,
                         const Sampler<Allocator>&,
