@@ -187,8 +187,6 @@ public:
     /**
      * @brief Initialize context with value for this particular fragment
      *
-     * @throws std::logic_error If pointer unexpectedly is not initialized
-     *
      * @param value The value at hand
      * @return The result type to co_yield back to the renderer
      */
@@ -196,11 +194,8 @@ public:
     [[nodiscard]] FragmentResult<Targets> init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
-        if (m_quad_ptr != nullptr) {
-            m_quad_ptr[m_id] = value;
-        } else {
-            throw std::logic_error("asciirast::FragmentContextType::init() : pointer unexpectedly not initialized!");
-        }
+        assert(m_quad_ptr != nullptr);
+        m_quad_ptr[m_id] = value;
         return FragmentResult<Targets>{ typename FragmentResult<Targets>::FragmentContextPrepare() };
     }
 
@@ -228,7 +223,6 @@ public:
     /**
      * @brief Get the value at the (neighbouring) fragment with id
      *
-     * @throws std::logic_error If pointer unexpectedly is not initialized
      * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value at the fragment with value type deduced by destination type
@@ -240,18 +234,14 @@ public:
         assert((id < 1 && m_type == ContextType::POINT) || (m_type != ContextType::POINT));
         assert((id < 2 && m_type == ContextType::LINE) || (m_type != ContextType::LINE));
         assert((id < 4 && m_type == ContextType::FILLED) || (m_type != ContextType::FILLED));
+        assert(m_quad_ptr != nullptr);
 
-        if (m_quad_ptr != nullptr) {
-            return std::get<T>(m_quad_ptr[id]);
-        } else {
-            throw std::logic_error("asciirast::FragmentContextType::at() : pointer unexpectedly not initialized!");
-        }
+        return std::get<T>(m_quad_ptr[id]);
     }
 
     /**
      * @brief Get derivative of straight line with respect to the direction it's drawn
      *
-     * @throws std::logic_error If pointer unexpectedly is not initialized
      * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
@@ -260,18 +250,14 @@ public:
     [[nodiscard]] T dFdv() const
     {
         assert(m_type == ContextType::LINE);
+        assert(m_quad_ptr != nullptr);
 
-        if (m_quad_ptr != nullptr) {
-            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
-        } else {
-            throw std::logic_error("asciirast::FragmentContextType::dFdv() : pointer unexpectedly not initialized!");
-        }
+        return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
     }
 
     /**
      * @brief Get a derivative estimate of value with respect to x
      *
-     * @throws std::logic_error If pointer unexpectedly is not initialized
      * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
@@ -280,6 +266,7 @@ public:
     [[nodiscard]] T dFdx() const
     {
         assert(m_type == ContextType::FILLED);
+        assert(m_quad_ptr != nullptr);
 
         /*
             0 --> 1
@@ -288,21 +275,16 @@ public:
             2 --> 3
         */
 
-        if (m_quad_ptr != nullptr) {
-            if (m_id == 0 || m_id == 1) {
-                return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
-            } else {
-                return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
-            }
+        if (m_id == 0 || m_id == 1) {
+            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
         } else {
-            throw std::logic_error("asciirast::FragmentContextType::dFdx() : pointer unexpectedly not initialized!");
+            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
         }
     }
 
     /**
      * @brief Get a derivative estimate of value with respect to y
      *
-     * @throws std::logic_error If pointer unexpectedly is not initialized
      * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
@@ -311,6 +293,7 @@ public:
     [[nodiscard]] T dFdy() const
     {
         assert(m_type == ContextType::FILLED);
+        assert(m_quad_ptr != nullptr);
 
         /*
             0 --> 1
@@ -319,14 +302,10 @@ public:
             2 --> 3
         */
 
-        if (m_quad_ptr != nullptr) {
-            if (m_id == 0 || m_id == 2) {
-                return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
-            } else {
-                return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
-            }
+        if (m_id == 0 || m_id == 2) {
+            return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
         } else {
-            throw std::logic_error("asciirast::FragmentContextType::dFdy() : pointer unexpectedly not initialized!");
+            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
         }
     }
 
