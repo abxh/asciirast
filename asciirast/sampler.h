@@ -222,7 +222,8 @@ textureLOD(const Sampler<Allocator>& sampler, const math::Vec2& uv, const math::
  *
  * @param context Fragment context
  * @param sampler The sampler
- * @return Color at the uv coordinate -------------------------------- TODO
+ * @return Return a Getter object with init() and get() methods,
+ *         where the result of init() is to be co_yield'ed back to the renderer
  */
 template<typename Targets, typename Allocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
