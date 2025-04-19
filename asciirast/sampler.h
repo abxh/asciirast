@@ -247,7 +247,7 @@ texture(FragmentContextType<ValueTypes...>& context,
     auto get_func = [&]() -> math::Vec4 {
         switch (context.type()) {
         case Type::UINITIALIZED: {
-            assert("call and co_yield texture_init() before texture()");
+            assert("must co_yield the result of init() before calling get()");
         } break;
         case Type::POINT: {
             return textureLOD(sampler, uv, 0.f);
