@@ -198,8 +198,11 @@ public:
 
     std::generator<Result> on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag) const
     {
-        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
-        co_yield Targets{ asciirast::texture(context, u.sampler, pfrag.attrs.uv) };
+        const auto color_getter = asciirast::texture(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
+        co_yield color_getter.init();
+        const auto color = color_getter.get();
+
+        co_yield Targets{ color };
     }
 };
 
