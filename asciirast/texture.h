@@ -12,7 +12,7 @@
 // on alpha-blending:
 // https://github.com/nothings/stb/blob/master/stb_image_resize2.h
 
-// mipmap generation ref:
+// mipmap generation reference:
 // https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/texture.h
 
 #pragma once

@@ -9,7 +9,7 @@
 namespace asciirast::rasterize {
 
 template<VaryingInterface Varying, typename Plot>
-    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&>)
 [[maybe_unused]]
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Plot plot)
@@ -50,23 +50,27 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
         };
     };
 
-    // process two fragments at a time:
-    for (std::size_t i = 0; i < len_uint / 2; i++) {
-        const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
-        const auto pfrag1 = func(acc_t + inc_t, acc_v + inc_v, acc_Z_inv + inc_Z_inv);
+    // process four fragments at a time:
+    for (std::size_t i = 0; i < len_uint / 4; i++) {
+        const auto pfrag0 = func(acc_t + 0 * inc_t, acc_v + 0 * inc_v, acc_Z_inv + 0 * inc_Z_inv);
+        const auto pfrag1 = func(acc_t + 1 * inc_t, acc_v + 1 * inc_v, acc_Z_inv + 1 * inc_Z_inv);
+        const auto pfrag2 = func(acc_t + 2 * inc_t, acc_v + 2 * inc_v, acc_Z_inv + 2 * inc_Z_inv);
+        const auto pfrag3 = func(acc_t + 3 * inc_t, acc_v + 3 * inc_v, acc_Z_inv + 3 * inc_Z_inv);
 
-        plot({ pfrag0, pfrag1 }, { true, true });
+        plot({ pfrag0, pfrag1, pfrag2, pfrag3 }, { true, true, true, true });
 
-        acc_t += 2 * inc_t;
-        acc_v += 2 * inc_v;
-        acc_Z_inv += 2 * inc_Z_inv;
+        acc_t += 4 * inc_t;
+        acc_v += 4 * inc_v;
+        acc_Z_inv += 4 * inc_Z_inv;
     }
-    if (len_uint % 2 == 1) {
-        const auto pfrag0 = func(acc_t, acc_v, acc_Z_inv);
-        const auto pfrag1 = func(acc_t + inc_t, acc_v + inc_v, acc_Z_inv + inc_Z_inv);
 
-        plot({ pfrag0, pfrag1 }, { true, false });
-    }
+    const auto pfrag0 = func(acc_t + 0 * inc_t, acc_v + 0 * inc_v, acc_Z_inv + 0 * inc_Z_inv);
+    const auto pfrag1 = func(acc_t + 1 * inc_t, acc_v + 1 * inc_v, acc_Z_inv + 1 * inc_Z_inv);
+    const auto pfrag2 = func(acc_t + 2 * inc_t, acc_v + 2 * inc_v, acc_Z_inv + 2 * inc_Z_inv);
+    const auto pfrag3 = func(acc_t + 3 * inc_t, acc_v + 3 * inc_v, acc_Z_inv + 3 * inc_Z_inv);
+
+    const auto rem_4 = len_uint % 4;
+    plot({ pfrag0, pfrag1, pfrag2, pfrag3 }, { rem_4 >= 1, rem_4 >= 2, rem_4 == 3, false });
 }
 
 [[maybe_unused]]

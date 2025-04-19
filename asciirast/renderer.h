@@ -481,52 +481,76 @@ private:
         const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
 
         const auto plot_func =
-                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag,
-                                                   const std::array<bool, 2>& in_line) -> void {
-            const auto [rfrag0, rfrag1] = rfrag;
+                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 4>& rfrag,
+                                                   const std::array<bool, 4>& in_line) -> void {
+            const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
             const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
             const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
+            const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
+            const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
 
             const bool test_fail0 = !in_line[0] || !framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth);
             const bool test_fail1 = !in_line[1] || !framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth);
+            const bool test_fail2 = !in_line[2] || !framebuffer.test_and_set_depth(rfrag2_pos_int, rfrag2.depth);
+            const bool test_fail3 = !in_line[3] || !framebuffer.test_and_set_depth(rfrag3_pos_int, rfrag3.depth);
 
-            // stop here if all depth tests fail:
-            if (test_fail0 && test_fail1) {
+            // stop here if all depth tests fail or all pixels are helper invocations:
+            if (test_fail0 && test_fail1 && test_fail2 && test_fail3) {
                 return;
             } // otherwise at least one of the pixels are accepted:
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
             FragmentContext c0{ 0, &quad[0], !in_line[0] };
             FragmentContext c1{ 1, &quad[0], !in_line[1] };
+            FragmentContext c2{ 2, &quad[0], !in_line[2] };
+            FragmentContext c3{ 3, &quad[0], !in_line[3] };
 
-            // apply fragment shader and unpack wrapped result:
-            for (const auto& [r0, r1] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
-                                                                program.on_fragment(c1, uniform, rfrag1))) {
+            // apply fragment shader and unpack results:
+            for (const auto& [r0, r1, r2, r3] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
+                                                                        program.on_fragment(c1, uniform, rfrag1),
+                                                                        program.on_fragment(c2, uniform, rfrag2),
+                                                                        program.on_fragment(c3, uniform, rfrag3))) {
                 const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
                 const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
+                const bool holds_targets2 = std::holds_alternative<Targets>(r2.m_value);
+                const bool holds_targets3 = std::holds_alternative<Targets>(r3.m_value);
 
-                const bool holds_prepare0 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
-                const bool holds_prepare1 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
+                const bool holds_prepare0 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
+                const bool holds_prepare1 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
+                const bool holds_prepare2 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r2.m_value);
+                const bool holds_prepare3 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r3.m_value);
 
-                if (holds_prepare0 || holds_prepare1) {
-                    if (!holds_prepare0 || !holds_prepare1) {
+                if (holds_prepare0 || holds_prepare1 || holds_prepare2 || holds_prepare3) {
+                    if (!holds_prepare0 || !holds_prepare1 || !holds_prepare2 || !holds_prepare3) {
                         throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
                                                "prepare context in the same order in all instances");
                     }
                     c0.m_type = FragmentContext::Type::LINE;
                     c1.m_type = FragmentContext::Type::LINE;
+                    c2.m_type = FragmentContext::Type::LINE;
+                    c3.m_type = FragmentContext::Type::LINE;
                     continue; // prepare fragment contexts concurrently
-                } else if (holds_targets0 || holds_targets1) {
+                } else if (holds_targets0 || holds_targets1 || holds_targets2 || holds_prepare3) {
                     if (in_line[0] && !test_fail0 && holds_targets0) {
                         framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
                     if (in_line[1] && !test_fail1 && holds_targets1) {
                         framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
+                    if (in_line[2] && !test_fail2 && holds_targets2) {
+                        framebuffer.plot(rfrag2_pos_int, std::get<Targets>(r2.m_value));
+                    }
+                    if (in_line[3] && !test_fail3 && holds_targets3) {
+                        framebuffer.plot(rfrag3_pos_int, std::get<Targets>(r3.m_value));
+                    }
                     break; // do nothing special but plot the point(s) in the framebuffer
                 } else {
-                    break; // both points discarded
+                    break; // all points discarded
                 }
             }
         };
@@ -581,7 +605,7 @@ private:
             const bool test_fail2 = !in_triangle[2] || !framebuffer.test_and_set_depth(rfrag2_pos_int, rfrag2.depth);
             const bool test_fail3 = !in_triangle[3] || !framebuffer.test_and_set_depth(rfrag3_pos_int, rfrag3.depth);
 
-            // stop here if all depth tests fail:
+            // stop here if all depth tests fail or all pixels are helper invocations:
             if (test_fail0 && test_fail1 && test_fail2 && test_fail3) {
                 return;
             } // otherwise at least one of the pixels are accepted:
@@ -602,10 +626,14 @@ private:
                 const bool holds_targets2 = std::holds_alternative<Targets>(r2.m_value);
                 const bool holds_targets3 = std::holds_alternative<Targets>(r3.m_value);
 
-                const bool holds_prepare0 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
-                const bool holds_prepare1 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
-                const bool holds_prepare2 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r2.m_value);
-                const bool holds_prepare3 = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r3.m_value);
+                const bool holds_prepare0 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
+                const bool holds_prepare1 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
+                const bool holds_prepare2 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r2.m_value);
+                const bool holds_prepare3 =
+                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r3.m_value);
 
                 if (holds_prepare0 || holds_prepare1 || holds_prepare2 || holds_prepare3) {
                     if (!holds_prepare0 || !holds_prepare1 || !holds_prepare2 || !holds_prepare3) {

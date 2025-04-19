@@ -9,11 +9,11 @@
 // intro on texture samplers:
 // https://learnopengl.com/Getting-started/Textures
 
+// reference sampler:
+// https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/sampler.h
+
 // border wrapping, and sample method:
 // https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
-
-// ref:
-// https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/sampler.h
 
 // on the use of the dFdx / dFdy functions:
 // https://www.youtube.com/watch?v=J1n1yPjac1c (Ned Makes Games)
@@ -263,7 +263,7 @@ texture(FragmentContextType<ValueTypes...>& context,
         } break;
         case Type::LINE: {
             // guessing the formula is like so:
-            const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
+            const math::Vec2 dFdv = context.template dFdv2<math::Vec2>();
             const math::Float d = math::dot(dFdv, dFdv);
             const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 

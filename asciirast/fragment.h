@@ -6,7 +6,6 @@
 #pragma once
 
 #include <cassert>
-#include <stdexcept>
 #include <type_traits>
 #include <variant>
 
@@ -231,28 +230,9 @@ public:
     [[nodiscard]] T at(const std::size_t id) const
     {
         assert(m_type != ContextType::UINITIALIZED);
-        assert((id < 1 && m_type == ContextType::POINT) || (m_type != ContextType::POINT));
-        assert((id < 2 && m_type == ContextType::LINE) || (m_type != ContextType::LINE));
-        assert((id < 4 && m_type == ContextType::FILLED) || (m_type != ContextType::FILLED));
         assert(m_quad_ptr != nullptr);
 
         return std::get<T>(m_quad_ptr[id]);
-    }
-
-    /**
-     * @brief Get derivative of straight line with respect to the direction it's drawn
-     *
-     * @throws std::bad_access_variant If context wasn't initialized with value
-     *
-     * @return The value difference with value type deduced by destination type
-     */
-    template<typename T>
-    [[nodiscard]] T dFdv() const
-    {
-        assert(m_type == ContextType::LINE);
-        assert(m_quad_ptr != nullptr);
-
-        return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
     }
 
     /**
@@ -306,6 +286,42 @@ public:
             return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
         } else {
             return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
+        }
+    }
+
+    /**
+     * @brief Get coarse derivative of straight line with respect to the direction it's drawn
+     *
+     * @throws std::bad_access_variant If context wasn't initialized with value
+     *
+     * @return The value difference with value type deduced by destination type
+     */
+    template<typename T>
+    [[nodiscard]] T dFdv4() const
+    {
+        assert(m_type == ContextType::LINE);
+        assert(m_quad_ptr != nullptr);
+
+        return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[0]);
+    }
+
+    /**
+     * @brief Get fine derivative of straight line with respect to the direction it's drawn
+     *
+     * @throws std::bad_access_variant If context wasn't initialized with value
+     *
+     * @return The value difference with value type deduced by destination type
+     */
+    template<typename T>
+    [[nodiscard]] T dFdv2() const
+    {
+        assert(m_type == ContextType::LINE);
+        assert(m_quad_ptr != nullptr);
+
+        if (m_id == 0 || m_id == 1) {
+            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+        } else {
+            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
         }
     }
 
