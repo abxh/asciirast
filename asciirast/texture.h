@@ -377,13 +377,19 @@ public:
                      math::Vec4Int{ mipmap[y + 1, x + 0] },
                      math::Vec4Int{ mipmap[y + 1, x + 1] } };
         };
-        const auto blend_color = [](const std::array<math::Vec4Int, 4>& c_arr, const math::Int a_sum) -> math::Vec4Int {
-            math::Vec4Int res;
+        const auto blend_colors = [](const std::array<math::Vec4Int, 4>& colors) -> math::Vec4Int {
+            math::Vec4Int res{ 0 };
+            math::Int alpha_sum = 0;
             for (std::size_t j = 0; j < 4; j++) {
-                res.rgb += c_arr[j].rgb * c_arr[j].a;
+                alpha_sum += colors[j].a;
             }
-            res.rgb /= a_sum;
-            res.a = a_sum / 4;
+            if (alpha_sum != 0) {
+                for (std::size_t j = 0; j < 4; j++) {
+                    res.rgb += colors[j].rgb * colors[j].a;
+                }
+                res.rgb /= alpha_sum;
+                res.a = alpha_sum / 4;
+            }
             return res;
         };
 
@@ -400,10 +406,9 @@ public:
 
             for (math::Int y = 0; y < m_mipmaps[i].height(); y++) {
                 for (math::Int x = 0; x < m_mipmaps[i].width(); x++) {
-                    const auto c_arr = extract_2x2_pixels(m_mipmaps[i - 1], 2 * x, 2 * y);
-                    const auto a_sum = c_arr[0].a + c_arr[1].a + c_arr[2].a + c_arr[3].a;
+                    const auto colors = extract_2x2_pixels(m_mipmaps[i - 1], 2 * x, 2 * y);
 
-                    m_mipmaps[i][y, x] = math::RGBA_8bit{ a_sum == 0 ? math::Vec4Int{ 0 } : blend_color(c_arr, a_sum) };
+                    m_mipmaps[i][y, x] = math::RGBA_8bit{ blend_colors(colors) };
                 }
             }
         }
