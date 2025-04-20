@@ -77,7 +77,7 @@ endif()
 if (EXAMPLES)
 	add_subdirectory(examples/00-spiral)
 	add_subdirectory(examples/01-sierpinski-triangle)
-	add_subdirectory(examples/02-star)
+	add_subdirectory(examples/02-wheel)
 
 	if (SDL_BASED_EXAMPLES)
 		add_subdirectory(examples/SDL-00-hello-triangle)
