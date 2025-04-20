@@ -87,7 +87,7 @@ struct RendererOptions
 
     TriangleFillBias triangle_fill_bias = TriangleFillBias::TopLeft; ///< triangle fill bias
 
-    LineDrawingDirection line_drawing_direction = LineDrawingDirection::Downwards; ///< line drawing x direction
+    LineDrawingDirection line_drawing_direction = LineDrawingDirection::Downwards; ///< line drawing direction
 
     LineEndsInclusion line_ends_inclusion = LineEndsInclusion::IncludeBoth; ///< line ends inclusion option
 };
