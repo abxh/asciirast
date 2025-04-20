@@ -167,8 +167,7 @@ public:
     {
         const auto pos = u.rot.apply(vert.pos);
 
-        return Fragment{ math::Vec4{pos.x * u.aspect_ratio, pos.y , 0, 1 },
-                         asciirast::EmptyVarying() };
+        return Fragment{ math::Vec4{ pos.x * u.aspect_ratio, pos.y, 0, 1 }, asciirast::EmptyVarying() };
     }
     std::generator<Result> on_fragment(FragmentContext& c, const Uniform& u, const ProjectedFragment& pfrag) const
     {
@@ -208,6 +207,8 @@ main(int, char**)
             v = rot.apply(v);
         }
     }
+    vertex_buf.shape_type = asciirast::ShapeType::LineLoop;
+
     MyProgram program;
     TerminalBuffer framebuffer;
     math::Rot2D rot;
@@ -225,7 +226,7 @@ main(int, char**)
     // for (size_t i = 0; i < 6; i++) {
     //     auto& v = vertex_buf.verticies[2 * i + 0];
     //     auto& w = vertex_buf.verticies[2 * i + 1];
-    //     if (v.pos.vector_to(w.pos).y < 0) {
+    //     if (v.pos.vector_to(w.pos).y > 0) {
     //         std::swap(v, w);
     //     }
     // }
@@ -241,7 +242,6 @@ main(int, char**)
 
     while (!sem.try_acquire()) {
         // prefer other chars over '_':
-        vertex_buf.shape_type = asciirast::ShapeType::LineLoop;
         uniforms.draw_horizontal = true;
         renderer.draw(program, uniforms, vertex_buf, framebuffer, renderer_data, options);
 

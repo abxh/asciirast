@@ -76,7 +76,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
     std::array<ProjectedFragment<Varying>, 2> rfrag;
     rfrag[0] = func(acc_t, acc_v, acc_Z_inv);
 
-    // process 1 fragment at a time, but pass the one ahead:
+    // process 1 fragment at a time, but pass both the current and the one ahead:
     for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
         acc_t += inc_t;
         acc_v += inc_v;
