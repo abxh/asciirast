@@ -89,7 +89,7 @@ struct RendererOptions
 
     LineDrawingDirection line_drawing_direction = LineDrawingDirection::Downwards; ///< line drawing x direction
 
-    LineEndsInclusion line_ends_inclusion = LineEndsInclusion::IncludeBoth; ///< line inclusion option
+    LineEndsInclusion line_ends_inclusion = LineEndsInclusion::IncludeBoth; ///< line ends inclusion option
 };
 
 /**
@@ -457,7 +457,6 @@ private:
 
         // screen space -> window space:
         const PFrag wfrag = apply_screen_to_window(vfrag, data);
-        const auto pos_int = math::Vec2Int{ wfrag.pos };
 
         // create empty fragment context
         std::array<typename FragmentContext::ValueVariant, 4> quad;
@@ -472,6 +471,8 @@ private:
                 context.m_type = FragmentContext::Type::POINT;
                 continue; // for consistency with other kinds of shapes
             } else if (holds_targets) {
+                const auto pos_int = math::Vec2Int{ wfrag.pos };
+
                 if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
                     framebuffer.plot(pos_int, std::get<Targets>(r.m_value));
                 }
@@ -510,16 +511,10 @@ private:
                                                    const std::array<bool, 2>& in_line) -> void {
             const auto [rfrag0, rfrag1] = rfrag;
 
-            const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
-            const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
-
-            const bool test_fail0 = !in_line[0] || !framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth);
-            const bool test_fail1 = !in_line[1] || !framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth);
-
-            // stop here if all depth tests fail or all pixels are helper invocations:
-            if (test_fail0 && test_fail1) {
+            // stop here if all pixels are helper invocations:
+            if (!in_line[0] && !in_line[1]) {
                 return;
-            } // otherwise at least one of the pixels are accepted:
+            }
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
             FragmentContext c0{ 0, &quad[0], !in_line[0] };
@@ -545,10 +540,13 @@ private:
                     c1.m_type = FragmentContext::Type::LINE;
                     continue; // prepare fragment contexts concurrently
                 } else if (holds_targets0 || holds_targets1) {
-                    if (in_line[0] && !test_fail0 && holds_targets0) {
+                    const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
+                    const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
+
+                    if (in_line[0] && holds_targets0 && framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth)) {
                         framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
-                    if (in_line[1] && !test_fail1 && holds_targets1) {
+                    if (in_line[1] && holds_targets1) {
                         framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
                     break; // do nothing special but plot the point(s) in the framebuffer
@@ -658,20 +656,10 @@ private:
                                                    const std::array<bool, 4>& in_triangle) -> void {
             const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
-            const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
-            const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
-            const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
-            const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
-
-            const bool test_fail0 = !in_triangle[0] || !framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth);
-            const bool test_fail1 = !in_triangle[1] || !framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth);
-            const bool test_fail2 = !in_triangle[2] || !framebuffer.test_and_set_depth(rfrag2_pos_int, rfrag2.depth);
-            const bool test_fail3 = !in_triangle[3] || !framebuffer.test_and_set_depth(rfrag3_pos_int, rfrag3.depth);
-
-            // stop here if all depth tests fail or all pixels are helper invocations:
-            if (test_fail0 && test_fail1 && test_fail2 && test_fail3) {
+            // stop here if all pixels are helper invocations:
+            if (!in_triangle[0] && !in_triangle[1] && !in_triangle[2] && !in_triangle[3]) {
                 return;
-            } // otherwise at least one of the pixels are accepted:
+            }
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
             FragmentContext c0{ 0, &quad[0], !in_triangle[0] };
@@ -709,16 +697,25 @@ private:
                     c3.m_type = FragmentContext::Type::FILLED;
                     continue; // prepare fragment contexts concurrently
                 } else if (holds_targets0 || holds_targets1 || holds_targets2 || holds_prepare3) {
-                    if (in_triangle[0] && !test_fail0 && holds_targets0) {
+                    const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
+                    const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
+                    const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
+                    const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
+
+                    if (in_triangle[0] && holds_targets0 &&
+                        framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth)) {
                         framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
-                    if (in_triangle[1] && !test_fail1 && holds_targets1) {
+                    if (in_triangle[1] && holds_targets1 &&
+                        framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth)) {
                         framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
-                    if (in_triangle[2] && !test_fail2 && holds_targets2) {
+                    if (in_triangle[2] && holds_targets2 &&
+                        framebuffer.test_and_set_depth(rfrag2_pos_int, rfrag2.depth)) {
                         framebuffer.plot(rfrag2_pos_int, std::get<Targets>(r2.m_value));
                     }
-                    if (in_triangle[3] && !test_fail3 && holds_targets3) {
+                    if (in_triangle[3] && holds_targets3 &&
+                        framebuffer.test_and_set_depth(rfrag3_pos_int, rfrag3.depth)) {
                         framebuffer.plot(rfrag3_pos_int, std::get<Targets>(r3.m_value));
                     }
                     break; // do nothing special but plot the point(s) in the framebuffer
