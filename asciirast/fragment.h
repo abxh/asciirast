@@ -190,7 +190,7 @@ public:
      * @return The result type to co_yield back to the renderer
      */
     template<typename T, typename Targets>
-    [[nodiscard]] FragmentResult<Targets> init(const T& value)
+    [[nodiscard]] FragmentResult<Targets> init(const T& value, std::type_identity<Targets> = {})
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         assert(m_quad_ptr != nullptr);
@@ -227,9 +227,9 @@ public:
      * @return The value at the fragment with value type deduced by destination type
      */
     template<typename T>
-    [[nodiscard]] T at(const std::size_t id) const
+    [[nodiscard]] T at(const std::size_t id, std::type_identity<T> = {}) const
     {
-        assert(m_type != ContextType::UINITIALIZED);
+        assert(m_type != Type::UINITIALIZED);
         assert(m_quad_ptr != nullptr);
 
         return std::get<T>(m_quad_ptr[id]);
@@ -243,9 +243,9 @@ public:
      * @return The value difference with value type deduced by destination type
      */
     template<typename T>
-    [[nodiscard]] T dFdx() const
+    [[nodiscard]] T dFdx(std::type_identity<T> = {}) const
     {
-        assert(m_type == ContextType::FILLED);
+        assert(m_type == Type::FILLED);
         assert(m_quad_ptr != nullptr);
 
         /*
@@ -270,9 +270,9 @@ public:
      * @return The value difference with value type deduced by destination type
      */
     template<typename T>
-    [[nodiscard]] T dFdy() const
+    [[nodiscard]] T dFdy(std::type_identity<T> = {}) const
     {
-        assert(m_type == ContextType::FILLED);
+        assert(m_type == Type::FILLED);
         assert(m_quad_ptr != nullptr);
 
         /*
@@ -290,39 +290,19 @@ public:
     }
 
     /**
-     * @brief Get coarse derivative of straight line with respect to the direction it's drawn
+     * @brief Get derivative of straight line with respect to the direction it's drawn
      *
      * @throws std::bad_access_variant If context wasn't initialized with value
      *
      * @return The value difference with value type deduced by destination type
      */
     template<typename T>
-    [[nodiscard]] T dFdv4() const
+    [[nodiscard]] T dFdv(std::type_identity<T> = {}) const
     {
-        assert(m_type == ContextType::LINE);
+        assert(m_type == Type::LINE);
         assert(m_quad_ptr != nullptr);
 
-        return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[0]);
-    }
-
-    /**
-     * @brief Get fine derivative of straight line with respect to the direction it's drawn
-     *
-     * @throws std::bad_access_variant If context wasn't initialized with value
-     *
-     * @return The value difference with value type deduced by destination type
-     */
-    template<typename T>
-    [[nodiscard]] T dFdv2() const
-    {
-        assert(m_type == ContextType::LINE);
-        assert(m_quad_ptr != nullptr);
-
-        if (m_id == 0 || m_id == 1) {
-            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
-        } else {
-            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
-        }
+        return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
     }
 
 private:

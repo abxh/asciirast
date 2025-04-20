@@ -135,7 +135,7 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    constexpr Transform2& rotate(const Rot2D& rot)
+    Transform2& rotate(const Rot2D& rot)
     {
         const Mat3 mr = { rot.to_mat(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
@@ -364,7 +364,7 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    constexpr Transform3& rotate(const Rot3D& rot)
+    Transform3& rotate(const Rot3D& rot)
     {
         const Mat4 mr = { rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();

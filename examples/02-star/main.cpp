@@ -1,28 +1,27 @@
 
 #include "asciirast/framebuffer.h"
 #include "asciirast/math/types.h"
-#include "asciirast/program.h"
 #include "asciirast/renderer.h"
 #include "external/terminal_utils/terminal_utils.h"
 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <complex>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <semaphore>
-#include <stdexcept>
 #include <thread>
 #include <vector>
 
 namespace math = asciirast::math;
 namespace CSI = terminal_utils::CSI;
 
-class TerminalBuffer : public asciirast::AbstractFrameBuffer<char>
+class TerminalBuffer
 {
 public:
+    using Targets = std::tuple<char>;
+
     TerminalBuffer()
     {
         terminal_utils::just_fix_windows_console(true);
@@ -42,18 +41,18 @@ public:
         terminal_utils::just_fix_windows_console(false);
     }
 
+    bool test_and_set_depth(const math::Vec2Int&, math::Float) { return true; }
+
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, const Targets& targets)
     {
-        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
-            std::cerr << pos << "\n";
-            throw std::logic_error("error: point plotted outside of border! the library should not allow this.");
-        }
+        assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
 
-        m_charbuf[idx] = std::get<0>(targets);
+        m_charbuf[idx] = std::get<char>(targets);
     }
 
     void render() const
@@ -108,6 +107,9 @@ public:
         return true;
     }
 
+    std::size_t m_width;
+    std::size_t m_height;
+
 private:
     std::size_t index(const std::size_t y, const std::size_t x) const { return m_width * y + x; }
     void reset_printer() const
@@ -122,100 +124,111 @@ private:
             std::cout << CSI::ESC << CSI::CLEAR_LINE << "\n";
         }
     }
-    std::size_t m_width;
-    std::size_t m_height;
+
     math::Transform2D m_screen_to_window;
     std::vector<char> m_charbuf;
 };
 
+static_assert(asciirast::FrameBufferInterface<TerminalBuffer>);
+
 struct MyUniform
 {
-    const math::Rot2D& rot;
-    const std::string& palette;
-    const math::Float& aspect_ratio;
-    const bool& should_flip;
-    static const inline auto flip_transform = math::Transform2D().rotate(math::radians(180.f)).reflectX();
+    math::Float aspect_ratio;
+    bool draw_horizontal;
+    math::Rot2D& rot;
+    static constexpr std::array<std::array<char, 3>, 3> table = { //
+        { { '\\', '|', '/' },                                     //
+          { '_', ':', '_' },
+          { '/', '|', '\\' } }
+    };
 };
 
 struct MyVertex
 {
-    math::Float id;
+    std::size_t idx;
     math::Vec2 pos;
 };
 
-struct MyVarying
+using MyVarying = asciirast::EmptyVarying;
+using Fragment = asciirast::Fragment<MyVarying>;
+using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
+using Result = asciirast::FragmentResult<typename TerminalBuffer::Targets>;
+
+class MyProgram
 {
-    math::Float id;
-
-    MyVarying operator+(const MyVarying& that) const { return { this->id + that.id }; }
-    MyVarying operator*(const math::Float scalar) const { return { this->id * scalar }; }
-};
-
-class MyHorizontalProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
-{
-    using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<Targets>;
-
 public:
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
-    {
-        math::Float id = vert.id;
-        math::Vec2 v = vert.pos;
-        if (u.should_flip) {
-            v = u.flip_transform.apply(v);
-            v = u.rot.apply_inv(v);
-        } else {
-            v = u.rot.apply(v);
-        }
+    using Uniform = MyUniform;
+    using Vertex = MyVertex;
+    using Varying = MyVarying;
+    using Targets = TerminalBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextType<math::Vec2Int>;
 
-        return Fragment{ .pos = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
-                         .attrs = MyVarying{ id } };
-    }
-    std::generator<Result> on_fragment(FragmentContext&,
-                                       const Uniform& u,
-                                       const ProjectedFragment& pfrag) const override
+    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
     {
-        co_yield Targets{ u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
+        const auto pos = u.rot.apply(vert.pos);
+
+        return Fragment{ math::Vec4{pos.x * u.aspect_ratio, pos.y , 0, 1 },
+                         asciirast::EmptyVarying() };
+    }
+    std::generator<Result> on_fragment(FragmentContext& c, const Uniform& u, const ProjectedFragment& pfrag) const
+    {
+        co_yield c.init(math::Vec2Int{ pfrag.pos }, std::type_identity<Targets>());
+
+        const math::Vec2Int dv =
+                (c.type() == FragmentContext::Type::LINE) ? c.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
+
+        const char ch = u.table[(size_t)(std::clamp<math::Float>(dv.y, -1, 1) + 1)]
+                               [(size_t)(std::clamp<math::Float>(dv.x, -1, 1) + 1)];
+
+        if (ch == '_') {
+            if (u.draw_horizontal) {
+                co_yield Result{ '_' };
+            } else {
+                co_yield asciirast::FragmentResultDiscard();
+            }
+        }
+        co_yield Result{ ch };
     }
 };
+
+static_assert(asciirast::ProgramInterface<MyProgram>);
 
 int
 main(int, char**)
 {
-    const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
     const math::Float aspect_ratio = 3.f / 5.f;
-    bool flip = false;
-
-    math::Rot2D u_rot{};
-    MyUniform uniforms{ u_rot, palette, aspect_ratio, flip };
 
     asciirast::VertexBuffer<MyVertex> vertex_buf;
     {
-        /*
-           raising a complex number c = a + bi to numbers n=1,2,... ((a+bi)^n) where |a^2+b^2| > 1, gives you a
-           so-called logarithmic spiral which goes outwards.
-        */
-        vertex_buf.shape_type = asciirast::ShapeType::LineStrip; // Feel free to try Points / Lines / LineStrip
-        vertex_buf.verticies = {};
+        math::Rot2D rot{ math::radians(2 * 360 / 5.f) };
+        math::Vec2 v = math::Vec2{ 0., 0.8f };
 
-        auto id = 0.f;
-        auto v = std::complex<float>{ 0.05f, 0.f }; // 0.05f instead of 1.f to scale it down
-        auto f = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
-
-        for (int i = 0; i < 50; i++) {
-            id = std::min((id + 0.2f), (float)palette.size() - 1);
-            v *= f;
-            vertex_buf.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
+        for (size_t i = 0; i < 5; i++) {
+            vertex_buf.verticies.push_back(MyVertex{ i, v });
+            v = rot.apply(v);
         }
     }
-
-    MyHorizontalProgram program;
+    MyProgram program;
     TerminalBuffer framebuffer;
+    math::Rot2D rot;
+    MyUniform uniforms{ aspect_ratio, true, rot };
 
-    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
-    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
+    asciirast::RendererOptions options;
+
+    // ensure lines always points downwards:
+    options.line_drawing_direction = asciirast::LineDrawingDirection::Downwards;
+
+    // e.g. with:
+    // vertex_buf.shape_type = asciirast::ShapeType::Lines;
+    // for (size_t i = 0; i < 6; i++) {
+    //     auto& v = vertex_buf.verticies[2 * i + 0];
+    //     auto& w = vertex_buf.verticies[2 * i + 1];
+    //     if (v.pos.vector_to(w.pos).y < 0) {
+    //         std::swap(v, w);
+    //     }
+    // }
 
     std::binary_semaphore sem{ 0 };
 
@@ -227,21 +240,23 @@ main(int, char**)
     } };
 
     while (!sem.try_acquire()) {
-        flip = false;
-        r1.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
+        // prefer other chars over '_':
+        vertex_buf.shape_type = asciirast::ShapeType::LineLoop;
+        uniforms.draw_horizontal = true;
+        renderer.draw(program, uniforms, vertex_buf, framebuffer, renderer_data, options);
 
-        flip = true;
-        r2.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
+        uniforms.draw_horizontal = false;
+        renderer.draw(program, uniforms, vertex_buf, framebuffer, renderer_data, options);
 
         framebuffer.render();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
         if (framebuffer.clear_and_update_size()) {
             renderer_data.screen_to_window = framebuffer.screen_to_window();
         }
 
-        u_rot.stack(math::radians(-45.f));
+        rot.stack(math::radians(-10.f));
     }
     check_eof_program.join();
 }

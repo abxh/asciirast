@@ -8,11 +8,29 @@
 
 namespace asciirast::rasterize {
 
+enum class TriangleFillBias
+{
+    TopLeft,
+    BottomRight,
+    Neither,
+};
+
+enum class LineEndsInclusion
+{
+    ExcludeBoth,
+    IncludeEnd,
+    IncludeBoth,
+    IncludeStart,
+};
+
 template<VaryingInterface Varying, typename Plot>
-    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&>)
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
 [[maybe_unused]]
 static void
-rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Plot plot)
+rasterize_line(const ProjectedFragment<Varying>& proj0,
+               const ProjectedFragment<Varying>& proj1,
+               const Plot plot,
+               const LineEndsInclusion bias_option)
 {
     // Modified DDA Line algorithm:
     // https://www.redblobgames.com/grids/line-drawing/#more
@@ -43,34 +61,31 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
                               const math::Vec2& acc_v_,
                               const math::Float& acc_Z_inv_) -> ProjectedFragment<Varying> {
         return ProjectedFragment<Varying>{
-            .pos = math::floor(acc_v_),
+            .pos = math::trunc(acc_v_),
             .depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_),
             .Z_inv = acc_Z_inv_,
             .attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_)
         };
     };
 
-    // process four fragments at a time:
-    for (std::size_t i = 0; i < len_uint / 4; i++) {
-        const auto pfrag0 = func(acc_t + 0 * inc_t, acc_v + 0 * inc_v, acc_Z_inv + 0 * inc_Z_inv);
-        const auto pfrag1 = func(acc_t + 1 * inc_t, acc_v + 1 * inc_v, acc_Z_inv + 1 * inc_Z_inv);
-        const auto pfrag2 = func(acc_t + 2 * inc_t, acc_v + 2 * inc_v, acc_Z_inv + 2 * inc_Z_inv);
-        const auto pfrag3 = func(acc_t + 3 * inc_t, acc_v + 3 * inc_v, acc_Z_inv + 3 * inc_Z_inv);
+    const auto bias0 = !(bias_option == LineEndsInclusion::IncludeStart ||
+                         bias_option == LineEndsInclusion::IncludeBoth);
+    const auto bias1 = !(bias_option == LineEndsInclusion::IncludeEnd ||
+                         bias_option == LineEndsInclusion::IncludeBoth);
 
-        plot({ pfrag0, pfrag1, pfrag2, pfrag3 }, { true, true, true, true });
+    std::array<ProjectedFragment<Varying>, 2> rfrag;
+    rfrag[0] = func(acc_t, acc_v, acc_Z_inv);
 
-        acc_t += 4 * inc_t;
-        acc_v += 4 * inc_v;
-        acc_Z_inv += 4 * inc_Z_inv;
+    // process 1 fragment at a time, but pass the one ahead:
+    for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
+        acc_t += inc_t;
+        acc_v += inc_v;
+        acc_Z_inv += inc_Z_inv;
+
+        rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_Z_inv);
+
+        plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] }, { true, false });
     }
-
-    const auto pfrag0 = func(acc_t + 0 * inc_t, acc_v + 0 * inc_v, acc_Z_inv + 0 * inc_Z_inv);
-    const auto pfrag1 = func(acc_t + 1 * inc_t, acc_v + 1 * inc_v, acc_Z_inv + 1 * inc_Z_inv);
-    const auto pfrag2 = func(acc_t + 2 * inc_t, acc_v + 2 * inc_v, acc_Z_inv + 2 * inc_Z_inv);
-    const auto pfrag3 = func(acc_t + 3 * inc_t, acc_v + 3 * inc_v, acc_Z_inv + 3 * inc_Z_inv);
-
-    const auto rem_4 = len_uint % 4;
-    plot({ pfrag0, pfrag1, pfrag2, pfrag3 }, { rem_4 >= 1, rem_4 >= 2, rem_4 == 3, false });
 }
 
 [[maybe_unused]]
@@ -78,8 +93,6 @@ static auto
 is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> bool
 {
     const auto edge = src.vector_to(dest);
-
-    // note: (y > 0) since y-axis points up
 
     const bool points_right = math::almost_less_than<math::Float>(0, edge.x); // 0 < x
     const bool points_up = math::almost_less_than<math::Float>(0, edge.y);    // 0 < y
@@ -97,7 +110,8 @@ static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
-                   const Plot plot)
+                   const Plot plot,
+                   const TriangleFillBias bias_option)
 {
     // Modified algorithm which uses cross products and bayesian coordinates for triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
@@ -106,9 +120,13 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const auto min = math::min(math::min(proj0.pos, proj1.pos), proj2.pos);
     const auto max = math::max(math::max(proj0.pos, proj1.pos), proj2.pos);
 
-    const auto [v0, depth0, Z_inv0, attrs0] = proj0;
-    const auto [v1, depth1, Z_inv1, attrs1] = proj1;
-    const auto [v2, depth2, Z_inv2, attrs2] = proj2;
+    const auto [v0_, depth0, Z_inv0, attrs0] = proj0;
+    const auto [v1_, depth1, Z_inv1, attrs1] = proj1;
+    const auto [v2_, depth2, Z_inv2, attrs2] = proj2;
+
+    const auto v0 = v0_ + math::Vec2{ 0.5f, 0.5f };
+    const auto v1 = v1_ + math::Vec2{ 0.5f, 0.5f };
+    const auto v2 = v2_ + math::Vec2{ 0.5f, 0.5f };
 
     const auto depth = math::Vec3{ depth0, depth1, depth2 };
     const auto Z_inv = math::Vec3{ Z_inv0, Z_inv1, Z_inv2 };
@@ -139,17 +157,23 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const math::Vec2 v2v0 = v2.vector_to(v0);
     const math::Vec2 v0v1 = v0.vector_to(v1);
 
-    // bias to exclude bottom right edge:
-    const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2) ? 0.f : -1.f;
-    const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0) ? 0.f : -1.f;
-    const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1) ? 0.f : -1.f;
+    // bias to exclude either top-left or bottom-right edge
+    const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2)
+                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
+    const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0)
+                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
+    const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1)
+                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
 
     const math::Float triangle_area_2 = cross(v0.vector_to(v2), v0.vector_to(v1));
-    if (std::floor(triangle_area_2) == 0) {
+    if (std::trunc(triangle_area_2) == 0) {
         return;
     }
 
-    math::Vec2 p = { min.x, min.y };
+    math::Vec2 p = min + math::Vec2{ 0.5f, 0.5f };
     auto w_y_minx = math::Vec3{ cross(v1v2, v1.vector_to(p)) + bias0,
                                 cross(v2v0, v2.vector_to(p)) + bias1,
                                 cross(v0v1, v0.vector_to(p)) + bias2 };

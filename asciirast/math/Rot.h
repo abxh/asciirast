@@ -23,9 +23,6 @@ namespace asciirast::math {
 /**
  * @brief Class for composing unit complex numbers
  *
- * @note not using std::complex, since they don't have constexpr math functions yet.
- * yes, the custom code is unoptimized, but probably will be optimized away by the compiler.
- *
  * @tparam T             Type of elements
  * @tparam is_col_major  Whether the produced matrix is in column major
  */
@@ -64,7 +61,7 @@ public:
      * @param to_dir The destination direction vector
      * @param normalize Normalize the resulting complex number
      */
-    constexpr Rot2(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true) noexcept
+    Rot2(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true) noexcept
             : m_real{ dot(from_dir, to_dir) }
             , m_imag{ cross(from_dir, to_dir) }
     {
@@ -79,7 +76,7 @@ public:
      *
      * @return The underlying complex number
      */
-    [[nodiscard]] constexpr Vec2 complex() const { return Vec2{ m_real, m_imag }; }
+    [[nodiscard]] Vec2 complex() const { return Vec2{ m_real, m_imag }; }
 
     /**
      * @brief Convert to angle in radians
@@ -93,7 +90,7 @@ public:
      *
      * @return The tranformation matrix that performs the same rotation as this
      */
-    [[nodiscard]] constexpr Mat2 to_mat() const
+    [[nodiscard]] Mat2 to_mat() const
     {
         const Vec2 x_hat = apply(Vec2{ 1, 0 });
         const Vec2 y_hat = apply(Vec2{ 0, 1 });
@@ -106,7 +103,7 @@ public:
      *
      * @return This
      */
-    constexpr Rot2& normalize()
+    Rot2& normalize()
     {
         const auto v = this->complex().normalized();
         m_real = v.x;
@@ -119,7 +116,7 @@ public:
      *
      * @return Copy of this that performs the reverse rotation
      */
-    [[nodiscard]] constexpr Rot2 reversed() const
+    [[nodiscard]] Rot2 reversed() const
     {
         Rot2 res = (*this);
         res.m_imag *= -1;
@@ -135,7 +132,7 @@ public:
      * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    constexpr Rot2& stack(const Rot2& that, bool normalize = true)
+    Rot2& stack(const Rot2& that, bool normalize = true)
     {
         // yet another notation hack to do complex number multiplication
         (*this) = std::move(Rot2{ reversed().complex(), that.complex(), normalize });
@@ -148,7 +145,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] constexpr Vec2 apply(const Vec2& v) const { return Rot2{ reversed().complex(), v, false }.complex(); }
+    [[nodiscard]] Vec2 apply(const Vec2& v) const { return Rot2{ reversed().complex(), v, false }.complex(); }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -156,7 +153,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    [[nodiscard]] constexpr Vec2 apply_inv(const Vec2& v) const { return Rot2{ complex(), v, false }.complex(); }
+    [[nodiscard]] Vec2 apply_inv(const Vec2& v) const { return Rot2{ complex(), v, false }.complex(); }
 };
 
 /**
@@ -180,7 +177,7 @@ public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    constexpr Rot3() {};
+    Rot3() {};
 
     /**
      * @brief Construct rotation object from axis and angle in radians
@@ -196,7 +193,7 @@ public:
     /**
      * @brief Construct rotation object from the angle between two vectors
      */
-    constexpr Rot3(const Vec3& from_dir, const Vec3& to_dir)
+    Rot3(const Vec3& from_dir, const Vec3& to_dir)
             : m_s{ 1 + dot(from_dir, to_dir) }
             , m_dir{ cross(from_dir, to_dir) }
     {
@@ -216,7 +213,7 @@ public:
      * @param rhs The destination direction vector
      * @param normalize Normalize the resulting quaternion
      */
-    constexpr Rot3(const Rot3& lhs, const Rot3& rhs, bool normalize = true)
+    Rot3(const Rot3& lhs, const Rot3& rhs, bool normalize = true)
             : m_s{ lhs.m_s * rhs.m_s - dot(lhs.m_dir, rhs.m_dir) }
             , m_dir{ lhs.m_s * rhs.m_dir + lhs.m_dir * rhs.m_s + cross(lhs.m_dir, rhs.m_dir) }
     {
@@ -236,7 +233,7 @@ public:
      *
      * @return Copy of the underlying quaternion as Vec4
      */
-    [[nodiscard]] constexpr Vec4 quat() const { return Vec4{ m_dir, m_s }; }
+    [[nodiscard]] Vec4 quat() const { return Vec4{ m_dir, m_s }; }
 
     /**
      * @brief Convert to (normalized) axis and angle
@@ -256,7 +253,7 @@ public:
      *
      * @return Matrix performing the same rotation as this
      */
-    [[nodiscard]] constexpr Mat3 to_mat() const
+    [[nodiscard]] Mat3 to_mat() const
     {
         const Vec3 x_hat = apply(Vec3{ 1, 0, 0 });
         const Vec3 y_hat = apply(Vec3{ 0, 1, 0 });
@@ -307,7 +304,7 @@ public:
      *
      * @return This
      */
-    constexpr Rot3& normalize()
+    Rot3& normalize()
     {
         const auto v = this->quat().normalized();
         m_dir = v.xyz;
@@ -324,7 +321,7 @@ public:
      * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    constexpr Rot3& stack(const Rot3& that, bool normalize = true)
+    Rot3& stack(const Rot3& that, bool normalize = true)
     {
         *this = std::move(Rot3{ *this, that, normalize });
         return *this;
@@ -336,10 +333,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const
-    {
-        return Rot3{ Rot3{ (*this), v }, reversed(), false }.m_dir;
-    }
+    [[nodiscard]] Vec3 apply(const Vec3& v) const { return Rot3{ Rot3{ (*this), v }, reversed(), false }.m_dir; }
 
     /**
      * @brief Apply the inverse rotation "action" on
@@ -362,7 +356,7 @@ protected:
      * @param lhs the left-hand side
      * @param rhs the right-hand side
      */
-    constexpr Rot3(const Rot3& lhs, const Vec3& rhs) // like Rot3 * Rot3 but with rhs.s == 0
+    Rot3(const Rot3& lhs, const Vec3& rhs) // like Rot3 * Rot3 but with rhs.s == 0
             : m_s{ -dot(lhs.m_dir, rhs) }
             , m_dir{ lhs.m_s * rhs + cross(lhs.m_dir, rhs) } {};
 };

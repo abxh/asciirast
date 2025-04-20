@@ -20,7 +20,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_compile_options(-ggdb3 -Og)
+	add_compile_options(-ggdb3)
 
 	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
@@ -77,6 +77,7 @@ endif()
 if (EXAMPLES)
 	add_subdirectory(examples/00-spiral)
 	add_subdirectory(examples/01-sierpinski-triangle)
+	add_subdirectory(examples/02-star)
 
 	if (SDL_BASED_EXAMPLES)
 		add_subdirectory(examples/SDL-00-hello-triangle)

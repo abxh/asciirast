@@ -79,8 +79,8 @@ public:
 
     bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
-        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
-        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+        assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp<math::Float>(depth, 0, 1);

@@ -79,8 +79,8 @@ public:
 
     bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
-        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
-        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+        assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp<math::Float>(depth, 0, 1);
@@ -164,7 +164,7 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->uv * scalar }; }
 };
 
-class MyProgram
+class MyHorizontalProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
@@ -206,7 +206,7 @@ public:
     }
 };
 
-static_assert(asciirast::ProgramInterface<MyProgram>);
+static_assert(asciirast::ProgramInterface<MyHorizontalProgram>);
 
 void
 handle_events(bool& running)
@@ -312,10 +312,10 @@ main(int argc, char* argv[])
             [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
 
     SDLBuffer screen(512, 512);
-    MyProgram program;
+    MyHorizontalProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions<asciirast::WindingOrder::CounterClockwise> renderer_options;
+    asciirast::RendererOptions renderer_options = { .winding_order = asciirast::WindingOrder::CounterClockwise };
 
     bool running = true;
     while (running) {

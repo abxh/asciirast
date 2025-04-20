@@ -298,7 +298,7 @@ ceil(const Vec<N, T>& v) -> Vec<N, T>
 }
 
 /**
- * @brief Take the ceiled value of each component
+ * @brief Take the floored value of each component
  *
  * @param v The vector to work on
  * @return The resulting vector
@@ -312,6 +312,25 @@ floor(const Vec<N, T>& v) -> Vec<N, T>
     Vec<N, T> res{};
     for (std::size_t i = 0; i < N; i++) {
         res[i] = std::floor(v[i]);
+    }
+    return res;
+}
+
+/**
+ * @brief Take the truncated value of each component
+ *
+ * @param v The vector to work on
+ * @return The resulting vector
+ */
+template<std::size_t N, typename T>
+[[nodiscard]]
+constexpr auto
+trunc(const Vec<N, T>& v) -> Vec<N, T>
+    requires(std::is_floating_point_v<T>)
+{
+    Vec<N, T> res{};
+    for (std::size_t i = 0; i < N; i++) {
+        res[i] = std::trunc(v[i]);
     }
     return res;
 }

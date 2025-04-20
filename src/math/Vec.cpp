@@ -119,4 +119,11 @@ floor(const Vec3&);
 extern template Vec4
 floor(const Vec4&);
 
+extern template Vec2
+trunc(const Vec2&);
+extern template Vec3
+trunc(const Vec3&);
+extern template Vec4
+trunc(const Vec4&);
+
 };

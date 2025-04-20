@@ -218,7 +218,7 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->id * scalar, this->color * scalar }; }
 };
 
-class MyProgram
+class MyHorizontalProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
@@ -243,7 +243,7 @@ public:
     }
 };
 
-static_assert(asciirast::ProgramInterface<MyProgram>); // alternative
+static_assert(asciirast::ProgramInterface<MyHorizontalProgram>); // alternative
 
 void
 sierpinski_triangle(std::vector<MyVertex>& v,
@@ -274,7 +274,7 @@ sierpinski_triangle(std::vector<MyVertex>& v,
 }
 
 int
-main(void)
+main(int, char**)
 {
     const std::string palette = "@%#*+=-:."; // Paul Borke's palette
 
@@ -291,7 +291,7 @@ main(void)
     vertex_buf.verticies.clear();
     sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
-    MyProgram program;
+    MyHorizontalProgram program;
     TerminalBuffer framebuffer;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };

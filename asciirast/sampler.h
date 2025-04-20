@@ -250,7 +250,7 @@ texture(FragmentContextType<ValueTypes...>& context,
 
         const auto texture_size = math::Vec2{ sampler.texture().width(), sampler.texture().height() };
 
-        return context.template init<math::Vec2, Targets>(texture_size * uv);
+        return context.init(texture_size * uv, std::type_identity<Targets>());
     };
 
     auto get_func = [&]() -> math::Vec4 {
@@ -262,8 +262,7 @@ texture(FragmentContextType<ValueTypes...>& context,
             return textureLOD(sampler, uv, 0.f);
         } break;
         case Type::LINE: {
-            // guessing the formula is like so:
-            const math::Vec2 dFdv = context.template dFdv2<math::Vec2>();
+            const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
             const math::Float d = math::dot(dFdv, dFdv);
             const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 

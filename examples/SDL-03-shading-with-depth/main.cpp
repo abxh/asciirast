@@ -75,8 +75,8 @@ public:
 
     bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {
-        assert(0 <= pos.x && (std::size_t)(pos.x) <= m_width);
-        assert(0 <= pos.y && (std::size_t)(pos.y) <= m_height);
+        assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
+        assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp<math::Float>(depth, 0, 1);
@@ -265,7 +265,7 @@ main(int argc, char* argv[])
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions<asciirast::WindingOrder::CounterClockwise> renderer_options;
+    asciirast::RendererOptions renderer_options{ .winding_order = asciirast::WindingOrder::CounterClockwise };
 
     bool running = true;
     while (running) {
