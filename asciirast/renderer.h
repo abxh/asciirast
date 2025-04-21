@@ -546,7 +546,7 @@ private:
                     if (in_line[0] && holds_targets0 && framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth)) {
                         framebuffer.plot(rfrag0_pos_int, std::get<Targets>(r0.m_value));
                     }
-                    if (in_line[1] && holds_targets1) {
+                    if (in_line[1] && holds_targets1 && framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth)) {
                         framebuffer.plot(rfrag1_pos_int, std::get<Targets>(r1.m_value));
                     }
                     break; // do nothing special but plot the point(s) in the framebuffer
