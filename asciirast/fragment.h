@@ -231,6 +231,7 @@ public:
     {
         assert(m_type != Type::UINITIALIZED);
         assert(m_quad_ptr != nullptr);
+        assert(id < 4);
 
         return std::get<T>(m_quad_ptr[id]);
     }
