@@ -19,6 +19,7 @@
 #include "./rasterize/bounds_test.h"
 #include "./rasterize/interpolate.h"
 #include "./rasterize/rasterize.h"
+#include "./renderer_options.h"
 
 namespace asciirast {
 
@@ -34,62 +35,6 @@ enum class ShapeType
     Triangles,
     TriangleStrip,
     TriangleFan,
-};
-
-/**
- * @brief Triangle winding order
- */
-enum class WindingOrder
-{
-    Clockwise,
-    CounterClockwise,
-    Neither,
-};
-
-/**
- * @brief Line drawing direction
- */
-enum class LineDrawingDirection
-{
-    Upwards,
-    Downwards,
-    Leftwards,
-    Rightwards,
-};
-
-/**
- * @brief Line ends inclusion
- */
-enum class LineEndsInclusion
-{
-    ExcludeBoth,
-    IncludeStart,
-    IncludeEnd,
-    IncludeBoth,
-};
-
-/**
- * @brief Triangle fill bias
- */
-enum class TriangleFillBias
-{
-    TopLeft,
-    BottomRight,
-    Neither,
-};
-
-/**
- * @brief Renderer options
- */
-struct RendererOptions
-{
-    WindingOrder winding_order = WindingOrder::Neither; ///< triangle winding order
-
-    TriangleFillBias triangle_fill_bias = TriangleFillBias::TopLeft; ///< triangle fill bias
-
-    LineDrawingDirection line_drawing_direction = LineDrawingDirection::Downwards; ///< line drawing direction
-
-    LineEndsInclusion line_ends_inclusion = LineEndsInclusion::IncludeBoth; ///< line ends inclusion option
 };
 
 /**
@@ -153,7 +98,7 @@ public:
 class Renderer
 {
     bool m_requires_screen_clipping = false;
-    math::Transform2D m_screen_to_viewport = {};
+    math::Transform2D m_scale_to_viewport = {};
 
 public:
     /**
@@ -162,25 +107,6 @@ public:
      * Verticies outside of this boundary are not shown.
      */
     static constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
-
-    /**
-     * @brief Calculate the transform to convert screen_bounds points to viewport_bounds poins
-     *
-     * @param viewport_bounds The viewport bounds AABB
-     * @param screen_bounds The screen bounds AABB
-     * @return The transform that converts points from the screen to the viewport
-     */
-    static math::Transform2D screen_to_viewport_transform(const math::AABB2D& viewport_bounds,
-                                                          const math::AABB2D& screen_bounds)
-    {
-        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
-        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
-
-        const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
-        const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());
-
-        return math::Transform2D().scale(rel_size).translate(shf_size);
-    }
 
     /**
      * @brief Construct renderer with default viewport
@@ -197,7 +123,7 @@ public:
      */
     explicit Renderer(const math::AABB2D& viewport_bounds) noexcept
             : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
-            , m_screen_to_viewport{ screen_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
+            , m_scale_to_viewport{ scale_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
@@ -269,6 +195,56 @@ public:
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
         draw(program, uniform, verts.shape_type, view, framebuffer, data, options);
+    }
+
+public:
+    /**
+     * @brief Calculate the transform to convert screen_bounds points to viewport_bounds poins
+     *
+     * @param viewport_bounds The viewport bounds AABB
+     * @param screen_bounds The screen bounds AABB
+     * @return The transform that converts points from the screen to the viewport
+     */
+    static math::Transform2D scale_to_viewport_transform(const math::AABB2D& viewport_bounds,
+                                                         const math::AABB2D& screen_bounds)
+    {
+        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
+        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
+
+        const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
+        const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());
+
+        return math::Transform2D().scale(rel_size).translate(shf_size);
+    }
+
+    /**
+     * @brief Apply scale_to_viewport transform
+     *
+     * @param scale_to_viewport the transform
+     * @param pfrag The projected fragment
+     * @return The projected fragment transformed
+     */
+    template<VaryingInterface Varying>
+    static ProjectedFragment<Varying> apply_scale_to_viewport(const math::Transform2D& scale_to_viewport,
+                                                              ProjectedFragment<Varying> pfrag)
+    {
+        pfrag.pos = scale_to_viewport.apply(pfrag.pos);
+        return pfrag;
+    }
+
+    /**
+     * @brief Apply screen_to_window transform
+     *
+     * @param screen_to_window the transform
+     * @param pfrag The projected fragment
+     * @return The projected fragment transformed
+     */
+    template<VaryingInterface Varying>
+    static ProjectedFragment<Varying> apply_screen_to_window(const math::Transform2D& screen_to_window,
+                                                             ProjectedFragment<Varying> pfrag)
+    {
+        pfrag.pos = math::trunc(screen_to_window.apply(pfrag.pos) + math::Vec2{ 0.5f, 0.5f });
+        return pfrag;
     }
 
 private:
@@ -361,56 +337,6 @@ private:
         }
     }
 
-    template<VaryingInterface Varying>
-    ProjectedFragment<Varying> apply_scale_to_viewport(const ProjectedFragment<Varying>& pfrag) const
-    {
-        return ProjectedFragment<Varying>{ .pos = m_screen_to_viewport.apply(pfrag.pos),
-                                           .depth = pfrag.depth,
-                                           .Z_inv = pfrag.Z_inv,
-                                           .attrs = pfrag.attrs };
-    }
-
-    template<VaryingInterface Varying, class Vec4TripletAllocator, class AttrsTripletAllocator>
-    ProjectedFragment<Varying> apply_screen_to_window(
-            const ProjectedFragment<Varying>& pfrag,
-            const RendererData<Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
-    {
-        const auto new_pos = data.screen_to_window.apply(pfrag.pos);
-
-        return ProjectedFragment<Varying>{ .pos = math::trunc(new_pos + math::Vec2{ 0.5f, 0.5f }),
-                                           .depth = pfrag.depth,
-                                           .Z_inv = pfrag.Z_inv,
-                                           .attrs = pfrag.attrs };
-    }
-
-    rasterize::TriangleFillBias conv(const TriangleFillBias& b) const
-    {
-        switch (b) {
-        case TriangleFillBias::BottomRight:
-            return rasterize::TriangleFillBias::BottomRight;
-        case TriangleFillBias::TopLeft:
-            return rasterize::TriangleFillBias::TopLeft;
-        case TriangleFillBias::Neither:
-            return rasterize::TriangleFillBias::Neither;
-        }
-        return rasterize::TriangleFillBias::Neither;
-    }
-
-    rasterize::LineEndsInclusion conv(const LineEndsInclusion& b) const
-    {
-        switch (b) {
-        case LineEndsInclusion::ExcludeBoth:
-            return rasterize::LineEndsInclusion::ExcludeBoth;
-        case LineEndsInclusion::IncludeStart:
-            return rasterize::LineEndsInclusion::IncludeStart;
-        case LineEndsInclusion::IncludeEnd:
-            return rasterize::LineEndsInclusion::IncludeEnd;
-        case LineEndsInclusion::IncludeBoth:
-            return rasterize::LineEndsInclusion::IncludeBoth;
-        }
-        return rasterize::LineEndsInclusion::IncludeBoth;
-    }
-
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
@@ -446,7 +372,7 @@ private:
         const PFrag pfrag = project_fragment(frag);
 
         // scale up to viewport:
-        const PFrag vfrag = apply_scale_to_viewport(pfrag);
+        const PFrag vfrag = apply_scale_to_viewport(m_scale_to_viewport, pfrag);
 
         if (m_requires_screen_clipping) {
             // cull points outside of screen:
@@ -456,16 +382,18 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag = apply_screen_to_window(vfrag, data);
+        const PFrag wfrag = apply_screen_to_window(data.screen_to_window, vfrag);
 
         // create empty fragment context
         std::array<typename FragmentContext::ValueVariant, 4> quad;
-        auto context = FragmentContext{ 0, &quad[0] };
+        auto context = FragmentContext{ 0, quad };
 
         // apply fragment shader and unpack results:
-        for (const auto& r : program.on_fragment(context, uniform, wfrag)) {
-            const bool holds_prepare = std::holds_alternative<typename FragResult::FragmentContextPrepare>(r.m_value);
-            const bool holds_targets = std::holds_alternative<Targets>(r.m_value);
+        for (const auto& result : program.on_fragment(context, uniform, wfrag)) {
+            using Prepare = typename FragResult::FragmentContextPrepare;
+
+            const bool holds_prepare = std::holds_alternative<Prepare>(result.m_value);
+            const bool holds_targets = std::holds_alternative<Targets>(result.m_value);
 
             if (holds_prepare) {
                 context.m_type = FragmentContext::Type::POINT;
@@ -474,7 +402,7 @@ private:
                 const auto pos_int = math::Vec2Int{ wfrag.pos };
 
                 if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
-                    framebuffer.plot(pos_int, std::get<Targets>(r.m_value));
+                    framebuffer.plot(pos_int, std::get<Targets>(result.m_value));
                 }
                 break; // do nothing special but plot point in framebuffer
             } else {
@@ -517,19 +445,19 @@ private:
             }
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
-            FragmentContext c0{ 0, &quad[0], !in_line[0] };
-            FragmentContext c1{ 1, &quad[0], !in_line[1] };
+            FragmentContext c0{ 0, quad, !in_line[0] };
+            FragmentContext c1{ 1, quad, !in_line[1] };
 
             // apply fragment shader and unpack results:
             for (const auto& [r0, r1] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
                                                                 program.on_fragment(c1, uniform, rfrag1))) {
+                using Prepare = typename FragResult::FragmentContextPrepare;
+
                 const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
                 const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
 
-                const bool holds_prepare0 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
-                const bool holds_prepare1 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
+                const bool holds_prepare0 = std::holds_alternative<Prepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<Prepare>(r1.m_value);
 
                 if (holds_prepare0 || holds_prepare1) {
                     if (!holds_prepare0 || !holds_prepare1) {
@@ -555,8 +483,9 @@ private:
                 }
             }
         };
-        const auto bias = conv(options.line_ends_inclusion);
-        const auto rasterize_line = [plot_func, &options, bias](const PFrag& wfrag0, const PFrag& wfrag1) -> void {
+        const auto ends_inclusion = options.line_ends_inclusion;
+        const auto rasterize_line = [plot_func, &options, ends_inclusion](const PFrag& wfrag0,
+                                                                          const PFrag& wfrag1) -> void {
             bool keep = true;
             const auto v0v1 = wfrag0.pos.vector_to(wfrag1.pos);
 
@@ -577,9 +506,9 @@ private:
 
             // swap vertices after line drawing direction
             if (keep) {
-                rasterize::rasterize_line(wfrag0, wfrag1, plot_func, bias);
+                rasterize::rasterize_line(wfrag0, wfrag1, plot_func, ends_inclusion);
             } else {
-                rasterize::rasterize_line(wfrag1, wfrag0, plot_func, bias);
+                rasterize::rasterize_line(wfrag1, wfrag0, plot_func, ends_inclusion);
             }
         };
 
@@ -603,8 +532,8 @@ private:
         const PFrag pfrag1 = project_fragment(tfrag1);
 
         // scale up to viewport:
-        const PFrag vfrag0 = apply_scale_to_viewport(pfrag0);
-        const PFrag vfrag1 = apply_scale_to_viewport(pfrag1);
+        const PFrag vfrag0 = apply_scale_to_viewport(m_scale_to_viewport, pfrag0);
+        const PFrag vfrag1 = apply_scale_to_viewport(m_scale_to_viewport, pfrag1);
 
         PFrag inner_tfrag0 = vfrag0;
         PFrag inner_tfrag1 = vfrag1;
@@ -620,8 +549,8 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0, data);
-        const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
+        const PFrag wfrag0 = apply_screen_to_window(data.screen_to_window, inner_tfrag0);
+        const PFrag wfrag1 = apply_screen_to_window(data.screen_to_window, inner_tfrag1);
 
         // iterate over line fragments:
         rasterize_line(wfrag0, wfrag1);
@@ -662,29 +591,27 @@ private:
             }
 
             std::array<typename FragmentContext::ValueVariant, 4> quad;
-            FragmentContext c0{ 0, &quad[0], !in_triangle[0] };
-            FragmentContext c1{ 1, &quad[0], !in_triangle[1] };
-            FragmentContext c2{ 2, &quad[0], !in_triangle[2] };
-            FragmentContext c3{ 3, &quad[0], !in_triangle[3] };
+            FragmentContext c0{ 0, quad, !in_triangle[0] };
+            FragmentContext c1{ 1, quad, !in_triangle[1] };
+            FragmentContext c2{ 2, quad, !in_triangle[2] };
+            FragmentContext c3{ 3, quad, !in_triangle[3] };
 
             // apply fragment shader and unpack wrapped result:
             for (const auto& [r0, r1, r2, r3] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0),
                                                                         program.on_fragment(c1, uniform, rfrag1),
                                                                         program.on_fragment(c2, uniform, rfrag2),
                                                                         program.on_fragment(c3, uniform, rfrag3))) {
+                using Prepare = typename FragResult::FragmentContextPrepare;
+
                 const bool holds_targets0 = std::holds_alternative<Targets>(r0.m_value);
                 const bool holds_targets1 = std::holds_alternative<Targets>(r1.m_value);
                 const bool holds_targets2 = std::holds_alternative<Targets>(r2.m_value);
                 const bool holds_targets3 = std::holds_alternative<Targets>(r3.m_value);
 
-                const bool holds_prepare0 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r0.m_value);
-                const bool holds_prepare1 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r1.m_value);
-                const bool holds_prepare2 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r2.m_value);
-                const bool holds_prepare3 =
-                        std::holds_alternative<typename FragResult::FragmentContextPrepare>(r3.m_value);
+                const bool holds_prepare0 = std::holds_alternative<Prepare>(r0.m_value);
+                const bool holds_prepare1 = std::holds_alternative<Prepare>(r1.m_value);
+                const bool holds_prepare2 = std::holds_alternative<Prepare>(r2.m_value);
+                const bool holds_prepare3 = std::holds_alternative<Prepare>(r3.m_value);
 
                 if (holds_prepare0 || holds_prepare1 || holds_prepare2 || holds_prepare3) {
                     if (!holds_prepare0 || !holds_prepare1 || !holds_prepare2 || !holds_prepare3) {
@@ -724,9 +651,9 @@ private:
                 }
             }
         };
-        const auto bias = conv(options.triangle_fill_bias);
-        const auto rasterize_triangle =
-                [plot_func, &options, bias](const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+        const auto fill_bias = options.triangle_fill_bias;
+        const auto rasterize_triangle = [plot_func, &options, fill_bias](
+                                                const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
             const bool clockwise_winding_order = options.winding_order == WindingOrder::Clockwise;
             const bool cclockwise_winding_order = options.winding_order == WindingOrder::CounterClockwise;
             const bool neither_winding_order = options.winding_order == WindingOrder::Neither;
@@ -744,9 +671,9 @@ private:
 
             // swap vertices after flexible winding order, and iterate over triangle fragments:
             if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, bias);
+                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, fill_bias);
             } else {
-                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, bias);
+                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, fill_bias);
             }
         };
 
@@ -782,15 +709,15 @@ private:
             const PFrag pfrag2 = project_fragment(tfrag2);
 
             // scale to viewport:
-            const PFrag vfrag0 = apply_scale_to_viewport(pfrag0);
-            const PFrag vfrag1 = apply_scale_to_viewport(pfrag1);
-            const PFrag vfrag2 = apply_scale_to_viewport(pfrag2);
+            const PFrag vfrag0 = apply_scale_to_viewport(m_scale_to_viewport, pfrag0);
+            const PFrag vfrag1 = apply_scale_to_viewport(m_scale_to_viewport, pfrag1);
+            const PFrag vfrag2 = apply_scale_to_viewport(m_scale_to_viewport, pfrag2);
 
             if (!m_requires_screen_clipping) {
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window(vfrag0, data);
-                const PFrag wfrag1 = apply_screen_to_window(vfrag1, data);
-                const PFrag wfrag2 = apply_screen_to_window(vfrag2, data);
+                const PFrag wfrag0 = apply_screen_to_window(data.screen_to_window, vfrag0);
+                const PFrag wfrag1 = apply_screen_to_window(data.screen_to_window, vfrag1);
+                const PFrag wfrag2 = apply_screen_to_window(data.screen_to_window, vfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);
@@ -826,9 +753,9 @@ private:
                 const PFrag inner_tfrag2 = { inner_vec2.xy, inner_vec2.z, inner_vec2.w, inner_attrs2 };
 
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window(inner_tfrag0, data);
-                const PFrag wfrag1 = apply_screen_to_window(inner_tfrag1, data);
-                const PFrag wfrag2 = apply_screen_to_window(inner_tfrag2, data);
+                const PFrag wfrag0 = apply_screen_to_window(data.screen_to_window, inner_tfrag0);
+                const PFrag wfrag1 = apply_screen_to_window(data.screen_to_window, inner_tfrag1);
+                const PFrag wfrag2 = apply_screen_to_window(data.screen_to_window, inner_tfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);

@@ -4,24 +4,10 @@
 #include <cfloat>
 
 #include "../math/types.h"
+#include "../renderer_options.h"
 #include "./interpolate.h"
 
 namespace asciirast::rasterize {
-
-enum class TriangleFillBias
-{
-    TopLeft,
-    BottomRight,
-    Neither,
-};
-
-enum class LineEndsInclusion
-{
-    ExcludeBoth,
-    IncludeEnd,
-    IncludeBoth,
-    IncludeStart,
-};
 
 template<VaryingInterface Varying, typename Plot>
     requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
@@ -68,10 +54,9 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
         };
     };
 
-    const auto bias0 = !(bias_option == LineEndsInclusion::IncludeStart ||
-                         bias_option == LineEndsInclusion::IncludeBoth);
-    const auto bias1 = !(bias_option == LineEndsInclusion::IncludeEnd ||
-                         bias_option == LineEndsInclusion::IncludeBoth);
+    const auto bias0 =
+            !(bias_option == LineEndsInclusion::IncludeStart || bias_option == LineEndsInclusion::IncludeBoth);
+    const auto bias1 = !(bias_option == LineEndsInclusion::IncludeEnd || bias_option == LineEndsInclusion::IncludeBoth);
 
     std::array<ProjectedFragment<Varying>, 2> rfrag;
     rfrag[0] = func(acc_t, acc_v, acc_Z_inv);

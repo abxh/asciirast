@@ -1,6 +1,6 @@
 /**
  * @file fragment.h
- * @brief Fragment related classes
+ * @brief Fragment type and related types
  */
 
 #pragma once
@@ -193,8 +193,7 @@ public:
     [[nodiscard]] FragmentResult<Targets> init(const T& value, std::type_identity<Targets> = {})
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
-        assert(m_quad_ptr != nullptr);
-        m_quad_ptr[m_id] = value;
+        m_quad[m_id] = value;
         return FragmentResult<Targets>{ typename FragmentResult<Targets>::FragmentContextPrepare() };
     }
 
@@ -230,10 +229,11 @@ public:
     [[nodiscard]] T at(const std::size_t id, std::type_identity<T> = {}) const
     {
         assert(m_type != Type::UINITIALIZED);
-        assert(m_quad_ptr != nullptr);
-        assert(id < 4);
+        assert(id < 1 && m_type == Type::POINT || m_type != Type::POINT);
+        assert(id < 2 && m_type == Type::LINE || m_type != Type::LINE);
+        assert(id < 4 && m_type == Type::FILLED || m_type != Type::FILLED);
 
-        return std::get<T>(m_quad_ptr[id]);
+        return std::get<T>(m_quad[id]);
     }
 
     /**
@@ -247,7 +247,6 @@ public:
     [[nodiscard]] T dFdx(std::type_identity<T> = {}) const
     {
         assert(m_type == Type::FILLED);
-        assert(m_quad_ptr != nullptr);
 
         /*
             0 --> 1
@@ -257,9 +256,9 @@ public:
         */
 
         if (m_id == 0 || m_id == 1) {
-            return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+            return std::get<T>(m_quad[1]) - std::get<T>(m_quad[0]);
         } else {
-            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[2]);
+            return std::get<T>(m_quad[3]) - std::get<T>(m_quad[2]);
         }
     }
 
@@ -274,7 +273,6 @@ public:
     [[nodiscard]] T dFdy(std::type_identity<T> = {}) const
     {
         assert(m_type == Type::FILLED);
-        assert(m_quad_ptr != nullptr);
 
         /*
             0 --> 1
@@ -284,9 +282,9 @@ public:
         */
 
         if (m_id == 0 || m_id == 2) {
-            return std::get<T>(m_quad_ptr[2]) - std::get<T>(m_quad_ptr[0]);
+            return std::get<T>(m_quad[2]) - std::get<T>(m_quad[0]);
         } else {
-            return std::get<T>(m_quad_ptr[3]) - std::get<T>(m_quad_ptr[1]);
+            return std::get<T>(m_quad[3]) - std::get<T>(m_quad[1]);
         }
     }
 
@@ -301,23 +299,22 @@ public:
     [[nodiscard]] T dFdv(std::type_identity<T> = {}) const
     {
         assert(m_type == Type::LINE);
-        assert(m_quad_ptr != nullptr);
 
-        return std::get<T>(m_quad_ptr[1]) - std::get<T>(m_quad_ptr[0]);
+        return std::get<T>(m_quad[1]) - std::get<T>(m_quad[0]);
     }
 
 private:
     std::size_t m_id;
-    ValueVariant* m_quad_ptr;
+    std::array<ValueVariant, 4>& m_quad;
     bool m_is_helper_invocation;
     Type m_type;
 
     FragmentContextType(const std::size_t id,
-                        ValueVariant* quad_ptr,
+                        std::array<ValueVariant, 4>& quad,
                         const bool is_helper_invocation = false,
                         const Type type = Type::UINITIALIZED)
             : m_id{ id }
-            , m_quad_ptr{ quad_ptr }
+            , m_quad{ quad }
             , m_is_helper_invocation{ is_helper_invocation }
             , m_type{ type } {};
 

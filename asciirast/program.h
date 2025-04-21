@@ -1,6 +1,6 @@
 /**
  * @file program.h
- * @brief Definition of program interface and other related types
+ * @brief Definition of program interface
  */
 
 #pragma once
