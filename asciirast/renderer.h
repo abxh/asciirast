@@ -275,28 +275,28 @@ private:
             };
             const auto rem = std::ranges::distance(verticies_inp) % 2U;
             const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
-            const auto verticies = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
+            const auto verticies_tup = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
 
-            for (const auto& [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies_tup) {
                 draw_line(program, uniform, framebuffer, data, options, v0, v1);
             }
         } break;
         case ShapeType::LineStrip: {
-            const auto verticies = verticies_inp | std::ranges::views::adjacent<2U>;
+            const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<2U>;
 
-            for (const auto& [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies_tup) {
                 draw_line(program, uniform, framebuffer, data, options, v0, v1);
             }
         } break;
         case ShapeType::LineLoop: {
-            const auto verticies = verticies_inp | std::ranges::views::adjacent<2U>;
+            const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<2U>;
 
-            for (const auto& [v0, v1] : verticies) {
+            for (const auto& [v0, v1] : verticies_tup) {
                 draw_line(program, uniform, framebuffer, data, options, v0, v1);
             }
-            if (std::ranges::distance(verticies) >= 1U) {
-                const auto v0 = std::get<1>(*(verticies.cend() - 1U));
-                const auto v1 = std::get<0>(*verticies.cbegin());
+            if (std::ranges::distance(verticies_inp) >= 2U) {
+                const auto v0 = *(std::ranges::cend(verticies_inp) - 1);
+                const auto v1 = *(std::ranges::cbegin(verticies_inp) + 0);
 
                 draw_line(program, uniform, framebuffer, data, options, v0, v1);
             };
@@ -314,25 +314,26 @@ private:
             }
         } break;
         case ShapeType::TriangleStrip: {
-            const auto verticies = verticies_inp | std::ranges::views::adjacent<3U>;
+            const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
 
-            for (const auto& [v0, v1, v2] : verticies) {
+            for (const auto& [v0, v1, v2] : verticies_tup) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
         } break;
         case ShapeType::TriangleFan: {
-            const auto verticies = verticies_inp | std::ranges::views::adjacent<3U>;
+            const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
 
-            for (const auto& [v0, v1, v2] : verticies) {
+            for (const auto& [v0, v1, v2] : verticies_tup) {
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             }
-            if (std::ranges::distance(verticies) >= 1U) {
-                const auto v0 = std::get<1>(*(verticies.cend() - 1U));
-                const auto v1 = std::get<2>(*(verticies.cend() - 1U));
-                const auto v2 = std::get<0>(*verticies.cbegin());
+            if (std::ranges::distance(verticies_inp) >= 3U) {
+                const auto v0 = *(std::ranges::cend(verticies_inp) - 2);
+                const auto v1 = *(std::ranges::cend(verticies_inp) - 1);
+                const auto v2 = *(std::ranges::cbegin(verticies_inp) + 0);
 
                 draw_triangle(program, uniform, framebuffer, data, options, v0, v1, v2);
             };
+
         } break;
         }
     }
@@ -421,7 +422,7 @@ private:
     void draw_line(const Program& program,
                    const Uniform& uniform,
                    FrameBuffer& framebuffer,
-                   const RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+                   RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
                    const RendererOptions& options,
                    const Vertex& v0,
                    const Vertex& v1) const
@@ -483,9 +484,7 @@ private:
                 }
             }
         };
-        const auto ends_inclusion = options.line_ends_inclusion;
-        const auto rasterize_line = [plot_func, &options, ends_inclusion](const PFrag& wfrag0,
-                                                                          const PFrag& wfrag1) -> void {
+        const auto rasterize_line = [&plot_func, &options](const PFrag& wfrag0, const PFrag& wfrag1) -> void {
             bool keep = true;
             const auto v0v1 = wfrag0.pos.vector_to(wfrag1.pos);
 
@@ -506,9 +505,11 @@ private:
 
             // swap vertices after line drawing direction
             if (keep) {
-                rasterize::rasterize_line(wfrag0, wfrag1, plot_func, ends_inclusion);
+                rasterize::rasterize_line(
+                        wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
             } else {
-                rasterize::rasterize_line(wfrag1, wfrag0, plot_func, ends_inclusion);
+                rasterize::rasterize_line(
+                        wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
             }
         };
 
@@ -651,9 +652,8 @@ private:
                 }
             }
         };
-        const auto fill_bias = options.triangle_fill_bias;
-        const auto rasterize_triangle = [plot_func, &options, fill_bias](
-                                                const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+        const auto rasterize_triangle =
+                [&plot_func, &options](const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
             const bool clockwise_winding_order = options.winding_order == WindingOrder::Clockwise;
             const bool cclockwise_winding_order = options.winding_order == WindingOrder::CounterClockwise;
             const bool neither_winding_order = options.winding_order == WindingOrder::Neither;
@@ -671,9 +671,17 @@ private:
 
             // swap vertices after flexible winding order, and iterate over triangle fragments:
             if (clockwise_winding_order || (neither_winding_order && 0 > signed_area_2)) {
-                rasterize::rasterize_triangle(wfrag0, wfrag1, wfrag2, plot_func, fill_bias);
+                rasterize::rasterize_triangle(wfrag0,
+                                              wfrag1,
+                                              wfrag2,
+                                              std::forward<decltype(plot_func)>(plot_func),
+                                              options.triangle_fill_bias);
             } else {
-                rasterize::rasterize_triangle(wfrag0, wfrag2, wfrag1, plot_func, fill_bias);
+                rasterize::rasterize_triangle(wfrag0,
+                                              wfrag2,
+                                              wfrag1,
+                                              std::forward<decltype(plot_func)>(plot_func),
+                                              options.triangle_fill_bias);
             }
         };
 

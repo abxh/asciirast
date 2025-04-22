@@ -15,7 +15,7 @@ template<VaryingInterface Varying, typename Plot>
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0,
                const ProjectedFragment<Varying>& proj1,
-               const Plot plot,
+               const Plot&& plot,
                const LineEndsInclusion bias_option)
 {
     // Modified DDA Line algorithm:
@@ -95,7 +95,7 @@ static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
-                   const Plot plot,
+                   const Plot&& plot,
                    const TriangleFillBias bias_option)
 {
     // Modified algorithm which uses cross products and bayesian coordinates for triangles:
