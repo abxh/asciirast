@@ -171,9 +171,8 @@ almost_less_than(const T lhs, const T rhs) -> bool
     return almost_less_than(lhs, rhs, 17);
 }
 
-namespace detail {
-
 /// @cond DO_NOT_DOCUMENT
+namespace detail {
 
 // square root with newton-raphson
 // -------------------------------
@@ -205,8 +204,7 @@ sqrt(const T x) -> T
     }
 }
 
-/// @endcond
-
 };
+/// @endcond
 
 } // namespace asciirast::math

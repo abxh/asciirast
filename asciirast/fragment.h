@@ -1,6 +1,12 @@
 /**
  * @file fragment.h
  * @brief Fragment type and related types
+ *
+ * On 2x2 block processing:
+ * https://www.gamedev.net/forums/topic/614000-ddxddy-functions-software-rasterization-and-texture-filtering/
+ *
+ * opengl "helper" (fragment shader) invocation check:
+ * https://registry.khronos.org/OpenGL-Refpages/gl4/html/gl_HelperInvocation.xhtml
  */
 
 #pragma once
@@ -23,15 +29,12 @@ struct EmptyVarying
  * @brief Concept to follow the varying interface
  *
  * Varying are the interpolated attributes of verticies.
- *
- * @tparam T The type to check
  */
 template<typename T>
-concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x, T y) {
+concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) {
     { x + x } -> std::same_as<T>;
     { x * math::Float{ -1 } } -> std::same_as<T>;
-    { y = x } -> std::same_as<T&>;
-    { T() } -> std::same_as<T>;
+    requires std::semiregular<T>;
 };
 
 /**
@@ -39,7 +42,7 @@ concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x, 
  *
  * @param a Left hand side varying
  * @param b Right hand side varying
- * @param t How much to interpolate between the two
+ * @param t How much to interpolate between the two as a number between 0 and 1
  * @return The interpolated varying
  */
 template<VaryingInterface Varying>
@@ -59,8 +62,8 @@ lerp_varying(const Varying& a, const Varying& b, const math::Float t)
 template<VaryingInterface Varying>
 struct Fragment
 {
-    math::Vec4 pos; ///< world position in homogenous space
-    Varying attrs;  ///< vertex attributes
+    math::Vec4 pos = {}; ///< position in homogenous space
+    Varying attrs = {};  ///< vertex attributes
 };
 
 /**
@@ -69,10 +72,10 @@ struct Fragment
 template<VaryingInterface Varying>
 struct ProjectedFragment
 {
-    math::Vec2 pos;    ///< window position
-    math::Float depth; ///< aka z
-    math::Float Z_inv; ///< aka 1/w
-    Varying attrs;     ///< fragment attributes
+    math::Vec2 pos = {};    ///< window position
+    math::Float depth = {}; ///< aka z/w
+    math::Float Z_inv = {}; ///< aka 1/w
+    Varying attrs = {};     ///< fragment attributes
 };
 
 /**
@@ -86,7 +89,7 @@ static auto
 project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
 {
     assert(frag.pos.w != 0 && "non-zero w coordinate."
-                              "the fragment should be culled otherwise");
+                              "the fragment should be culled by now");
 
     const auto Z_inv = 1 / frag.pos.w;
     const auto v = frag.pos.xyz * Z_inv;
@@ -99,69 +102,27 @@ project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
     };
 }
 
+/**
+ * @brief Tokens to be emitted to do special procedures
+ */
+enum class SpecialFragmentToken
+{
+    Discard,
+    Syncronize,
+};
+
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
 template<typename T>
 concept has_minus_operator = requires(T t) {
-    { T() } -> std::same_as<T>;
     { t - t } -> std::same_as<T>;
+    requires std::semiregular<T>;
 };
 };
 /// @endcond
 
 /**
- * @brief Pass as fragment result to discard fragment
- */
-class FragmentResultDiscard
-{};
-
-/**
- * @brief Fragment result type
- */
-template<typename Targets>
-class FragmentResult
-{
-    class FragmentContextPrepare
-    {};
-
-    std::variant<Targets, FragmentResultDiscard, FragmentContextPrepare> m_value;
-
-    friend class Renderer;
-
-    template<typename... ValueTypes>
-        requires(detail::has_minus_operator<ValueTypes> && ...)
-    friend class FragmentContextType;
-
-public:
-    /**
-     * @brief Implicit convertion from Targets type
-     *
-     * @param targets The given Targets
-     */
-    FragmentResult(const Targets& targets)
-            : m_value{ targets } {};
-
-    /**
-     * @brief Implicit convertion from discard tag
-     */
-    FragmentResult(const FragmentResultDiscard&)
-            : m_value{ FragmentResultDiscard() } {};
-
-    /**
-     * @brief Implicit convertion from context prepare tag
-     */
-    FragmentResult(const FragmentContextPrepare&)
-            : m_value{ FragmentContextPrepare() } {};
-};
-
-// On 2x2 block processing:
-// https://www.gamedev.net/forums/topic/614000-ddxddy-functions-software-rasterization-and-texture-filtering/
-
-// opengl "helper" (fragment shader) invocation check:
-// https://registry.khronos.org/OpenGL-Refpages/gl4/html/gl_HelperInvocation.xhtml
-
-/**
- * @brief Fragment context type
+ * @brief Fragment context to access fragment specific things
  *
  * @tparam ValueTypes The value types it can be initialized with
  */
@@ -187,14 +148,15 @@ public:
      * @brief Initialize context with value for this particular fragment
      *
      * @param value The value at hand
-     * @return The result type to co_yield back to the renderer
+     * @return The token to co_yield back to the renderer
      */
-    template<typename T, typename Targets>
-    [[nodiscard]] FragmentResult<Targets> init(const T& value, std::type_identity<Targets> = {})
+    template<typename T>
+    [[nodiscard]] SpecialFragmentToken init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         m_quad[m_id] = value;
-        return FragmentResult<Targets>{ typename FragmentResult<Targets>::FragmentContextPrepare() };
+
+        return SpecialFragmentToken::Syncronize;
     }
 
     /**
@@ -321,4 +283,4 @@ private:
     friend class Renderer;
 };
 
-}; // namespace asciirast
+};

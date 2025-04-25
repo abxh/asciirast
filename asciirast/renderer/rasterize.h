@@ -7,7 +7,7 @@
 #include "../renderer_options.h"
 #include "./interpolate.h"
 
-namespace asciirast::rasterize {
+namespace asciirast::renderer {
 
 template<VaryingInterface Varying, typename Plot>
     requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
@@ -196,11 +196,13 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
             const auto in_triangle10 = w10.x >= 0 && w10.y >= 0 && w10.z >= 0;
             const auto in_triangle11 = w11.x >= 0 && w11.y >= 0 && w11.z >= 0;
 
-            plot({ func(w00, p + math::Vec2{ 0, 0 }), //
-                   func(w01, p + math::Vec2{ 1, 0 }), // note: notation is y then x
-                   func(w10, p + math::Vec2{ 0, 1 }),
-                   func(w11, p + math::Vec2{ 1, 1 }) },
-                 { in_triangle00, in_triangle01, in_triangle10, in_triangle11 });
+            if (in_triangle00 || in_triangle01 || in_triangle10 || in_triangle11) {
+                plot({ func(w00, p + math::Vec2{ 0, 0 }), //
+                       func(w01, p + math::Vec2{ 1, 0 }),
+                       func(w10, p + math::Vec2{ 0, 1 }),
+                       func(w11, p + math::Vec2{ 1, 1 }) },
+                     { in_triangle00, in_triangle01, in_triangle10, in_triangle11 });
+            }
 
             w += 2 * delta_w_x;
             p.x += 2;

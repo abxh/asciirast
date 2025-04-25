@@ -180,8 +180,8 @@ struct MyVarying
 class RGBProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<typename PPMBuffer::Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
     using Uniform = MyUniform;
@@ -190,20 +190,18 @@ public:
     using Targets = PPMBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-        return Fragment{ math::Vec4{
-                                 vert.pos.xy,
-                                 vert.pos.z * depth_scalar - u.z_near * depth_scalar,
-                                 vert.pos.z,
-                         },
-                         Varying{ vert.color, vert.uv } };
+
+        out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
+        out.attrs = { vert.color, vert.uv };
     }
-    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
+    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
         (void)(u);
-        co_yield Result(pfrag.attrs.color);
+        out = { pfrag.attrs.color };
+        co_return;
     }
 };
 
@@ -212,8 +210,8 @@ static_assert(asciirast::ProgramInterface<RGBProgram>);
 class CheckerboardProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<typename PPMBuffer::Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
     using Uniform = MyUniform;
@@ -222,20 +220,15 @@ public:
     using Targets = PPMBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
 
-        return Fragment{
-            math::Vec4{
-                    vert.pos.xy,
-                    vert.pos.z * depth_scalar - u.z_near * depth_scalar,
-                    vert.pos.z,
-            },
-            Varying{ math::Vec3{ 1.f }, vert.uv },
-        };
+        out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
+        out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
-    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
+
+    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
         (void)(u);
 
@@ -245,7 +238,8 @@ public:
         const auto vM_decimal_part = std::fmod(uv.g * M, 1.f);
         const auto pattern = (uM_decimal_part > 0.5f) ^ (vM_decimal_part < 0.5f);
 
-        co_yield Targets{ pfrag.attrs.color * pattern };
+        out = { pfrag.attrs.color * pattern };
+        co_return;
     }
 };
 

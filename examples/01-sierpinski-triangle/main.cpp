@@ -218,11 +218,11 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->id * scalar, this->color * scalar }; }
 };
 
-class MyHorizontalProgram
+class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<typename TerminalBuffer::Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
     // alias to fullfill program interface:
@@ -232,18 +232,19 @@ public:
     using Targets = TerminalBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        return Fragment{ .pos = math::Vec4{ vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }, // w should be 1 for 2D.
-                         .attrs = Varying{ vert.id, vert.color } };
+        out.pos = { vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }; // w should be 1 for 2D
+        out.attrs = { vert.id, vert.color };
     }
-    std::generator<Result> on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag) const
+    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
-        co_yield Targets{ u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
+        out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
+        co_return;
     }
 };
 
-static_assert(asciirast::ProgramInterface<MyHorizontalProgram>); // alternative
+static_assert(asciirast::ProgramInterface<MyProgram>); // alternative
 
 void
 sierpinski_triangle(std::vector<MyVertex>& v,
@@ -291,7 +292,7 @@ main(int, char**)
     vertex_buf.verticies.clear();
     sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
-    MyHorizontalProgram program;
+    MyProgram program;
     TerminalBuffer framebuffer;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };

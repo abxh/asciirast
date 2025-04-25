@@ -4,19 +4,19 @@
  *
  * @todo bicubic interpolation
  * @todo use mipmaps
+ *
+ * intro on texture samplers:
+ * https://learnopengl.com/Getting-started/Textures
+ *
+ * reference sampler:
+ * https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/sampler.h
+ *
+ * border wrapping, and sample method:
+ * https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
+ *
+ * on the use of the dFdx / dFdy functions:
+ * https://www.youtube.com/watch?v=J1n1yPjac1c (Ned Makes Games)
  */
-
-// intro on texture samplers:
-// https://learnopengl.com/Getting-started/Textures
-
-// reference sampler:
-// https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/sampler.h
-
-// border wrapping, and sample method:
-// https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
-
-// on the use of the dFdx / dFdy functions:
-// https://www.youtube.com/watch?v=J1n1yPjac1c (Ned Makes Games)
 
 #pragma once
 
@@ -77,24 +77,25 @@ public:
     const Texture<RGBA_8bit_Allocator>& texture() const { return m_texture; }
 
     /**
-     * @brief Sample texture at a uv coordinate with a specific Level-Of-Detail
-     *
-     * @return Color at the uv coordinate
+     * @brief Prepare to sample texture at a uv coordinate
+     * @return Return sampled color at the uv coordinate
      */
     template<typename Allocator>
     friend math::Vec4 textureLOD(const Sampler<Allocator>&, const math::Vec2&, const math::Float);
 
     /**
      * @brief Sample texture at a uv coordinate
-     *
-     * @return Return a Getter object with init() and get() methods,
-     *         where the result of init() is to be co_yield'ed back to the renderer
+     * @return Return a special fragment token to be co-yielded back to the renderer
      */
-    template<typename Targets, typename Allocator, typename... ValueTypes>
-    friend auto texture(const FragmentContextType<ValueTypes...>&,
-                        const Sampler<Allocator>&,
-                        const math::Vec2&,
-                        std::type_identity<Targets>);
+    template<typename Allocator, typename... ValueTypes>
+    friend auto texture_init(const FragmentContextType<ValueTypes...>&, const Sampler<Allocator>&, const math::Vec2&);
+
+    /**
+     * @brief Sample texture at a uv coordinate
+     * @return Return sampled color at the uv coordinate
+     */
+    template<typename Allocator, typename... ValueTypes>
+    friend auto texture(const FragmentContextType<ValueTypes...>&, const Sampler<Allocator>&, const math::Vec2&);
 
 protected:
     const Texture<RGBA_8bit_Allocator>& m_texture; ///< texture data
@@ -227,66 +228,66 @@ textureLOD(const Sampler<Allocator>& sampler, const math::Vec2& uv, const math::
 }
 
 /**
- * @brief Sample texture at a uv coordinate
+ * @brief Prepare to sample texture at a uv coordinate
  *
  * @param context Fragment context
  * @param sampler The sampler
- * @return Return a Getter object with init() and get() methods,
- *         where the result of init() is to be co_yield'ed back to the renderer
+ * @return Return a special fragment token to be co-yielded back to the renderer
  */
-template<typename Targets, typename Allocator, typename... ValueTypes>
+template<typename Allocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
-static auto
-texture(FragmentContextType<ValueTypes...>& context,
-        const Sampler<Allocator>& sampler,
-        const math::Vec2& uv,
-        std::type_identity<Targets> = {})
+static SpecialFragmentToken
+texture_init(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& sampler, const math::Vec2& uv)
+{
+    assert(sampler.texture().mipmaps_generated());
+
+    const auto texture_size = math::Vec2{ sampler.texture().width(), sampler.texture().height() };
+
+    return context.init(texture_size * uv);
+}
+
+/**
+ * @brief Sample texture at a uv coordinate
+ *
+ * @note must co_yield the result of texture_init() before calling texture()
+ *
+ * @param context Fragment context
+ * @param sampler The sampler
+ * @return Return sampled color at the uv coordinate
+ */
+template<typename Allocator, typename... ValueTypes>
+    requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
+[[maybe_unused]]
+static math::Vec4
+texture(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& sampler, const math::Vec2& uv)
 {
     using Type = FragmentContextType<ValueTypes...>::Type;
 
-    auto init_func = [&]() {
-        assert(sampler.texture().mipmaps_generated());
+    switch (context.type()) {
+    case Type::UINITIALIZED: {
+        assert("must co_yield the result of texture_init() before calling texture()");
+    } break;
+    case Type::POINT: {
+        return textureLOD(sampler, uv, 0.f);
+    } break;
+    case Type::LINE: {
+        const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
+        const math::Float d = math::dot(dFdv, dFdv);
+        const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
-        const auto texture_size = math::Vec2{ sampler.texture().width(), sampler.texture().height() };
+        return textureLOD(sampler, uv, lod);
+    } break;
+    case Type::FILLED: {
+        const math::Vec2 dFdx = context.template dFdx<math::Vec2>();
+        const math::Vec2 dFdy = context.template dFdy<math::Vec2>();
+        const math::Float d = std::max(math::dot(dFdx, dFdx), math::dot(dFdy, dFdy));
+        const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
-        return context.init(texture_size * uv, std::type_identity<Targets>());
-    };
-
-    auto get_func = [&]() -> math::Vec4 {
-        switch (context.type()) {
-        case Type::UINITIALIZED: {
-            assert("must co_yield the result of init() before calling get()");
-        } break;
-        case Type::POINT: {
-            return textureLOD(sampler, uv, 0.f);
-        } break;
-        case Type::LINE: {
-            const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
-            const math::Float d = math::dot(dFdv, dFdv);
-            const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
-
-            return textureLOD(sampler, uv, lod);
-        } break;
-        case Type::FILLED: {
-            const math::Vec2 dFdx = context.template dFdx<math::Vec2>();
-            const math::Vec2 dFdy = context.template dFdy<math::Vec2>();
-            const math::Float d = std::max(math::dot(dFdx, dFdx), math::dot(dFdy, dFdy));
-            const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
-
-            return textureLOD(sampler, uv, lod);
-        } break;
-        }
-        return Sampler<Allocator>::blank_color;
-    };
-
-    struct FuncTuple
-    {
-        decltype(init_func) init;
-        decltype(get_func) get;
-    };
-
-    return FuncTuple{ init_func, get_func };
+        return textureLOD(sampler, uv, lod);
+    } break;
+    }
+    return Sampler<Allocator>::blank_color;
 }
 
-}
+};

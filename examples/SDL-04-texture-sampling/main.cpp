@@ -162,8 +162,8 @@ struct MyVarying
 class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<typename SDLBuffer::Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
     // alias to fullfill program interface:
@@ -173,17 +173,18 @@ public:
     using Targets = SDLBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        return Fragment{ .pos = math::Vec4{ vert.pos, 0, 1 }, .attrs = Varying{ u.transform.apply(vert.uv) } };
+        out.pos = { vert.pos, 0, 1 };
+        out.attrs = { u.transform.apply(vert.uv) };
     }
-    std::generator<Result> on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag) const
+    OnFragmentRes on_fragment(FragmentContext& context, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
-        const auto color_getter = asciirast::texture(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
-        co_yield color_getter.init();
-        const auto color = color_getter.get();
+        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv);
+        const auto color = asciirast::texture(context, u.sampler, pfrag.attrs.uv);
 
-        co_yield Targets{ color };
+        out = { color };
+        co_return;
     }
 };
 

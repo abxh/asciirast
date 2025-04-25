@@ -17,25 +17,18 @@
 
 namespace asciirast::math {
 
-namespace detail {
-
 /// @cond DO_NOT_DOCUMENT
-
+namespace detail {
 template<std::size_t N, typename T, typename... Args>
 struct vec_constructible_from;
-
 template<std::size_t N, typename T>
 struct vec_initializer;
-
 template<typename T, typename... Args>
 struct not_a_single_value;
-
 template<typename T, typename... Args>
 struct not_a_single_convertible_value;
-
-/// @endcond
-
 } // namespace detail
+/// @endcond
 
 /**
  * @brief Math vector class
@@ -350,12 +343,10 @@ class Vec : public VecBase<Vec, N, T>
                                                        detail::not_a_single_value<Vec, Args...>::value) &&
                                                       (detail::vec_constructible_from<N, T, Args...>::value);
 
-protected:
-    using VecBase<Vec, N, T>::m_components;
+    using VecBase<Vec, N, T>::m_components; ///< array of components
 
 public:
-    /// value type
-    using value_type = T;
+    using value_type = T; ///< value type
 
     /**
      * @brief Default constructor

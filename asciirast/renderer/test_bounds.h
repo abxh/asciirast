@@ -5,10 +5,13 @@
 #include <utility>
 
 #include "../math/types.h"
-#include "../program.h"
+#include "../fragment.h"
 #include "./interpolate.h"
 
-namespace asciirast::rasterize {
+// on homogenous coordinates:
+// https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
+
+namespace asciirast::renderer {
 
 [[maybe_unused]]
 static auto

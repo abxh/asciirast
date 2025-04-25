@@ -4,15 +4,31 @@
 #include <cfloat>
 
 #include "../math/types.h"
-#include "../program.h"
+#include "../fragment.h"
 
-namespace asciirast::rasterize {
-
-// perspective corrected interpolation:
+// on perspective corrected interpolation:
 // https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
 // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
-// https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
 
+namespace asciirast::renderer {
+
+/**
+ * @brief Linear interpolation of varying
+ */
+template<VaryingInterface Varying>
+static Varying
+lerp_varying(const Varying& a, const Varying& b, const math::Float t)
+{
+    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
+        return EmptyVarying();
+    } else {
+        return a * (1 - t) + b * t;
+    }
+}
+
+/**
+ * @brief Linear interpolation of varying perspective corrected
+ */
 template<VaryingInterface Varying>
 [[maybe_unused]]
 static auto

@@ -213,40 +213,43 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->color * scalar }; }
 };
 
-using Fragment = asciirast::Fragment<MyVarying>;
-using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-using Result = asciirast::FragmentResult<typename TerminalBuffer::Targets>;
-
 class MyProgram
 {
+    using Fragment = asciirast::Fragment<MyVarying>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
+
 public:
+    // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2Int>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         const auto pos = u.rot.apply(vert.pos);
 
-        return Fragment{ math::Vec4{ pos.x * u.aspect_ratio, pos.y, 0, 1 }, { vert.color } };
+        out.pos = { pos.x * u.aspect_ratio, pos.y, 0, 1 };
+        out.attrs = { vert.color };
     }
-    std::generator<Result> on_fragment(FragmentContext& c, const Uniform& u, const ProjectedFragment& pfrag) const
+    OnFragmentRes on_fragment(FragmentContext& context, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
-        co_yield c.init(math::Vec2Int{ pfrag.pos }, std::type_identity<Targets>());
+        co_yield context.init(math::Vec2Int{ pfrag.pos });
 
         const math::Vec2Int dv =
-                (c.type() == FragmentContext::Type::LINE) ? c.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
+                (context.type() == FragmentContext::Type::LINE) ? context.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
 
-        const char ch = u.table[(size_t)(std::clamp<math::Float>(dv.y, -1, 1) + 1)]
-                               [(size_t)(std::clamp<math::Float>(dv.x, -1, 1) + 1)];
+        const char ch = u.table[(size_t)(std::clamp<math::Int>(dv.y, -1, 1) + 1)]
+                               [(size_t)(std::clamp<math::Int>(dv.x, -1, 1) + 1)];
 
         if ((u.draw_horizontal && ch == '_') || (!u.draw_horizontal && ch != '_') ||
-            c.type() == FragmentContext::Type::POINT) {
-            co_yield Targets{ ch, pfrag.attrs.color };
+            context.type() == FragmentContext::Type::POINT) {
+            out = { ch, pfrag.attrs.color };
+            co_return;
         } else {
-            co_yield asciirast::FragmentResultDiscard();
+            co_yield asciirast::SpecialFragmentToken::Discard;
         }
     }
 };
@@ -266,6 +269,8 @@ main(int, char**)
             v = rot.apply(v);
         }
     }
+    circle_buf.shape_type = asciirast::ShapeType::LineLoop;
+
     asciirast::VertexBuffer<MyVertex> line_buf;
     {
         math::Rot2D rot{ math::radians(180 - 9.f * 2) };
@@ -319,12 +324,6 @@ main(int, char**)
     } };
 
     while (!sem.try_acquire()) {
-        circle_buf.shape_type = asciirast::ShapeType::Points;
-        r0.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, line_buf, framebuffer, renderer_data, line_options);
-
-        circle_buf.shape_type = asciirast::ShapeType::LineLoop;
         uniforms.draw_horizontal = false; // prefer other chars over '_':
         r0.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
         r1.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);

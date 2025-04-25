@@ -37,7 +37,6 @@ class Swizzled
 {
     static constexpr std::array IndiciesArray = { Indicies... };
 
-private:
     template<std::size_t... Is>
     struct non_duplicate_indicies;
 
@@ -53,7 +52,6 @@ private:
         static constexpr bool value = true;
     };
 
-private:
     static consteval bool overlapping_indicies(const std::size_t i, const std::size_t j) { return i == j; }
 
     template<std::size_t... Js>
@@ -71,7 +69,6 @@ private:
         return (overlapping_indicies(Is, s2) || ...);
     }
 
-private:
     std::array<T, N> m_components;
 
 public:
@@ -375,7 +372,6 @@ template<std::size_t N, typename T, std::size_t Index>
     requires(Index < N)
 class SwizzledSingle
 {
-private:
     std::array<T, N> m_components;
 
 public:

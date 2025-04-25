@@ -9,6 +9,7 @@ BasedOnStyle: "Mozilla"
 UseTab: Never
 IndentCaseLabels: false
 BreakStringLiterals: false
+AllowShortIfStatementsOnASingleLine: "OnlyFirstIf"
 
 IndentWidth: 4
 TabWidth: 4

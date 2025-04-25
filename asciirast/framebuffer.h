@@ -1,7 +1,7 @@
 /**
-* @file framebuffer.h
-* @brief Definition of framebuffer interface
-*/
+ * @file framebuffer.h
+ * @brief Definition of framebuffer interface
+ */
 
 #pragma once
 

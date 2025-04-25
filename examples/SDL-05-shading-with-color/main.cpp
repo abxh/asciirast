@@ -164,11 +164,11 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->uv * scalar }; }
 };
 
-class MyHorizontalProgram
+class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<typename SDLBuffer::Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
     // alias to fullfill program interface:
@@ -178,7 +178,7 @@ public:
     using Targets = SDLBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
 
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         static const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
         const auto depth = vert.pos.z * depth_scalar - u.z_near * depth_scalar;
@@ -189,24 +189,21 @@ public:
 
         const auto z_shf = 2.f;
 
-        return Fragment{ .pos = math::Vec4{ fov_scalar_inv * vert.pos.x,
-                                            fov_scalar_inv * vert.pos.y,
-                                            u.z_far - depth,
-                                            -vert.pos.z + z_shf },
-                         .attrs = Varying{ vert.uv } };
+        out.pos = { fov_scalar_inv * vert.pos.x, fov_scalar_inv * vert.pos.y, u.z_far - depth, -vert.pos.z + z_shf };
+        out.attrs = { vert.uv };
     }
 
-    std::generator<Result> on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag) const
+    OnFragmentRes on_fragment(FragmentContext& context, const Uniform& u, const PFragment& pfrag, Targets& out) const
     {
-        const auto color_getter = asciirast::texture(context, u.sampler, pfrag.attrs.uv, std::type_identity<Targets>());
-        co_yield color_getter.init();
-        const auto color = color_getter.get();
+        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv);
+        const auto color = asciirast::texture(context, u.sampler, pfrag.attrs.uv);
 
-        co_yield Targets{ color };
+        out = { color.rgb };
+        co_return;
     }
 };
 
-static_assert(asciirast::ProgramInterface<MyHorizontalProgram>);
+static_assert(asciirast::ProgramInterface<MyProgram>);
 
 void
 handle_events(bool& running)
@@ -312,7 +309,7 @@ main(int argc, char* argv[])
             [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
 
     SDLBuffer screen(512, 512);
-    MyHorizontalProgram program;
+    MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     asciirast::RendererOptions renderer_options = { .winding_order = asciirast::WindingOrder::CounterClockwise };

@@ -21,22 +21,16 @@
 
 namespace asciirast::math {
 
-namespace detail {
-
 /// @cond DO_NOT_DOCUMENT
-
+namespace detail {
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
 struct mat_constructible_from;
-
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer;
-
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
-
-/// @endcond
-
 } // namespace detail
+/// @endcond
 
 /**
  * @brief Math matrix class
@@ -66,9 +60,7 @@ class Mat
              detail::not_a_single_value<Mat, Args...>::value) &&
             (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
 
-protected:
-    /// 1D array of elements
-    std::array<T, M_y * N_x> m_elements = {};
+    std::array<T, M_y * N_x> m_elements = {}; ///< 1D array of elements
 
 public:
     /**

@@ -7,13 +7,13 @@
  *
  * stb_image:
  * https://github.com/nothings/stb/blob/master/stb_image.h
+ *
+ * on alpha-blending:
+ * https://github.com/nothings/stb/blob/master/stb_image_resize2.h
+ *
+ * mipmap generation reference:
+ * https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/texture.h
  */
-
-// on alpha-blending:
-// https://github.com/nothings/stb/blob/master/stb_image_resize2.h
-
-// mipmap generation reference:
-// https://github.com/nikolausrauch/software-rasterizer/blob/master/rasterizer/texture.h
 
 #pragma once
 
@@ -30,13 +30,11 @@
 
 namespace asciirast {
 
+/// @cond DO_NOT_DOCUMENT
 namespace detail {
 
 #include "external/stb_image/stb_image.h"
 #include "external/stb_image/stb_image_write.h"
-
-#include <cassert>
-#include <cerrno>
 
 [[maybe_unused]]
 static auto
@@ -49,8 +47,8 @@ texture_index(math::Int width, math::Int height, math::Int x, math::Int y) -> st
 
     return static_cast<std::size_t>(width * y + x);
 }
-
 }
+/// @endcond
 
 /**
  * @brief Texture storage class

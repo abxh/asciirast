@@ -151,17 +151,18 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->id * scalar }; }
 };
 
-class MyHorizontalProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
+class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
-    using Result = asciirast::FragmentResult<Targets>;
+    using PFragment = asciirast::ProjectedFragment<MyVarying>;
+    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
 
 public:
-    Fragment on_vertex(const Uniform& u, const Vertex& vert) const override
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const override
     {
         math::Float id = vert.id;
         math::Vec2 v = vert.pos;
+
         if (u.should_flip) {
             v = u.flip_transform.apply(v);
             v = u.rot.apply_inv(v);
@@ -169,14 +170,13 @@ public:
             v = u.rot.apply(v);
         }
 
-        return Fragment{ .pos = math::Vec4{ v.x * u.aspect_ratio, v.y, 0, 1 }, // w should be 1 for 2D
-                         .attrs = MyVarying{ id } };
+        out.pos = { v.x * u.aspect_ratio, v.y, 0, 1 }; // w should be 1 for 2D
+        out.attrs = { id };
     }
-    std::generator<Result> on_fragment(FragmentContext&,
-                                       const Uniform& u,
-                                       const ProjectedFragment& pfrag) const override
+    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const override
     {
-        co_yield Targets{ u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
+        out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
+        co_return;
     }
 };
 
@@ -210,7 +210,7 @@ main(int, char**)
         }
     }
 
-    MyHorizontalProgram program;
+    MyProgram program;
     TerminalBuffer framebuffer;
 
     asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
