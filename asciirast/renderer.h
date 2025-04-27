@@ -123,6 +123,13 @@ public:
             , m_scale_to_viewport{ scale_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
     /**
+     * @brief Get scale to viewport transform
+     *
+     * @return Const reference to the scale to viewport transform
+     */
+    const math::Transform2D& scale_to_viewport() const { return m_scale_to_viewport; }
+
+    /**
      * @brief Draw on a framebuffer using a program given uniform(s),
      * verticies, options and reusable data buffers
      *
@@ -260,16 +267,44 @@ private:
     {
         using Vertex = typename Program::Vertex;
 
+        const auto draw_point_func = [&](const Vertex& vert) -> void {
+            draw_point(program,
+                       uniform,
+                       m_requires_screen_clipping,
+                       m_scale_to_viewport,
+                       data.screen_to_window,
+                       framebuffer,
+                       vert);
+        };
+        const auto draw_line_func = [&](const Vertex& v0, const Vertex& v1) -> void {
+            draw_line(program,
+                      uniform,
+                      m_requires_screen_clipping,
+                      m_scale_to_viewport,
+                      data.screen_to_window,
+                      options,
+                      framebuffer,
+                      v0,
+                      v1);
+        };
+        const auto draw_triangle_func = [&](const Vertex& v0, const Vertex& v1, const Vertex& v2) -> void {
+            draw_triangle(program,
+                          uniform,
+                          m_requires_screen_clipping,
+                          m_scale_to_viewport,
+                          data.screen_to_window,
+                          options,
+                          data,
+                          framebuffer,
+                          v0,
+                          v1,
+                          v2);
+        };
+
         switch (shape_type) {
         case ShapeType::Points: {
             for (const Vertex& vert : verticies_inp) {
-                draw_point(program,
-                           uniform,
-                           m_requires_screen_clipping,
-                           m_scale_to_viewport,
-                           data.screen_to_window,
-                           framebuffer,
-                           vert);
+                draw_point_func(vert);
             }
         } break;
         case ShapeType::Lines: {
@@ -281,59 +316,27 @@ private:
             const auto verticies_tup = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
 
             for (const auto& [v0, v1] : verticies_tup) {
-                draw_line(program,
-                          uniform,
-                          m_requires_screen_clipping,
-                          m_scale_to_viewport,
-                          data.screen_to_window,
-                          options,
-                          framebuffer,
-                          v0,
-                          v1);
+                draw_line_func(v0, v1);
             }
         } break;
         case ShapeType::LineStrip: {
             const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<2U>;
 
             for (const auto& [v0, v1] : verticies_tup) {
-                draw_line(program,
-                          uniform,
-                          m_requires_screen_clipping,
-                          m_scale_to_viewport,
-                          data.screen_to_window,
-                          options,
-                          framebuffer,
-                          v0,
-                          v1);
+                draw_line_func(v0, v1);
             }
         } break;
         case ShapeType::LineLoop: {
             const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<2U>;
 
             for (const auto& [v0, v1] : verticies_tup) {
-                draw_line(program,
-                          uniform,
-                          m_requires_screen_clipping,
-                          m_scale_to_viewport,
-                          data.screen_to_window,
-                          options,
-                          framebuffer,
-                          v0,
-                          v1);
+                draw_line_func(v0, v1);
             }
             if (std::ranges::distance(verticies_inp) >= 2U) {
                 const auto v0 = *(std::ranges::cend(verticies_inp) - 1);
                 const auto v1 = *(std::ranges::cbegin(verticies_inp) + 0);
 
-                draw_line(program,
-                          uniform,
-                          m_requires_screen_clipping,
-                          m_scale_to_viewport,
-                          data.screen_to_window,
-                          options,
-                          framebuffer,
-                          v0,
-                          v1);
+                draw_line_func(v0, v1);
             };
         } break;
         case ShapeType::Triangles: {
@@ -345,70 +348,29 @@ private:
             const auto verticies = subrange | std::ranges::views::chunk(3U) | std::ranges::views::transform(func);
 
             for (const auto& [v0, v1, v2] : verticies) {
-                draw_triangle(program,
-                              uniform,
-                              m_requires_screen_clipping,
-                              m_scale_to_viewport,
-                              data.screen_to_window,
-                              options,
-                              data,
-                              framebuffer,
-                              v0,
-                              v1,
-                              v2);
+                draw_triangle_func(v0, v1, v2);
             }
         } break;
         case ShapeType::TriangleStrip: {
             const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
 
             for (const auto& [v0, v1, v2] : verticies_tup) {
-                draw_triangle(program,
-                              uniform,
-                              m_requires_screen_clipping,
-                              m_scale_to_viewport,
-                              data.screen_to_window,
-                              options,
-                              data,
-                              framebuffer,
-                              v0,
-                              v1,
-                              v2);
+                draw_triangle_func(v0, v1, v2);
             }
         } break;
         case ShapeType::TriangleFan: {
             const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
 
             for (const auto& [v0, v1, v2] : verticies_tup) {
-                draw_triangle(program,
-                              uniform,
-                              m_requires_screen_clipping,
-                              m_scale_to_viewport,
-                              data.screen_to_window,
-                              options,
-                              data,
-                              framebuffer,
-                              v0,
-                              v1,
-                              v2);
+                draw_triangle_func(v0, v1, v2);
             }
             if (std::ranges::distance(verticies_inp) >= 3U) {
                 const auto v0 = *(std::ranges::cend(verticies_inp) - 2);
                 const auto v1 = *(std::ranges::cend(verticies_inp) - 1);
                 const auto v2 = *(std::ranges::cbegin(verticies_inp) + 0);
 
-                draw_triangle(program,
-                              uniform,
-                              m_requires_screen_clipping,
-                              m_scale_to_viewport,
-                              data.screen_to_window,
-                              options,
-                              data,
-                              framebuffer,
-                              v0,
-                              v1,
-                              v2);
+                draw_triangle_func(v0, v1, v2);
             };
-
         } break;
         }
     }
