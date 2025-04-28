@@ -11,6 +11,7 @@
 
 #include "./fragment.h"
 #include "./framebuffer.h"
+#include "./program_token.h"
 
 namespace asciirast {
 
@@ -54,7 +55,7 @@ public:
      * @brief Function run on every fragment
      */
     virtual auto on_fragment(FragmentContext&, const Uniform&, const ProjectedFragment<Varying>&, Targets&) const
-            -> std::generator<SpecialToken> = 0;
+            -> std::generator<ProgramToken> = 0;
 };
 
 /**
@@ -80,7 +81,7 @@ concept ProgramInterface = requires(const T t) {
                       std::declval<const typename T::Uniform&>(), //
                       std::declval<const ProjectedFragment<typename T::Varying>&>(),
                       std::declval<typename T::Targets&>()) //
-    } -> std::same_as<std::generator<SpecialToken>>;
+    } -> std::same_as<std::generator<ProgramToken>>;
 };
 
 /// @cond DO_NOT_DOCUMENT

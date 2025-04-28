@@ -154,7 +154,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::SpecialToken>;
+    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
 
 public:
     // alias to fullfill program interface:

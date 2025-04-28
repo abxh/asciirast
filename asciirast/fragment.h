@@ -16,6 +16,7 @@
 #include <variant>
 
 #include "./math/types.h"
+#include "./program_token.h"
 
 namespace asciirast {
 
@@ -102,16 +103,6 @@ project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
     };
 }
 
-/**
- * @brief Tokens to be emitted to do special procedures
- */
-enum class SpecialToken
-{
-    Discard,
-    Keep,
-    Syncronize,
-};
-
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
 template<typename T>
@@ -152,12 +143,12 @@ public:
      * @return The token to co_yield back to the renderer
      */
     template<typename T>
-    [[nodiscard]] SpecialToken init(const T& value)
+    [[nodiscard]] ProgramToken init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         m_quad[m_id] = value;
 
-        return SpecialToken::Syncronize;
+        return ProgramToken::Syncronize;
     }
 
     /**
