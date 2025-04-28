@@ -28,11 +28,14 @@ namespace asciirast::math {
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot2
+class Rot2DType
 {
+public:
     using Vec2 = Vec<2, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
+    using Rot2D = Rot2DType<T, is_col_major>;
 
+private:
     T m_real = 1; // real component
     T m_imag = 0; // imaginary component
 
@@ -40,14 +43,14 @@ public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    constexpr Rot2() {};
+    constexpr Rot2DType() {};
 
     /**
      * @brief (Implicitly) construct rotation object from angle
      *
      * @param angle The angle at hand in radians
      */
-    Rot2(const T angle) noexcept
+    Rot2DType(const T angle) noexcept
             : m_real{ std::cos(angle) }
             , m_imag{ std::sin(angle) } {};
 
@@ -61,7 +64,7 @@ public:
      * @param to_dir The destination direction vector
      * @param normalize Normalize the resulting complex number
      */
-    Rot2(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true) noexcept
+    Rot2DType(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true) noexcept
             : m_real{ dot(from_dir, to_dir) }
             , m_imag{ cross(from_dir, to_dir) }
     {
@@ -103,7 +106,7 @@ public:
      *
      * @return This
      */
-    Rot2& normalize()
+    Rot2D& normalize()
     {
         const auto v = this->complex().normalized();
         m_real = v.x;
@@ -116,9 +119,9 @@ public:
      *
      * @return Copy of this that performs the reverse rotation
      */
-    [[nodiscard]] Rot2 reversed() const
+    [[nodiscard]] Rot2D reversed() const
     {
-        Rot2 res = (*this);
+        Rot2D res = (*this);
         res.m_imag *= -1;
         return res;
     }
@@ -132,10 +135,10 @@ public:
      * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    Rot2& stack(const Rot2& that, bool normalize = true)
+    Rot2D& stack(const Rot2D& that, bool normalize = true)
     {
         // yet another notation hack to do complex number multiplication
-        (*this) = std::move(Rot2{ reversed().complex(), that.complex(), normalize });
+        (*this) = std::move(Rot2D{ reversed().complex(), that.complex(), normalize });
         return (*this);
     }
 
@@ -145,7 +148,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] Vec2 apply(const Vec2& v) const { return Rot2{ reversed().complex(), v, false }.complex(); }
+    [[nodiscard]] Vec2 apply(const Vec2& v) const { return Rot2D{ reversed().complex(), v, false }.complex(); }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -153,7 +156,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    [[nodiscard]] Vec2 apply_inv(const Vec2& v) const { return Rot2{ complex(), v, false }.complex(); }
+    [[nodiscard]] Vec2 apply_inv(const Vec2& v) const { return Rot2D{ complex(), v, false }.complex(); }
 };
 
 /**
@@ -164,12 +167,15 @@ public:
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot3
+class Rot3DType
 {
+public:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
+    using Rot3D = Rot3DType<T, is_col_major>;
 
+private:
     T m_s = 1;          ///< scalar component
     Vec3 m_dir = { 0 }; ///< non-normalized axis vector
 
@@ -177,7 +183,7 @@ public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    Rot3() {};
+    Rot3DType() {};
 
     /**
      * @brief Construct rotation object from axis and angle in radians
@@ -186,14 +192,14 @@ public:
      * @param angle The angle (in radians) the "axis" vector is rotated by
      * @param normalize Whether to normalize this in case the axis vector was not pre-normalized
      */
-    Rot3(const Vec3& axis, const T angle, bool normalize = true)
+    Rot3DType(const Vec3& axis, const T angle, bool normalize = true)
             : m_s{ std::cos(angle / 2.f) }
             , m_dir{ std::sin(angle / 2.f) * ((normalize) ? axis.normalized() : axis) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors
      */
-    Rot3(const Vec3& from_dir, const Vec3& to_dir)
+    Rot3DType(const Vec3& from_dir, const Vec3& to_dir)
             : m_s{ 1 + dot(from_dir, to_dir) }
             , m_dir{ cross(from_dir, to_dir) }
     {
@@ -213,7 +219,7 @@ public:
      * @param rhs The destination direction vector
      * @param normalize Normalize the resulting quaternion
      */
-    Rot3(const Rot3& lhs, const Rot3& rhs, bool normalize = true)
+    Rot3DType(const Rot3D& lhs, const Rot3D& rhs, bool normalize = true)
             : m_s{ lhs.m_s * rhs.m_s - dot(lhs.m_dir, rhs.m_dir) }
             , m_dir{ lhs.m_s * rhs.m_dir + lhs.m_dir * rhs.m_s + cross(lhs.m_dir, rhs.m_dir) }
     {
@@ -268,7 +274,7 @@ public:
      * @param angle The angle in radians
      * @return This
      */
-    Rot3& rotateX(const T angle) { return this->stack(Rot3{ Vec3{ 1, 0, 0 }, angle }); }
+    Rot3D& rotateX(const T angle) { return this->stack(Rot3D{ Vec3{ 1, 0, 0 }, angle }); }
 
     /**
      * @brief Rotate by angle in y-axis
@@ -276,7 +282,7 @@ public:
      * @param angle The angle in radians
      * @return This
      */
-    Rot3& rotateY(const T angle) { return this->stack(Rot3{ Vec3{ 0, 1, 0 }, angle }); }
+    Rot3D& rotateY(const T angle) { return this->stack(Rot3D{ Vec3{ 0, 1, 0 }, angle }); }
 
     /**
      * @brief Rotate by angle in z-axis
@@ -284,7 +290,7 @@ public:
      * @param angle The angle in radians
      * @return This
      */
-    Rot3& rotateZ(const T angle) { return this->stack(Rot3{ Vec3{ 0, 0, 1 }, angle }); }
+    Rot3D& rotateZ(const T angle) { return this->stack(Rot3D{ Vec3{ 0, 0, 1 }, angle }); }
 
     /**
      * @brief Get the rotation object that performs the inverse
@@ -292,9 +298,9 @@ public:
      *
      * @return Copy of this performing the inverse rotation
      */
-    [[nodiscard]] constexpr Rot3 reversed() const
+    [[nodiscard]] constexpr Rot3D reversed() const
     {
-        Rot3 res = (*this);
+        Rot3D res = (*this);
         res.m_dir *= -1;
         return res;
     }
@@ -304,7 +310,7 @@ public:
      *
      * @return This
      */
-    Rot3& normalize()
+    Rot3D& normalize()
     {
         const auto v = this->quat().normalized();
         m_dir = v.xyz;
@@ -321,9 +327,9 @@ public:
      * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    Rot3& stack(const Rot3& that, bool normalize = true)
+    Rot3D& stack(const Rot3D& that, bool normalize = true)
     {
-        *this = std::move(Rot3{ *this, that, normalize });
+        *this = std::move(Rot3D{ *this, that, normalize });
         return *this;
     }
 
@@ -333,7 +339,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] Vec3 apply(const Vec3& v) const { return Rot3{ Rot3{ (*this), v }, reversed(), false }.m_dir; }
+    [[nodiscard]] Vec3 apply(const Vec3& v) const { return Rot3D{ Rot3D{ (*this), v }, reversed(), false }.m_dir; }
 
     /**
      * @brief Apply the inverse rotation "action" on
@@ -344,7 +350,7 @@ public:
      */
     [[nodiscard]] constexpr Vec3 apply_inv(const Vec3& v) const
     {
-        return Rot3{ Rot3{ reversed(), v }, (*this), false }.m_dir;
+        return Rot3D{ Rot3D{ reversed(), v }, (*this), false }.m_dir;
     }
 
 protected:
@@ -356,7 +362,7 @@ protected:
      * @param lhs the left-hand side
      * @param rhs the right-hand side
      */
-    Rot3(const Rot3& lhs, const Vec3& rhs) // like Rot3 * Rot3 but with rhs.s == 0
+    Rot3DType(const Rot3D& lhs, const Vec3& rhs) // like Rot3 * Rot3 but with rhs.s == 0
             : m_s{ -dot(lhs.m_dir, rhs) }
             , m_dir{ lhs.m_s * rhs + cross(lhs.m_dir, rhs) } {};
 };

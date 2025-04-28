@@ -237,7 +237,7 @@ textureLOD(const Sampler<Allocator>& sampler, const math::Vec2& uv, const math::
 template<typename Allocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
-static SpecialFragmentToken
+static SpecialToken
 texture_init(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& sampler, const math::Vec2& uv)
 {
     assert(sampler.texture().mipmaps_generated());

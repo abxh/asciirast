@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(asciirast VERSION 0.1)
 
-set(HEADER_ONLY OFF) # note: turn this off for slightly faster compile times
 set(EXAMPLES ON)
 set(SDL_BASED_EXAMPLES ON)
 
@@ -46,16 +45,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 
-if (SDL_BASED_EXAMPLES)
-	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-	find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
-	# add_subdirectory(external/imgui)
-endif()
-
 # neccessary dependencies for asciirast:
 add_subdirectory(external/stb_image) 
 
+add_subdirectory(asciirast)
+
 if (EXAMPLES)
+	if (SDL_BASED_EXAMPLES)
+		find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+		find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+		# add_subdirectory(external/imgui)
+	endif()
+
 	add_subdirectory(external/tiny_obj_loader)
 
 	if (MSVC)
@@ -65,16 +66,7 @@ if (EXAMPLES)
 	endif()
 
 	add_subdirectory(external/terminal_utils)
-endif()
 
-if (HEADER_ONLY)
-	add_subdirectory(asciirast)
-else()
-	# with source files for faster compilation:
-	add_subdirectory(src)
-endif()
-
-if (EXAMPLES)
 	add_subdirectory(examples/00-spiral)
 	add_subdirectory(examples/01-sierpinski-triangle)
 	add_subdirectory(examples/02-wheel)

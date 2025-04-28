@@ -222,7 +222,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
+    using OnFragmentRes = std::generator<asciirast::SpecialToken>;
 
 public:
     // alias to fullfill program interface:

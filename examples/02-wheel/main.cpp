@@ -226,7 +226,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
+    using OnFragmentRes = std::generator<asciirast::SpecialToken>;
 
 public:
     // alias to fullfill program interface:
@@ -253,12 +253,15 @@ public:
         const char ch = u.table[(size_t)(std::clamp<math::Int>(dv.y, -1, 1) + 1)]
                                [(size_t)(std::clamp<math::Int>(dv.x, -1, 1) + 1)];
 
-        if ((u.draw_horizontal && ch == '_') || (!u.draw_horizontal && ch != '_') ||
-            context.type() == FragmentContext::Type::POINT) {
+        const bool keep = (u.draw_horizontal && ch == '_') ||  //
+                          (!u.draw_horizontal && ch != '_') || //
+                          context.type() == FragmentContext::Type::POINT;
+
+        if (keep) {
             out = { ch, pfrag.attrs.color };
-            co_return;
+            co_yield asciirast::SpecialToken::Keep;
         } else {
-            co_yield asciirast::SpecialFragmentToken::Discard;
+            co_yield asciirast::SpecialToken::Discard;
         }
     }
 };

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 #include <ostream>
 #include <type_traits>
@@ -341,7 +342,7 @@ class Vec : public VecBase<Vec, N, T>
     template<typename... Args>
     static constexpr bool constructible_from_args_v = (detail::not_a_single_convertible_value<T, Args...>::value &&
                                                        detail::not_a_single_value<Vec, Args...>::value) &&
-                                                      (detail::vec_constructible_from<N, T, Args...>::value);
+                                                      detail::vec_constructible_from<N, T, Args...>::value;
 
     using VecBase<Vec, N, T>::m_components; ///< array of components
 
@@ -420,6 +421,50 @@ public:
             (*this)[i] = that[i];
         }
     }
+
+    /**
+     * @brief In-place assignment with other Vec
+     *
+     * @note this is neccessary to work alongside Swizzled
+     *
+     * @param that Other Vec object
+     * @return This
+     */
+    constexpr Vec& operator=(const Vec& that)
+    {
+        this->m_components = that.m_components;
+
+        return *this;
+    }
+
+public:
+    /**
+     * @brief Delete copy assignment from a single smaller vector
+     */
+    template<std::size_t M>
+        requires(M < N)
+    Vec& operator=(const Vec<M, T>&) = delete;
+
+    /**
+     * @brief Delete move assignment from a single smaller vector
+     */
+    template<std::size_t M>
+        requires(M < N)
+    Vec& operator=(Vec<M, T>&&) = delete;
+
+    /**
+     * @brief Delete copy assignment from a single smaller swizzled
+     */
+    template<std::size_t M, std::size_t... Is>
+        requires(sizeof...(Is) < N)
+    Vec& operator=(const Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>&) = delete;
+
+    /**
+     * @brief Delete move assignment from a single smaller swizzled
+     */
+    template<std::size_t M, std::size_t... Is>
+        requires(sizeof...(Is) < N)
+    Vec& operator=(Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>&&) = delete;
 
 public:
     /**
@@ -503,21 +548,6 @@ public:
         assert(i < this->size() && "index is inside bounds");
 
         return m_components[i];
-    }
-
-    /**
-     * @brief In-place assignment with other Vec
-     *
-     * @note this is neccessary to work alongside Swizzled
-     *
-     * @param that Other Vec object
-     * @return This
-     */
-    constexpr Vec& operator=(const Vec& that)
-    {
-        this->m_components = that.m_components;
-
-        return *this;
     }
 
     /**

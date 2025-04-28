@@ -56,9 +56,9 @@ class Mat
 
     template<typename... Args>
     static constexpr bool constructible_from_args_v =
-            (detail::not_a_single_convertible_value<T, Args...>::value &&
-             detail::not_a_single_value<Mat, Args...>::value) &&
-            (detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value);
+            detail::not_a_single_convertible_value<T, Args...>::value &&
+            detail::not_a_single_value<Mat, Args...>::value &&
+            detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value;
 
     std::array<T, M_y * N_x> m_elements = {}; ///< 1D array of elements
 
@@ -167,6 +167,35 @@ public:
 
         initializer::init_from(*this, std::forward<Args>(args)...);
     };
+
+public:
+    /**
+     * @brief Delete copy assignment from a single smaller vector
+     */
+    template<std::size_t X>
+        requires((is_col_major && X < M_y) || (!is_col_major && X < N_x))
+    Mat& operator=(const Vec<X, T>&) = delete;
+
+    /**
+     * @brief Delete move assignment from a single smaller vector
+     */
+    template<std::size_t X>
+        requires((is_col_major && X < M_y) || (!is_col_major && X < N_x))
+    Mat& operator=(Vec<X, T>&&) = delete;
+
+    /**
+     * @brief Delete copy assignment from a single smaller matrix
+     */
+    template<std::size_t M1_y, std::size_t N1_x>
+        requires(M1_y < M_y && N1_x < N_x)
+    Mat& operator=(const Mat<M1_y, N1_x, T, is_col_major>&) = delete;
+
+    /**
+     * @brief Delete move assignment from a single smaller matrix
+     */
+    template<std::size_t M1_y, std::size_t N1_x>
+        requires(M1_y < M_y && N1_x < N_x)
+    Mat& operator=(Mat<M1_y, N1_x, T, is_col_major>&&) = delete;
 
 public:
     /**

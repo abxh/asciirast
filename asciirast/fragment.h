@@ -105,9 +105,10 @@ project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
 /**
  * @brief Tokens to be emitted to do special procedures
  */
-enum class SpecialFragmentToken
+enum class SpecialToken
 {
     Discard,
+    Keep,
     Syncronize,
 };
 
@@ -151,12 +152,12 @@ public:
      * @return The token to co_yield back to the renderer
      */
     template<typename T>
-    [[nodiscard]] SpecialFragmentToken init(const T& value)
+    [[nodiscard]] SpecialToken init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         m_quad[m_id] = value;
 
-        return SpecialFragmentToken::Syncronize;
+        return SpecialToken::Syncronize;
     }
 
     /**

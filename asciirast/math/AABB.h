@@ -27,6 +27,9 @@ class AABB
     Vec<N, T> m_extent; /// half of size
 
 public:
+    using Transform2D = Transform2DType<T, is_col_major>;
+    using Transform3D = Transform3DType<T, is_col_major>;
+
     /**
      * @brief Construct AABB from a minimum and maximum point
      *
@@ -82,10 +85,10 @@ public:
      *
      * @return The Transform object that converts a unit area to the AABB's area
      */
-    [[nodiscard]] constexpr Transform2<T, is_col_major> to_transform() const
+    [[nodiscard]] constexpr Transform2D to_transform() const
         requires(N == 2)
     {
-        return Transform2<T, is_col_major>().scale(this->size_get()).translate(this->min_get());
+        return Transform2D().scale(this->size_get()).translate(this->min_get());
     }
 
     /**
@@ -94,10 +97,10 @@ public:
      *
      * @return The Transform object tha converts a unit volume to the AABB's voume
      */
-    [[nodiscard]] constexpr Transform3<T, is_col_major> to_transform() const
+    [[nodiscard]] constexpr Transform3D to_transform() const
         requires(N == 3)
     {
-        return Transform3<T, is_col_major>().scale(this->size_get()).translate(this->min_get());
+        return Transform3D().scale(this->size_get()).translate(this->min_get());
     }
 
 public:
@@ -154,7 +157,7 @@ public:
      */
     constexpr AABB& center_set(const Vec<N, T>& center)
     {
-        m_center = std::move(AABB{ center, this->size_get() });
+        *this = std::move(AABB{ center, this->size_get() });
         return *this;
     }
 

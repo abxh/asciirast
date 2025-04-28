@@ -154,7 +154,7 @@ class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::SpecialFragmentToken>;
+    using OnFragmentRes = std::generator<asciirast::SpecialToken>;
 
 public:
     // alias to fullfill program interface:
@@ -193,7 +193,11 @@ main(int, char**)
 
     SDLBuffer screen(512, 512);
     MyProgram program;
-    asciirast::Renderer renderer;
+    asciirast::Renderer r0{ math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 }) };
+    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 }).center_set({ +1, +0.75 }) };
+    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 }).center_set({ -1, +0.75 }) };
+    asciirast::Renderer r3{ math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 }).center_set({ -1, -0.75 }) };
+    asciirast::Renderer r4{ math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 }).center_set({ +1, -0.75 }) };
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     MyUniform uniforms{};
 
@@ -210,7 +214,11 @@ main(int, char**)
             }
         }
 
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        r0.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        r1.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        r2.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        r3.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        r4.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
     }
 

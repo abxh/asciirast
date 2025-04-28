@@ -424,10 +424,10 @@ private:
         auto targets = Targets{};
 
         // apply fragment shader and unpack results:
-        for (const SpecialFragmentToken result : program.on_fragment(context, uniform, wfrag, targets)) {
-            if (result == SpecialFragmentToken::Syncronize) {
+        for (const SpecialToken result : program.on_fragment(context, uniform, wfrag, targets)) {
+            if (result == SpecialToken::Syncronize) {
                 context.m_type = FragmentContext::Type::POINT;
-            } else if (result == SpecialFragmentToken::Discard) {
+            } else if (result == SpecialToken::Discard) {
                 return;
             }
         }
@@ -538,16 +538,16 @@ private:
             // apply fragment shader and unpack results:
             for (const auto [r0, r1] : std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0, targets0),
                                                                program.on_fragment(c1, uniform, rfrag1, targets1))) {
-                if (r0 == SpecialFragmentToken::Syncronize || r1 == SpecialFragmentToken::Syncronize) {
-                    if (r0 != SpecialFragmentToken::Syncronize || r1 != SpecialFragmentToken::Syncronize) {
+                if (r0 == SpecialToken::Syncronize || r1 == SpecialToken::Syncronize) {
+                    if (r0 != SpecialToken::Syncronize || r1 != SpecialToken::Syncronize) {
                         throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
                                                "syncronize in the same order in all instances");
                     }
                     c0.m_type = FragmentContext::Type::LINE;
                     c1.m_type = FragmentContext::Type::LINE;
                 }
-                discarded0 |= r0 == SpecialFragmentToken::Discard;
-                discarded1 |= r1 == SpecialFragmentToken::Discard;
+                discarded0 |= r0 == SpecialToken::Discard;
+                discarded1 |= r1 == SpecialToken::Discard;
 
                 if (discarded0 || discarded1) {
                     break;
@@ -628,10 +628,10 @@ private:
                                          program.on_fragment(c1, uniform, rfrag1, targets1),
                                          program.on_fragment(c2, uniform, rfrag2, targets2),
                                          program.on_fragment(c3, uniform, rfrag3, targets3))) {
-                if (r0 == SpecialFragmentToken::Syncronize || r1 == SpecialFragmentToken::Syncronize ||
-                    r2 == SpecialFragmentToken::Syncronize || r3 == SpecialFragmentToken::Syncronize) {
-                    if (r0 != SpecialFragmentToken::Syncronize || r1 != SpecialFragmentToken::Syncronize ||
-                        r2 != SpecialFragmentToken::Syncronize || r3 != SpecialFragmentToken::Syncronize) {
+                if (r0 == SpecialToken::Syncronize || r1 == SpecialToken::Syncronize ||
+                    r2 == SpecialToken::Syncronize || r3 == SpecialToken::Syncronize) {
+                    if (r0 != SpecialToken::Syncronize || r1 != SpecialToken::Syncronize ||
+                        r2 != SpecialToken::Syncronize || r3 != SpecialToken::Syncronize) {
                         throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
                                                "syncronize in the same order in all instances");
                     }
@@ -640,10 +640,10 @@ private:
                     c2.m_type = FragmentContext::Type::FILLED;
                     c3.m_type = FragmentContext::Type::FILLED;
                 }
-                discarded0 |= r0 == SpecialFragmentToken::Discard;
-                discarded1 |= r1 == SpecialFragmentToken::Discard;
-                discarded2 |= r2 == SpecialFragmentToken::Discard;
-                discarded3 |= r3 == SpecialFragmentToken::Discard;
+                discarded0 |= r0 == SpecialToken::Discard;
+                discarded1 |= r1 == SpecialToken::Discard;
+                discarded2 |= r2 == SpecialToken::Discard;
+                discarded3 |= r3 == SpecialToken::Discard;
 
                 if (discarded0 || discarded1 || discarded2 || discarded3) {
                     break;

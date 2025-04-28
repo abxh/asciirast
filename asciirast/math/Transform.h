@@ -20,18 +20,21 @@ namespace asciirast::math {
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform2
+class Transform2DType
 {
+public:
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
-    using Rot2D = Rot2<T, is_col_major>;
+    using Rot2D = Rot2DType<T, is_col_major>;
+    using Transform2D = Transform2DType<T, is_col_major>;
 
+private:
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
 
-    constexpr Transform2(const Mat3& mat, const Mat3& mat_inv)
+    constexpr Transform2DType(const Mat3& mat, const Mat3& mat_inv)
             : m_mat{ mat }
             , m_mat_inv{ mat_inv } {};
 
@@ -43,7 +46,7 @@ protected:
      * @param inv_mat The inverse transformation matrix
      * @return This
      */
-    constexpr Transform2& stack(const Mat3& mat, const Mat3& inv_mat)
+    constexpr Transform2D& stack(const Mat3& mat, const Mat3& inv_mat)
     {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
@@ -54,7 +57,7 @@ public:
     /**
      * @brief Construct a identity transform object that performs "nothing"
      */
-    constexpr Transform2()
+    constexpr Transform2DType()
             : m_mat{ Mat3::identity() }
             , m_mat_inv{ Mat3::identity() } {};
 
@@ -93,7 +96,7 @@ public:
      *
      * @return Copy of this that performs the reverse transfromation
      */
-    [[nodiscard]] constexpr Transform2 reversed() const { return Transform2{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform2D reversed() const { return Transform2D{ this->m_mat_inv, this->m_mat }; }
 
     /**
      * @brief Stack another Transform on top of this
@@ -101,7 +104,7 @@ public:
      * @param that The other Transform
      * @return This
      */
-    constexpr Transform2& stack(const Transform2& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+    constexpr Transform2D& stack(const Transform2D& that) { return this->stack(that.m_mat, that.m_mat_inv); }
 
     /**
      * @brief Stack (x', y') = (x + delta_x, y + delta_y)
@@ -110,7 +113,7 @@ public:
      * @param delta_y How much to translate in y-axis
      * @return This
      */
-    constexpr Transform2& translate(const T delta_x, const T delta_y)
+    constexpr Transform2D& translate(const T delta_x, const T delta_y)
     {
         const Vec3 vr = { +delta_x, +delta_y, 1 };
         const Vec3 vi = { -delta_x, -delta_y, 1 };
@@ -127,7 +130,7 @@ public:
      * @param delta How much to translate as a Vec
      * @return This
      */
-    constexpr Transform2& translate(const Vec2& delta) { return this->translate(delta.x, delta.y); }
+    constexpr Transform2D& translate(const Vec2& delta) { return this->translate(delta.x, delta.y); }
 
     /**
      * @brief Stack a rotation transformation
@@ -135,7 +138,7 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    Transform2& rotate(const Rot2D& rot)
+    Transform2D& rotate(const Rot2D& rot)
     {
         const Mat3 mr = { rot.to_mat(), Vec3{ 0, 0, 1 } };
         const Mat3 mi = mr.transposed();
@@ -150,7 +153,7 @@ public:
      * @param scale_y How much to scale y
      * @return This
      */
-    constexpr Transform2& scale(const T scale_x, const T scale_y)
+    constexpr Transform2D& scale(const T scale_x, const T scale_y)
     {
         assert(scale_x != 0);
         [[assume(scale_x != 0)]];
@@ -177,21 +180,21 @@ public:
      * @param scale How much to scale as a Vec
      * @return This
      */
-    constexpr Transform2& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
+    constexpr Transform2D& scale(const Vec2& scale) { return this->scale(scale.x, scale.y); }
 
     /**
      * @brief Stack (x', y') = (-x, y)
      *
      * @return This
      */
-    constexpr Transform2& reflectX() { return this->scale(-1, 1); }
+    constexpr Transform2D& reflectX() { return this->scale(-1, 1); }
 
     /**
      * @brief Stack (x', y') = (x, -y)
      *
      * @return This
      */
-    constexpr Transform2& reflectY() { return this->scale(1, -1); }
+    constexpr Transform2D& reflectY() { return this->scale(1, -1); }
 
     /**
      * @brief Stack (x', y') = (x + t * y, y)
@@ -199,7 +202,7 @@ public:
      * @param t How much y should influence x in the direction of x
      * @return This
      */
-    constexpr Transform2& shearX(const T t)
+    constexpr Transform2D& shearX(const T t)
     {
         const Vec3 ar = { 1, +t, 0 };
         const Vec3 br = { 0, 1., 0 };
@@ -220,7 +223,7 @@ public:
      * @param t How much x should influence y in the direction of y
      * @return This
      */
-    constexpr Transform2& shearY(const T t)
+    constexpr Transform2D& shearY(const T t)
     {
         const Vec3 ar = { 1., 0, 0 };
         const Vec3 br = { +t, 1, 0 };
@@ -244,18 +247,21 @@ public:
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform3
+class Transform3DType
 {
+public:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
     using Mat4 = Mat<4, 4, T, is_col_major>;
-    using Rot3D = Rot3<T, is_col_major>;
+    using Rot3D = Rot3DType<T, is_col_major>;
+    using Transform3D = Transform3DType<T, is_col_major>;
 
+private:
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
 
-    constexpr Transform3(const Mat4& mat, const Mat4& mat_inv)
+    constexpr Transform3DType(const Mat4& mat, const Mat4& mat_inv)
             : m_mat{ mat }
             , m_mat_inv{ mat_inv } {};
 
@@ -267,7 +273,7 @@ protected:
      * @param inv_mat The inverse transformation matrix
      * @return This
      */
-    constexpr Transform3& stack(const Mat4& mat, const Mat4& inv_mat)
+    constexpr Transform3D& stack(const Mat4& mat, const Mat4& inv_mat)
     {
         m_mat = mat * m_mat;
         m_mat_inv = m_mat_inv * inv_mat;
@@ -278,7 +284,7 @@ public:
     /**
      * @brief Construct a identity transform object that performs "nothing"
      */
-    constexpr Transform3()
+    constexpr Transform3DType()
             : m_mat{ Mat4::identity() }
             , m_mat_inv{ Mat4::identity() } {};
 
@@ -317,7 +323,7 @@ public:
      *
      * @return Copy of this that performs the reverse transfromation
      */
-    [[nodiscard]] constexpr Transform3 reversed() const { return Transform3{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform3D reversed() const { return Transform3D{ this->m_mat_inv, this->m_mat }; }
 
     /**
      * @brief Stack another Transform on top of this
@@ -325,7 +331,7 @@ public:
      * @param that The other Transform
      * @return This
      */
-    constexpr Transform3& stack(const Transform3& that) { return this->stack(that.m_mat, that.m_mat_inv); }
+    constexpr Transform3D& stack(const Transform3D& that) { return this->stack(that.m_mat, that.m_mat_inv); }
 
     /**
      * @brief Stack (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
@@ -335,7 +341,7 @@ public:
      * @param delta_z How much to move in z-axis
      * @return This
      */
-    constexpr Transform3& translate(const T delta_x, const T delta_y, const T delta_z)
+    constexpr Transform3D& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const Vec4 vr = { +delta_x, +delta_y, +delta_z, 1 };
         const auto mr = Mat4{ Mat3::identity(), vr };
@@ -352,7 +358,7 @@ public:
      * @param delta How much to move as a Vec
      * @return This
      */
-    constexpr Transform3& translate(const Vec3& delta) { return this->translate(delta.x, delta.y, delta.z); }
+    constexpr Transform3D& translate(const Vec3& delta) { return this->translate(delta.x, delta.y, delta.z); }
 
     /**
      * @brief Stack a rotation transformation
@@ -364,7 +370,7 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    Transform3& rotate(const Rot3D& rot)
+    Transform3D& rotate(const Rot3D& rot)
     {
         const Mat4 mr = { rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
         const Mat4 mi = mr.transposed();
@@ -381,7 +387,7 @@ public:
      * @param scale_z How much to scale z
      * @return This
      */
-    constexpr Transform3& scale(const T scale_x, const T scale_y, const T scale_z)
+    constexpr Transform3D& scale(const T scale_x, const T scale_y, const T scale_z)
     {
         assert(scale_x != 0);
         [[assume(scale_x != 0)]];
@@ -414,28 +420,28 @@ public:
      * @param scale How much to scale as a Vec
      * @return This
      */
-    constexpr Transform3& scale(const Vec3& scale) { return this->scale(scale.x, scale.y, scale.z); }
+    constexpr Transform3D& scale(const Vec3& scale) { return this->scale(scale.x, scale.y, scale.z); }
 
     /**
      * @brief Stack (x', y', z') = (-x, y, z)
      *
      * @return This
      */
-    constexpr Transform3& reflectX() { return this->scale(-1, 1, 1); }
+    constexpr Transform3D& reflectX() { return this->scale(-1, 1, 1); }
 
     /**
      * @brief Stack (x', y', z') = (x, -y, z)
      *
      * @return This
      */
-    constexpr Transform3& reflectY() { return this->scale(1, -1, 1); }
+    constexpr Transform3D& reflectY() { return this->scale(1, -1, 1); }
 
     /**
      * @brief Stack (x', y', z') = (x, y, -z)
      *
      * @return This
      */
-    constexpr Transform3& reflectZ() { return this->scale(1, 1, -1); }
+    constexpr Transform3D& reflectZ() { return this->scale(1, 1, -1); }
 
     /**
      * @brief Stack (x', y', z') = (x + s * z, y + t * z, z)
@@ -444,7 +450,7 @@ public:
      * @param t How much z should influence y in the direction of y
      * @return This
      */
-    constexpr Transform3& shearXY(const T s, const T t)
+    constexpr Transform3D& shearXY(const T s, const T t)
     {
         const Vec4 ar = { 1, 0, +s, 0 };
         const Vec4 br = { 0, 1, +t, 0 };
@@ -468,7 +474,7 @@ public:
      * @param t How much y should influence z in the direction of z
      * @return This
      */
-    constexpr Transform3& shearXZ(const T s, const T t)
+    constexpr Transform3D& shearXZ(const T s, const T t)
     {
         const Vec4 ar = { 1, +s, 0, 0 };
         const Vec4 br = { 0, 1., 0, 0 };
@@ -492,7 +498,7 @@ public:
      * @param t How much x should influence z in the direction of z
      * @return This
      */
-    constexpr Transform3& shearYZ(const T s, const T t)
+    constexpr Transform3D& shearYZ(const T s, const T t)
     {
         const Vec4 ar = { 1., 0, 0, 0 };
         const Vec4 br = { +s, 1, 0, 0 };
