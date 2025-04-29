@@ -176,8 +176,8 @@ public:
     using Rot3D = Rot3DType<T, is_col_major>;
 
 private:
-    T m_s = 1;          ///< scalar component
-    Vec3 m_dir = { 0 }; ///< non-normalized axis vector
+    T m_s = 1;                ///< scalar component
+    Vec3 m_dir = { 0, 0, 0 }; ///< non-normalized axis vector
 
 public:
     /**

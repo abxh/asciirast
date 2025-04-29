@@ -855,7 +855,7 @@ struct mat_printer<M_y, N_x, T, false>
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
+        std::transform(mat.array().begin(), mat.array().end(), lengths.begin(), count_chars);
         const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
@@ -899,7 +899,7 @@ struct mat_printer<M_y, N_x, T, true>
             return s.str().size();
         };
         std::array<int, mat.size()> lengths;
-        std::transform(mat.range().begin(), mat.range().end(), lengths.begin(), count_chars);
+        std::transform(mat.array().begin(), mat.array().end(), lengths.begin(), count_chars);
         const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
