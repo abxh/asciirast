@@ -30,30 +30,6 @@ public:
     using Rot2D = Rot2DType<T, is_col_major>;
     using Transform2D = Transform2DType<T, is_col_major>;
 
-private:
-    Mat3 m_mat;     ///< underlying matrix
-    Mat3 m_mat_inv; ///< underlying inverse matrix
-
-    constexpr Transform2DType(const Mat3& mat, const Mat3& mat_inv)
-            : m_mat{ mat }
-            , m_mat_inv{ mat_inv } {};
-
-protected:
-    /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
-     *
-     * @param mat The transformation matrix
-     * @param inv_mat The inverse transformation matrix
-     * @return This
-     */
-    constexpr Transform2D& stack(const Mat3& mat, const Mat3& inv_mat)
-    {
-        m_mat = mat * m_mat;
-        m_mat_inv = m_mat_inv * inv_mat;
-        return *this;
-    }
-
-public:
     /**
      * @brief Construct a identity transform object that performs "nothing"
      */
@@ -237,6 +213,28 @@ public:
 
         return this->stack(mr, mi);
     }
+
+private:
+    Mat3 m_mat;     ///< underlying matrix
+    Mat3 m_mat_inv; ///< underlying inverse matrix
+
+    constexpr Transform2DType(const Mat3& mat, const Mat3& mat_inv)
+            : m_mat{ mat }
+            , m_mat_inv{ mat_inv } {};
+
+    /**
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param inv_mat The inverse transformation matrix
+     * @return This
+     */
+    constexpr Transform2D& stack(const Mat3& mat, const Mat3& inv_mat)
+    {
+        m_mat = mat * m_mat;
+        m_mat_inv = m_mat_inv * inv_mat;
+        return *this;
+    }
 };
 
 /**
@@ -257,30 +255,6 @@ public:
     using Rot3D = Rot3DType<T, is_col_major>;
     using Transform3D = Transform3DType<T, is_col_major>;
 
-private:
-    Mat4 m_mat;     ///< underlying matrix
-    Mat4 m_mat_inv; ///< underlying inverse matrix
-
-    constexpr Transform3DType(const Mat4& mat, const Mat4& mat_inv)
-            : m_mat{ mat }
-            , m_mat_inv{ mat_inv } {};
-
-protected:
-    /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
-     *
-     * @param mat The transformation matrix
-     * @param inv_mat The inverse transformation matrix
-     * @return This
-     */
-    constexpr Transform3D& stack(const Mat4& mat, const Mat4& inv_mat)
-    {
-        m_mat = mat * m_mat;
-        m_mat_inv = m_mat_inv * inv_mat;
-        return *this;
-    }
-
-public:
     /**
      * @brief Construct a identity transform object that performs "nothing"
      */
@@ -513,6 +487,28 @@ public:
         const auto mi = Mat4::from_rows(ai, bi, ci, di);
 
         return this->stack(mr, mi);
+    }
+
+private:
+    Mat4 m_mat;     ///< underlying matrix
+    Mat4 m_mat_inv; ///< underlying inverse matrix
+
+    constexpr Transform3DType(const Mat4& mat, const Mat4& mat_inv)
+            : m_mat{ mat }
+            , m_mat_inv{ mat_inv } {};
+
+    /**
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param inv_mat The inverse transformation matrix
+     * @return This
+     */
+    constexpr Transform3D& stack(const Mat4& mat, const Mat4& inv_mat)
+    {
+        m_mat = mat * m_mat;
+        m_mat_inv = m_mat_inv * inv_mat;
+        return *this;
     }
 };
 

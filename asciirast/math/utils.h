@@ -194,7 +194,7 @@ constexpr auto
 sqrt(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (0 <= x && x < std::numeric_limits<T>::infinity()) {
+        if (0 <= x && x < std::numeric_limits<float>().infinity()) {
             return detail::sqrt_newton_raphson<T>(x, x, 0);
         } else {
             throw std::domain_error("asciirast::math::details::sqrt() : sqrt value is not a positive real");

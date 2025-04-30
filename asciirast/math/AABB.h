@@ -23,9 +23,6 @@ template<std::size_t N, typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
 class AABB
 {
-    Vec<N, T> m_center; /// center of bounding box
-    Vec<N, T> m_extent; /// half of size
-
 public:
     using Transform2D = Transform2DType<T, is_col_major>;
     using Transform3D = Transform3DType<T, is_col_major>;
@@ -103,7 +100,6 @@ public:
         return Transform3D().scale(this->size_get()).translate(this->min_get());
     }
 
-public:
     /**
      * @brief Get the minimum of this AABB
      *
@@ -179,6 +175,10 @@ public:
         m_extent = math::max(size / 2, Vec<N, T>{ 0 });
         return *this;
     }
+
+private:
+    Vec<N, T> m_center; /// center of bounding box
+    Vec<N, T> m_extent; /// half of size
 };
 
 } // namespace asciirast::math

@@ -103,11 +103,11 @@ cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
                       [rhs.x, rhs.y])
     */
 
-    const T x_hat = lhs.y * rhs.z - rhs.y * lhs.z; // YZ_magnitude
-    const T y_hat = lhs.x * rhs.z - rhs.x * lhs.z; // XZ_magnitude
-    const T z_hat = lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
+    const T YZ = lhs.y * rhs.z - lhs.z * rhs.y;
+    const T XZ = lhs.x * rhs.z - lhs.z * rhs.x;
+    const T XY = lhs.x * rhs.y - lhs.y * rhs.x;
 
-    return Vec<N, T>{ +x_hat, -y_hat, +z_hat };
+    return Vec<N, T>{ +YZ, -XZ, +XY };
 }
 
 /**
@@ -912,12 +912,12 @@ public:
     }
 
     /**
-     * @brief Calculate the norm of the vector
+     * @brief Calculate the length of the vector
      *
-     * @return The norm of this vector as a number
+     * @return The length of this vector as a number
      */
     [[nodiscard]]
-    constexpr T norm() const
+    constexpr T length() const
         requires(std::is_floating_point_v<T>)
     {
         const Vec v = (*this);
@@ -934,49 +934,7 @@ public:
     constexpr Vec normalized() const
         requires(std::is_floating_point_v<T>)
     {
-        return (*this) / this->norm();
-    }
-
-    /**
-     * @brief Calculate the length of the vector.
-     *
-     * Alias to .norm()
-     *
-     * @return The length of this as a number
-     */
-    [[nodiscard]]
-    constexpr T length() const
-        requires(std::is_floating_point_v<T>)
-    {
-        return this->norm();
-    }
-
-    /**
-     * @brief Calculate the magnitude of the vector.
-     *
-     * Alias to .norm()
-     *
-     * @return The magnitude of this as a number
-     */
-    [[nodiscard]]
-    constexpr T magnitude() const
-        requires(std::is_floating_point_v<T>)
-    {
-        return this->norm();
-    }
-
-    /**
-     * @brief Calculate the normalized direction of the vector.
-     *
-     * Alias to .normalized()
-     *
-     * @return The direction of this as a normalized vector
-     */
-    [[nodiscard]]
-    constexpr Vec direction() const
-        requires(std::is_floating_point_v<T>)
-    {
-        return this->normalized();
+        return (*this) / this->length();
     }
 
     /**
