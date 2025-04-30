@@ -48,7 +48,7 @@ public:
      * @param radians The angle at hand in radians
      */
     Rot2DType(const T radians)
-            : m_angle{ radians } {};
+            : m_angle{ std::remainder(radians, 2 * std::numbers::pi_v<T>) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors.
@@ -57,7 +57,7 @@ public:
      * @param to_dir The destination direction vector
      */
     Rot2DType(const Vec2& from_dir, const Vec2& to_dir) noexcept
-            : m_angle{ math::angle(from_dir, to_dir) } {};
+            : m_angle{ std::remainder(math::angle(from_dir, to_dir), 2 * std::numbers::pi_v<T>) } {};
 
     /**
      * @brief Get underlying angle in radians
@@ -103,7 +103,7 @@ public:
      */
     Rot2D& stack(const Rot2D& that)
     {
-        this->m_angle += that.m_angle;
+        this->m_angle = std::remainder(this->m_angle + that.m_angle, 2 * std::numbers::pi_v<T>);
         return (*this);
     }
 
