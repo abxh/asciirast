@@ -36,11 +36,8 @@ public:
      * @param depth The proposed depth of the pixel
      * @return Whether the depth has been set
      */
-    virtual bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    virtual bool test_and_set_depth([[maybe_unused]] const math::Vec2Int& pos, [[maybe_unused]] const math::Float depth)
     {
-        (void)(pos);
-        (void)(depth);
-
         return true;
     }
 

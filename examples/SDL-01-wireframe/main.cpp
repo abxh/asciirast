@@ -162,8 +162,7 @@ struct MyVarying
 class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     // alias to fullfill program interface:
@@ -172,6 +171,7 @@ public:
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
+    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -179,7 +179,8 @@ public:
         out.pos = { vert.pos.x, vert.pos.y, 0, 1 }; // w should be 1 for 2D.
         out.attrs = { math::Vec3{ 1, 1, 1 } };
     }
-    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
+    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator
     {
         (void)u;
         out = { pfrag.attrs.color };

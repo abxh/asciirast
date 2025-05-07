@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cmath>
 #include <complex>
 #include <cstdlib>
@@ -160,18 +161,6 @@ public:
      */
     Rot3DType(const Vec3& axis, const T radians, bool normalize = true)
             : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
-
-    /**
-     * @brief Construct rotation object from the angle between two vectors
-     *
-     * @param from_dir The source vector
-     * @param to_dir The destination vector
-     */
-    Rot3DType(const Vec3& from_dir, const Vec3& to_dir)
-            : m_quat{ cross(from_dir, to_dir), 1 + dot(from_dir, to_dir) }
-    {
-        this->normalize(); // trick for half-angle cosine
-    };
 
     /**
      * @brief Get underlying quaternion

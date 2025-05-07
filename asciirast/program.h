@@ -24,22 +24,24 @@ namespace asciirast {
  * @tparam Varying_ Fragment type that follows the Varying interface
  * @tparam FrameBuffer Framebuffer type that follows the Framebuffer
  *                     interface
+ * @tparam ProgramTokenAllocator Program token allocator
  * @tparam FragmentContextValues Types to prepare FragmentContext for
  */
 template<class Uniform_,
          class Vertex_,
          VaryingInterface Varying_,
          FrameBufferInterface FrameBuffer,
+         typename ProgramTokenAllocator = std::allocator<ProgramToken>,
          typename... FragmentContextValues>
 class AbstractProgram
 {
 public:
-    using Uniform = Uniform_;             ///< uniform(s) type
-    using Vertex = Vertex_;               ///< vertex type
-    using Varying = Varying_;             ///< varying type
-    using Targets = FrameBuffer::Targets; ///< user framebuffer targets
-
+    using Uniform = Uniform_;                                              ///< uniform(s) type
+    using Vertex = Vertex_;                                                ///< vertex type
+    using Varying = Varying_;                                              ///< varying type
+    using Targets = FrameBuffer::Targets;                                  ///< user framebuffer targets
     using FragmentContext = FragmentContextType<FragmentContextValues...>; ///< fragment context
+    using ProgramTokenGenerator = std::generator<ProgramToken, void, ProgramTokenAllocator>; ///< ProgramToken generator
 
     /**
      * @brief Default virtual destructor
@@ -55,7 +57,7 @@ public:
      * @brief Function run on every fragment
      */
     virtual auto on_fragment(FragmentContext&, const Uniform&, const ProjectedFragment<Varying>&, Targets&) const
-            -> std::generator<ProgramToken> = 0;
+            -> ProgramTokenGenerator = 0;
 };
 
 /**
@@ -71,6 +73,8 @@ concept ProgramInterface = requires(const T t) {
     typename T::Targets;
     requires std::semiregular<typename T::Targets>;
     typename T::FragmentContext;
+    typename T::ProgramTokenGenerator;
+    requires std::same_as<std::remove_cvref_t<typename T::ProgramTokenGenerator::yielded>, ProgramToken>;
     {
         t.on_vertex(std::declval<const typename T::Uniform&>(),     //
                     std::declval<const typename T::Vertex&>(),      //
@@ -81,7 +85,7 @@ concept ProgramInterface = requires(const T t) {
                       std::declval<const typename T::Uniform&>(), //
                       std::declval<const ProjectedFragment<typename T::Varying>&>(),
                       std::declval<typename T::Targets&>()) //
-    } -> std::same_as<std::generator<ProgramToken>>;
+    } -> std::same_as<typename T::ProgramTokenGenerator>;
 };
 
 /// @cond DO_NOT_DOCUMENT

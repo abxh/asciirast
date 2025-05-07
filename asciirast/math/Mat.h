@@ -660,9 +660,9 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.col_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
-                    const T* lb = &rhs.data()[M_y * i];
-                    const T* le = &rhs.data()[M_y * (i + 1)];
-                    const T* rb = &lhs_T.data()[M_y * j];
+                    const auto lb = &rhs.data()[M_y * i];
+                    const auto le = &rhs.data()[M_y * (i + 1)];
+                    const auto rb = &lhs_T.data()[M_y * j];
 
                     res[idx++] = std::inner_product(lb, le, rb, T{});
                 }
@@ -673,9 +673,9 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    const T* lb = &lhs.data()[N_x * i];
-                    const T* le = &lhs.data()[N_x * (i + 1)];
-                    const T* rb = &rhs_T.data()[N_x * j];
+                    const auto lb = &lhs.data()[N_x * i];
+                    const auto le = &lhs.data()[N_x * (i + 1)];
+                    const auto rb = &rhs_T.data()[N_x * j];
 
                     res[idx++] = std::inner_product(lb, le, rb, T{});
                 }
@@ -707,9 +707,9 @@ public:
             }
         } else {
             for (std::size_t y = 0; y < M_y; y++) {
-                auto lb = &lhs.data()[N_x * y];
-                auto le = &lhs.data()[N_x * (y + 1)];
-                auto rb = rhs.array().begin();
+                const auto lb = &lhs.data()[N_x * y];
+                const auto le = &lhs.data()[N_x * (y + 1)];
+                const auto rb = rhs.array().begin();
 
                 res[y] = std::inner_product(lb, le, rb, T{});
             }

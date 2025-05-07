@@ -180,8 +180,7 @@ struct MyVarying
 class RGBProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     using Uniform = MyUniform;
@@ -189,6 +188,7 @@ public:
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
+    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -197,7 +197,8 @@ public:
         out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
         out.attrs = { vert.color, vert.uv };
     }
-    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
+    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator
     {
         (void)(u);
         out = { pfrag.attrs.color };
@@ -210,8 +211,7 @@ static_assert(asciirast::ProgramInterface<RGBProgram>);
 class CheckerboardProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     using Uniform = MyUniform;
@@ -219,6 +219,7 @@ public:
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
+    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -228,7 +229,8 @@ public:
         out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
 
-    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
+    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator
     {
         (void)(u);
 

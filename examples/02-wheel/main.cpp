@@ -37,9 +37,7 @@ public:
             , m_depth_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
-
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
-        std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
 
         m_oob_error = false;
 
@@ -49,9 +47,7 @@ public:
     ~TerminalBuffer()
     {
         std::cout << CSI::ESC << CSI::SHOW_CURSOR;
-        std::cout << CSI::ESC << CSI::ENABLE_LINE_WRAP;
         std::cout << CSI::ESC << CSI::RESET_COLOR;
-
         terminal_utils::just_fix_windows_console(false);
     }
 
@@ -225,8 +221,7 @@ struct MyVarying
 class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     // alias to fullfill program interface:
@@ -235,6 +230,7 @@ public:
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2Int>;
+    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -243,7 +239,9 @@ public:
         out.pos = { pos.x * u.aspect_ratio, pos.y, 0, 1 };
         out.attrs = { vert.color };
     }
-    OnFragmentRes on_fragment(FragmentContext& context, const Uniform& u, const PFragment& pfrag, Targets& out) const
+
+    auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator
     {
         co_yield context.init(math::Vec2Int{ pfrag.pos });
 
@@ -450,13 +448,21 @@ static constexpr ctable ctable043 = { { { ign, '\\', ign },    /*   \ */
                                         { ign, '|', '_' },     //   |_
                                         { ign, ign, ign } } }; /*      */
 
+static constexpr ctable ctable044 = { { { '_', ign, ign },     /* _     */
+                                        { ign, '\\', ign },    /*  \    */
+                                        { ign, '|', ign } } }; /*  |    */
+
+static constexpr ctable ctable045 = { { { ign, ign, '_' },     /*   _   */
+                                        { ign, '/', ign },     /*  /    */
+                                        { ign, '|', ign } } }; /*  |    */
+
 static constexpr ctable ctables[] = { ctable001, ctable002, ctable003, ctable004, ctable005, ctable006, ctable007,
                                       ctable008, ctable009, ctable010, ctable011, ctable012, ctable013, ctable014,
                                       ctable015, ctable016, ctable017, ctable018, ctable019, ctable020, ctable021,
                                       ctable022, ctable023, ctable024, ctable025, ctable026, ctable027, ctable028,
                                       ctable029, ctable030, ctable031, ctable032, ctable033, ctable034, ctable035,
                                       ctable036, ctable037, ctable038, ctable039, ctable040, ctable041, ctable042,
-                                      ctable043 };
+                                      ctable043, ctable044, ctable045 };
 
 FramebufferPoint
 retroactive_fix(const TerminalBuffer& t, const math::Vec2Int& pos)

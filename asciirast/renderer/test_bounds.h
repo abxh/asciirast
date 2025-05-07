@@ -46,14 +46,14 @@ using T = math::Float;
 
 enum class BorderType
 {
-    LEFT = 0U,
+    LEFT,
     RIGHT,
     BOTTOM,
     TOP,
     NEAR,
     FAR,
     COUNT,
-    BEGIN = 0U,
+    BEGIN = LEFT,
     END = COUNT,
     END2D = TOP + 1U,
 };

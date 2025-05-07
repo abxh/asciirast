@@ -37,9 +37,7 @@ public:
             , m_depth_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
-
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
-        std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
 
         m_oob_error = false;
 
@@ -49,9 +47,7 @@ public:
     ~TerminalBuffer()
     {
         std::cout << CSI::ESC << CSI::SHOW_CURSOR;
-        std::cout << CSI::ESC << CSI::ENABLE_LINE_WRAP;
         std::cout << CSI::ESC << CSI::RESET_COLOR;
-
         terminal_utils::just_fix_windows_console(false);
     }
 
@@ -221,8 +217,7 @@ struct MyVarying
 class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     // alias to fullfill program interface:
@@ -231,13 +226,15 @@ public:
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<>;
+    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         out.pos = { vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }; // w should be 1 for 2D
         out.attrs = { vert.id, vert.color };
     }
-    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const
+    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator
     {
         out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
         co_return;

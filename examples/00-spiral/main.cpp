@@ -26,9 +26,7 @@ public:
     TerminalBuffer()
     {
         terminal_utils::just_fix_windows_console(true);
-
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
-        std::cout << CSI::ESC << CSI::DISABLE_LINE_WRAP;
 
         m_width = m_height = 0;
         this->clear_and_update_size();
@@ -37,8 +35,6 @@ public:
     ~TerminalBuffer()
     {
         std::cout << CSI::ESC << CSI::SHOW_CURSOR;
-        std::cout << CSI::ESC << CSI::ENABLE_LINE_WRAP;
-
         terminal_utils::just_fix_windows_console(false);
     }
 
@@ -154,8 +150,7 @@ struct MyVarying
 class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
 {
     using Fragment = asciirast::Fragment<MyVarying>;
-    using PFragment = asciirast::ProjectedFragment<MyVarying>;
-    using OnFragmentRes = std::generator<asciirast::ProgramToken>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const override
@@ -173,7 +168,8 @@ public:
         out.pos = { v.x * u.aspect_ratio, v.y, 0, 1 }; // w should be 1 for 2D
         out.attrs = { id };
     }
-    OnFragmentRes on_fragment(FragmentContext&, const Uniform& u, const PFragment& pfrag, Targets& out) const override
+    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> ProgramTokenGenerator override
     {
         out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
         co_return;
