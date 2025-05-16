@@ -246,7 +246,7 @@ public:
     static auto apply_screen_to_window(const math::Transform2D& screen_to_window, ProjectedFragment<Varying> frag)
             -> ProjectedFragment<Varying>
     {
-        frag.pos = math::trunc(screen_to_window.apply(frag.pos) + math::Vec2{ 0.5f, 0.5f });
+        frag.pos = math::round(screen_to_window.apply(frag.pos));
         return frag;
     }
 

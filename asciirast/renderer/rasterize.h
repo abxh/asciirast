@@ -181,11 +181,11 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };
 
-    for (std::size_t y = 0; y <= y_diff / 2 + 1; y++) {
+    for (std::size_t y = 0; y <= y_diff / 2 + y_diff % 2; y++) {
         auto w = w_y_minx;
-        p.x = min.x;
+        p.x = min.x + 0.5f;
 
-        for (std::size_t x = 0; x <= x_diff / 2 + 1; x++) {
+        for (std::size_t x = 0; x <= x_diff / 2 + x_diff % 2; x++) {
             const auto w00 = w;
             const auto w01 = w + delta_w_x;
             const auto w10 = w + delta_w_y;
