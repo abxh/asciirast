@@ -358,6 +358,8 @@ private:
             }
         } break;
         case ShapeType::TriangleFan: {
+            throw "TODO: fix misunderstanding of TRIANGLE_FAN";
+
             const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
 
             for (const auto& [v0, v1, v2] : verticies_tup) {
