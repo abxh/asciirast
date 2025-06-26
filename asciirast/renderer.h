@@ -358,20 +358,12 @@ private:
             }
         } break;
         case ShapeType::TriangleFan: {
-            throw "TODO: fix misunderstanding of TRIANGLE_FAN";
+            const auto vertex_center = verticies_inp | std::ranges::views::take(1U);
+            const auto verticies_tup = verticies_inp | std::ranges::views::drop(1U) | std::ranges::views::adjacent<2U>;
 
-            const auto verticies_tup = verticies_inp | std::ranges::views::adjacent<3U>;
-
-            for (const auto& [v0, v1, v2] : verticies_tup) {
-                draw_triangle_func(v0, v1, v2);
+            for (const auto& [v1, v2] : verticies_tup) {
+                draw_triangle_func(vertex_center, v1, v2);
             }
-            if (std::ranges::distance(verticies_inp) >= 3U) {
-                const auto v0 = *(std::ranges::cend(verticies_inp) - 2);
-                const auto v1 = *(std::ranges::cend(verticies_inp) - 1);
-                const auto v2 = *(std::ranges::cbegin(verticies_inp) + 0);
-
-                draw_triangle_func(v0, v1, v2);
-            };
         } break;
         }
     }
