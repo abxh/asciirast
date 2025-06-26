@@ -251,7 +251,7 @@ public:
      */
     [[nodiscard]] const math::RGBA_8bit* data() const { return get().data(); }
 
-    /**fuck
+    /**
      * @brief Fill the texture with a value
      *
      * @param value The value at hand

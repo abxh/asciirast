@@ -52,7 +52,6 @@ enum class WrapMethod
 /**
  * @brief Texture sampler
  */
-template<typename RGBA_8bit_Allocator = std::allocator<math::RGBA_8bit>>
 class Sampler
 {
 public:
@@ -63,43 +62,36 @@ public:
     SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
 
     /**
-     * @brief Initialize this sampler to sample from a texture
-     *
-     * @param texture Const reference to the texture at hand
-     */
-    explicit Sampler(const Texture<RGBA_8bit_Allocator>& texture) noexcept
-            : m_texture{ texture } {};
-
-    /**
-     * @brief Get texture
-     * @return Const reference to the texture
-     */
-    const Texture<RGBA_8bit_Allocator>& texture() const { return m_texture; }
-
-    /**
      * @brief Prepare to sample texture at a uv coordinate
      * @return Return sampled color at the uv coordinate
      */
-    template<typename Allocator>
-    friend math::Vec4 textureLOD(const Sampler<Allocator>&, const math::Vec2&, const math::Float);
+    template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
+    friend math::Vec4 textureLOD(const Sampler&,
+                                 const Texture<RGBA_8bit_Allocator, MipmapAllocator>&,
+                                 const math::Vec2&,
+                                 const math::Float);
 
     /**
      * @brief Sample texture at a uv coordinate
      * @return Return a special fragment token to be co-yielded back to the renderer
      */
-    template<typename Allocator, typename... ValueTypes>
-    friend auto texture_init(const FragmentContextType<ValueTypes...>&, const Sampler<Allocator>&, const math::Vec2&);
+    template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
+    friend auto texture_init(const FragmentContextType<ValueTypes...>&,
+                             const Sampler&,
+                             const Texture<RGBA_8bit_Allocator, MipmapAllocator>&,
+                             const math::Vec2&);
 
     /**
      * @brief Sample texture at a uv coordinate
      * @return Return sampled color at the uv coordinate
      */
-    template<typename Allocator, typename... ValueTypes>
-    friend auto texture(const FragmentContextType<ValueTypes...>&, const Sampler<Allocator>&, const math::Vec2&);
+    template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
+    friend auto texture(const FragmentContextType<ValueTypes...>&,
+                        const Sampler&,
+                        const Texture<RGBA_8bit_Allocator, MipmapAllocator>&,
+                        const math::Vec2&);
 
 protected:
-    const Texture<RGBA_8bit_Allocator>& m_texture; ///< texture data
-
     /**
      * @brief Sample the texture at the given uv coordinate
      *
@@ -107,21 +99,24 @@ protected:
      * @param uv The uv coordinate
      * @return The RGBA pixel color as Vec
      */
-    [[nodiscard]] math::Vec4 sample(const math::Vec2& uv, const std::size_t i) const
+    template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
+    [[nodiscard]] math::Vec4 sample(const Texture<RGBA_8bit_Allocator, MipmapAllocator>& t,
+                                    const math::Vec2& uv,
+                                    const std::size_t i) const
     {
-        assert(i < m_texture.mipmaps().size());
+        assert(i < t.mipmaps().size());
 
-        const auto size_x = m_texture.mipmaps()[i].width();
-        const auto size_y = m_texture.mipmaps()[i].height();
+        const auto size_x = t.mipmaps()[i].width();
+        const auto size_y = t.mipmaps()[i].height();
 
         const auto UV = math::Vec2{ size_x - 1, size_y - 1 } * uv;
 
         switch (sample_method) {
         case SampleMethod::Point: {
-            return color_at(math::Vec2Int{ UV }, i);
+            return color_at(math::Vec2Int{ UV }, t, i);
         } break;
         case SampleMethod::Nearest: {
-            return color_at(math::Vec2Int{ math::round(UV - math::Vec2{ 0.5f, 0.5f }) }, i);
+            return color_at(math::Vec2Int{ math::round(UV - math::Vec2{ 0.5f, 0.5f }) }, t, i);
         } break;
         case SampleMethod::Linear: {
             const auto UVs = UV - math::Vec2{ 0.5f, 0.5f };
@@ -129,10 +124,10 @@ protected:
             const math::Vec2 UVs_whole = math::floor(UVs);
             const math::Vec2 UVs_decimal = UVs - UVs_whole;
 
-            const auto c00 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 0, 0 }, i);
-            const auto c01 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 0, 1 }, i);
-            const auto c10 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 0 }, i);
-            const auto c11 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 1 }, i);
+            const auto c00 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 0, 0 }, t, i);
+            const auto c01 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 0, 1 }, t, i);
+            const auto c10 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 0 }, t, i);
+            const auto c11 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 1 }, t, i);
 
             const auto c0t = math::lerp(c00, c01, math::Float{ UVs_decimal.y });
             const auto c1t = math::lerp(c10, c11, math::Float{ UVs_decimal.y });
@@ -151,12 +146,15 @@ protected:
      * @param i The index of the mipmap to use
      * @return The color as Vec4
      */
-    math::Vec4 color_at(math::Vec2Int pos, const std::size_t i) const
+    template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
+    math::Vec4 color_at(math::Vec2Int pos,
+                        const Texture<RGBA_8bit_Allocator, MipmapAllocator>& t,
+                        const std::size_t i) const
     {
-        assert(i < m_texture.mipmaps().size());
+        assert(i < t.mipmaps().size());
 
-        const auto size_x = m_texture.mipmaps()[i].width();
-        const auto size_y = m_texture.mipmaps()[i].height();
+        const auto size_x = t.mipmaps()[i].width();
+        const auto size_y = t.mipmaps()[i].height();
 
         const auto UV_max = math::Vec2Int{ size_x - 1, size_y - 1 };
 
@@ -187,7 +185,7 @@ protected:
             pos.y = (pos.y >= 0) ? (pos.y % size_y) : remainder(UV_max.y + pos.y, size_y, UV_max.y);
         } break;
         }
-        return math::Vec4{ m_texture.mipmaps()[i][pos.y, pos.x] } / 255.f;
+        return math::Vec4{ t.mipmaps()[i][pos.y, pos.x] } / 255.f;
     }
 };
 
@@ -195,54 +193,60 @@ protected:
  * @brief Sample texture at a uv coordinate with a specific Level-Of-Detail
  *
  * @param sampler The sampler
+ * @param texture The texture
  * @param uv The uv coordinate
  * @param lod The level of details a float to be used as a index
  * @return Color at the uv coordinate
  */
-template<typename Allocator>
+template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
 [[maybe_unused]]
-static math::Vec4
-textureLOD(const Sampler<Allocator>& sampler, const math::Vec2& uv, const math::Float lod = 0.f)
+math::Vec4
+textureLOD(const Sampler& sampler,
+           const Texture<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+           const math::Vec2& uv,
+           const math::Float lod)
 {
-    const math::Float LOD = std::clamp(lod, 0.f, static_cast<math::Float>(sampler.m_texture.mipmaps().size() - 1));
+    const math::Float LOD = std::clamp(lod, 0.f, static_cast<math::Float>(texture.mipmaps().size() - 1));
 
     switch (sampler.mipmap_sample_method) {
     case SampleMethod::Point: {
-        return sampler.sample(uv, static_cast<std::size_t>(LOD));
+        return sampler.sample(texture, uv, static_cast<std::size_t>(LOD));
     } break;
     case SampleMethod::Nearest: {
-        return sampler.sample(uv, static_cast<std::size_t>(std::round(LOD)));
+        return sampler.sample(texture, uv, static_cast<std::size_t>(std::round(LOD)));
     } break;
     case SampleMethod::Linear: {
         const math::Float LOD_floor = std::floor(LOD);
         const math::Float LOD_ceil = std::ceil(LOD);
         const math::Float t = LOD_ceil - LOD;
 
-        const math::Vec4 sample_floor = sampler.sample(uv, static_cast<std::size_t>(LOD_floor));
-        const math::Vec4 sample_ceil = sampler.sample(uv, static_cast<std::size_t>(LOD_ceil));
+        const math::Vec4 sample_floor = sampler.sample(texture, uv, static_cast<std::size_t>(LOD_floor));
+        const math::Vec4 sample_ceil = sampler.sample(texture, uv, static_cast<std::size_t>(LOD_ceil));
 
         return math::lerp(sample_floor, sample_ceil, t);
     } break;
     }
-    return Sampler<Allocator>::blank_color;
+    return Sampler::blank_color;
 }
 
 /**
  * @brief Prepare to sample texture at a uv coordinate
  *
  * @param context Fragment context
- * @param sampler The sampler
+ * @param texture The texture
  * @return Return a special fragment token to be co-yielded back to the renderer
  */
-template<typename Allocator, typename... ValueTypes>
+template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
 static ProgramToken
-texture_init(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& sampler, const math::Vec2& uv)
+texture_init(FragmentContextType<ValueTypes...>& context,
+             const Texture<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+             const math::Vec2& uv)
 {
-    assert(sampler.texture().mipmaps_generated());
+    assert(texture.mipmaps_generated());
 
-    const auto texture_size = math::Vec2{ sampler.texture().width(), sampler.texture().height() };
+    const auto texture_size = math::Vec2{ texture.width(), texture.height() };
 
     return context.init(texture_size * uv);
 }
@@ -254,13 +258,17 @@ texture_init(FragmentContextType<ValueTypes...>& context, const Sampler<Allocato
  *
  * @param context Fragment context
  * @param sampler The sampler
+ * @param texture The texture
  * @return Return sampled color at the uv coordinate
  */
-template<typename Allocator, typename... ValueTypes>
+template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
 static math::Vec4
-texture(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& sampler, const math::Vec2& uv)
+texture(FragmentContextType<ValueTypes...>& context,
+        const Sampler& sampler,
+        const Texture<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+        const math::Vec2& uv)
 {
     using Type = FragmentContextType<ValueTypes...>::Type;
 
@@ -269,14 +277,14 @@ texture(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& s
         assert("must co_yield the result of texture_init() before calling texture()");
     } break;
     case Type::POINT: {
-        return textureLOD(sampler, uv, 0.f);
+        return textureLOD(sampler, texture, uv, 0.f);
     } break;
     case Type::LINE: {
         const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
         const math::Float d = math::dot(dFdv, dFdv);
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
-        return textureLOD(sampler, uv, lod);
+        return textureLOD(sampler, texture, uv, lod);
     } break;
     case Type::FILLED: {
         const math::Vec2 dFdx = context.template dFdx<math::Vec2>();
@@ -284,10 +292,10 @@ texture(FragmentContextType<ValueTypes...>& context, const Sampler<Allocator>& s
         const math::Float d = std::max(math::dot(dFdx, dFdx), math::dot(dFdy, dFdy));
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
-        return textureLOD(sampler, uv, lod);
+        return textureLOD(sampler, texture, uv, lod);
     } break;
     }
-    return Sampler<Allocator>::blank_color;
+    return Sampler::blank_color;
 }
 
 };

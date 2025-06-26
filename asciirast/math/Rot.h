@@ -15,7 +15,6 @@
 #include <cassert>
 #include <cmath>
 #include <complex>
-#include <cstdlib>
 #include <type_traits>
 
 #include "./Mat.h"

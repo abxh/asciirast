@@ -141,7 +141,8 @@ static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 
 struct MyUniform
 {
-    const asciirast::Sampler<>& sampler;
+    const asciirast::Texture<>& texture;
+    const asciirast::Sampler& sampler;
     const math::Transform2D& transform;
 };
 
@@ -181,8 +182,8 @@ public:
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
             -> ProgramTokenGenerator
     {
-        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv);
-        const auto color = asciirast::texture(context, u.sampler, pfrag.attrs.uv);
+        co_yield asciirast::texture_init(context, u.texture, pfrag.attrs.uv);
+        const auto color = asciirast::texture(context, u.sampler, u.texture, pfrag.attrs.uv);
 
         out = { color };
     }
@@ -195,7 +196,7 @@ handle_events(bool& running,
               math::Vec2& shift,
               math::Float& zoom,
               math::Transform2D& final_transform,
-              asciirast::Sampler<>& sampler)
+              asciirast::Sampler& sampler)
 {
     const auto shf_factor = 0.05f;
     const auto zoom_factor = 1.05f;
@@ -287,8 +288,8 @@ main(int argc, char* argv[])
         std::cout << "usage:" << " " << program_name << " " << "<path-to-png>\n";
         return EXIT_FAILURE;
     }
-    const char* path_to_obj = argc >= 2 ? argv[1] : "";
-    // const char* path_to_obj = "examples/data/texture_test.png";
+    const char* path_to_png = argc >= 2 ? argv[1] : "";
+    // const char* path_to_png = "examples/data/texture_test.png";
 
 #ifndef NDEBUG
     const unsigned screen_size = 256;
@@ -298,13 +299,13 @@ main(int argc, char* argv[])
 
     std::filesystem::create_directory("images");
     const auto image_path = std::filesystem::path("images");
-    const asciirast::Texture texture{ path_to_obj };
+    const asciirast::Texture texture{ path_to_png };
     const math::Float aspect_ratio = texture.width() / (math::Float)texture.height();
     math::Vec2 shift = { 0, 0 };
     math::Float zoom = 1.f;
-    math::Transform2D final_transform;
-    asciirast::Sampler sampler{ texture };
-    const MyUniform uniforms{ sampler, final_transform };
+    math::Transform2D final_transform{};
+    asciirast::Sampler sampler{};
+    const MyUniform uniforms{ texture, sampler, final_transform };
 
     sampler.wrap_method = asciirast::WrapMethod::Repeat;
     sampler.sample_method = asciirast::SampleMethod::Linear;

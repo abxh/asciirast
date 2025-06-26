@@ -145,7 +145,8 @@ static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 
 struct MyUniform
 {
-    const asciirast::Sampler<>& sampler;
+    const asciirast::Texture<>& texture;
+    const asciirast::Sampler& sampler;
     math::Float z_near = 0.1f;
     math::Float z_far = 100.f;
 };
@@ -196,8 +197,8 @@ public:
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
             -> ProgramTokenGenerator
     {
-        co_yield asciirast::texture_init(context, u.sampler, pfrag.attrs.uv);
-        const auto color = asciirast::texture(context, u.sampler, pfrag.attrs.uv);
+        co_yield asciirast::texture_init(context, u.texture, pfrag.attrs.uv);
+        const auto color = asciirast::texture(context, u.sampler, u.texture, pfrag.attrs.uv);
 
         out = { color.rgb };
     }
@@ -238,7 +239,7 @@ main(int argc, char* argv[])
         std::cout << "tinyobj::ObjReader : " << obj_reader.Warning();
     }
     const auto texture = asciirast::Texture(path_to_tga);
-    const asciirast::Sampler sampler{ texture };
+    const asciirast::Sampler sampler{};
 
     const tinyobj::attrib_t& attrib = obj_reader.GetAttrib();
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
@@ -298,7 +299,7 @@ main(int argc, char* argv[])
         vertex_buf.verticies.push_back(MyVertex{ { +1, -1 }, { 1, 0 } });
         vertex_buf.verticies.push_back(MyVertex{ { +1, +1 }, { 1, 1 } });
     }
-    MyUniform uniforms{ sampler };
+    MyUniform uniforms{ texture, sampler };
     uniforms.z_near = std::ranges::fold_left(
             vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
             math::Float{},

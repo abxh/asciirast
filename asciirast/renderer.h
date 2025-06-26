@@ -361,8 +361,11 @@ private:
             const auto vertex_center = verticies_inp | std::ranges::views::take(1U);
             const auto verticies_tup = verticies_inp | std::ranges::views::drop(1U) | std::ranges::views::adjacent<2U>;
 
-            for (const auto& [v1, v2] : verticies_tup) {
-                draw_triangle_func(vertex_center, v1, v2);
+            if (!std::ranges::empty(vertex_center)) {
+                const auto v0 = vertex_center[0];
+                for (const auto& [v1, v2] : verticies_tup) {
+                    draw_triangle_func(v0, v1, v2);
+                }
             }
         } break;
         }

@@ -1,6 +1,8 @@
 /**
  * @file Transform.h
  * @brief Class for composing primitive transformation matricies and their inverses
+ *
+ * @todo Transposed Transform
  */
 
 #pragma once
