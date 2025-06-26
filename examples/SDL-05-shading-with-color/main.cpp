@@ -197,9 +197,7 @@ public:
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
             -> ProgramTokenGenerator
     {
-        co_yield asciirast::texture_init(context, u.texture, pfrag.attrs.uv);
-        const auto color = asciirast::texture(context, u.sampler, u.texture, pfrag.attrs.uv);
-
+        const auto color = TEXTURE(context, u.sampler, u.texture, pfrag.attrs.uv);
         out = { color.rgb };
     }
 };

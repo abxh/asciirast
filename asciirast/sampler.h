@@ -195,7 +195,7 @@ protected:
  * @param sampler The sampler
  * @param texture The texture
  * @param uv The uv coordinate
- * @param lod The level of details a float to be used as a index
+ * @param lod The level of detail as to be used as a index with 0 being the highest and +inf being the lowest.
  * @return Color at the uv coordinate
  */
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
@@ -297,5 +297,17 @@ texture(FragmentContextType<ValueTypes...>& context,
     }
     return Sampler::blank_color;
 }
+
+#ifdef __GNUC__
+/**
+ * @def TEXTURE(a,b)
+ * @brief Initialize and execute the texture call in one go in a GNU C expression statement
+ */
+#define TEXTURE(context, sampler, texture_, uv)                                                                        \
+    __extension__({                                                                                                    \
+        co_yield asciirast::texture_init(context, texture_, uv);                                                       \
+        asciirast::texture(context, sampler, texture_, uv);                                                            \
+    })
+#endif
 
 };
