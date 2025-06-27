@@ -207,10 +207,10 @@ main(int argc, char* argv[])
 {
     if (argc < 2) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj>\n";
+        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj = african_head.obj>\n";
         return EXIT_FAILURE;
     }
-    const char* path_to_obj = argc >= 2 ? argv[1] : ""; // examples/data/african_head.obj
+    const char* path_to_obj = argc >= 2 ? argv[1] : "";
 
     tinyobj::ObjReader obj_reader;
     if (!obj_reader.ParseFromFile(path_to_obj)) {

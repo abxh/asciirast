@@ -221,11 +221,12 @@ main(int argc, char* argv[])
 {
     if (argc < 3) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj>" << " " << "<path-to-tga>\n";
+        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj = african_head.obj>" << " "
+                  << "<path-to-texture = african_head_diffuse.tga>\n";
         return EXIT_FAILURE;
     }
-    const char* path_to_obj = argc >= 3 ? argv[1] : ""; // examples/data/african_head.obj
-    const char* path_to_tga = argc >= 3 ? argv[2] : ""; // examples/data/african_head_diffuse.tga
+    const char* path_to_obj = argc >= 3 ? argv[1] : "";
+    const char* path_to_tga = argc >= 3 ? argv[2] : "";
 
     tinyobj::ObjReader obj_reader;
     if (!obj_reader.ParseFromFile(path_to_obj)) {

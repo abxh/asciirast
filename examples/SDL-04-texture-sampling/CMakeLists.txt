@@ -12,4 +12,4 @@ if(TARGET SDL2::SDL2main)
     target_link_libraries(sdl-example-4 PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(sdl-example-4 PRIVATE SDL2::SDL2)
+target_link_libraries(sdl-example-4 PRIVATE SDL2::SDL2 SDL2_ttf::SDL2_ttf)

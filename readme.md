@@ -6,6 +6,7 @@ It is meant to both render ascii art and real images. It currently simulates ver
 ## Dependencies
 For SDL-based examples:
 - `libsdl2-dev`
+- `libsdl2-ttf-dev`
 
 ## Build steps
 ```bash
@@ -24,3 +25,4 @@ Now the executables are visible in `build/bin` directory.
 ## Inspiration
 - https://github.com/nikolausrauch/software-rasterizer
 - https://github.com/ssloy/tinyrenderer/wiki
+- https://github.com/keith2018/SoftGLRender

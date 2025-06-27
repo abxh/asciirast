@@ -1,6 +1,8 @@
 
 // Note: Build this in Release mode for smooth viewing
 
+// TODO: write text
+
 // Test inspired by:
 // https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
 
@@ -12,12 +14,15 @@
 
 #include <SDL.h>
 #include <SDL_pixels.h>
+#include <SDL_render.h>
+#include <SDL_ttf.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 namespace math = asciirast::math;
@@ -45,6 +50,8 @@ public:
     {
         m_width = tex_width;
         m_height = tex_height;
+        m_win_width = win_width;
+        m_win_height = win_height;
 
         m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
                                      .to_transform()
@@ -65,6 +72,8 @@ public:
         const std::uint32_t pixel_format = SDL_PIXELFORMAT_ARGB8888; // use SDL_GetRendererInfo to get more info
         m_texture = SDL_CreateTexture(m_renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, m_width, m_height);
         SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND);
+
+        SDL_Log("Window successfully loaded!");
     }
     ~SDLBuffer()
     {
@@ -104,12 +113,13 @@ public:
         m_rgba_buf[idx].a = static_cast<std::uint8_t>(255.f * a);
     }
 
-    void render() const
+    void update() const
     {
         SDL_UpdateTexture(m_texture, nullptr, m_rgba_buf.data(), m_width * 4);
         SDL_RenderCopy(m_renderer, m_texture, nullptr, nullptr);
-        SDL_RenderPresent(m_renderer);
     }
+
+    void render() { SDL_RenderPresent(m_renderer); }
 
     void clear()
     {
@@ -122,11 +132,17 @@ public:
         }
     }
 
+    friend class SDLFont;
+    friend class SDLStaticText;
+
 private:
     std::size_t index(const std::size_t y, const std::size_t x) const { return m_width * y + x; }
 
     std::size_t m_width;
     std::size_t m_height;
+    int m_win_width;
+    int m_win_height;
+
     math::Transform2D m_screen_to_window;
 
     std::vector<RGBA_uint8> m_rgba_buf;
@@ -138,6 +154,67 @@ private:
 };
 
 static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
+
+class SDLFont
+{
+public:
+    SDLFont(const char* path, const int font_size = 36)
+    {
+        int ret = TTF_Init();
+        if (ret == -1) {
+            throw std::runtime_error(std::string("TTF_Init failed: ") + TTF_GetError());
+        }
+        m_font = TTF_OpenFont(path, font_size);
+        if (!m_font) {
+            throw std::runtime_error(std::string("TTF_OpenFont failed: ") + TTF_GetError());
+        }
+        SDL_Log("Font successfully loaded!");
+    }
+    ~SDLFont()
+    {
+        TTF_CloseFont(m_font);
+        TTF_Quit();
+    }
+
+    friend class SDLStaticText;
+
+private:
+    TTF_Font* m_font = nullptr;
+};
+
+class SDLStaticText
+{
+public:
+    SDLStaticText(SDLBuffer& screen, const SDLFont& font, const char* text, const SDL_Color color = { 255, 0, 0, 255 })
+            : m_screen{ screen }
+    {
+        m_surface = TTF_RenderText_Solid_Wrapped(font.m_font, text, color, (std::uint32_t)m_screen.m_win_width);
+        if (!m_surface) {
+            throw std::runtime_error(std::string("TTF_RenderText_Solid_Wrapped failed: ") + TTF_GetError());
+        }
+        m_texture = SDL_CreateTextureFromSurface(m_screen.m_renderer, m_surface);
+        if (!m_texture) {
+            throw std::runtime_error(std::string("SDL_CreateTextureFromSurface failed: ") + TTF_GetError());
+        }
+    }
+
+    ~SDLStaticText()
+    {
+        SDL_DestroyTexture(m_texture);
+        SDL_FreeSurface(m_surface);
+    }
+
+    void render(const math::Vec2Int pos = { 0, 0 }) const
+    {
+        const SDL_Rect rect = { .x = pos.x, .y = pos.y, .w = m_surface->w, .h = m_surface->h };
+        SDL_RenderCopy(m_screen.m_renderer, m_texture, nullptr, &rect);
+    }
+
+private:
+    SDLBuffer& m_screen;
+    SDL_Surface* m_surface = nullptr;
+    SDL_Texture* m_texture = nullptr;
+};
 
 struct MyUniform
 {
@@ -233,6 +310,7 @@ handle_events(bool& running,
                 zoom *= zoom_factor;
                 change_transform = true;
                 break;
+
             case SDLK_1:
                 sampler.sample_method = asciirast::SampleMethod::Point;
                 break;
@@ -281,13 +359,14 @@ handle_events(bool& running,
 int
 main(int argc, char* argv[])
 {
-    if (argc < 2) {
+    if (argc < 3) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-png>\n";
+        std::cout << "usage:" << " " << program_name << " "
+                  << "<path-to-image = texture_test.png> <path-to-ttf = terminus.ttf>\n";
         return EXIT_FAILURE;
     }
-    const char* path_to_png = argc >= 2 ? argv[1] : "";
-    // const char* path_to_png = "examples/data/texture_test.png";
+    const char* path_to_img = argc >= 2 ? argv[1] : "";
+    const char* path_to_ttf = argc >= 3 ? argv[2] : "";
 
 #ifndef NDEBUG
     const unsigned screen_size = 256;
@@ -295,9 +374,8 @@ main(int argc, char* argv[])
     const unsigned screen_size = 1024;
 #endif
 
-    std::filesystem::create_directory("images");
-    const auto image_path = std::filesystem::path("images");
-    const asciirast::Texture texture{ path_to_png };
+    const SDLFont font{ path_to_ttf };
+    const asciirast::Texture texture{ path_to_img };
     const math::Float aspect_ratio = texture.width() / (math::Float)texture.height();
     math::Vec2 shift = { 0, 0 };
     math::Float zoom = 1.f;
@@ -321,6 +399,15 @@ main(int argc, char* argv[])
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
 
+    const SDLStaticText text(screen,
+                             font,
+                             "Sample Method:\n"
+                             "    1: Point, 2: Nearest, 3: Linear\n"
+                             "Wrap Method:\n"
+                             "    4: Blank, 5: Clamp, 6: Periodic, 7: Wrap\n"
+                             "Mipmap Sample Method:\n"
+                             "    8: Point, 9: Nearest, 0: Linear\n");
+
     bool running = true;
     while (running) {
         screen.clear();
@@ -329,6 +416,8 @@ main(int argc, char* argv[])
 
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
 
+        screen.update();
+        text.render();
         screen.render();
     }
 
