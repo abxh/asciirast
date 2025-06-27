@@ -204,7 +204,7 @@ public:
         SDL_FreeSurface(m_surface);
     }
 
-    void render(const math::Vec2Int pos = { 0, 0 }) const
+    void render(const math::Vec2Int pos = { 10, 10 }) const
     {
         const SDL_Rect rect = { .x = pos.x, .y = pos.y, .w = m_surface->w, .h = m_surface->h };
         SDL_RenderCopy(m_screen.m_renderer, m_texture, nullptr, &rect);
