@@ -57,7 +57,7 @@ public:
      * @param to_dir The destination direction vector
      */
     Rot2DType(const Vec2& from_dir, const Vec2& to_dir) noexcept
-            : m_angle{ std::remainder(math::angle(from_dir, to_dir), 2 * std::numbers::pi_v<T>) } {};
+            : m_angle{ std::remainder(angle(from_dir, to_dir), 2 * std::numbers::pi_v<T>) } {};
 
     /**
      * @brief Get underlying angle in radians
@@ -305,8 +305,7 @@ private:
 
     static Vec4 quat_mul(const Vec4& lhs, const Vec4& rhs)
     {
-        return { lhs.w * rhs.xyz + lhs.xyz * rhs.w + cross(lhs.xyz.to_vec(), rhs.xyz.to_vec()),
-                 lhs.w * rhs.w - dot(lhs.xyz.to_vec(), rhs.xyz.to_vec()) };
+        return { lhs.w * rhs.xyz + lhs.xyz * rhs.w + cross(lhs.xyz, rhs.xyz), lhs.w * rhs.w - dot(lhs.xyz, rhs.xyz) };
     }
 };
 

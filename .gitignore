@@ -4,4 +4,7 @@ __pycache__/
 build/
 docs/
 .cache
-.vs
+html/
+images/
+CMakeCache.txt
+CMakeFiles/

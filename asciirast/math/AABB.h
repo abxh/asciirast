@@ -29,14 +29,14 @@ public:
     /**
      * @brief Construct AABB from a minimum and maximum point
      *
-     * @param min The minimum of the AABB as Vec
-     * @param max The maximum of the AABB as Vec
+     * @param min_ The minimum of the AABB as Vec
+     * @param max_ The maximum of the AABB as Vec
      * @return The AABB that spans from the minimum to the maximum
      */
-    [[nodiscard]] static constexpr AABB from_min_max(const Vec<N, T>& min, const Vec<N, T>& max) noexcept
+    [[nodiscard]] static constexpr AABB from_min_max(const Vec<N, T>& min_, const Vec<N, T>& max_) noexcept
     {
-        const auto size = math::max(max - min, Vec<N, T>{ 0 });
-        const auto center = min + size / 2;
+        const auto size = max(max_ - min_, Vec<N, T>{ 0 });
+        const auto center = min_ + size / 2;
 
         return AABB{ center, size };
     }
@@ -49,7 +49,7 @@ public:
      */
     constexpr explicit AABB(const Vec<N, T>& center, const Vec<N, T>& size) noexcept
             : m_center{ center }
-            , m_extent{ math::max(size / 2, math::Vec<N, T>{ 0 }) } {};
+            , m_extent{ max(size / 2, math::Vec<N, T>{ 0 }) } {};
 
     /**
      * @brief Check if a point is contained within the AABB
@@ -171,7 +171,7 @@ public:
      */
     constexpr AABB& size_set(const Vec<N, T>& size)
     {
-        m_extent = math::max(size / 2, Vec<N, T>{ 0 });
+        m_extent = max(size / 2, Vec<N, T>{ 0 });
         return *this;
     }
 

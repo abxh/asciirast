@@ -4,8 +4,8 @@
 #include <deque>
 #include <utility>
 
-#include "../math/types.h"
 #include "../fragment.h"
+#include "../math/types.h"
 #include "./interpolate.h"
 
 // on homogenous coordinates:
@@ -400,7 +400,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 [[assume(t0b == 0.f)]];
                 [[assume(t02 <= 1.f)]];
 
-                *it_vec = Vec4Triplet{ p0, math::lerp(p0, p1, t01), math::lerp(p0, p2, t02) };
+                *it_vec = Vec4Triplet{ p0, lerp(p0, p1, t01), lerp(p0, p2, t02) };
                 *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
             } break;
             case 2: {
@@ -440,8 +440,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 [[assume(t1 == 0.f)]];
                 [[assume(t12 <= 1.f)]];
 
-                const auto p02 = math::lerp(p0, p2, t02);
-                const auto p12 = math::lerp(p1, p2, t12);
+                const auto p02 = lerp(p0, p2, t02);
+                const auto p12 = lerp(p1, p2, t12);
 
                 const auto a02 = lerp_varying(a0, a2, t02);
                 const auto a12 = lerp_varying(a1, a2, t12);
@@ -526,10 +526,10 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
 
                 *it_vec = Vec4Triplet{
                     p0,
-                    math::Vec4{ math::lerp(p0.xy.to_vec(), p1.xy.to_vec(), t01),
+                    math::Vec4{ lerp(p0.xy, p1.xy, t01),
                                 lerp_varying_perspective_corrected<math::Float>(p0.z, p1.z, t01, p0.w, p1.w, p01w),
                                 p01w },
-                    math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                    math::Vec4{ lerp(p0.xy, p2.xy, t02),
                                 lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
                                 p02w },
                 };
@@ -572,11 +572,11 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto p12w = std::lerp(p1.w, p2.w, t12);
 
                 const auto p02 =
-                        math::Vec4{ math::lerp(p0.xy.to_vec(), p2.xy.to_vec(), t02),
+                        math::Vec4{ lerp(p0.xy, p2.xy, t02),
                                     lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
                                     p02w };
                 const auto p12 =
-                        math::Vec4{ math::lerp(p1.xy.to_vec(), p2.xy.to_vec(), t12),
+                        math::Vec4{ lerp(p1.xy, p2.xy, t12),
                                     lerp_varying_perspective_corrected<math::Float>(p1.z, p2.z, t12, p1.w, p2.w, p12w),
                                     p12w };
 

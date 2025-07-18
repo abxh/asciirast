@@ -67,7 +67,7 @@ template<VaryingInterface T>
 static auto
 lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
 {
-    return Fragment<T>{ .pos = math::lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
+    return Fragment<T>{ .pos = lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
 }
 
 /**
@@ -86,7 +86,7 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
     const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);
 
     return ProjectedFragment<T>{
-        .pos = math::lerp(a.pos, b.pos, t),
+        .pos = lerp(a.pos, b.pos, t),
         .depth = lerp_varying_perspective_corrected(a.depth, b.depth, t, a.Z_inv, b.Z_inv, Z_inv_t),
         .Z_inv = Z_inv_t,
         .attrs = lerp_varying_perspective_corrected(a.attrs, b.attrs, t, a.Z_inv, b.Z_inv, Z_inv_t)
@@ -101,7 +101,7 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
 static auto
 barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
 {
-    return math::dot(v, weights);
+    return dot(v, weights);
 }
 
 /**

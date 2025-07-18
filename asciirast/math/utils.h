@@ -197,7 +197,7 @@ sqrt(const T x) -> T
         if (0 <= x && x < std::numeric_limits<float>().infinity()) {
             return detail::sqrt_newton_raphson<T>(x, x, 0);
         } else {
-            throw std::domain_error("asciirast::math::details::sqrt() : sqrt value is not a positive real");
+            throw std::domain_error("asciirast::math::details::sqrt() : input is not a positive real");
         }
     } else {
         return std::sqrt(x);

@@ -246,7 +246,7 @@ public:
     static auto apply_screen_to_window(const math::Transform2D& screen_to_window, ProjectedFragment<Varying> frag)
             -> ProjectedFragment<Varying>
     {
-        frag.pos = math::round(screen_to_window.apply(frag.pos));
+        frag.pos = round(screen_to_window.apply(frag.pos));
         return frag;
     }
 
@@ -672,7 +672,7 @@ private:
             // perform backface culling:
             const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
             const auto p0p1 = wfrag0.pos.vector_to(wfrag1.pos);
-            const auto signed_area_2 = math::cross(p0p2, p0p1);
+            const auto signed_area_2 = cross(p0p2, p0p1);
             const bool backface_cull_cond =
                     !neither_winding_order && ((clockwise_winding_order && 0 < signed_area_2) || //
                                                (cclockwise_winding_order && 0 > signed_area_2));

@@ -146,9 +146,19 @@ public:
 
 public:
     /**
-     * @brief Construct matrix with all zeroes
+     * @brief Default constructor
      */
-    constexpr Mat() {};
+    constexpr Mat() = default;
+
+    /**
+     * @brief Default copy constructor
+     */
+    constexpr Mat(const Mat&) = default;
+
+    /**
+     * @brief Default move constructor
+     */
+    constexpr Mat(Mat&&) = default;
 
     /**
      * @brief Construct matrix from a mix of smaller matricies and vectors
@@ -168,6 +178,24 @@ public:
     };
 
 public:
+    /**
+     * @brief In-place copy assignment with other Mat
+     */
+    constexpr Mat& operator=(const Mat& that)
+    {
+        this->m_elements = that.m_elements;
+        return *this;
+    }
+
+    /**
+     * @brief In-place move assignment with other Mat
+     */
+    constexpr Mat& operator=(Mat&& that)
+    {
+        this->m_elements = std::move(that.m_elements);
+        return *this;
+    }
+
     /**
      * @brief Delete copy assignment from a single smaller vector
      */
@@ -717,24 +745,22 @@ public:
     }
 };
 
-namespace detail {
-
 /// @cond DO_NOT_DOCUMENT
 
+namespace detail {
+
 template<typename TT>
-struct mat_info_impl
+struct mat_info_impl : std::false_type
 {
-    using value_type = void;
-    static constexpr bool value = false;
+    using mat_type = void;
     static constexpr std::size_t height = 0;
     static constexpr std::size_t width = 0;
 };
 
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
-struct mat_info_impl<Mat<M_y, N_x, T, is_col_major>>
+struct mat_info_impl<Mat<M_y, N_x, T, is_col_major>> : std::true_type
 {
-    using value_type = T;
-    static constexpr bool value = true;
+    using mat_type = T;
     static constexpr std::size_t height = M_y;
     static constexpr std::size_t width = N_x;
 };
@@ -787,11 +813,11 @@ public:
     }
 
 private:
-    static constexpr void init_from_inner(std::size_t& idx, Mat<M_y, N_x, T, is_col_major>& out)
+    static constexpr void init_from_inner([[maybe_unused]] std::size_t& idx,
+                                          [[maybe_unused]] Mat<M_y, N_x, T, is_col_major>& out)
     {
-        (void)(idx);
-        (void)(out);
     }
+
     template<std::size_t M, typename U>
     static constexpr void init_from_inner(std::size_t& idx,
                                           Mat<M_y, N_x, T, is_col_major>& out,
@@ -938,8 +964,8 @@ struct mat_printer<M_y, N_x, T, true>
     }
 };
 
-/// @endcond
-
 } // namespace detail
+
+/// @endcond
 
 } // namespace asciirast::math

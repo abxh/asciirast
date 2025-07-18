@@ -1,6 +1,9 @@
 /**
  * @file Vec.h
  * @brief File with definition of the math vector class
+ *
+ * Global functions forwards parameters to the functions that perform the actual operation
+ * to allow implicit conversion of Swizzled objects.
  */
 
 #pragma once
@@ -28,306 +31,13 @@ template<typename T, typename... Args>
 struct not_a_single_value;
 template<typename T, typename... Args>
 struct not_a_single_convertible_value;
+template<typename TT>
+struct vec_info;
+template<typename T1, typename T2>
+consteval bool
+same_vec_kind();
 } // namespace detail
 /// @endcond
-
-/**
- * @brief Math vector class
- *
- * @tparam N    Number of components in the vector
- * @tparam T    Type of components
- */
-template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
-class Vec;
-
-/**
- * @brief Vector dot product
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @return The resulting number
- */
-template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
-[[nodiscard]]
-constexpr auto
-dot(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
-{
-    const std::array<T, N>& l = lhs.array();
-    const std::array<T, N>& r = rhs.array();
-
-    return std::inner_product(l.begin(), l.end(), r.begin(), T{});
-}
-
-/**
- * @brief Vector "2D cross product"
- *
- * By calculating the signed magnitude of the plane spanned by the two
- * vectors.
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @return The resulting number
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
-    requires(N == 2)
-{
-    return lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
-}
-
-/**
- * @brief Vector 3D cross product
- *
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-cross(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
-    requires(N == 3)
-{
-    /*
-        det([x_hat, y_hat, z_hat],
-            [lhs.x, lhs.y, lhs.z],
-            [rhs.x, rhs.y, rhs.z]])
-        =
-            x_hat det([lhs.y, lhs.z],
-                      [rhs.y, rhs.z])
-          - y_hat det([lhs.x, lhs.z],
-                      [rhs.x, rhs.z])
-          + z_hat det([lhs.x, lhs.y],
-                      [rhs.x, rhs.y])
-    */
-
-    const T YZ = lhs.y * rhs.z - lhs.z * rhs.y;
-    const T XZ = lhs.x * rhs.z - lhs.z * rhs.x;
-    const T XY = lhs.x * rhs.y - lhs.y * rhs.x;
-
-    return Vec<N, T>{ +YZ, -XZ, +XY };
-}
-
-/**
- * @brief Vector signed angle ranging from -pi and pi radians
- *
- * @todo make this function constexpr in c++26 or use library
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @return The resulting angle
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-auto
-angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> T
-    requires(N == 2 && std::is_floating_point_v<T>)
-{
-    /*
-        atan2(x,y)        = tan^-1(y/x), with quadrant
-                                         sign considerations
-        theta             = angle between lhs and rhs
-        cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
-        dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
-    */
-    return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
-}
-
-/**
- * @brief Vector signed angle ranging from -pi and pi radians
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @param up_ The "up" direction to measure the angle with
- * @param up_is_normalized Whether the "up" vector is normalized
- * @return The resulting angle
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-auto
-angle(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const Vec<N, T>& up_, const bool up_is_normalized) -> T
-    requires(N == 3 && std::is_floating_point_v<T>)
-{
-    const Vec<N, T>& up = up_is_normalized ? up_ : up_.normalized();
-
-    return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
-}
-
-/**
- * @brief Linearly interpolate the components of the two vectors with a
- *        parameter t ranging from 0 to 1.
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @param t How much as a percentage
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-lerp(const Vec<N, T>& lhs, const Vec<N, T>& rhs, const T t) -> Vec<N, T>
-    requires(std::is_floating_point_v<T>)
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::lerp(lhs[i], rhs[i], t);
-    }
-    return res;
-}
-
-/**
- * @brief Take the max value of each component
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-max(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::max(lhs[i], rhs[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the min value of each component
- *
- * @param lhs Left hand side of operand
- * @param rhs Right hande side of operand
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-min(const Vec<N, T>& lhs, const Vec<N, T>& rhs) -> Vec<N, T>
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::min(lhs[i], rhs[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Clamp each component
- *
- * @param v The vector to work on
- * @param low Low values of components
- * @param high High values of components
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-clamp(const Vec<N, T>& v, const Vec<N, T>& low, const Vec<N, T>& high) -> Vec<N, T>
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::clamp(v[i], low[i], high[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the absolute value of each component
- *
- * @param v The vector to work on
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-abs(const Vec<N, T>& v) -> Vec<N, T>
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::abs(v[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the rounded value of each component
- *
- * @param v The vector to work on
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-round(const Vec<N, T>& v) -> Vec<N, T>
-    requires(std::is_floating_point_v<T>)
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::round(v[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the ceiled value of each component
- *
- * @param v The vector to work on
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-ceil(const Vec<N, T>& v) -> Vec<N, T>
-    requires(std::is_floating_point_v<T>)
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::ceil(v[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the floored value of each component
- *
- * @param v The vector to work on
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-floor(const Vec<N, T>& v) -> Vec<N, T>
-    requires(std::is_floating_point_v<T>)
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::floor(v[i]);
-    }
-    return res;
-}
-
-/**
- * @brief Take the truncated value of each component
- *
- * @param v The vector to work on
- * @return The resulting vector
- */
-template<std::size_t N, typename T>
-[[nodiscard]]
-constexpr auto
-trunc(const Vec<N, T>& v) -> Vec<N, T>
-    requires(std::is_floating_point_v<T>)
-{
-    Vec<N, T> res{};
-    for (std::size_t i = 0; i < N; i++) {
-        res[i] = std::trunc(v[i]);
-    }
-    return res;
-}
 
 /**
  * @brief Math vector class
@@ -423,21 +133,48 @@ public:
     }
 
     /**
-     * @brief In-place assignment with other Vec
+     * @brief Construct vector from a array
      *
-     * @note this is neccessary to work alongside Swizzled
+     * @param that The array
+     */
+    explicit constexpr Vec(const std::array<T, N>& that) noexcept
+    {
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
+        }
+    }
+
+    /**
+     * @brief Construct vector from a span
      *
-     * @param that Other Vec object
-     * @return This
+     * @param that The span
+     */
+    explicit constexpr Vec(const std::span<T, N>& that) noexcept
+    {
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
+        }
+    }
+
+public:
+    /**
+     * @brief In-place copy assignment with other Vec
      */
     constexpr Vec& operator=(const Vec& that)
     {
         this->m_components = that.m_components;
-
         return *this;
     }
 
-public:
+    /**
+     * @brief In-place move assignment with other Vec
+     */
+    constexpr Vec& operator=(const Vec&& that)
+    {
+        this->m_components = that.m_components;
+        return *this;
+    }
+
     /**
      * @brief Delete copy assignment from a single smaller vector
      */
@@ -969,19 +706,277 @@ public:
     {
         return (*this) - T{ 2 } * this->project_onto(normal, is_normalized);
     }
-};
 
-namespace detail {
+public:
+    /**
+     * @brief Vector dot product
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @return The resulting number
+     */
+    [[nodiscard]] friend constexpr T dot(const Vec& lhs, const Vec& rhs)
+    {
+        const std::array<T, N>& l = lhs.array();
+        const std::array<T, N>& r = rhs.array();
+
+        return std::inner_product(l.begin(), l.end(), r.begin(), T{});
+    }
+
+    /**
+     * @brief Vector "2D cross product"
+     *
+     * By calculating the signed magnitude of the plane spanned by the two
+     * vectors.
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @return The resulting number
+     */
+    [[nodiscard]]
+    friend constexpr T cross(const Vec& lhs, const Vec& rhs)
+        requires(N == 2)
+    {
+        return lhs.x * rhs.y - rhs.x * lhs.y; // XY_magnitude
+    }
+
+    /**
+     * @brief Vector 3D cross product
+     *
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec cross(const Vec& lhs, const Vec& rhs)
+        requires(N == 3)
+    {
+        /*
+            det([x_hat, y_hat, z_hat],
+                [lhs.x, lhs.y, lhs.z],
+                [rhs.x, rhs.y, rhs.z]])
+            =
+                x_hat det([lhs.y, lhs.z],
+                          [rhs.y, rhs.z])
+              - y_hat det([lhs.x, lhs.z],
+                          [rhs.x, rhs.z])
+              + z_hat det([lhs.x, lhs.y],
+                          [rhs.x, rhs.y])
+        */
+
+        const T YZ = lhs.y * rhs.z - lhs.z * rhs.y;
+        const T XZ = lhs.x * rhs.z - lhs.z * rhs.x;
+        const T XY = lhs.x * rhs.y - lhs.y * rhs.x;
+
+        return Vec{ +YZ, -XZ, +XY };
+    }
+
+    /**
+     * @brief Vector signed angle ranging from -pi and pi radians
+     *
+     * @todo make this function constexpr in c++26 or use library
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @return The resulting angle
+     */
+    [[nodiscard]]
+    friend T angle(const Vec& lhs, const Vec& rhs)
+        requires(N == 2 && std::is_floating_point_v<T>)
+    {
+        /*
+            atan2(x,y)        = tan^-1(y/x), with quadrant
+                                             sign considerations
+            theta             = angle between lhs and rhs
+            cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
+            dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
+        */
+        return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
+    }
+
+    /**
+     * @brief Vector signed angle ranging from -pi and pi radians
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @param up The "up" direction to measure the angle with
+     * @param up_is_normalized Whether the "up" vector is normalized
+     * @return The resulting angle
+     */
+    [[nodiscard]]
+    friend T angle(const Vec& lhs, const Vec& rhs, const Vec& up_, const bool up_is_normalized)
+        requires(N == 3 && std::is_floating_point_v<T>)
+    {
+        const Vec& up = up_is_normalized ? up_ : up_.normalized();
+
+        return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
+    }
+
+    /**
+     * @brief Linearly interpolate the components of the two vectors with a
+     *        parameter t ranging from 0 to 1.
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @param t How much as a percentage
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec lerp(const Vec& lhs, const Vec& rhs, const T t)
+        requires(std::is_floating_point_v<T>)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::lerp(lhs[i], rhs[i], t);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the max value of each component
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec max(const Vec& lhs, const Vec& rhs)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::max(lhs[i], rhs[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the min value of each component
+     *
+     * @param lhs Left hand side of operand
+     * @param rhs Right hande side of operand
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec min(const Vec& lhs, const Vec& rhs)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::min(lhs[i], rhs[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Clamp each component
+     *
+     * @param v The vector to work on
+     * @param low Low values of components
+     * @param high High values of components
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec clamp(const Vec& v, const Vec& low, const Vec& high)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::clamp(v[i], low[i], high[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the absolute value of each component
+     *
+     * @param v The vector to work on
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec abs(const Vec& v)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::abs(v[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the rounded value of each component
+     *
+     * @param v The vector to work on
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec round(const Vec& v)
+        requires(std::is_floating_point_v<T>)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::round(v[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the ceiled value of each component
+     *
+     * @param v The vector to work on
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec ceil(const Vec& v)
+        requires(std::is_floating_point_v<T>)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::ceil(v[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the floored value of each component
+     *
+     * @param v The vector to work on
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec floor(const Vec& v)
+        requires(std::is_floating_point_v<T>)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::floor(v[i]);
+        }
+        return res;
+    }
+
+    /**
+     * @brief Take the truncated value of each component
+     *
+     * @param v The vector to work on
+     * @return The resulting vector
+     */
+    [[nodiscard]]
+    friend constexpr Vec trunc(const Vec& v)
+        requires(std::is_floating_point_v<T>)
+    {
+        Vec res{};
+        for (std::size_t i = 0; i < N; i++) {
+            res[i] = std::trunc(v[i]);
+        }
+        return res;
+    }
+};
 
 /// @cond DO_NOT_DOCUMENT
 
+namespace detail {
+
 template<typename T, typename... Args>
 struct not_a_single_value_impl
-{
-    static constexpr bool value =
-            (sizeof...(Args) != 1) ||
-            (sizeof...(Args) == 1 && !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>);
-};
+        : std::bool_constant<(sizeof...(Args) != 1) ||
+                             (sizeof...(Args) == 1 &&
+                              !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>)>
+{};
 
 template<typename T, typename... Args>
 struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>...>
@@ -989,44 +984,43 @@ struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>
 
 template<typename T, typename... Args>
 struct not_a_single_convertible_value_impl
-{
-    static constexpr bool value =
-            (sizeof...(Args) != 1) ||
-            (sizeof...(Args) == 1 &&
-             !std::is_convertible_v<typename std::tuple_element<0, std::tuple<Args...>>::type, T>);
-};
+        : std::bool_constant<(sizeof...(Args) != 1) ||
+                             (sizeof...(Args) == 1 &&
+                              !std::is_convertible_v<typename std::tuple_element<0, std::tuple<Args...>>::type, T>)>
+{};
 
 template<typename T, typename... Args>
 struct not_a_single_convertible_value : not_a_single_convertible_value_impl<T, std::remove_cvref_t<Args>...>
 {};
 
 template<typename TT>
-struct vec_info_impl
+struct vec_info_impl : std::false_type
 {
-    static constexpr bool value = false;
+    using vec_type = int;
     static constexpr std::size_t size = 0;
 };
 
-template<std::size_t M, typename U>
-struct vec_info_impl<Vec<M, U>>
+template<std::size_t N, typename T>
+struct vec_info_impl<Vec<N, T>> : std::true_type
 {
-    static constexpr bool value = true;
-    static constexpr std::size_t size = M;
+    using vec_type = T;
+    static constexpr std::size_t size = N;
 };
 
 template<std::size_t M, typename T, std::size_t... Is>
     requires(sizeof...(Is) > 1)
-struct vec_info_impl<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>>
+struct vec_info_impl<Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>> : std::true_type
 {
-    static constexpr bool value = true;
+    using vec_type = T;
     static constexpr std::size_t size = sizeof...(Is);
 };
 
 template<typename TT>
-using vec_info = vec_info_impl<std::remove_cvref_t<TT>>;
+struct vec_info : vec_info_impl<std::remove_cvref_t<TT>>
+{};
 
 template<std::size_t N, typename T, typename... Args>
-struct vec_constructible_from_impl
+class vec_constructible_from_impl
 {
 private:
     static constexpr bool accepted_types = ((std::convertible_to<Args, T> || vec_info_impl<Args>::value) && ...);
@@ -1056,11 +1050,7 @@ public:
     }
 
 private:
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out)
-    {
-        (void)(idx);
-        (void)(out);
-    }
+    static constexpr void init_from_inner([[maybe_unused]] std::size_t& idx, [[maybe_unused]] Vec<N, T>& out) {}
 
     template<typename U>
         requires(std::convertible_to<U, T>)
@@ -1068,7 +1058,7 @@ private:
     {
         out[idx] = static_cast<T>(arg);
         idx += 1;
-        init_from_inner(idx, out, rest...);
+        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
     }
 
     template<std::size_t M, typename U>
@@ -1078,7 +1068,7 @@ private:
             out[idx + j] = static_cast<T>(arg[j]);
         }
         idx += M;
-        init_from_inner(idx, out, rest...);
+        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
     }
 
     template<std::size_t M, typename U, std::size_t... Is>
@@ -1092,12 +1082,12 @@ private:
             out[idx + j] = static_cast<T>(arg[j]);
         }
         idx += sizeof...(Is);
-        init_from_inner(idx, out, rest...);
+        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
     }
 };
 
-/// @endcond
-
 } // namespace detail
+
+/// @endcond
 
 } // namespace asciirast::math

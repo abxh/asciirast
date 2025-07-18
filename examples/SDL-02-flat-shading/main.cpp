@@ -268,6 +268,7 @@ main(int argc, char* argv[])
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererOptions renderer_options{ .winding_order = asciirast::WindingOrder::CounterClockwise };
     MyUniform uniforms;
 
     bool running = true;
@@ -276,7 +277,7 @@ main(int argc, char* argv[])
 
         handle_events(running);
 
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data, renderer_options);
 
         screen.render();
     }

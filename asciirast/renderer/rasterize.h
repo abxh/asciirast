@@ -26,7 +26,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
     const auto [v1, depth1, Z_inv1, attrs1] = proj1;
 
     const auto delta = v1 - v0;
-    const auto size = math::abs(delta);
+    const auto size = abs(delta);
     const auto len = std::max<math::Float>(size.x, size.y);
     const auto len_uint = static_cast<std::size_t>(len);
     if (len_uint == 0) {
@@ -47,7 +47,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
                               const math::Vec2& acc_v_,
                               const math::Float& acc_Z_inv_) -> ProjectedFragment<Varying> {
         return ProjectedFragment<Varying>{
-            .pos = math::trunc(acc_v_),
+            .pos = trunc(acc_v_),
             .depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_),
             .Z_inv = acc_Z_inv_,
             .attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_)
@@ -102,8 +102,8 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
-    const auto min = math::min(math::min(proj0.pos, proj1.pos), proj2.pos);
-    const auto max = math::max(math::max(proj0.pos, proj1.pos), proj2.pos);
+    const auto min_ = min(min(proj0.pos, proj1.pos), proj2.pos);
+    const auto max_ = max(max(proj0.pos, proj1.pos), proj2.pos);
 
     const auto [v0_, depth0, Z_inv0, attrs0] = proj0;
     const auto [v1_, depth1, Z_inv1, attrs1] = proj1;
@@ -158,7 +158,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         return;
     }
 
-    math::Vec2 p = min + math::Vec2{ 0.5f, 0.5f };
+    math::Vec2 p = min_ + math::Vec2{ 0.5f, 0.5f };
     auto w_y_minx = math::Vec3{ cross(v1v2, v1.vector_to(p)) + bias0,
                                 cross(v2v0, v2.vector_to(p)) + bias1,
                                 cross(v0v1, v0.vector_to(p)) + bias2 };
@@ -168,8 +168,8 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const auto delta_w_y = math::Vec3{ +v1v2.x, +v2v0.x, +v0v1.x };
 
     // bounding box as integer:
-    const auto x_diff = static_cast<std::size_t>(max.x) - static_cast<std::size_t>(min.x);
-    const auto y_diff = static_cast<std::size_t>(max.y) - static_cast<std::size_t>(min.y);
+    const auto x_diff = static_cast<std::size_t>(max_.x) - static_cast<std::size_t>(min_.x);
+    const auto y_diff = static_cast<std::size_t>(max_.y) - static_cast<std::size_t>(min_.y);
 
     const auto func = [&triangle_area_2, &Z_inv, &depth, &attrs](const math::Vec3& w,
                                                                  const math::Vec2& pos) -> ProjectedFragment<Varying> {
@@ -183,7 +183,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
     for (std::size_t y = 0; y <= y_diff / 2 + y_diff % 2; y++) {
         auto w = w_y_minx;
-        p.x = min.x + 0.5f;
+        p.x = min_.x + 0.5f;
 
         for (std::size_t x = 0; x <= x_diff / 2 + x_diff % 2; x++) {
             const auto w00 = w;

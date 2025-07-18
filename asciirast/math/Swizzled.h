@@ -2,8 +2,7 @@
  * @file Swizzled.h
  * @brief File with definition of the swizzled class
  *
- * This file contains the Swizzled class. It supports in-place operations
- * with other Swizzled and vectors of same size, and can be explictly converted
+ * This file contains the Swizzled class. It can be explictly converted
  * to a vector temporary copy with the `.to_vec()` method.
  *
  * Inspiration:
@@ -15,8 +14,29 @@
 
 #include <array>
 #include <cassert>
+#include <type_traits>
 
 namespace asciirast::math {
+
+namespace detail {
+
+template<std::size_t... Is>
+struct non_duplicate_indicies : std::true_type
+{};
+
+template<std::size_t First, std::size_t... Rest>
+struct non_duplicate_indicies<First, Rest...>
+        : std::bool_constant<((First != Rest) && ...) && non_duplicate_indicies<Rest...>::value>
+{};
+
+template<std::size_t Last>
+struct non_duplicate_indicies<Last> : std::true_type
+{};
+
+template<std::size_t... Is>
+static constexpr bool non_duplicate_indicies_v = non_duplicate_indicies<Is...>::value;
+
+}
 
 /**
  * @brief Class for swizzled vector components
@@ -37,46 +57,11 @@ class Swizzled
 {
     static constexpr std::array IndiciesArray = { Indicies... };
 
-    template<std::size_t... Is>
-    struct non_duplicate_indicies;
-
-    template<std::size_t First, std::size_t... Rest>
-    struct non_duplicate_indicies<First, Rest...>
-    {
-        static constexpr bool value = (!((First == Rest) || ...)) && (non_duplicate_indicies<Rest...>::value);
-    };
-
-    template<std::size_t Last>
-    struct non_duplicate_indicies<Last>
-    {
-        static constexpr bool value = true;
-    };
-
-    static consteval bool overlapping_indicies(const std::size_t i, const std::size_t j) { return i == j; }
-
-    template<std::size_t... Js>
-    static consteval bool overlapping_indicies(const std::size_t i, const std::index_sequence<Js...>& s2)
-    {
-        (void)(s2);
-        return (overlapping_indicies(i, Js) || ...);
-    }
-
-    template<std::size_t... Is, std::size_t... Js>
-    static consteval bool overlapping_indicies(const std::index_sequence<Is...>& s1,
-                                               const std::index_sequence<Js...>& s2)
-    {
-        (void)(s1);
-        return (overlapping_indicies(Is, s2) || ...);
-    }
-
     std::array<T, N> m_components;
 
 public:
     /// value type
     using value_type = T;
-
-    /// Whether, in case this is used as a lvalue, it has doesn't have duplicate indicies
-    static constexpr bool lvalue_has_non_duplicate_indicies = non_duplicate_indicies<Indicies...>::value;
 
     /**
      * @brief Default constructor
@@ -99,29 +84,6 @@ public:
      * @return number of indicies as size_t
      */
     [[nodiscard]] static constexpr std::size_t size() { return IndiciesArray.size(); }
-
-    /**
-     * @brief Underlying data pointer of the vector
-     *
-     * @return Pointer to the first element of the vector
-     */
-    [[nodiscard]] constexpr const T* data() const { return &m_components[0]; }
-
-    /**
-     * @brief Check if this does not overlap with another swizzled,
-     * when both are part of the same vector
-     *
-     * @param that The other Swizzled
-     * @return Whether the Swizzled objects overlap
-     */
-    template<std::size_t M, std::size_t... OtherIndicies>
-    [[nodiscard]] constexpr bool does_not_overlap(const Swizzled<Vec, M, T, OtherIndicies...>& that) const
-    {
-        constexpr bool indicies_do_not_overlap =
-                !overlapping_indicies(std::index_sequence<Indicies...>{}, std::index_sequence<OtherIndicies...>{});
-
-        return (this->data() != that.data()) || (this->data() == that.data() && indicies_do_not_overlap);
-    }
 
     /**
      * @brief Convert this to a temporary vector copy
@@ -177,7 +139,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator=(const Vec& that)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] = that[i];
@@ -192,7 +154,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator+=(const Vec& that)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] += that[i];
@@ -207,7 +169,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator-=(const Vec& that)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] -= that[i];
@@ -222,7 +184,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator*=(const Vec& that)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] *= that[i];
@@ -234,97 +196,13 @@ public:
      * @brief In-place component-wise assignment with other Swizzled of
      * same kind
      *
-     * @note this is neccessary to define since c++ defaults to a
-     * implicit non-templated assignment operator
-     *
      * @param that Other swizzled object
      * @return This
      */
     constexpr Swizzled& operator=(const Swizzled& that)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
-        assert(this->does_not_overlap(that) &&
-               "inplace operations with no overlapping indicies. use .to_vec() if needed");
-
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] = that[i];
-        }
-        return *this;
-    }
-
-    /**
-     * @brief In-place component-wise assignment with other Swizzled
-     *
-     * @param that Other swizzled object
-     * @return This
-     */
-    template<std::size_t M, std::size_t... OtherIndicies>
-    constexpr Swizzled& operator=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
-        requires(lvalue_has_non_duplicate_indicies)
-    {
-        assert(this->does_not_overlap(that) &&
-               "inplace operations with no overlapping indicies. use .to_vec() if needed");
-
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] = that[i];
-        }
-        return *this;
-    }
-
-    /**
-     * @brief In-place component-wise addition with other Swizzled
-     *
-     * @param that Other swizzled object
-     * @return This
-     */
-    template<std::size_t M, std::size_t... OtherIndicies>
-    constexpr Swizzled& operator+=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
-        requires(lvalue_has_non_duplicate_indicies)
-    {
-        assert(this->does_not_overlap(that) &&
-               "inplace operations with no overlapping indicies. use .to_vec() if needed");
-
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] += that[i];
-        }
-        return *this;
-    }
-
-    /**
-     * @brief In-place component-wise subtraction with other Swizzled
-     *
-     * @param that Other swizzled object
-     * @return This
-     */
-    template<std::size_t M, std::size_t... OtherIndicies>
-    constexpr Swizzled& operator-=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
-        requires(lvalue_has_non_duplicate_indicies)
-    {
-        assert(this->does_not_overlap(that) &&
-               "inplace operations with no overlapping indicies. use .to_vec() if needed");
-
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] -= that[i];
-        }
-        return *this;
-    }
-
-    /**
-     * @brief In-place component-wise multiplication with other Swizzled
-     *
-     * @param that Other swizzled object
-     * @return This
-     */
-    template<std::size_t M, std::size_t... OtherIndicies>
-    constexpr Swizzled& operator*=(const Swizzled<Vec, M, T, OtherIndicies...>& that)
-        requires(lvalue_has_non_duplicate_indicies)
-    {
-        assert(this->does_not_overlap(that) &&
-               "inplace operations with no overlapping indicies. use .to_vec() if needed");
-
-        for (std::size_t i = 0; i < size(); i++) {
-            (*this)[i] *= that[i];
-        }
+        *this = Vec{ that };
         return *this;
     }
 
@@ -335,7 +213,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator*=(const T scalar)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] *= scalar;
@@ -350,7 +228,7 @@ public:
      * @return This
      */
     constexpr Swizzled& operator/=(const T scalar)
-        requires(lvalue_has_non_duplicate_indicies)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
         assert(scalar != 0 && "non-zero division");
 
@@ -392,6 +270,13 @@ public:
      * @brief Default move constructor
      */
     constexpr SwizzledSingle(SwizzledSingle&&) = default;
+
+    /**
+     * @brief Size of swizzled component
+     *
+     * @return number of indicies as size_t
+     */
+    [[nodiscard]] static constexpr std::size_t size() { return 1U; }
 
     /**
      * @brief Assignment from value

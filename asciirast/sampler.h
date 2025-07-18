@@ -57,9 +57,9 @@ class Sampler
 public:
     static constexpr auto blank_color = math::Vec4{ 1, 0, 1, 1 }; ///< default blank color
 
-    WrapMethod wrap_method = WrapMethod::Clamp;                ///< border wrapping method
-    SampleMethod sample_method = SampleMethod::Nearest;        ///< pixel sampling method
-    SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
+    WrapMethod wrap_method = WrapMethod::Clamp;               ///< border wrapping method
+    SampleMethod sample_method = SampleMethod::Linear;        ///< pixel sampling method
+    SampleMethod mipmap_sample_method = SampleMethod::Linear; ///< mipmap sampling method
 
     /**
      * @brief Prepare to sample texture at a uv coordinate
@@ -116,12 +116,12 @@ protected:
             return color_at(math::Vec2Int{ UV }, t, i);
         } break;
         case SampleMethod::Nearest: {
-            return color_at(math::Vec2Int{ math::round(UV - math::Vec2{ 0.5f, 0.5f }) }, t, i);
+            return color_at(math::Vec2Int{ round(UV - math::Vec2{ 0.5f, 0.5f }) }, t, i);
         } break;
         case SampleMethod::Linear: {
             const auto UVs = UV - math::Vec2{ 0.5f, 0.5f };
 
-            const math::Vec2 UVs_whole = math::floor(UVs);
+            const math::Vec2 UVs_whole = floor(UVs);
             const math::Vec2 UVs_decimal = UVs - UVs_whole;
 
             const auto c00 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 0, 0 }, t, i);
@@ -129,9 +129,9 @@ protected:
             const auto c10 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 0 }, t, i);
             const auto c11 = color_at(math::Vec2Int{ UVs_whole } + math::Vec2Int{ 1, 1 }, t, i);
 
-            const auto c0t = math::lerp(c00, c01, math::Float{ UVs_decimal.y });
-            const auto c1t = math::lerp(c10, c11, math::Float{ UVs_decimal.y });
-            const auto cst = math::lerp(c0t, c1t, math::Float{ UVs_decimal.x });
+            const auto c0t = lerp(c00, c01, math::Float{ UVs_decimal.y });
+            const auto c1t = lerp(c10, c11, math::Float{ UVs_decimal.y });
+            const auto cst = lerp(c0t, c1t, math::Float{ UVs_decimal.x });
 
             return cst;
         } break;
@@ -174,7 +174,7 @@ protected:
             }
         } break;
         case WrapMethod::Clamp: {
-            pos = math::clamp(pos, math::Vec2Int{ 0, 0 }, UV_max);
+            pos = clamp(pos, math::Vec2Int{ 0, 0 }, UV_max);
         } break;
         case WrapMethod::Periodic: {
             pos.x = remainder(pos.x, size_x, UV_max.x);
@@ -223,7 +223,7 @@ textureLOD(const Sampler& sampler,
         const math::Vec4 sample_floor = sampler.sample(texture, uv, static_cast<std::size_t>(LOD_floor));
         const math::Vec4 sample_ceil = sampler.sample(texture, uv, static_cast<std::size_t>(LOD_ceil));
 
-        return math::lerp(sample_floor, sample_ceil, t);
+        return lerp(sample_floor, sample_ceil, t);
     } break;
     }
     return Sampler::blank_color;
@@ -281,7 +281,7 @@ texture(FragmentContextType<ValueTypes...>& context,
     } break;
     case Type::LINE: {
         const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
-        const math::Float d = math::dot(dFdv, dFdv);
+        const math::Float d = dot(dFdv, dFdv);
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
         return textureLOD(sampler, texture, uv, lod);
@@ -289,7 +289,7 @@ texture(FragmentContextType<ValueTypes...>& context,
     case Type::FILLED: {
         const math::Vec2 dFdx = context.template dFdx<math::Vec2>();
         const math::Vec2 dFdy = context.template dFdy<math::Vec2>();
-        const math::Float d = std::max(math::dot(dFdx, dFdx), math::dot(dFdy, dFdy));
+        const math::Float d = std::max(dot(dFdx, dFdx), dot(dFdy, dFdy));
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
         return textureLOD(sampler, texture, uv, lod);
