@@ -190,9 +190,11 @@ public:
     /**
      * @brief In-place move assignment with other Mat
      */
-    constexpr Mat& operator=(Mat&& that)
+    constexpr Mat& operator=(Mat&& that) noexcept
     {
-        this->m_elements = std::move(that.m_elements);
+        if (this != &that) {
+            this->m_elements = std::move(that.m_elements);
+        }
         return *this;
     }
 

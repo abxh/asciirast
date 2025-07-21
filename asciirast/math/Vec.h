@@ -169,9 +169,11 @@ public:
     /**
      * @brief In-place move assignment with other Vec
      */
-    constexpr Vec& operator=(const Vec&& that)
+    constexpr Vec& operator=(Vec&& that) noexcept
     {
-        this->m_components = that.m_components;
+        if (this != &that) {
+            this->m_components = std::move(that.m_components);
+        }
         return *this;
     }
 

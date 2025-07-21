@@ -17,11 +17,11 @@ namespace asciirast::renderer {
 static auto
 point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
 {
-    const auto min = SCREEN_BOUNDS.min_get();
-    const auto max = SCREEN_BOUNDS.max_get();
+    const auto min_ = SCREEN_BOUNDS.min_get();
+    const auto max_ = SCREEN_BOUNDS.max_get();
 
-    const bool x_in_bounds = min.x <= p.x && p.x <= max.x;
-    const bool y_in_bounds = min.y <= p.y && p.y <= max.y;
+    const bool x_in_bounds = min_.x <= p.x && p.x <= max_.x;
+    const bool y_in_bounds = min_.y <= p.y && p.y <= max_.y;
 
     return x_in_bounds && y_in_bounds;
 }
@@ -110,8 +110,8 @@ static auto
 line_in_bounds(const math::Vec2& p0,
                const math::Vec2& p1,
                const BorderType border,
-               const math::Vec2& min,
-               const math::Vec2& max,
+               const math::Vec2& min_,
+               const math::Vec2& max_,
                T& t0,
                T& t1) -> bool
 {
@@ -121,8 +121,8 @@ line_in_bounds(const math::Vec2& p0,
 
     // clang-format off
     const std::array<T, 6> q = {
-        p0.x - min.x, max.x - p0.x,
-        p0.y - min.y, max.y - p0.y,
+        p0.x - min_.x, max_.x - p0.x,
+        p0.y - min_.y, max_.y - p0.y,
     };
 
     const std::array<T, 6> p = {
@@ -138,8 +138,8 @@ static auto
 line_in_bounds(const math::Vec4& p0,
                const math::Vec4& p1,
                const BorderType border,
-               const math::Vec3& min,
-               const math::Vec3& max,
+               const math::Vec3& min_,
+               const math::Vec3& max_,
                T& t0,
                T& t1) -> bool
 {
@@ -148,9 +148,9 @@ line_in_bounds(const math::Vec4& p0,
     const math::Vec4 delta = p1 - p0;
 
     const std::array<T, 6> q = {
-        p0.x - min.x, max.x - p0.x, //
-        p0.y - min.y, max.y - p0.y, //
-        p0.z - min.z, max.z - p0.z, //
+        p0.x - min_.x, max_.x - p0.x, //
+        p0.y - min_.y, max_.y - p0.y, //
+        p0.z - min_.z, max_.z - p0.z, //
     };
 
     const std::array<T, 6> p = {
@@ -167,14 +167,14 @@ static auto
 line_in_screen(const math::Vec2& p0, const math::Vec2& p1, const math::AABB2D& SCREEN_BOUNDS)
         -> std::optional<std::tuple<math::Float, math::Float>>
 {
-    const math::Vec2 min = SCREEN_BOUNDS.min_get();
-    const math::Vec2 max = SCREEN_BOUNDS.max_get();
+    const math::Vec2 min_ = SCREEN_BOUNDS.min_get();
+    const math::Vec2 max_ = SCREEN_BOUNDS.max_get();
 
     math::Float t0 = 0;
     math::Float t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
-        if (!line_in_bounds(p0, p1, border, min, max, t0, t1)) {
+        if (!line_in_bounds(p0, p1, border, min_, max_, t0, t1)) {
             return {};
         }
     }
@@ -191,14 +191,14 @@ line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std
         return {};
     }
 
-    const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
-    const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
+    const math::Vec3 min_ = { -p0.w, -p0.w, -p0.w };
+    const math::Vec3 max_ = { +p0.w, +p0.w, +p0.w };
 
     math::Float t0 = 0;
     math::Float t1 = 1;
 
     for (auto border = BorderType::BEGIN; border < BorderType::END; border = detail::next_border_type(border)) {
-        if (!line_in_bounds(p0, p1, border, min, max, t0, t1)) {
+        if (!line_in_bounds(p0, p1, border, min_, max_, t0, t1)) {
             return {};
         }
     }
@@ -219,8 +219,8 @@ namespace detail {
 static auto
 count_num_triangle_vertices_inside(const BorderType border,
                                    const Vec4Triplet& v,
-                                   const math::Vec2& min,
-                                   const math::Vec2& max) -> std::tuple<unsigned, std::array<bool, 3>>
+                                   const math::Vec2& min_,
+                                   const math::Vec2& max_) -> std::tuple<unsigned, std::array<bool, 3>>
 {
     const auto [v0, v1, v2] = v;
 
@@ -229,24 +229,24 @@ count_num_triangle_vertices_inside(const BorderType border,
     // clang-format off
     switch (border) {
     case BorderType::LEFT:
-        inside = { min.x <= v0.x,
-                   min.x <= v1.x,
-                   min.x <= v2.x };
+        inside = { min_.x <= v0.x,
+                   min_.x <= v1.x,
+                   min_.x <= v2.x };
         break;
     case BorderType::RIGHT:
-        inside = { v0.x <= max.x,
-                   v1.x <= max.x,
-                   v2.x <= max.x };
+        inside = { v0.x <= max_.x,
+                   v1.x <= max_.x,
+                   v2.x <= max_.x };
         break;
     case BorderType::BOTTOM:
-        inside = { min.y <= v0.y,
-                   min.y <= v1.y,
-                   min.y <= v2.y };
+        inside = { min_.y <= v0.y,
+                   min_.y <= v1.y,
+                   min_.y <= v2.y };
         break;
     case BorderType::TOP:
-        inside = { v0.y <= max.y,
-                   v1.y <= max.y,
-                   v2.y <= max.y };
+        inside = { v0.y <= max_.y,
+                   v1.y <= max_.y,
+                   v2.y <= max_.y };
         break;
     default:
         break;
@@ -361,6 +361,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
 
         while (it_vec != vec_queue.end()) {
             const auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec);
+
             switch (count) {
             case 0:
                 it_vec = vec_queue.erase(it_vec);
@@ -373,16 +374,16 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                const math::Vec3 min = { -p0.w, -p0.w, -p0.w };
-                const math::Vec3 max = { +p0.w, +p0.w, +p0.w };
+                const math::Vec3 min_ = { -p0.w, -p0.w, -p0.w };
+                const math::Vec3 max_ = { +p0.w, +p0.w, +p0.w };
 
                 math::Float t0a = 0.f;
                 math::Float t0b = 0.f;
                 math::Float t01 = 1.f;
                 math::Float t02 = 1.f;
 
-                const bool b01 = line_in_bounds(p0, p1, border, min, max, t0a, t01);
-                const bool b02 = line_in_bounds(p0, p2, border, min, max, t0b, t02);
+                const bool b01 = line_in_bounds(p0, p1, border, min_, max_, t0a, t01);
+                const bool b02 = line_in_bounds(p0, p2, border, min_, max_, t0b, t02);
 
                 assert(b01);
                 assert(t0a == 0.f);
@@ -449,8 +450,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };
 
-                vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
-                attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
+                it_vec = vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
+                it_attr = attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
             } break;
             case 3:
                 break;
@@ -463,6 +464,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
             ++it_attr;
         }
     }
+
     return vec_queue.size() != 0;
 }
 
@@ -473,8 +475,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                    std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
                    const math::AABB2D& SCREEN_BOUNDS)
 {
-    const math::Vec2 min = SCREEN_BOUNDS.min_get();
-    const math::Vec2 max = SCREEN_BOUNDS.max_get();
+    const math::Vec2 min_ = SCREEN_BOUNDS.min_get();
+    const math::Vec2 max_ = SCREEN_BOUNDS.max_get();
 
     assert(vec_queue.size() > 0);
     assert(vec_queue.size() == attrs_queue.size());
@@ -484,7 +486,7 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
         auto it_attr = attrs_queue.begin();
 
         while (it_vec != vec_queue.end()) {
-            const auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec, min, max);
+            const auto [count, inside] = detail::count_num_triangle_vertices_inside(border, *it_vec, min_, max_);
             switch (count) {
             case 0:
                 it_vec = vec_queue.erase(it_vec);
@@ -502,8 +504,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 math::Float t01 = 1.f;
                 math::Float t02 = 1.f;
 
-                const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min, max, t0a, t01);
-                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0b, t02);
+                const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min_, max_, t0a, t01);
+                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0b, t02);
 
                 assert(b01);
                 assert(t0a == 0.f);
@@ -549,8 +551,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 math::Float t02 = 1.f;
                 math::Float t12 = 1.f;
 
-                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min, max, t0, t02);
-                const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min, max, t1, t12);
+                const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0, t02);
+                const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min_, max_, t1, t12);
 
                 assert(b02);
                 assert(t0 == 0.f);
@@ -586,8 +588,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };
 
-                vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
-                attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
+                it_vec = vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
+                it_attr = attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
             } break;
             case 3:
                 break;
