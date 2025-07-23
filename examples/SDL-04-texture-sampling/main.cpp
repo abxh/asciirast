@@ -253,7 +253,7 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos = { vert.pos, 0, 1 };
+        out.pos.xy = { vert.pos };
         out.attrs = { u.transform.apply(vert.uv) };
     }
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -261,6 +261,7 @@ public:
     {
         const auto color = TEXTURE(context, u.sampler, u.texture, pfrag.attrs.uv);
         out = { color };
+        co_return;
     }
 };
 
@@ -368,12 +369,7 @@ main(int argc, char* argv[])
     const char* path_to_img = argc >= 2 ? argv[1] : "";
     const char* path_to_ttf = argc >= 3 ? argv[2] : "";
 
-#ifndef NDEBUG
-    const unsigned screen_size = 256;
-#else
     const unsigned screen_size = 1024;
-#endif
-
     const SDLFont font{ path_to_ttf };
     const asciirast::Texture texture{ path_to_img };
     const math::Float aspect_ratio = texture.width() / (math::Float)texture.height();
@@ -410,12 +406,11 @@ main(int argc, char* argv[])
 
     bool running = true;
     while (running) {
-        screen.clear();
-
         handle_events(running, shift, zoom, final_transform, sampler);
 
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
 
+        screen.clear();
         screen.update();
         text.render();
         screen.render();

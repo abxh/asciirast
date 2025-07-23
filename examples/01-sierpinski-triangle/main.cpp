@@ -230,7 +230,7 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos = { vert.pos.x * u.aspect_ratio, vert.pos.y, 0, 1 }; // w should be 1 for 2D
+        out.pos.xy = { vert.pos.x * u.aspect_ratio, vert.pos.y };
         out.attrs = { vert.id, vert.color };
     }
     auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const

@@ -229,11 +229,9 @@ public:
         out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
 
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+    auto on_fragment(FragmentContext&, [[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
             -> ProgramTokenGenerator
     {
-        (void)(u);
-
         const auto uv = pfrag.attrs.uv;
         const auto M = 10.f;
         const auto uM_decimal_part = std::fmod(uv.r * M, 1.f);

@@ -9,13 +9,19 @@ For SDL-based examples:
 - `libsdl2-ttf-dev`
 
 ## Build steps
+
+Build with `ninja` and in release mode preferably:
 ```bash
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -G "Ninja" ..
-cmake --build .
+cmake --DCMAKE_BUILD_TYPE=Release -G "Ninja" -B build_optimised
+cmake --build build_optimised
 ```
-Now the executables are visible in `build/bin` directory.
+Then the executables will be visible in `build_optimised/bin` directory.
+
+Alternatively:
+```bash
+cmake --DCMAKE_BUILD_TYPE=Debug -G "Ninja" -B build
+cmake --build build
+```
 
 ## Start here
 - How Do Computers Display 3D on a 2D Screen?: https://www.youtube.com/watch?v=eoXn6nwV694

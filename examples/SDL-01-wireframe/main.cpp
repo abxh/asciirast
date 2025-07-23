@@ -143,8 +143,45 @@ private:
 
 static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 
+class SDLClock
+{
+public:
+    SDLClock(int ms_per_update = 100)
+    {
+        m_previous_time_ms = SDL_GetTicks64();
+        m_lag_ms = 0;
+        m_ms_per_update = ms_per_update;
+    }
+
+    template<typename F>
+        requires(std::invocable<F, float>)
+    void update(F callback)
+    {
+        while (m_lag_ms >= 0) {
+            const auto dt_sec = m_ms_per_update / 1000.f;
+            callback(dt_sec);
+            m_lag_ms -= m_ms_per_update;
+        }
+    }
+
+    void tick()
+    {
+        const uint64_t current_time_ms = SDL_GetTicks64();
+        const int elapsed_ms = static_cast<int>(current_time_ms - m_previous_time_ms);
+        m_previous_time_ms = current_time_ms;
+        m_lag_ms += elapsed_ms;
+    }
+
+private:
+    std::uint64_t m_previous_time_ms;
+    int m_lag_ms;
+    int m_ms_per_update;
+};
+
 struct MyUniform
-{};
+{
+    const math::Rot3D& rot;
+};
 
 struct MyVertex
 {
@@ -175,14 +212,14 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        (void)u;
-        out.pos = { vert.pos.x, vert.pos.y, 0, 1 }; // w should be 1 for 2D.
+        out.pos.xy = { (u.rot.to_mat() * vert.pos).xy };
         out.attrs = { math::Vec3{ 1, 1, 1 } };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    auto on_fragment(FragmentContext&,
+                     [[maybe_unused]] const Uniform& u,
+                     const ProjectedFragment& pfrag,
+                     Targets& out) const -> ProgramTokenGenerator
     {
-        (void)u;
         out = { pfrag.attrs.color };
         co_return;
     }
@@ -252,21 +289,29 @@ main(int argc, char* argv[])
         }
     }
 
+    math::Rot3D rot;
+    SDLClock clock;
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    MyUniform uniforms;
+    MyUniform uniforms{ rot };
 
     bool running = true;
     while (running) {
-        screen.clear();
-
         handle_events(running);
 
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        clock.update([&]([[maybe_unused]] float dt_sec) {
+#ifdef NDEBUG
+            rot.rotateXZ(-1.f * dt_sec);
+#endif
+        });
 
+        screen.clear();
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
+
+        clock.tick();
     }
 
     return EXIT_SUCCESS;

@@ -238,7 +238,7 @@ public:
     {
         const auto pos = u.rot.apply(vert.pos);
 
-        out.pos = { pos.x * u.aspect_ratio, pos.y, 0, 1 };
+        out.pos.xy = { pos.x * u.aspect_ratio, pos.y };
         out.attrs = { vert.color };
     }
 

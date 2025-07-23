@@ -139,8 +139,44 @@ private:
 
 static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 
+class SDLClock
+{
+public:
+    SDLClock(int ms_per_update = 100)
+    {
+        m_previous_time_ms = SDL_GetTicks64();
+        m_lag_ms = 0;
+        m_ms_per_update = ms_per_update;
+    }
+
+    template<typename F>
+        requires(std::invocable<F, float>)
+    void update(F callback)
+    {
+        while (m_lag_ms >= 0) {
+            const auto dt_sec = m_ms_per_update / 1000.f;
+            callback(dt_sec);
+            m_lag_ms -= m_ms_per_update;
+        }
+    }
+
+    void tick()
+    {
+        const uint64_t current_time_ms = SDL_GetTicks64();
+        const int elapsed_ms = static_cast<int>(current_time_ms - m_previous_time_ms);
+        m_previous_time_ms = current_time_ms;
+        m_lag_ms += elapsed_ms;
+    }
+
+private:
+    std::uint64_t m_previous_time_ms;
+    int m_lag_ms;
+    int m_ms_per_update;
+};
+
 struct MyUniform
 {
+    const math::Rot3D& rot;
     math::Float z_near;
     math::Float z_far;
 };
@@ -174,16 +210,19 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-        const auto depth = vert.pos.z * depth_scalar - u.z_near * depth_scalar;
+        const auto pos = u.rot.to_mat() * vert.pos;
 
-        out.pos = { vert.pos.x, vert.pos.y, 0, 1 };
+        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
+        const auto depth = pos.z * depth_scalar - u.z_near * depth_scalar;
+
+        out.pos = { pos.xy, 1.f - depth, 1 };
         out.attrs = { math::Vec3{ depth, depth, depth } };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    auto on_fragment(FragmentContext&,
+                     [[maybe_unused]] const Uniform& u,
+                     const ProjectedFragment& pfrag,
+                     Targets& out) const -> ProgramTokenGenerator
     {
-        (void)u;
         out = { pfrag.attrs.color };
         co_return;
     }
@@ -254,7 +293,10 @@ main(int argc, char* argv[])
             index_offset += fv;
         }
     }
-    MyUniform uniforms;
+
+    math::Rot3D rot;
+    SDLClock clock;
+    MyUniform uniforms{ rot, {}, {} };
     uniforms.z_near = std::ranges::fold_left(
             vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
             math::Float{},
@@ -272,13 +314,19 @@ main(int argc, char* argv[])
 
     bool running = true;
     while (running) {
-        screen.clear();
-
         handle_events(running);
 
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data, renderer_options);
+        clock.update([&]([[maybe_unused]] float dt_sec) {
+#ifdef NDEBUG
+            rot.rotateXZ(-1.f * dt_sec);
+#endif
+        });
 
+        screen.clear();
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data, renderer_options);
         screen.render();
+
+        clock.tick();
     }
 
     return EXIT_SUCCESS;

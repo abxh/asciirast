@@ -2,6 +2,7 @@
 *.so
 __pycache__/
 build/
+build_optimised/
 docs/
 .cache
 html/

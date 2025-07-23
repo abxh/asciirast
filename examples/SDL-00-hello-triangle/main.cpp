@@ -164,16 +164,16 @@ public:
     using FragmentContext = asciirast::FragmentContextType<>;
     using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
-    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
+    void on_vertex([[maybe_unused]] const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        (void)u;
-        out.pos = { vert.pos.x, vert.pos.y, 0, 1 }; // w should be 1 for 2D
+        out.pos.xy = { vert.pos.x, vert.pos.y };
         out.attrs = { vert.color };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    auto on_fragment(FragmentContext&,
+                     [[maybe_unused]] const Uniform& u,
+                     const ProjectedFragment& pfrag,
+                     Targets& out) const -> ProgramTokenGenerator
     {
-        (void)u;
         out = { pfrag.attrs.color };
         co_return;
     }
@@ -204,8 +204,6 @@ main(int, char**)
 
     bool running = true;
     while (running) {
-        screen.clear();
-
         // handle events
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
@@ -215,6 +213,7 @@ main(int, char**)
             }
         }
 
+        screen.clear();
         r0.draw(program, uniforms, vertex_buf, screen, renderer_data);
         r1.draw(program, uniforms, vertex_buf, screen, renderer_data);
         r2.draw(program, uniforms, vertex_buf, screen, renderer_data);

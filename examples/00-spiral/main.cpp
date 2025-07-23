@@ -165,7 +165,7 @@ public:
             v = u.rot.apply(v);
         }
 
-        out.pos = { v.x * u.aspect_ratio, v.y, 0, 1 }; // w should be 1 for 2D
+        out.pos.xy = { v.x * u.aspect_ratio, v.y };
         out.attrs = { id };
     }
     auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
