@@ -180,7 +180,7 @@ private:
 
 struct MyUniform
 {
-    const asciirast::Texture<>& texture;
+    const asciirast::Texture& texture;
     const asciirast::Sampler& sampler;
     const math::Rot3D& rot;
     math::Float z_near = 0.1f;

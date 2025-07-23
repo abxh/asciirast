@@ -218,7 +218,7 @@ private:
 
 struct MyUniform
 {
-    const asciirast::Texture<>& texture;
+    const asciirast::Texture& texture;
     const asciirast::Sampler& sampler;
     const math::Transform2D& transform;
 };
