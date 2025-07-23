@@ -12,7 +12,7 @@ For SDL-based examples:
 ```bash
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake -DCMAKE_BUILD_TYPE=Debug -G "Ninja" ..
 cmake --build .
 ```
 Now the executables are visible in `build/bin` directory.

@@ -239,7 +239,7 @@ textureLOD(const Sampler& sampler,
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
-static ProgramToken
+ProgramToken
 texture_init(FragmentContextType<ValueTypes...>& context,
              const Texture<RGBA_8bit_Allocator, MipmapAllocator>& texture,
              const math::Vec2& uv)
@@ -264,7 +264,7 @@ texture_init(FragmentContextType<ValueTypes...>& context,
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]]
-static math::Vec4
+math::Vec4
 texture(FragmentContextType<ValueTypes...>& context,
         const Sampler& sampler,
         const Texture<RGBA_8bit_Allocator, MipmapAllocator>& texture,
@@ -280,15 +280,15 @@ texture(FragmentContextType<ValueTypes...>& context,
         return textureLOD(sampler, texture, uv, 0.f);
     } break;
     case Type::LINE: {
-        const math::Vec2 dFdv = context.template dFdv<math::Vec2>();
+        const math::Vec2 dFdv = context.dFdv(std::type_identity<math::Vec2>());
         const math::Float d = dot(dFdv, dFdv);
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 
         return textureLOD(sampler, texture, uv, lod);
     } break;
     case Type::FILLED: {
-        const math::Vec2 dFdx = context.template dFdx<math::Vec2>();
-        const math::Vec2 dFdy = context.template dFdy<math::Vec2>();
+        const math::Vec2 dFdx = context.dFdx(std::type_identity<math::Vec2>());
+        const math::Vec2 dFdy = context.dFdy(std::type_identity<math::Vec2>());
         const math::Float d = std::max(dot(dFdx, dFdx), dot(dFdy, dFdy));
         const math::Float lod = 0.5f * std::log2(std::max<math::Float>(1, d));
 

@@ -140,7 +140,7 @@ public:
 };
 
 /**
- * @brief Texutre class
+ * @brief Texture class
  */
 template<typename RGBA_8bit_Allocator = std::allocator<math::RGBA_8bit>,
          typename MipmapAllocator = std::allocator<TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>>>

@@ -4,6 +4,8 @@
 #include "asciirast/renderer.h"
 #include "external/terminal_utils/terminal_utils.h"
 
+#include "./ctables.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -266,228 +268,28 @@ public:
 
 static_assert(asciirast::ProgramInterface<MyProgram>);
 
-using FramebufferPoint = std::tuple<math::Vec2Int, TerminalBuffer::Targets>;
-
-static constexpr char ign = '\0'; // ignore
-
-//  possible chars: ' ', '\\', '|', '/', '_'
-
-// static constexpr ctable ctable000 = { { { '_', ' ', '_' },     // _ _
-//                                         { ' ', 'V', ' ' },     //  V
-//                                         { ign, ign, ign } } }; //
-
-static constexpr ctable ctable001 = { { { ign, '_', ign },     //  _
-                                        { '_', '|', ign },     // _|
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable002 = { { { ign, '_', ign },     //  _
-                                        { ign, '|', '_' },     //  |_
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable003 = { { { ign, ign, ign },     //
-                                        { '_', '_', '_' },     // ___
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable004 = { { { ign, ign, '_' },     //   _
-                                        { '_', '/', ign },     // _/
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable005 = { { { '_', ign, ign },     // _
-                                        { ign, '\\', '_' },    /*  \_ */
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable006 = { { { ign, '|', ign },     //  |
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; //  |
-
-static constexpr ctable ctable007 = { { { ign, '/', ign },     //  /
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; //  |
-
-static constexpr ctable ctable008 = { { { ign, '|', ign },      //  |
-                                        { ign, '|', ign },      //  |
-                                        { ign, '\\', ign } } }; /*  \ */
-
-static constexpr ctable ctable009 = { { { ign, '/', ign },      //  /
-                                        { ign, '|', ign },      //  |
-                                        { ign, '\\', ign } } }; /*  \ */
-
-static constexpr ctable ctable010 = { { { '\\', ign, ign },    /* \  */
-                                        { ign, '|', ign },     //  |
-                                        { '/', ign, ign } } }; // /
-
-static constexpr ctable ctable011 = { { { '\\', ign, ign },    /* \  */
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; //  |
-
-static constexpr ctable ctable012 = { { { '\\', ign, ign },     /* \  */
-                                        { ign, '\\', ign },     /*  \ */
-                                        { ign, ign, '\\' } } }; /*   \ */
-
-static constexpr ctable ctable013 = { { { ign, ign, '/' },      //   /
-                                        { ign, '|', ign },      //  |
-                                        { ign, ign, '\\' } } }; /*   \ */
-
-static constexpr ctable ctable014 = { { { ign, ign, '/' },     //   /
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; //  |
-
-static constexpr ctable ctable015 = { { { ign, ign, '/' },     /*   /  */
-                                        { ign, '/', ign },     /*  /   */
-                                        { '/', ign, ign } } }; /* /    */
-
-static constexpr ctable ctable016 = { { { ign, '|', ign },     //  |
-                                        { ign, '|', ign },     //  |
-                                        { '/', ign, ign } } }; // /
-
-static constexpr ctable ctable017 = { { { ign, '|', ign },      /*  |   */
-                                        { ign, '|', ign },      /*  |   */
-                                        { ign, ign, '\\' } } }; /*   \  */
-
-static constexpr ctable ctable018 = { { { '|', ign, ign },      /* |    */
-                                        { ign, '\\', ign },     /*  \   */
-                                        { ign, ign, '\\' } } }; /*   \  */
-
-static constexpr ctable ctable019 = { { { ign, ign, '|' },     /*   |   */
-                                        { ign, '/', ign },     /*  /    */
-                                        { '/', ign, ign } } }; /* /     */
-
-static constexpr ctable ctable020 = { { { '_', ign, ign },      /* _    */
-                                        { ign, '\\', ign },     /*  \   */
-                                        { ign, ign, '\\' } } }; /*   \  */
-
-static constexpr ctable ctable021 = { { { ign, ign, '_' },     /*   _   */
-                                        { ign, '/', ign },     /*  /    */
-                                        { '/', ign, ign } } }; /* /     */
-
-static constexpr ctable ctable022 = { { { '\\', ign, ign },    /* \     */
-                                        { ign, '\\', '_' },    /*  \_   */
-                                        { ign, ign, ign } } }; /*       */
-
-static constexpr ctable ctable023 = { { { ign, ign, '/' },     /*   /   */
-                                        { '_', '/', ign },     /* _/    */
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable024 = { { { ign, '\\', ign },    /*  \  */
-                                        { ign, '|', ign },     //  |
-                                        { '/', ign, ign } } }; // /
-
-static constexpr ctable ctable025 = { { { ign, '\\', ign },     /*  \   */
-                                        { ign, '|', ign },      /*  |   */
-                                        { ign, ign, '\\' } } }; /*   \  */
-
-static constexpr ctable ctable026 = { { { ign, '/', ign },     /*  /  */
-                                        { ign, '|', ign },     //  |
-                                        { '/', ign, ign } } }; // /
-
-static constexpr ctable ctable027 = { { { ign, '/', ign },      /*  /   */
-                                        { ign, '|', ign },      /*  |   */
-                                        { ign, ign, '\\' } } }; /*   \  */
-
-static constexpr ctable ctable028 = { { { '|', ign, ign },     /* |   */
-                                        { ign, '\\', ign },    /*  \  */
-                                        { ign, ign, '|' } } }; //   |
-
-static constexpr ctable ctable029 = { { { ign, ign, '|' },     /*   |   */
-                                        { ign, '/', ign },     /*  /    */
-                                        { '|', ign, ign } } }; /* |     */
-
-static constexpr ctable ctable030 = { { { '|', ign, ign },     /* |   */
-                                        { ign, '\\', '_' },    /*  \_ */
-                                        { ign, ign, ign } } }; //
-
-static constexpr ctable ctable031 = { { { ign, ign, '|' },     /*   |   */
-                                        { '_', '/', ign },     /* _/    */
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable032 = { { { ign, ign, '|' },      //   |
-                                        { ign, '|', ign },      //  |
-                                        { ign, ign, '\\' } } }; /*   \ */
-
-static constexpr ctable ctable033 = { { { ign, ign, '/' },     //   /
-                                        { ign, '|', ign },     //  |
-                                        { ign, ign, '|' } } }; /*   | */
-
-static constexpr ctable ctable034 = { { { '|', ign, ign },     // |
-                                        { ign, '|', ign },     //  |
-                                        { '/', ign, ign } } }; /* /   */
-
-static constexpr ctable ctable035 = { { { '|', ign, ign },     /* |   */
-                                        { ign, '|', ign },     //  |
-                                        { '|', ign, ign } } }; /* |   */
-
-static constexpr ctable ctable036 = { { { '|', ign, ign },     /* |   */
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; /*  |   */
-
-static constexpr ctable ctable037 = { { { ign, ign, '|' },     /*   | */
-                                        { ign, '|', ign },     //  |
-                                        { ign, '|', ign } } }; /*  |   */
-
-static constexpr ctable ctable038 = { { { ign, '|', ign },     /*   | */
-                                        { '_', '|', ign },     //  _|
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable039 = { { { ign, '/', ign },     /*   / */
-                                        { '_', '|', ign },     //  _|
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable040 = { { { ign, '\\', ign },    /*   \ */
-                                        { '_', '|', ign },     //  _|
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable041 = { { { ign, '|', ign },     /*   | */
-                                        { ign, '|', '_' },     //   |_
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable042 = { { { ign, '/', ign },     /*   / */
-                                        { ign, '|', '_' },     //   |_
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable043 = { { { ign, '\\', ign },    /*   \ */
-                                        { ign, '|', '_' },     //   |_
-                                        { ign, ign, ign } } }; /*      */
-
-static constexpr ctable ctable044 = { { { '_', ign, ign },     /* _     */
-                                        { ign, '\\', ign },    /*  \    */
-                                        { ign, '|', ign } } }; /*  |    */
-
-static constexpr ctable ctable045 = { { { ign, ign, '_' },     /*   _   */
-                                        { ign, '/', ign },     /*  /    */
-                                        { ign, '|', ign } } }; /*  |    */
-
-static constexpr ctable ctables[] = { ctable001, ctable002, ctable003, ctable004, ctable005, ctable006, ctable007,
-                                      ctable008, ctable009, ctable010, ctable011, ctable012, ctable013, ctable014,
-                                      ctable015, ctable016, ctable017, ctable018, ctable019, ctable020, ctable021,
-                                      ctable022, ctable023, ctable024, ctable025, ctable026, ctable027, ctable028,
-                                      ctable029, ctable030, ctable031, ctable032, ctable033, ctable034, ctable035,
-                                      ctable036, ctable037, ctable038, ctable039, ctable040, ctable041, ctable042,
-                                      ctable043, ctable044, ctable045 };
-
 FramebufferPoint
 retroactive_fix(const TerminalBuffer& t, const math::Vec2Int& pos)
 {
-    // clang-format off
-    const ctable inp = { {
-        { t.at(pos + math::Vec2Int{ -1, -1 }), t.at(pos + math::Vec2Int{ +0, -1 }), t.at(pos + math::Vec2Int{ +1, -1 }) },
-        { t.at(pos + math::Vec2Int{ -1, +0 }), t.at(pos + math::Vec2Int{ +0, +0 }), t.at(pos + math::Vec2Int{ +1, +0 }) },
-        { t.at(pos + math::Vec2Int{ -1, +1 }), t.at(pos + math::Vec2Int{ +0, +1 }), t.at(pos + math::Vec2Int{ +1, +1 }) },
-    } };
-    // clang-format on
+    ctable inp;
+    for (std::size_t dy = 0; dy < 3; dy++) {
+        for (std::size_t dx = 0; dx < 3; dx++) {
+            inp[dy][dx] = t.at(clamp(pos + math::Vec2Int{ -1, -1 } + math::Vec2Int{ dx, dy },
+                                     math::Vec2Int{ 0, 0 },
+                                     t.size() + math::Vec2Int{ -1, -1 }));
+        }
+    }
 
     // char c = '@';
     char c = ' ';
-    for (std::size_t i = 0; i < sizeof(ctables) / sizeof(ctable); i++) {
+    for (std::size_t i = 0; i < ctables.size(); i++) {
         bool match = true;
         for (std::size_t dy = 0; dy < 3; dy++) {
             for (std::size_t dx = 0; dx < 3; dx++) {
-                if (dy == 1 && dx == 1) continue;
-                if (ctables[i][dy][dx] == ign) continue;
+                if ((dy == 1 && dx == 1) || ctables[i][dy][dx] == ign) continue;
 
                 match &= ctables[i][dy][dx] == inp[dy][dx];
-                if (inp[dy][dx] == '_' && dy > 0) {
-                    match &= inp[dy - 1][dx] != '_';
-                }
+                match &= !(inp[dy][dx] == '_' && dy > 0) || inp[dy - 1][dx] != '_';
             }
         }
         if (match == true) {
