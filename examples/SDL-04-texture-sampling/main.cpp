@@ -408,9 +408,8 @@ main(int argc, char* argv[])
     while (running) {
         handle_events(running, shift, zoom, final_transform, sampler);
 
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
-
         screen.clear();
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.update();
         text.render();
         screen.render();
