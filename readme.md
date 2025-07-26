@@ -8,14 +8,10 @@ It is meant to both render ascii art and real images. It currently simulates ver
 For the examples:
 - `libsdl2-dev`
 - `libsdl2-ttf-dev`
-- Dependencies for [nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended?tab=readme-ov-file#dependencies).
-  For linux, this is `gtk+3-devel`
 
-Ensure the corresponding header files exist in the system include path.
+Set `SDL_BASED_EXAMPLES` to false if desired.
 
 ## Build steps
-
-Turn off `SDL_BASED_EXAMPLES` if desired in `CMakeLists.txt`.
 
 Build in release mode preferably for preview:
 ```bash
