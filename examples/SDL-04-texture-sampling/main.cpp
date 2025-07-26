@@ -12,6 +12,8 @@
 #include "asciirast/renderer.h"
 #include "asciirast/sampler.h"
 
+#include "external/tinyfiledialogs/tinyfiledialogs.h"
+
 #include <SDL.h>
 #include <SDL_pixels.h>
 #include <SDL_render.h>
@@ -357,20 +359,70 @@ handle_events(bool& running,
     }
 }
 
+std::optional<std::string>
+find_texture()
+{
+    const auto default_path = ".";
+    const auto patterns = std::to_array<char const*>(
+            { "*.jpg", "*.jpeg", "*.png", "*.tga", "*.bmp", "*.psd", "*.gif", "*.hdr", "*.pic", "*.pnm" });
+    const char* patterns_desc = nullptr;
+    const bool multi_select_enabled = false;
+    const char* ptr = tinyfd_openFileDialog("Specify Texture File",
+                                            default_path,
+                                            patterns.size(),
+                                            patterns.data(),
+                                            patterns_desc,
+                                            multi_select_enabled);
+
+    return ptr ? std::make_optional(ptr) : std::nullopt;
+}
+
+std::optional<std::string>
+find_ttf()
+{
+    const auto default_path = ".";
+    const auto patterns = std::to_array<char const*>({ "*.ttf" });
+    const char* patterns_desc = nullptr;
+    const bool multi_select_enabled = false;
+    const char* ptr = tinyfd_openFileDialog(
+            "Specify .ttf File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+
+    return ptr ? std::make_optional(ptr) : std::nullopt;
+}
+
 int
 main(int argc, char* argv[])
 {
+    std::string path_to_img;
+    std::string path_to_ttf;
     if (argc < 3) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " "
-                  << "<path-to-image = texture_test.png> <path-to-ttf = terminus.ttf>\n";
-        return EXIT_FAILURE;
+        const char* arg1_str = "path-to-texture";
+        const char* arg2_str = "path-to-ttf";
+
+        std::cout << "usage:" << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+
+        if (const auto opt_texture_path = find_texture(); !opt_texture_path.has_value()) {
+            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            return EXIT_FAILURE;
+        } else {
+            path_to_img = opt_texture_path.value();
+            std::cout << "specified " << arg1_str << ": " << path_to_img << "\n";
+        }
+        if (const auto opt_ttf_path = find_ttf(); !opt_ttf_path.has_value()) {
+            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            return EXIT_FAILURE;
+        } else {
+            path_to_ttf = opt_ttf_path.value();
+            std::cout << "specified " << arg2_str << ": " << path_to_ttf << "\n";
+        }
+    } else {
+        path_to_img = argv[1];
+        path_to_ttf = argv[2];
     }
-    const char* path_to_img = argc >= 2 ? argv[1] : "";
-    const char* path_to_ttf = argc >= 3 ? argv[2] : "";
 
     const unsigned screen_size = 1024;
-    const SDLFont font{ path_to_ttf };
+    const SDLFont font{ path_to_ttf.c_str() };
     const asciirast::Texture texture{ path_to_img };
     const math::Float aspect_ratio = texture.width() / (math::Float)texture.height();
     math::Vec2 shift = { 0, 0 };

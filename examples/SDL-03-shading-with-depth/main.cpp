@@ -11,6 +11,7 @@
 #include <SDL_pixels.h>
 
 #include "external/tiny_obj_loader/tiny_obj_loader.h"
+#include "external/tinyfiledialogs/tinyfiledialogs.h"
 
 #include <algorithm>
 #include <cassert>
@@ -242,15 +243,39 @@ handle_events(bool& running)
     }
 }
 
+std::optional<std::string>
+find_obj()
+{
+    const auto default_path = ".";
+    const auto patterns = std::to_array<char const*>({ "*.obj" });
+    const char* patterns_desc = nullptr;
+    const bool multi_select_enabled = false;
+    const char* ptr = tinyfd_openFileDialog(
+            "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+
+    return ptr ? std::make_optional(ptr) : std::nullopt;
+}
+
 int
 main(int argc, char* argv[])
 {
+    std::string path_to_obj;
     if (argc < 2) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj = african_head.obj>\n";
-        return EXIT_FAILURE;
+        const char* arg1_str = "path-to-obj";
+
+        std::cout << "usage:" << " " << program_name << " " << "<" << arg1_str << ">\n";
+
+        if (const auto opt_path = find_obj(); !opt_path.has_value()) {
+            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            return EXIT_FAILURE;
+        } else {
+            path_to_obj = opt_path.value();
+            std::cerr << "specified " << arg1_str << ": " << path_to_obj << "\n";
+        }
+    } else {
+        path_to_obj = argv[1];
     }
-    const char* path_to_obj = argc >= 2 ? argv[1] : "";
 
     tinyobj::ObjReader obj_reader;
     if (!obj_reader.ParseFromFile(path_to_obj)) {

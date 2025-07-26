@@ -3,7 +3,7 @@ file(GLOB_RECURSE SDL_EXAMPLE_4_FILES CONFIGURE_DEPENDS *.cpp)
 add_executable(sdl-example-4 ${SDL_EXAMPLE_4_FILES})
 
 target_link_libraries(sdl-example-4 PRIVATE asciirast)
-target_link_libraries(sdl-example-4 PRIVATE tiny_obj_loader)
+target_link_libraries(sdl-example-4 PRIVATE tinyfiledialogs)
 
 target_include_directories(sdl-example-4 PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(sdl-example-4 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

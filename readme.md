@@ -4,9 +4,12 @@ A software rasterizer based on the classical OpenGL graphics pipeline made for e
 It is meant to both render ascii art and real images. It currently simulates vertex and fragment shaders.
 
 ## Dependencies
-For SDL-based examples:
+
+For the examples:
 - `libsdl2-dev`
 - `libsdl2-ttf-dev`
+- Dependencies for [nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended?tab=readme-ov-file#dependencies).
+  For linux, this is `gtk+3-devel`
 
 Ensure the corresponding header files exist in the system include path.
 
@@ -16,15 +19,15 @@ Turn off `SDL_BASED_EXAMPLES` if desired in `CMakeLists.txt`.
 
 Build in release mode preferably for preview:
 ```bash
-cmake --DCMAKE_BUILD_TYPE=Release -B build_release
-cmake --build build_release
+cmake -DCMAKE_BUILD_TYPE=Release -B build_release
+cmake --build build_release -j $(nproc)
 ```
-Then the executables will be visible in `build_release/bin` directory.
+Then the executables will be visible in `build_release/bin` directory. Use `-j %NUMBER_OF_PROCESSORS%` on windows.
 
-Alternatively, build in debug mode with `ninja` for fast compilation:
+Alternatively, build in debug mode and export compile commands for LSP support:
 ```bash
-cmake --DCMAKE_BUILD_TYPE=Debug -G "Ninja" -B build_debug
-cmake --build build_debug
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
+cmake --build build -j $(nproc) 
 ```
 
 ## Resources

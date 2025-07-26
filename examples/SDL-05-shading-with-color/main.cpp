@@ -15,6 +15,7 @@
 #include <SDL_pixels.h>
 
 #include "external/tiny_obj_loader/tiny_obj_loader.h"
+#include "external/tinyfiledialogs/tinyfiledialogs.h"
 
 #include <algorithm>
 #include <cassert>
@@ -255,17 +256,62 @@ handle_events(bool& running)
     }
 }
 
+std::optional<std::string>
+find_tga()
+{
+    const auto default_path = ".";
+    const auto patterns = std::to_array<char const*>({ "*.tga" });
+    const char* patterns_desc = nullptr;
+    const bool multi_select_enabled = false;
+    const char* ptr = tinyfd_openFileDialog(
+            "Specify .tga File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+
+    return ptr ? std::make_optional(ptr) : std::nullopt;
+}
+
+std::optional<std::string>
+find_obj()
+{
+    const auto default_path = ".";
+    const auto patterns = std::to_array<char const*>({ "*.obj" });
+    const char* patterns_desc = nullptr;
+    const bool multi_select_enabled = false;
+    const char* ptr = tinyfd_openFileDialog(
+            "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+
+    return ptr ? std::make_optional(ptr) : std::nullopt;
+}
+
 int
 main(int argc, char* argv[])
 {
+    std::string path_to_obj;
+    std::string path_to_tga;
     if (argc < 3) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
-        std::cout << "usage:" << " " << program_name << " " << "<path-to-obj = african_head.obj>" << " "
-                  << "<path-to-texture = african_head_diffuse.tga>\n";
-        return EXIT_FAILURE;
+        const char* arg1_str = "path-to-obj";
+        const char* arg2_str = "path-to-tga";
+
+        std::cout << "usage:" << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+
+        if (const auto opt_obj_path = find_obj(); !opt_obj_path.has_value()) {
+            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            return EXIT_FAILURE;
+        } else {
+            path_to_obj = opt_obj_path.value();
+            std::cout << "specified " << arg1_str << ": " << path_to_obj << "\n";
+        }
+        if (const auto opt_tga_path = find_tga(); !opt_tga_path.has_value()) {
+            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            return EXIT_FAILURE;
+        } else {
+            path_to_tga = opt_tga_path.value();
+            std::cout << "specified " << arg2_str << ": " << path_to_tga << "\n";
+        }
+    } else {
+        path_to_obj = argv[1];
+        path_to_tga = argv[2];
     }
-    const char* path_to_obj = argc >= 3 ? argv[1] : "";
-    const char* path_to_tga = argc >= 3 ? argv[2] : "";
 
     tinyobj::ObjReader obj_reader;
     if (!obj_reader.ParseFromFile(path_to_obj)) {
