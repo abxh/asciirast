@@ -62,34 +62,6 @@ endif()
 add_subdirectory(external/stb_image) 
 add_subdirectory(asciirast)
 
-if (SDL_BASED_EXAMPLES)
-	include(FetchContent)
-
-	find_package(SDL2 QUIET)
-	if (NOT TARGET SDL2::SDL2)
-		FetchContent_Declare(
-		  SDL2
-		  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-		  GIT_TAG release-2.28.5
-		)
-		FetchContent_MakeAvailable(SDL2)
-	else()
-		message(STATUS "Found pre-installed SDL2")
-	endif()
-
-	find_package(SDL2_ttf QUIET)
-	if (NOT TARGET SDL2_ttf::SDL2_ttf)
-		FetchContent_Declare(
-		  SDL2_ttf
-		  GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
-		  GIT_TAG release-2.22.0
-		)
-		FetchContent_MakeAvailable(SDL2_ttf)
-	else()
-		message(STATUS "Found pre-installed SDL2_ttf")
-	endif()
-endif()
-
 if (EXAMPLES)
 	if (SDL_BASED_EXAMPLES)
 		find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
@@ -97,16 +69,14 @@ if (EXAMPLES)
 		find_package(SDL2_ttf REQUIRED CONFIG COMPONENTS SDL2_ttf)
 		# add_subdirectory(external/imgui)
 	endif()
-
 	add_subdirectory(external/tiny_obj_loader)
+	add_subdirectory(external/terminal_utils)
 
 	if (MSVC)
 		add_compile_options(/W3)
 	else()
 		add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
 	endif()
-
-	add_subdirectory(external/terminal_utils)
 
 	add_subdirectory(examples/00-spiral)
 	add_subdirectory(examples/01-sierpinski-triangle)
