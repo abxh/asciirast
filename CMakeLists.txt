@@ -14,7 +14,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-	add_compile_options(-DNDEBUG -O3 -ffast-math -ffinite-math-only -flto=auto) # alternatively: -Ofast
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+	add_compile_options(-Ofast)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
