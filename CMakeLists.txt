@@ -10,6 +10,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
 	add_compile_options(-DNDEBUG -O3 -ffast-math -ffinite-math-only -flto=auto) # alternatively: -Ofast
 endif()
@@ -22,33 +26,69 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_compile_options(-ggdb3)
 
 	include(CheckCXXCompilerFlag)
-	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
-	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
-	# check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_TSAN)
 
-	if(COMPILER_SUPPORTS_ASAN)
+	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
+	if (COMPILER_SUPPORTS_ASAN)
 		add_compile_options(-fsanitize=address)
 		add_link_options(-fsanitize=address)
 	endif()
-	if(COMPILER_SUPPORTS_UBSAN)
+
+	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
+	if (COMPILER_SUPPORTS_UBSAN)
 		add_compile_options(-fsanitize=undefined)
 		add_link_options(-fsanitize=undefined)
 	endif()
+
 	# note: seems to require disabling of ASLR. So keeping TSAN off
-	# if(COMPILER_SUPPORTS_TSAN)
+
+	# check_cxx_compiler_flag("${SANITIZER_FLAGS_TSAN}" COMPILER_SUPPORTS_TSAN)
+	# if (COMPILER_SUPPORTS_TSAN)
 	# 	add_compile_options(-fsanitize=thread)
 	# 	add_link_options(-fsanitize=thread)
 	# endif()
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
+if (NOT MSVC)
+	find_program(MOLD_LINKER mold)
 
-# neccessary dependencies for asciirast:
+	if (MOLD_LINKER)
+		message(STATUS "Found mold linker: ${MOLD_LINKER}")
+		add_link_options("-fuse-ld=mold")
+	else()
+		message(STATUS "Mold linker not found. Using default linker")
+	endif()
+endif()
+
 add_subdirectory(external/stb_image) 
-
 add_subdirectory(asciirast)
+
+if (SDL_BASED_EXAMPLES)
+	include(FetchContent)
+
+	find_package(SDL2 QUIET)
+	if (NOT TARGET SDL2::SDL2)
+		FetchContent_Declare(
+		  SDL2
+		  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+		  GIT_TAG release-2.28.5
+		)
+		FetchContent_MakeAvailable(SDL2)
+	else()
+		message(STATUS "Found pre-installed SDL2")
+	endif()
+
+	find_package(SDL2_ttf QUIET)
+	if (NOT TARGET SDL2_ttf::SDL2_ttf)
+		FetchContent_Declare(
+		  SDL2_ttf
+		  GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
+		  GIT_TAG release-2.22.0
+		)
+		FetchContent_MakeAvailable(SDL2_ttf)
+	else()
+		message(STATUS "Found pre-installed SDL2_ttf")
+	endif()
+endif()
 
 if (EXAMPLES)
 	if (SDL_BASED_EXAMPLES)
@@ -64,14 +104,6 @@ if (EXAMPLES)
 		add_compile_options(/W3)
 	else()
 		add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
-
-		find_program(MOLD_LINKER mold)
-		if(MOLD_LINKER)
-			message(STATUS "Found mold linker: ${MOLD_LINKER}")
-			add_link_options("-fuse-ld=mold")
-		else()
-			message(STATUS "Mold linker not found, using default linker")
-		endif()
 	endif()
 
 	add_subdirectory(external/terminal_utils)
