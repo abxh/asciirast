@@ -9,7 +9,7 @@ For the examples:
 - `libsdl2-dev`
 - `libsdl2-ttf-dev`
 
-Set `SDL_BASED_EXAMPLES` to false if desired.
+Set `ASCIIRAST_SDL_EXAMPLES` to false if desired.
 
 ## Build steps
 
