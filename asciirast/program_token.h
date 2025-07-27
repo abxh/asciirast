@@ -1,6 +1,9 @@
 /**
  * @file program_token.h
  * @brief Special program tokens
+ *
+ * See:
+ * @link https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1365r0.pdf
  */
 
 #pragma once
@@ -103,13 +106,13 @@ public:
     using promise_type = Promise;
     using handle_type = std::coroutine_handle<promise_type>;
 
-    static constexpr std::size_t MaxFrameSize = 1024;
+    static constexpr std::size_t MaxFrameSize = 512;
 
     inline static FramePool<promise_type, PoolSize, MaxFrameSize> frame_pool;
 
     struct Promise
     {
-        static void* operator new(std::size_t n)
+        static void* operator new([[maybe_unused]] std::size_t n)
         {
             assert(n < MaxFrameSize && "frame size is smaller than 1024 bytes");
             return frame_pool.allocate();

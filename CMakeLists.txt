@@ -29,7 +29,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
 	if (COMPILER_SUPPORTS_ASAN)
-		add_compile_options(-fsanitize=address)
+		add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
 		add_link_options(-fsanitize=address)
 	endif()
 
