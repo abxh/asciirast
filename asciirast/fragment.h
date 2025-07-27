@@ -130,7 +130,6 @@ public:
      */
     enum class Type
     {
-        UINITIALIZED,
         POINT,
         LINE,
         FILLED
@@ -147,6 +146,7 @@ public:
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         m_quad[m_id] = value;
+        m_is_initialized = true;
 
         return ProgramToken::Syncronize;
     }
@@ -182,7 +182,7 @@ public:
     template<typename T>
     [[nodiscard]] T at(const std::size_t id, std::type_identity<T> = {}) const
     {
-        assert(m_type != Type::UINITIALIZED);
+        assert(m_is_initialized);
         assert(id < 1 && m_type == Type::POINT || m_type != Type::POINT);
         assert(id < 2 && m_type == Type::LINE || m_type != Type::LINE);
         assert(id < 4 && m_type == Type::FILLED || m_type != Type::FILLED);
@@ -200,6 +200,7 @@ public:
     template<typename T>
     [[nodiscard]] T dFdx(std::type_identity<T> = {}) const
     {
+        assert(m_is_initialized);
         assert(m_type == Type::FILLED);
 
         /*
@@ -226,6 +227,7 @@ public:
     template<typename T>
     [[nodiscard]] T dFdy(std::type_identity<T> = {}) const
     {
+        assert(m_is_initialized);
         assert(m_type == Type::FILLED);
 
         /*
@@ -252,6 +254,7 @@ public:
     template<typename T>
     [[nodiscard]] T dFdv(std::type_identity<T> = {}) const
     {
+        assert(m_is_initialized);
         assert(m_type == Type::LINE);
 
         return std::get<T>(m_quad[1]) - std::get<T>(m_quad[0]);
@@ -260,17 +263,20 @@ public:
 private:
     std::size_t m_id;
     std::array<ValueVariant, 4>& m_quad;
-    bool m_is_helper_invocation;
     Type m_type;
+    bool m_is_helper_invocation;
+    bool m_is_initialized;
 
     FragmentContextType(const std::size_t id,
                         std::array<ValueVariant, 4>& quad,
+                        const Type type,
                         const bool is_helper_invocation = false,
-                        const Type type = Type::UINITIALIZED)
+                        const bool is_initialized = false)
             : m_id{ id }
             , m_quad{ quad }
+            , m_type{ type }
             , m_is_helper_invocation{ is_helper_invocation }
-            , m_type{ type } {};
+            , m_is_initialized{ is_initialized } {};
 
     friend class Renderer;
 };

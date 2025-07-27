@@ -10,7 +10,8 @@
 namespace asciirast::renderer {
 
 template<VaryingInterface Varying, typename Plot>
-    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&>)
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&> ||
+             std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
 [[maybe_unused]]
 static void
 rasterize_line(const ProjectedFragment<Varying>& proj0,
@@ -58,18 +59,34 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
             !(bias_option == LineEndsInclusion::IncludeStart || bias_option == LineEndsInclusion::IncludeBoth);
     const auto bias1 = !(bias_option == LineEndsInclusion::IncludeEnd || bias_option == LineEndsInclusion::IncludeBoth);
 
-    std::array<ProjectedFragment<Varying>, 2> rfrag;
-    rfrag[0] = func(acc_t, acc_v, acc_Z_inv);
-
-    // process 1 fragment at a time, but pass both the current and the one ahead:
-    for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
+    if (bias0) {
         acc_t += inc_t;
         acc_v += inc_v;
         acc_Z_inv += inc_Z_inv;
+    }
 
-        rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_Z_inv);
+    if constexpr (std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>) {
+        for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
+            plot(func(acc_t, acc_v, acc_Z_inv));
 
-        plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] }, { true, false });
+            acc_t += inc_t;
+            acc_v += inc_v;
+            acc_Z_inv += inc_Z_inv;
+        }
+    } else {
+        std::array<ProjectedFragment<Varying>, 2> rfrag;
+        rfrag[0] = func(acc_t, acc_v, acc_Z_inv);
+
+        // process 1 fragment at a time, but pass both the current and the one ahead:
+        for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
+            acc_t += inc_t;
+            acc_v += inc_v;
+            acc_Z_inv += inc_Z_inv;
+
+            rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_Z_inv);
+
+            plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] }, { true, false });
+        }
     }
 }
 
@@ -89,7 +106,8 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
 }
 
 template<VaryingInterface Varying, typename Plot>
-    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&>)
+    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&> ||
+             std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
 [[maybe_unused]]
 static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
@@ -181,35 +199,52 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };
 
-    for (std::size_t y = 0; y <= y_diff / 2 + y_diff % 2; y++) {
-        auto w = w_y_minx;
-        p.x = min_.x + 0.5f;
+    if constexpr (std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>) {
+        for (std::size_t y = 0; y <= y_diff; y++) {
+            auto w = w_y_minx;
+            p.x = min_.x + 0.5f;
 
-        for (std::size_t x = 0; x <= x_diff / 2 + x_diff % 2; x++) {
-            const auto w00 = w;
-            const auto w01 = w + delta_w_x;
-            const auto w10 = w + delta_w_y;
-            const auto w11 = w + delta_w_y + delta_w_x;
+            for (std::size_t x = 0; x <= x_diff; x++) {
+                if (const bool in_triangle = w.x >= 0 && w.y >= 0 && w.z >= 0; in_triangle) {
+                    plot(func(w, p));
+                }
+                w += delta_w_x;
+                p.x += 1;
+            }
+            w_y_minx += delta_w_y;
+            p.y += 1;
+        }
+    } else {
+        for (std::size_t y = 0; y <= y_diff / 2 + y_diff % 2; y++) {
+            auto w = w_y_minx;
+            p.x = min_.x + 0.5f;
 
-            const auto in_triangle00 = w00.x >= 0 && w00.y >= 0 && w00.z >= 0;
-            const auto in_triangle01 = w01.x >= 0 && w01.y >= 0 && w01.z >= 0;
-            const auto in_triangle10 = w10.x >= 0 && w10.y >= 0 && w10.z >= 0;
-            const auto in_triangle11 = w11.x >= 0 && w11.y >= 0 && w11.z >= 0;
+            for (std::size_t x = 0; x <= x_diff / 2 + x_diff % 2; x++) {
+                const auto w00 = w;
+                const auto w01 = w + delta_w_x;
+                const auto w10 = w + delta_w_y;
+                const auto w11 = w + delta_w_y + delta_w_x;
 
-            if (in_triangle00 || in_triangle01 || in_triangle10 || in_triangle11) {
-                plot({ func(w00, p + math::Vec2{ 0, 0 }), //
-                       func(w01, p + math::Vec2{ 1, 0 }),
-                       func(w10, p + math::Vec2{ 0, 1 }),
-                       func(w11, p + math::Vec2{ 1, 1 }) },
-                     { in_triangle00, in_triangle01, in_triangle10, in_triangle11 });
+                const auto in_triangle00 = w00.x >= 0 && w00.y >= 0 && w00.z >= 0;
+                const auto in_triangle01 = w01.x >= 0 && w01.y >= 0 && w01.z >= 0;
+                const auto in_triangle10 = w10.x >= 0 && w10.y >= 0 && w10.z >= 0;
+                const auto in_triangle11 = w11.x >= 0 && w11.y >= 0 && w11.z >= 0;
+
+                if (in_triangle00 || in_triangle01 || in_triangle10 || in_triangle11) {
+                    plot({ func(w00, p + math::Vec2{ 0, 0 }), //
+                           func(w01, p + math::Vec2{ 1, 0 }),
+                           func(w10, p + math::Vec2{ 0, 1 }),
+                           func(w11, p + math::Vec2{ 1, 1 }) },
+                         { in_triangle00, in_triangle01, in_triangle10, in_triangle11 });
+                }
+
+                w += 2 * delta_w_x;
+                p.x += 2;
             }
 
-            w += 2 * delta_w_x;
-            p.x += 2;
+            w_y_minx += 2 * delta_w_y;
+            p.y += 2;
         }
-
-        w_y_minx += 2 * delta_w_y;
-        p.y += 2;
     }
 }
 

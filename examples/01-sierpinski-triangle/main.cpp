@@ -34,7 +34,6 @@ public:
 
     TerminalBuffer()
             : m_rgbc_buf{}
-            , m_depth_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
@@ -56,25 +55,7 @@ public:
     math::Float aspect_ratio() const
     {
         // this ratio worked best for my terminal
-
         return (5.f * (math::Float)m_height) / (3.f * (math::Float)m_width);
-    }
-
-    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
-    {
-        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
-            m_oob_error = true;
-            return false;
-        }
-
-        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp<math::Float>(depth, 0, 1);
-
-        if (depth < m_depth_buf[idx]) {
-            m_depth_buf[idx] = depth;
-            return true;
-        }
-        return false;
     }
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
@@ -121,7 +102,6 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgbc_buf[i] = { .r = 0, .g = 0, .b = 0, .c = clear_char };
-            m_depth_buf[i] = 2; // or +infty
         }
     }
 
@@ -150,7 +130,6 @@ public:
                                      .scale(m_width - 1, m_height - 1);
 
         m_rgbc_buf.resize(m_width * m_height);
-        m_depth_buf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -178,7 +157,6 @@ private:
     math::Transform2D m_screen_to_window;
 
     std::vector<RGBC> m_rgbc_buf;
-    std::vector<math::Float> m_depth_buf;
 };
 
 static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
@@ -220,28 +198,23 @@ class MyProgram
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
-    // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         out.pos.xy = { vert.pos.x * u.aspect_ratio, vert.pos.y };
         out.attrs = { vert.id, vert.color };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    void on_fragment(const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
         out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], pfrag.attrs.color };
-        co_return;
     }
 };
 
-static_assert(asciirast::ProgramInterface<MyProgram>); // alternative
+static_assert(asciirast::ProgramInterface<MyProgram>);
 
 void
 sierpinski_triangle(std::vector<MyVertex>& v,

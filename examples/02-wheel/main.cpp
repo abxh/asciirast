@@ -36,7 +36,6 @@ public:
 
     TerminalBuffer()
             : m_rgbc_buf{}
-            , m_depth_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
@@ -67,23 +66,6 @@ public:
         // this ratio worked best for my terminal
 
         return (5.f * (math::Float)m_height) / (2.f * (math::Float)m_width);
-    }
-
-    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
-    {
-        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
-            m_oob_error = true;
-            return false;
-        }
-
-        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        depth = std::clamp<math::Float>(depth, 0, 1);
-
-        if (depth < m_depth_buf[idx]) {
-            m_depth_buf[idx] = depth;
-            return true;
-        }
-        return false;
     }
 
     const math::Transform2D& screen_to_window() const { return m_screen_to_window; }
@@ -130,7 +112,6 @@ public:
     {
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgbc_buf[i] = { .r = 0, .g = 0, .b = 0, .c = clear_char };
-            m_depth_buf[i] = 2; // or +infty
         }
     }
 
@@ -159,7 +140,6 @@ public:
                                      .scale(m_width - 1, m_height - 1);
 
         m_rgbc_buf.resize(m_width * m_height);
-        m_depth_buf.resize(m_width * m_height);
 
         this->offset_printer();
         this->clear(clear_char);
@@ -187,7 +167,6 @@ private:
     math::Transform2D m_screen_to_window;
 
     std::vector<RGBC> m_rgbc_buf;
-    std::vector<math::Float> m_depth_buf;
 };
 
 static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
@@ -226,13 +205,11 @@ class MyProgram
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
-    // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2Int>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -242,20 +219,20 @@ public:
         out.attrs = { vert.color };
     }
 
-    auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    auto on_fragment(FragmentContext& c, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+            -> asciirast::ProgramTokenGenerator
     {
-        co_yield context.init(math::Vec2Int{ pfrag.pos });
+        co_yield c.init(math::Vec2Int{ pfrag.pos });
 
         const math::Vec2Int dv =
-                (context.type() == FragmentContext::Type::LINE) ? context.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
+                (c.type() == FragmentContext::Type::LINE) ? c.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
 
         const char ch = u.table[(size_t)(std::clamp<math::Int>(dv.y, -1, 1) + 1)]
                                [(size_t)(std::clamp<math::Int>(dv.x, -1, 1) + 1)];
 
         const bool keep = (u.draw_horizontal && ch == '_') ||  //
                           (!u.draw_horizontal && ch != '_') || //
-                          context.type() == FragmentContext::Type::POINT;
+                          c.type() == FragmentContext::Type::POINT;
 
         if (keep) {
             out = { ch, pfrag.attrs.color };
@@ -269,7 +246,7 @@ public:
 static_assert(asciirast::ProgramInterface<MyProgram>);
 
 FramebufferPoint
-retroactive_fix(const TerminalBuffer& t, const math::Vec2Int& pos)
+fix_corners(const TerminalBuffer& t, const math::Vec2Int& pos)
 {
     ctable inp;
     for (std::size_t dy = 0; dy < 3; dy++) {
@@ -301,11 +278,11 @@ retroactive_fix(const TerminalBuffer& t, const math::Vec2Int& pos)
 }
 
 std::vector<FramebufferPoint>&
-retroactive_fix(const MyUniform& u,
-                const TerminalBuffer& t,
-                const asciirast::Renderer& r,
-                const std::vector<MyVertex>& verticies,
-                std::vector<FramebufferPoint>& out)
+fix_corners(const MyUniform& u,
+            const TerminalBuffer& t,
+            const asciirast::Renderer& r,
+            const std::vector<MyVertex>& verticies,
+            std::vector<FramebufferPoint>& out)
 {
     out.clear();
     for (auto vert : verticies) {
@@ -320,7 +297,7 @@ retroactive_fix(const MyUniform& u,
         const auto pos2 = math::Vec2Int{ frag2.pos };
         if (math::Vec2Int{ 0, 0 } <= pos2 - math::Vec2Int{ 1, 1 } && //
             pos2 + math::Vec2Int{ 1, 1 } <= t.size()) {
-            out.push_back(retroactive_fix(t, pos2));
+            out.push_back(fix_corners(t, pos2));
         }
     }
     return out;
@@ -406,10 +383,10 @@ main(int, char**)
         r1.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
         r1.draw(program, uniforms, line_buf, framebuffer, renderer_data, line_options);
 
-        for (auto [pos, targets] : retroactive_fix(uniforms, framebuffer, r0, circle_buf.verticies, points)) {
+        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, r0, circle_buf.verticies, points)) {
             framebuffer.plot(pos, targets);
         }
-        for (auto [pos, targets] : retroactive_fix(uniforms, framebuffer, r1, circle_buf.verticies, points)) {
+        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, r1, circle_buf.verticies, points)) {
             framebuffer.plot(pos, targets);
         }
 

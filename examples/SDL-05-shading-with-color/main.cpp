@@ -214,7 +214,6 @@ public:
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
     using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -234,11 +233,10 @@ public:
     }
 
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+            -> asciirast::ProgramTokenGenerator
     {
         const auto color = TEXTURE(context, u.sampler, u.texture, pfrag.attrs.uv);
         out = { color.rgb };
-        co_return;
     }
 };
 

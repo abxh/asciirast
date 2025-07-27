@@ -203,26 +203,19 @@ class MyProgram
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
-    // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         out.pos.xy = { (u.rot.to_mat() * vert.pos).xy };
         out.attrs = { math::Vec3{ 1, 1, 1 } };
     }
-    auto on_fragment(FragmentContext&,
-                     [[maybe_unused]] const Uniform& u,
-                     const ProjectedFragment& pfrag,
-                     Targets& out) const -> ProgramTokenGenerator
+    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
         out = { pfrag.attrs.color };
-        co_return;
     }
 };
 

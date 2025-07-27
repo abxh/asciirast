@@ -181,6 +181,8 @@ private:
 struct MyUniform
 {
     const math::Rot3D& rot;
+    math::Float z_near;
+    math::Float z_far;
 };
 
 struct MyVertex
@@ -203,26 +205,24 @@ class MyProgram
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
-    // alias to fullfill program interface:
     using Uniform = MyUniform;
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos.xy = { (u.rot.to_mat() * vert.pos).xy };
+        const auto pos = u.rot.to_mat() * vert.pos;
+
+        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
+        const auto depth = pos.z * depth_scalar - u.z_near * depth_scalar;
+
+        out.pos = { pos.xy, 1.f - depth, 1 };
         out.attrs = { vert.color };
     }
-    auto on_fragment(FragmentContext&,
-                     [[maybe_unused]] const Uniform& u,
-                     const ProjectedFragment& pfrag,
-                     Targets& out) const -> ProgramTokenGenerator
+    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
         out = { pfrag.attrs.color };
-        co_return;
     }
 };
 
@@ -332,7 +332,16 @@ main(int argc, char* argv[])
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     asciirast::RendererOptions renderer_options{ .winding_order = asciirast::WindingOrder::CounterClockwise };
-    MyUniform uniforms{ rot };
+    MyUniform uniforms{ rot, {}, {} };
+    uniforms.z_near = std::ranges::fold_left(
+            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+            math::Float{},
+            [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); });
+    uniforms.z_far = std::ranges::fold_left(
+            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+            math::Float{},
+            [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
+
 
     bool running = true;
     while (running) {

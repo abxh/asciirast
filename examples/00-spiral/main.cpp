@@ -20,9 +20,11 @@
 namespace math = asciirast::math;
 namespace CSI = terminal_utils::CSI;
 
-class TerminalBuffer : public asciirast::AbstractFrameBuffer<char>
+class TerminalBuffer
 {
 public:
+    using Targets = std::tuple<char>;
+
     TerminalBuffer()
     {
         terminal_utils::just_fix_windows_console(true);
@@ -40,7 +42,7 @@ public:
 
     const math::Transform2D& screen_to_window() { return m_screen_to_window; }
 
-    void plot(const math::Vec2Int& pos, const Targets& targets) override
+    void plot(const math::Vec2Int& pos, const Targets& targets)
     {
         if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
             std::cerr << pos << "\n";
@@ -124,12 +126,13 @@ private:
     std::vector<char> m_charbuf;
 };
 
+static_assert(asciirast::FrameBufferInterface<TerminalBuffer>);
+
 struct MyUniform
 {
     const math::Rot2D& rot;
     const std::string& palette;
     const math::Float& aspect_ratio;
-    const bool& should_flip;
     static const inline auto flip_transform = math::Transform2D().rotate(math::radians(180.f)).reflectX();
 };
 
@@ -147,44 +150,41 @@ struct MyVarying
     MyVarying operator*(const math::Float scalar) const { return { this->id * scalar }; }
 };
 
-class MyProgram : public asciirast::AbstractProgram<MyUniform, MyVertex, MyVarying, TerminalBuffer>
+class MyProgram
 {
     using Fragment = asciirast::Fragment<MyVarying>;
     using ProjectedFragment = asciirast::ProjectedFragment<MyVarying>;
 
 public:
-    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const override
+    using Uniform = MyUniform;
+    using Vertex = MyVertex;
+    using Varying = MyVarying;
+    using Targets = TerminalBuffer::Targets;
+
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         math::Float id = vert.id;
-        math::Vec2 v = vert.pos;
-
-        if (u.should_flip) {
-            v = u.flip_transform.apply(v);
-            v = u.rot.apply_inv(v);
-        } else {
-            v = u.rot.apply(v);
-        }
+        math::Vec2 v = u.rot.apply(vert.pos);
 
         out.pos.xy = { v.x * u.aspect_ratio, v.y };
         out.attrs = { id };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator override
+    void on_fragment(const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
         out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
-        co_return;
     }
 };
+
+static_assert(asciirast::ProgramInterface<MyProgram>);
 
 int
 main(int, char**)
 {
     const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
     const math::Float aspect_ratio = 3.f / 5.f;
-    bool flip = false;
 
     math::Rot2D u_rot{};
-    MyUniform uniforms{ u_rot, palette, aspect_ratio, flip };
+    MyUniform uniforms{ u_rot, palette, aspect_ratio };
 
     asciirast::VertexBuffer<MyVertex> vertex_buf;
     {
@@ -209,8 +209,7 @@ main(int, char**)
     MyProgram program;
     TerminalBuffer framebuffer;
 
-    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1.5f, -1.f }, { +0.5f, +1.f }) };
-    asciirast::Renderer r2{ math::AABB2D::from_min_max({ -0.5f, -1.f }, { +1.5f, +1.f }) };
+    asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
     std::binary_semaphore sem{ 0 };
@@ -223,11 +222,7 @@ main(int, char**)
     } };
 
     while (!sem.try_acquire()) {
-        flip = false;
-        r1.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
-
-        flip = true;
-        r2.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
+        renderer.draw(program, uniforms, vertex_buf, framebuffer, renderer_data);
 
         framebuffer.render();
 

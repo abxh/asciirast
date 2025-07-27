@@ -187,8 +187,6 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -197,12 +195,9 @@ public:
         out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
         out.attrs = { vert.color, vert.uv };
     }
-    auto on_fragment(FragmentContext&, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
-        (void)(u);
         out = { pfrag.attrs.color };
-        co_return;
     }
 };
 
@@ -218,8 +213,6 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = PPMBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<>;
-    using ProgramTokenGenerator = std::generator<asciirast::ProgramToken>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
@@ -229,8 +222,7 @@ public:
         out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
 
-    auto on_fragment(FragmentContext&, [[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> ProgramTokenGenerator
+    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
         const auto uv = pfrag.attrs.uv;
         const auto M = 10.f;
@@ -239,7 +231,6 @@ public:
         const auto pattern = (uM_decimal_part > 0.5f) ^ (vM_decimal_part < 0.5f);
 
         out = { pfrag.attrs.color * pattern };
-        co_return;
     }
 };
 

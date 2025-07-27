@@ -273,9 +273,6 @@ texture(FragmentContextType<ValueTypes...>& context,
     using Type = FragmentContextType<ValueTypes...>::Type;
 
     switch (context.type()) {
-    case Type::UINITIALIZED: {
-        assert("must co_yield the result of texture_init() before calling texture()");
-    } break;
     case Type::POINT: {
         return textureLOD(sampler, texture, uv, 0.f);
     } break;
