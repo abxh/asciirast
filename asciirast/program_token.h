@@ -40,15 +40,15 @@ using ProgramTokenGenerator = detail::StaticGenerator<ProgramToken, 4>;
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
 
-template<typename T, std::size_t PoolSize>
-struct Pool
+template<typename T, std::size_t FrameCount, std::size_t FrameSize>
+struct FramePool
 {
 public:
-    constexpr Pool()
-            : m_pool{}
-            , m_free_indices{}
+    constexpr FramePool()
+            : m_free_indices{}
+            , m_pool{}
     {
-        for (std::size_t i = 0; i < PoolSize; ++i) {
+        for (std::size_t i = 0; i < FrameCount; ++i) {
             m_free_indices.push(i);
         }
     }
@@ -58,27 +58,27 @@ public:
     void deallocate(void* ptr)
     {
         const auto start = reinterpret_cast<std::byte*>(&m_pool[0]);
-        [[maybe_unused]] const auto end = reinterpret_cast<std::byte*>(&m_pool[PoolSize]);
+        [[maybe_unused]] const auto end = reinterpret_cast<std::byte*>(&m_pool[FrameCount]);
         const auto p = reinterpret_cast<std::byte*>(ptr);
         assert(start <= p && p < end && "pointer is in range");
 
         const std::size_t offset = static_cast<std::size_t>(p - start);
-        assert(offset % sizeof(Storage) == 0 && "pointer is aligned");
+        assert(offset % sizeof(Frame) == 0 && "pointer is aligned");
 
-        const std::size_t idx = offset / sizeof(Storage);
+        const std::size_t idx = offset / sizeof(Frame);
         m_free_indices.push(idx);
     }
 
 private:
-    struct Storage
+    struct Frame
     {
-        alignas(T) std::byte storage[sizeof(T)];
+        alignas(std::max_align_t) std::byte storage[FrameSize];
     };
     struct FreeIndicies
     {
         constexpr void push(const std::size_t& value)
         {
-            assert(m_size < PoolSize && "enough memory allocated");
+            assert(m_size < FrameCount && "enough memory allocated");
             m_data[m_size++] = value;
         }
         constexpr std::size_t pop()
@@ -86,12 +86,12 @@ private:
             assert(m_size > 0 && "no double free or corruption");
             return m_data[--m_size];
         }
-        std::array<std::size_t, PoolSize> m_data = {};
+        std::array<std::size_t, FrameCount> m_data = {};
         std::size_t m_size = 0;
     };
 
-    std::array<Storage, PoolSize> m_pool;
     FreeIndicies m_free_indices;
+    std::array<Frame, FrameCount> m_pool;
 };
 
 template<typename T, std::size_t PoolSize>
@@ -103,11 +103,17 @@ public:
     using promise_type = Promise;
     using handle_type = std::coroutine_handle<promise_type>;
 
-    inline static Pool<promise_type, PoolSize> frame_pool;
+    static constexpr std::size_t MaxFrameSize = 1024;
+
+    inline static FramePool<promise_type, PoolSize, MaxFrameSize> frame_pool;
 
     struct Promise
     {
-        static void* operator new(std::size_t) { return frame_pool.allocate(); }
+        static void* operator new(std::size_t n)
+        {
+            assert(n < MaxFrameSize && "frame size is smaller than 1024 bytes");
+            return frame_pool.allocate();
+        }
         static void operator delete(void* ptr, std::size_t) noexcept { frame_pool.deallocate(ptr); }
 
         auto get_return_object() { return StaticGenerator{ handle_type::from_promise(*this) }; }
