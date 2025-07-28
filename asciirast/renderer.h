@@ -495,7 +495,7 @@ private:
         PFrag inner_tfrag1 = vfrag1;
         if (requires_screen_clipping) {
             // clip line so it's inside the screen:
-            const auto inner_tup = renderer::line_in_screen(vfrag0.pos, vfrag1.pos, Renderer::SCREEN_BOUNDS);
+            const auto inner_tup = renderer::line_in_screen(vfrag0.pos, vfrag1.pos, SCREEN_BOUNDS);
             if (!inner_tup.has_value()) {
                 return;
             }
@@ -851,7 +851,7 @@ private:
             data.m_attrs_queue1.insert(data.m_attrs_queue1.end(), la);
 
             // clip line so it's inside the screen:
-            if (!renderer::triangle_in_screen(data.m_vec_queue1, data.m_attrs_queue1, Renderer::SCREEN_BOUNDS)) {
+            if (!renderer::triangle_in_screen(data.m_vec_queue1, data.m_attrs_queue1, SCREEN_BOUNDS)) {
                 continue;
             }
             for (const auto& [inner_vec_triplet, inner_attrs_triplet] :
