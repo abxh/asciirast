@@ -439,7 +439,7 @@ main(int argc, char* argv[])
     vertex_buf.verticies.push_back(MyVertex{ { -1, +1 }, { 0, aspect_ratio } });
     vertex_buf.verticies.push_back(MyVertex{ { +1, +1 }, { 1, aspect_ratio } });
 
-    SDLBuffer screen(screen_size, screen_size, 1024, 1024);
+    SDLBuffer screen(screen_size, screen_size, screen_size, screen_size);
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
