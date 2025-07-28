@@ -9,8 +9,6 @@ For the examples:
 - `libsdl2-dev`
 - `libsdl2-ttf-dev`
 
-Set `ASCIIRAST_SDL_EXAMPLES` to false if desired.
-
 ## Build steps
 
 Build in release mode preferably for preview:

@@ -2,7 +2,6 @@
 
 #include "external/tinyfiledialogs/tinyfiledialogs.h"
 
-#include <cassert>
 #include <filesystem>
 #include <iostream>
 

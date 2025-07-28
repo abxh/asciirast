@@ -3,6 +3,7 @@ file(GLOB_RECURSE SDL_EXAMPLE_5_FILES CONFIGURE_DEPENDS *.cpp)
 add_executable(sdl-example-5 ${SDL_EXAMPLE_5_FILES})
 
 target_link_libraries(sdl-example-5 PRIVATE asciirast)
+target_link_libraries(sdl-example-5 PRIVATE examples_common)
 target_link_libraries(sdl-example-5 PRIVATE tiny_obj_loader)
 target_link_libraries(sdl-example-5 PRIVATE tinyfiledialogs)
 

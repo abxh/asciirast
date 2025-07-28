@@ -1,9 +1,9 @@
 
-#include "asciirast/framebuffer.h"
+#include "examples/common/TerminalBuffer.h"
+
 #include "asciirast/math/types.h"
 #include "asciirast/program.h"
 #include "asciirast/renderer.h"
-#include "external/terminal_utils/terminal_utils.h"
 
 #include <algorithm>
 #include <cassert>
@@ -13,120 +13,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <semaphore>
-#include <stdexcept>
 #include <thread>
 #include <vector>
-
-namespace math = asciirast::math;
-namespace CSI = terminal_utils::CSI;
-
-class TerminalBuffer
-{
-public:
-    using Targets = std::tuple<char>;
-
-    TerminalBuffer()
-    {
-        terminal_utils::just_fix_windows_console(true);
-        std::cout << CSI::ESC << CSI::HIDE_CURSOR;
-
-        m_width = m_height = 0;
-        this->clear_and_update_size();
-    }
-
-    ~TerminalBuffer()
-    {
-        std::cout << CSI::ESC << CSI::SHOW_CURSOR;
-        terminal_utils::just_fix_windows_console(false);
-    }
-
-    const math::Transform2D& screen_to_window() { return m_screen_to_window; }
-
-    void plot(const math::Vec2Int& pos, const Targets& targets)
-    {
-        if (!(0 <= pos.x && (std::size_t)pos.x < m_width && 0 <= pos.y && (std::size_t)pos.y < m_height)) {
-            std::cerr << pos << "\n";
-            throw std::logic_error("error: point plotted outside of border! the library should not allow this.");
-        }
-
-        const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-
-        m_charbuf[idx] = std::get<0>(targets);
-    }
-
-    void render() const
-    {
-        this->reset_printer();
-
-        for (std::size_t y = 0; y < m_height; y++) {
-            for (std::size_t x = 0; x < m_width; x++) {
-                std::cout << m_charbuf[index(y, x)];
-            }
-            std::cout << "\n";
-        }
-
-        std::fflush(stdout);
-    }
-
-    void clear(const char clear_char = ' ')
-    {
-        for (std::size_t i = 0; i < m_height * m_width; i++) {
-            m_charbuf[i] = clear_char;
-        }
-    }
-
-    bool clear_and_update_size(const char clear_char = ' ')
-    {
-        int new_width = 0, new_height = 0;
-        terminal_utils::get_terminal_size(new_width, new_height);
-
-        if (m_width == (std::size_t)(new_width - 1) && m_height == (std::size_t)(new_height - 1)) {
-            this->clear(clear_char);
-            return false;
-        }
-        new_width = std::max(2, new_width - 1);
-        new_height = std::max(2, new_height - 1);
-
-        this->reset_printer();
-
-        m_width = (std::size_t)(new_width);
-        m_height = (std::size_t)(new_height);
-
-        m_screen_to_window = asciirast::SCREEN_BOUNDS //
-                                     .to_transform()
-                                     .reversed()
-                                     .reflectY()
-                                     .translate(0, 1.f)
-                                     .scale(m_width - 1, m_height - 1);
-
-        m_charbuf.resize(m_width * m_height);
-
-        this->offset_printer();
-        this->clear(clear_char);
-        return true;
-    }
-
-private:
-    std::size_t index(const std::size_t y, const std::size_t x) const { return m_width * y + x; }
-    void reset_printer() const
-    {
-        for (std::size_t y = 0; y < m_height; y++) {
-            std::cout << CSI::ESC << CSI::MOVE_UP_LINE << "\r";
-        }
-    }
-    void offset_printer() const
-    {
-        for (std::size_t y = 0; y < m_height; y++) {
-            std::cout << CSI::ESC << CSI::CLEAR_LINE << "\n";
-        }
-    }
-    std::size_t m_width;
-    std::size_t m_height;
-    math::Transform2D m_screen_to_window;
-    std::vector<char> m_charbuf;
-};
-
-static_assert(asciirast::FrameBufferInterface<TerminalBuffer>);
 
 struct MyUniform
 {
@@ -171,7 +59,7 @@ public:
     }
     void on_fragment(const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
-        out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)] };
+        out = { u.palette[std::min((std::size_t)pfrag.attrs.id, u.palette.size() - 1)], math::Vec3{ 1, 1, 1 } };
     }
 };
 
