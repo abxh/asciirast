@@ -122,7 +122,7 @@ public:
         m_width = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -163,8 +163,8 @@ static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
 
 struct MyUniform
 {
-    const std::string& palette;
-    const math::Float& aspect_ratio;
+    std::string palette;
+    math::Float aspect_ratio;
 };
 
 struct MyVertex
@@ -247,10 +247,12 @@ sierpinski_triangle(std::vector<MyVertex>& v,
 int
 main(int, char**)
 {
-    const std::string palette = "@%#*+=-:."; // Paul Borke's palette
+    MyUniform uniforms;
+
+    uniforms.palette = "@%#*+=-:."; // Paul Borke's palette
 
     auto V1 = MyVertex{ 0, math::Vec2{ -1, -1 }, RGBFloat{ 1, 0, 0 } };
-    auto V2 = MyVertex{ palette.size() - 1.f,
+    auto V2 = MyVertex{ uniforms.palette.size() - 1.f,
                         math::Vec2{ 0, 1.f / std::numbers::sqrt2_v<math::Float> },
                         RGBFloat{ 0, 1, 0 } };
     auto V3 = MyVertex{ 0, math::Vec2{ 1, -1 }, RGBFloat{ 0, 0, 1 } };
@@ -268,8 +270,7 @@ main(int, char**)
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
     framebuffer.clear_and_update_size();
-    math::Float aspect_ratio = framebuffer.aspect_ratio();
-    MyUniform uniforms{ palette, aspect_ratio };
+    uniforms.aspect_ratio = framebuffer.aspect_ratio();
 
     std::binary_semaphore sem{ 0 };
 
@@ -305,7 +306,7 @@ main(int, char**)
         if (framebuffer.clear_and_update_size()) {
             renderer_data.screen_to_window = framebuffer.screen_to_window();
         }
-        aspect_ratio = framebuffer.aspect_ratio();
+        uniforms.aspect_ratio = framebuffer.aspect_ratio();
     }
     check_eof_program.join();
 }

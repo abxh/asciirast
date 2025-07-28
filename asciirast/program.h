@@ -24,6 +24,7 @@ concept ProgramInterface_MinimalSupport = requires(const T t) {
     typename T::Varying;
     typename T::Targets;
     requires std::semiregular<typename T::Targets>;
+    requires std::is_default_constructible_v<typename T::Uniform>;
     {
         t.on_vertex(std::declval<const typename T::Uniform&>(),     //
                     std::declval<const typename T::Vertex&>(),      //

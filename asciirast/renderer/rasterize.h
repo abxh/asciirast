@@ -9,15 +9,12 @@
 
 namespace asciirast::renderer {
 
-template<VaryingInterface Varying, typename Plot>
+template<RendererOptions Options, VaryingInterface Varying, typename Plot>
     requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&> ||
              std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
 [[maybe_unused]]
 static void
-rasterize_line(const ProjectedFragment<Varying>& proj0,
-               const ProjectedFragment<Varying>& proj1,
-               const Plot&& plot,
-               const LineEndsInclusion bias_option)
+rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Plot&& plot)
 {
     // Modified DDA Line algorithm:
     // https://www.redblobgames.com/grids/line-drawing/#more
@@ -55,9 +52,10 @@ rasterize_line(const ProjectedFragment<Varying>& proj0,
         };
     };
 
-    const auto bias0 =
-            !(bias_option == LineEndsInclusion::IncludeStart || bias_option == LineEndsInclusion::IncludeBoth);
-    const auto bias1 = !(bias_option == LineEndsInclusion::IncludeEnd || bias_option == LineEndsInclusion::IncludeBoth);
+    const auto bias0 = !(Options.line_ends_inclusion == LineEndsInclusion::IncludeStart ||
+                         Options.line_ends_inclusion == LineEndsInclusion::IncludeBoth);
+    const auto bias1 = !(Options.line_ends_inclusion == LineEndsInclusion::IncludeEnd ||
+                         Options.line_ends_inclusion == LineEndsInclusion::IncludeBoth);
 
     if (bias0) {
         acc_t += inc_t;
@@ -105,7 +103,7 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
     return is_top_edge || is_left_edge;
 }
 
-template<VaryingInterface Varying, typename Plot>
+template<RendererOptions Options, VaryingInterface Varying, typename Plot>
     requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&> ||
              std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
 [[maybe_unused]]
@@ -113,8 +111,7 @@ static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
-                   const Plot&& plot,
-                   const TriangleFillBias bias_option)
+                   const Plot&& plot)
 {
     // Modified algorithm which uses cross products and bayesian coordinates for triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
@@ -162,14 +159,14 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
     // bias to exclude either top-left or bottom-right edge
     const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2)
-                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
+                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
     const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0)
-                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
+                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
     const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1)
-                                      ? (bias_option == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (bias_option == TriangleFillBias::BottomRight ? 0.f : -1.f);
+                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
+                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
 
     const math::Float triangle_area_2 = cross(v0.vector_to(v2), v0.vector_to(v1));
     if (std::trunc(triangle_area_2) == 0) {

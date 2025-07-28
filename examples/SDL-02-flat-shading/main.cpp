@@ -50,7 +50,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -180,7 +180,7 @@ private:
 
 struct MyUniform
 {
-    const math::Rot3D& rot;
+    math::Rot3D rot;
     math::Float z_near;
     math::Float z_far;
 };
@@ -325,14 +325,12 @@ main(int argc, char* argv[])
             index_offset += fv;
         }
     }
-    math::Rot3D rot;
     SDLClock clock;
     SDLBuffer screen(512, 512);
     MyProgram program;
-    asciirast::Renderer renderer;
+    asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions renderer_options{ .winding_order = asciirast::WindingOrder::CounterClockwise };
-    MyUniform uniforms{ rot, {}, {} };
+    MyUniform uniforms;
     uniforms.z_near = std::ranges::fold_left(
             vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
             math::Float{},
@@ -342,19 +340,18 @@ main(int argc, char* argv[])
             math::Float{},
             [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
 
-
     bool running = true;
     while (running) {
         handle_events(running);
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
-            rot.rotateXZ(-1.f * dt_sec);
+            uniforms.rot.rotateXZ(-1.f * dt_sec);
 #endif
         });
 
         screen.clear();
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data, renderer_options);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
 
         clock.tick();

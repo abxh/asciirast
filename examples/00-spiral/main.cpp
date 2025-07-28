@@ -92,7 +92,7 @@ public:
         m_width = (std::size_t)(new_width);
         m_height = (std::size_t)(new_height);
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -130,9 +130,9 @@ static_assert(asciirast::FrameBufferInterface<TerminalBuffer>);
 
 struct MyUniform
 {
-    const math::Rot2D& rot;
-    const std::string& palette;
-    const math::Float& aspect_ratio;
+    math::Rot2D rot;
+    std::string palette;
+    math::Float aspect_ratio;
     static const inline auto flip_transform = math::Transform2D().rotate(math::radians(180.f)).reflectX();
 };
 
@@ -180,11 +180,10 @@ static_assert(asciirast::ProgramInterface<MyProgram>);
 int
 main(int, char**)
 {
-    const std::string palette = "@%#*+=-:. "; // Paul Borke's palette
-    const math::Float aspect_ratio = 3.f / 5.f;
+    MyUniform uniforms;
 
-    math::Rot2D u_rot{};
-    MyUniform uniforms{ u_rot, palette, aspect_ratio };
+    uniforms.palette = "@%#*+=-:. "; // Paul Borke's palette
+    uniforms.aspect_ratio = 3.f / 5.f;
 
     asciirast::VertexBuffer<MyVertex> vertex_buf;
     {
@@ -200,7 +199,7 @@ main(int, char**)
         auto f = std::complex<float>{ std::polar(1.1f, math::radians(45.f / 2.f)) };
 
         for (int i = 0; i < 50; i++) {
-            id = std::min((id + 0.2f), (float)palette.size() - 1);
+            id = std::min((id + 0.2f), (float)uniforms.palette.size() - 1);
             v *= f;
             vertex_buf.verticies.push_back(MyVertex{ id, math::Vec2{ v.real(), v.imag() } });
         }
@@ -209,7 +208,7 @@ main(int, char**)
     MyProgram program;
     TerminalBuffer framebuffer;
 
-    asciirast::Renderer renderer;
+    asciirast::Renderer<> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
     std::binary_semaphore sem{ 0 };
@@ -232,7 +231,7 @@ main(int, char**)
             renderer_data.screen_to_window = framebuffer.screen_to_window();
         }
 
-        u_rot.stack(math::radians(-45.f));
+        uniforms.rot.stack(math::radians(-45.f));
     }
     check_eof_program.join();
 }

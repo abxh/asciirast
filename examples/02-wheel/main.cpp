@@ -132,7 +132,7 @@ public:
         m_width = (std::size_t)new_width;
         m_height = (std::size_t)new_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -177,7 +177,7 @@ struct MyUniform
 {
     math::Float aspect_ratio;
     bool draw_horizontal;
-    math::Rot2D& rot;
+    math::Rot2D rot;
     static constexpr ctable table = { //
         { { '\\', '|', '/' },         //
           { '_', ' ', '_' },
@@ -277,10 +277,11 @@ fix_corners(const TerminalBuffer& t, const math::Vec2Int& pos)
     return FramebufferPoint{ pos, TerminalBuffer::Targets{ c, math::Vec3{ 1, 1, 1 } } };
 }
 
+template<asciirast::RendererOptions Options>
 std::vector<FramebufferPoint>&
 fix_corners(const MyUniform& u,
             const TerminalBuffer& t,
-            const asciirast::Renderer& r,
+            const asciirast::Renderer<Options>& r,
             const std::vector<MyVertex>& verticies,
             std::vector<FramebufferPoint>& out)
 {
@@ -292,8 +293,8 @@ fix_corners(const MyUniform& u,
             continue;
         }
         const auto frag0 = asciirast::project_fragment(asciirast::Fragment{ pos1, asciirast::EmptyVarying() });
-        const auto frag1 = asciirast::Renderer::apply_scale_to_viewport(r.scale_to_viewport(), frag0);
-        const auto frag2 = asciirast::Renderer::apply_screen_to_window(t.screen_to_window(), frag1);
+        const auto frag1 = asciirast::Renderer<>::apply_scale_to_viewport(r.scale_to_viewport(), frag0);
+        const auto frag2 = asciirast::Renderer<>::apply_screen_to_window(t.screen_to_window(), frag1);
         const auto pos2 = math::Vec2Int{ frag2.pos };
         if (math::Vec2Int{ 0, 0 } <= pos2 - math::Vec2Int{ 1, 1 } && //
             pos2 + math::Vec2Int{ 1, 1 } <= t.size()) {
@@ -343,23 +344,28 @@ main(int, char**)
 
     MyProgram program;
     TerminalBuffer framebuffer;
-    math::Rot2D rot;
-    math::Float aspect_ratio = framebuffer.aspect_ratio();
-    MyUniform uniforms{ aspect_ratio, true, rot };
+    MyUniform uniforms;
+    uniforms.aspect_ratio = framebuffer.aspect_ratio();
     std::vector<FramebufferPoint> points;
 
-    asciirast::Renderer r0{ math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }) };
-    asciirast::Renderer r1{ math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }).size_set(math::Vec2{ 1.5, 1.5 }) };
+    constexpr asciirast::RendererOptions circle_options{
+        .line_drawing_direction = asciirast::LineDrawingDirection::Downwards,
+        .line_ends_inclusion = asciirast::LineEndsInclusion::IncludeBoth,
+    };
+
+    constexpr asciirast::RendererOptions line_options{
+        .line_drawing_direction = asciirast::LineDrawingDirection::Downwards,
+        .line_ends_inclusion = asciirast::LineEndsInclusion::ExcludeBoth,
+    };
+
+    asciirast::Renderer<circle_options> cr0{ math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }) };
+    asciirast::Renderer<circle_options> cr1{
+        math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }).size_set(math::Vec2{ 1.5, 1.5 })
+    };
+    asciirast::Renderer<line_options> lr{
+        math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }).size_set(math::Vec2{ 1.5, 1.5 })
+    };
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
-    asciirast::RendererOptions circle_options;
-
-    circle_options.line_ends_inclusion = asciirast::LineEndsInclusion::IncludeBoth;
-    circle_options.line_drawing_direction = asciirast::LineDrawingDirection::Downwards;
-
-    asciirast::RendererOptions line_options;
-
-    line_options.line_ends_inclusion = asciirast::LineEndsInclusion::ExcludeBoth;
-    line_options.line_drawing_direction = asciirast::LineDrawingDirection::Downwards;
 
     std::binary_semaphore sem{ 0 };
 
@@ -371,22 +377,21 @@ main(int, char**)
     } };
 
     while (!sem.try_acquire()) {
-
         uniforms.draw_horizontal = false; // prefer other chars over '_':
 
-        r0.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, line_buf, framebuffer, renderer_data, line_options);
+        cr0.draw(program, uniforms, circle_buf, framebuffer, renderer_data);
+        cr1.draw(program, uniforms, circle_buf, framebuffer, renderer_data);
+        lr.draw(program, uniforms, line_buf, framebuffer, renderer_data);
 
         uniforms.draw_horizontal = true;
-        r0.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, circle_buf, framebuffer, renderer_data, circle_options);
-        r1.draw(program, uniforms, line_buf, framebuffer, renderer_data, line_options);
+        cr0.draw(program, uniforms, circle_buf, framebuffer, renderer_data);
+        cr1.draw(program, uniforms, circle_buf, framebuffer, renderer_data);
+        lr.draw(program, uniforms, line_buf, framebuffer, renderer_data);
 
-        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, r0, circle_buf.verticies, points)) {
+        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, cr0, circle_buf.verticies, points)) {
             framebuffer.plot(pos, targets);
         }
-        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, r1, circle_buf.verticies, points)) {
+        for (auto [pos, targets] : fix_corners(uniforms, framebuffer, cr1, circle_buf.verticies, points)) {
             framebuffer.plot(pos, targets);
         }
 
@@ -397,9 +402,8 @@ main(int, char**)
         if (framebuffer.clear_and_update_size()) {
             renderer_data.screen_to_window = framebuffer.screen_to_window();
         }
-        aspect_ratio = framebuffer.aspect_ratio();
-
-        rot.stack(math::radians(-10.f));
+        uniforms.aspect_ratio = framebuffer.aspect_ratio();
+        uniforms.rot.stack(math::radians(-10.f));
     }
     check_eof_program.join();
 }

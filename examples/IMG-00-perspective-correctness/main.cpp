@@ -40,7 +40,7 @@ public:
             : m_width{ width }
             , m_height{ height }
     {
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()

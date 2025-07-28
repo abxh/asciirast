@@ -17,6 +17,7 @@
 
 #include "./math/types.h"
 #include "./program_token.h"
+#include "renderer_options.h"
 
 namespace asciirast {
 
@@ -278,6 +279,7 @@ private:
             , m_is_helper_invocation{ is_helper_invocation }
             , m_is_initialized{ is_initialized } {};
 
+    template<RendererOptions>
     friend class Renderer;
 };
 

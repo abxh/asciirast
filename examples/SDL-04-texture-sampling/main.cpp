@@ -55,7 +55,7 @@ public:
         m_win_width = win_width;
         m_win_height = win_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -220,9 +220,9 @@ private:
 
 struct MyUniform
 {
-    const asciirast::Texture& texture;
-    const asciirast::Sampler& sampler;
-    const math::Transform2D& transform;
+    asciirast::Texture texture;
+    asciirast::Sampler sampler;
+    math::Transform2D transform;
 };
 
 struct MyVertex
@@ -347,7 +347,7 @@ handle_events(bool& running,
         }
     }
     if (change_transform) {
-        static const math::Transform2D screen_transform = asciirast::Renderer::SCREEN_BOUNDS.to_transform();
+        static const math::Transform2D screen_transform = asciirast::SCREEN_BOUNDS.to_transform();
         final_transform = math::Transform2D()
                                   .stack(screen_transform)
                                   .scale(zoom, zoom)
@@ -418,19 +418,17 @@ main(int argc, char* argv[])
         path_to_ttf = argv[2];
     }
 
+    MyUniform uniforms;
     const unsigned screen_size = 1024;
     const SDLFont font{ path_to_ttf.c_str() };
-    const asciirast::Texture texture{ path_to_img };
-    const math::Float aspect_ratio = texture.width() / (math::Float)texture.height();
+    uniforms.texture = asciirast::Texture{ path_to_img };
+    const math::Float aspect_ratio = uniforms.texture.width() / (math::Float)uniforms.texture.height();
     math::Vec2 shift = { 0, 0 };
     math::Float zoom = 1.f;
-    math::Transform2D final_transform{};
-    asciirast::Sampler sampler{};
-    const MyUniform uniforms{ texture, sampler, final_transform };
 
-    sampler.wrap_method = asciirast::WrapMethod::Repeat;
-    sampler.sample_method = asciirast::SampleMethod::Linear;
-    sampler.mipmap_sample_method = asciirast::SampleMethod::Linear;
+    uniforms.sampler.wrap_method = asciirast::WrapMethod::Repeat;
+    uniforms.sampler.sample_method = asciirast::SampleMethod::Linear;
+    uniforms.sampler.mipmap_sample_method = asciirast::SampleMethod::Linear;
 
     asciirast::VertexBuffer<MyVertex> vertex_buf{};
     vertex_buf.shape_type = asciirast::ShapeType::TriangleStrip;
@@ -455,7 +453,7 @@ main(int argc, char* argv[])
 
     bool running = true;
     while (running) {
-        handle_events(running, shift, zoom, final_transform, sampler);
+        handle_events(running, shift, zoom, uniforms.transform, uniforms.sampler);
 
         screen.clear();
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);

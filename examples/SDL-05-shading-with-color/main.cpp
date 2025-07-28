@@ -51,7 +51,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -181,9 +181,9 @@ private:
 
 struct MyUniform
 {
-    const asciirast::Texture& texture;
-    const asciirast::Sampler& sampler;
-    const math::Rot3D& rot;
+    asciirast::Texture texture;
+    asciirast::Sampler sampler;
+    math::Rot3D rot;
     math::Float z_near = 0.1f;
     math::Float z_far = 100.f;
 };
@@ -320,8 +320,8 @@ main(int argc, char* argv[])
     } else if (!obj_reader.Warning().empty()) {
         std::cout << "tinyobj::ObjReader : " << obj_reader.Warning();
     }
-    const auto texture = asciirast::Texture(path_to_tga);
-    const asciirast::Sampler sampler{};
+    MyUniform uniforms;
+    uniforms.texture = asciirast::Texture(path_to_tga);
 
     const tinyobj::attrib_t& attrib = obj_reader.GetAttrib();
     const std::vector<tinyobj::shape_t>& shapes = obj_reader.GetShapes();
@@ -383,7 +383,6 @@ main(int argc, char* argv[])
     }
     math::Rot3D rot;
     SDLClock clock;
-    MyUniform uniforms{ texture, sampler, rot };
     uniforms.z_near = std::ranges::fold_left(
             vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
             math::Float{},
@@ -395,9 +394,8 @@ main(int argc, char* argv[])
 
     SDLBuffer screen(512, 512);
     MyProgram program;
-    asciirast::Renderer renderer;
+    asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    asciirast::RendererOptions renderer_options = { .winding_order = asciirast::WindingOrder::CounterClockwise };
 
     bool running = true;
     while (running) {
@@ -405,12 +403,12 @@ main(int argc, char* argv[])
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
-            rot.rotateXZ(-1.f * dt_sec);
+            uniforms.rot.rotateXZ(-1.f * dt_sec);
 #endif
         });
 
         screen.clear();
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data, renderer_options);
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
 
         clock.tick();

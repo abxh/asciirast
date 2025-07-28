@@ -51,7 +51,7 @@ public:
         m_width = tex_width;
         m_height = tex_height;
 
-        m_screen_to_window = asciirast::Renderer::SCREEN_BOUNDS //
+        m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
                                      .reversed()
                                      .reflectY()
@@ -181,7 +181,7 @@ private:
 
 struct MyUniform
 {
-    const math::Rot3D& rot;
+    math::Rot3D rot;
 };
 
 struct MyVertex
@@ -307,13 +307,12 @@ main(int argc, char* argv[])
         }
     }
 
-    math::Rot3D rot;
     SDLClock clock;
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
-    MyUniform uniforms{ rot };
+    MyUniform uniforms;
 
     bool running = true;
     while (running) {
@@ -321,7 +320,7 @@ main(int argc, char* argv[])
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
-            rot.rotateXZ(-1.f * dt_sec);
+            uniforms.rot.rotateXZ(-1.f * dt_sec);
 #endif
         });
 

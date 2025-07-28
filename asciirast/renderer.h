@@ -20,6 +20,13 @@
 namespace asciirast {
 
 /**
+ * @brief Screen boundary
+ *
+ * Verticies outside of this boundary are not shown.
+ */
+static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
+
+/**
  * @brief Shape primitives
  */
 enum class ShapeType
@@ -75,6 +82,7 @@ class RendererData
     AttrsTripletQueue m_attrs_queue0 = {};
     AttrsTripletQueue m_attrs_queue1 = {};
 
+    template<RendererOptions>
     friend class Renderer;
 
 public:
@@ -92,19 +100,13 @@ public:
 /**
  * @brief Renderer class
  */
+template<RendererOptions Options = {}>
 class Renderer
 {
     bool m_requires_screen_clipping = false;
     math::Transform2D m_scale_to_viewport = {};
 
 public:
-    /**
-     * @brief Screen boundary
-     *
-     * Verticies outside of this boundary are not shown.
-     */
-    static constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
-
     /**
      * @brief Construct renderer with default viewport
      */
@@ -131,7 +133,7 @@ public:
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * verticies, options and reusable data buffers
+     * verticies and reusable data buffers
      *
      * @throws std::logic_error If fragments do not syncronize in the same order
      *
@@ -140,7 +142,6 @@ public:
      * @param verts The vertex buffer
      * @param framebuffer The frame buffer
      * @param data Renderer data
-     * @param options Renderer Options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -154,15 +155,14 @@ public:
               const Uniform& uniform,
               const VertexBuffer<Vertex, VertexAllocator>& verts,
               FrameBuffer& framebuffer,
-              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              RendererOptions options = {}) const
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, data, options);
+        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, data);
     }
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * indexed verticies, renderer data and options
+     * indexed verticies and reusable data buffers
      *
      * @throws std::runtime_error If the vertex indicies are out of bounds
      * @throws std::logic_error If fragments do not syncronize in the same order
@@ -172,7 +172,6 @@ public:
      * @param verts The vertex buffer with indicies
      * @param framebuffer The frame buffer
      * @param data Renderer data
-     * @param options Renderer options
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -187,8 +186,7 @@ public:
               const Uniform& uniform,
               const IndexedVertexBuffer<Vertex, VertexAllocator, IndexAllocator>& verts,
               FrameBuffer& framebuffer,
-              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              RendererOptions options = {}) const
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             if (i >= verts.verticies.size()) {
@@ -198,7 +196,7 @@ public:
         };
         const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
 
-        draw(program, uniform, verts.shape_type, view, framebuffer, data, options);
+        draw(program, uniform, verts.shape_type, view, framebuffer, data);
     }
 
     /**
@@ -261,8 +259,7 @@ private:
               const ShapeType shape_type,
               std::ranges::input_range auto&& verticies_inp,
               FrameBuffer& framebuffer,
-              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-              const RendererOptions& options) const
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
         using Vertex = typename Program::Vertex;
 
@@ -281,7 +278,6 @@ private:
                       m_requires_screen_clipping,
                       m_scale_to_viewport,
                       data.screen_to_window,
-                      options,
                       framebuffer,
                       v0,
                       v1);
@@ -292,7 +288,6 @@ private:
                           m_requires_screen_clipping,
                           m_scale_to_viewport,
                           data.screen_to_window,
-                          options,
                           data,
                           framebuffer,
                           v0,
@@ -460,7 +455,6 @@ private:
                           const bool requires_screen_clipping,
                           const math::Transform2D& scale_to_viewport,
                           const math::Transform2D& screen_to_window,
-                          const RendererOptions& options,
                           FrameBuffer& framebuffer,
                           const Vertex& v0,
                           const Vertex& v1)
@@ -516,7 +510,7 @@ private:
 
         // swap vertices after line drawing direction
         bool keep_vertex_order = true;
-        switch (const auto v0v1 = wfrag0.pos.vector_to(wfrag1.pos); options.line_drawing_direction) {
+        switch (const auto v0v1 = wfrag0.pos.vector_to(wfrag1.pos); Options.line_drawing_direction) {
         case LineDrawingDirection::Upwards:
             keep_vertex_order = v0v1.y > 0;
             break;
@@ -590,11 +584,9 @@ private:
             };
 
             if (keep_vertex_order) {
-                renderer::rasterize_line(
-                        wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
+                renderer::rasterize_line<Options>(wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func));
             } else {
-                renderer::rasterize_line(
-                        wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
+                renderer::rasterize_line<Options>(wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func));
             }
         } else {
             static_assert(detail::ProgramInterface_FragRegularSupport<Program>);
@@ -616,11 +608,9 @@ private:
             };
 
             if (keep_vertex_order) {
-                renderer::rasterize_line(
-                        wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
+                renderer::rasterize_line<Options>(wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func));
             } else {
-                renderer::rasterize_line(
-                        wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func), options.line_ends_inclusion);
+                renderer::rasterize_line<Options>(wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func));
             }
         }
     }
@@ -638,7 +628,6 @@ private:
             const bool requires_screen_clipping,
             const math::Transform2D& scale_to_viewport,
             const math::Transform2D& screen_to_window,
-            const RendererOptions& options,
             RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
             FrameBuffer& framebuffer,
             const Vertex& v0,
@@ -651,11 +640,11 @@ private:
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
 
-        const auto rasterize_triangle = [&program, &framebuffer, &uniform, &options](
+        const auto rasterize_triangle = [&program, &framebuffer, &uniform](
                                                 const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
-            const bool clockwise_winding_order = options.winding_order == WindingOrder::Clockwise;
-            const bool cclockwise_winding_order = options.winding_order == WindingOrder::CounterClockwise;
-            const bool neither_winding_order = options.winding_order == WindingOrder::Neither;
+            constexpr bool clockwise_winding_order = Options.winding_order == WindingOrder::Clockwise;
+            constexpr bool cclockwise_winding_order = Options.winding_order == WindingOrder::CounterClockwise;
+            constexpr bool neither_winding_order = Options.winding_order == WindingOrder::Neither;
 
             // perform backface culling:
             const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
@@ -759,17 +748,11 @@ private:
                 };
 
                 if (keep_vertex_order) {
-                    renderer::rasterize_triangle(wfrag0,
-                                                 wfrag1,
-                                                 wfrag2,
-                                                 std::forward<decltype(plot_func)>(plot_func),
-                                                 options.triangle_fill_bias);
+                    renderer::rasterize_triangle<Options>(
+                            wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
-                    renderer::rasterize_triangle(wfrag0,
-                                                 wfrag2,
-                                                 wfrag1,
-                                                 std::forward<decltype(plot_func)>(plot_func),
-                                                 options.triangle_fill_bias);
+                    renderer::rasterize_triangle<Options>(
+                            wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
                 }
             } else {
                 static_assert(detail::ProgramInterface_FragRegularSupport<Program>);
@@ -792,17 +775,11 @@ private:
                 };
 
                 if (keep_vertex_order) {
-                    renderer::rasterize_triangle(wfrag0,
-                                                 wfrag1,
-                                                 wfrag2,
-                                                 std::forward<decltype(plot_func)>(plot_func),
-                                                 options.triangle_fill_bias);
+                    renderer::rasterize_triangle<Options>(
+                            wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
-                    renderer::rasterize_triangle(wfrag0,
-                                                 wfrag2,
-                                                 wfrag1,
-                                                 std::forward<decltype(plot_func)>(plot_func),
-                                                 options.triangle_fill_bias);
+                    renderer::rasterize_triangle<Options>(
+                            wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
                 }
             }
         };
