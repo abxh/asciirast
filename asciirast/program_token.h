@@ -81,7 +81,7 @@ private:
     {
         constexpr void push(const std::size_t& value)
         {
-            assert(m_size < FrameCount && "enough memory allocated");
+            assert(m_size < FrameCount && "enough frames allocated");
             m_data[m_size++] = value;
         }
         constexpr std::size_t pop()
@@ -114,7 +114,7 @@ public:
     {
         static void* operator new([[maybe_unused]] std::size_t n)
         {
-            assert(n < MaxFrameSize && "frame size is smaller than 1024 bytes");
+            assert(n < MaxFrameSize && "frame size of coroutine fits");
             return frame_pool.allocate();
         }
         static void operator delete(void* ptr, std::size_t) noexcept { frame_pool.deallocate(ptr); }
