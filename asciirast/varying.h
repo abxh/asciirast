@@ -1,19 +1,40 @@
+/**
+ * @file varying_mixin.h
+ * @brief Definition of Varying Mixin
+ */
+
 #pragma once
 
-#include <cassert>
-#include <cfloat>
+#include "./math/types.h"
 
-#include "../math/types.h"
-#include "../fragment.h"
+#include <type_traits>
 
 // on perspective corrected interpolation:
 // https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
 // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
 
-namespace asciirast::renderer {
+namespace asciirast {
 
 /**
- * @brief Linear interpolation of varying
+ * @brief Empty varying type
+ */
+struct EmptyVarying
+{};
+
+/**
+ * @brief Concept to follow the varying interface
+ *
+ * Varying are the interpolated attributes of verticies.
+ */
+template<typename T>
+concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) {
+    { x + x } -> std::same_as<T>;
+    { x * math::Float{ -1 } } -> std::same_as<T>;
+    requires std::semiregular<T>;
+};
+
+/**
+ * @brief Linear interpolation of varying types
  */
 template<VaryingInterface Varying>
 static Varying
@@ -57,40 +78,6 @@ lerp_varying_perspective_corrected(const Varying& a,
 
         return (l + r) * (1 / acc_Z_inv);
     }
-}
-
-/**
- * @brief Linear interpolation of fragments
- */
-template<VaryingInterface T>
-[[maybe_unused]]
-static auto
-lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
-{
-    return Fragment<T>{ .pos = lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
-}
-
-/**
- * @brief Linear interpolation of projected fragments
- */
-template<VaryingInterface T>
-[[maybe_unused]]
-static auto
-lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
-{
-    if (t == 0) {
-        return a;
-    } else if (t == 1) {
-        return b;
-    }
-    const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);
-
-    return ProjectedFragment<T>{
-        .pos = lerp(a.pos, b.pos, t),
-        .depth = lerp_varying_perspective_corrected(a.depth, b.depth, t, a.Z_inv, b.Z_inv, Z_inv_t),
-        .Z_inv = Z_inv_t,
-        .attrs = lerp_varying_perspective_corrected(a.attrs, b.attrs, t, a.Z_inv, b.Z_inv, Z_inv_t)
-    };
 }
 
 /**
@@ -167,4 +154,4 @@ barycentric_perspective_corrected(const math::Vec3& v,
     return dot(v, weights * Z_inv) * (1 / acc_Z_inv);
 }
 
-}; // namespace asciirast::rasterize
+};

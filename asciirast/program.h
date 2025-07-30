@@ -14,9 +14,9 @@
 
 namespace asciirast {
 
-/// @cond DO_NOT_DOCUMENT
-namespace detail {
-
+/**
+ * @brief Minimal Program requirements
+ */
 template<class T>
 concept ProgramInterface_MinimalSupport = requires(const T t) {
     typename T::Uniform;
@@ -32,6 +32,9 @@ concept ProgramInterface_MinimalSupport = requires(const T t) {
     } -> std::same_as<void>;
 };
 
+/**
+ * @brief Regular on_fragment() function requirements
+ */
 template<class T>
 concept ProgramInterface_FragRegularSupport = requires(const T t) {
     requires ProgramInterface_MinimalSupport<T>;
@@ -42,6 +45,9 @@ concept ProgramInterface_FragRegularSupport = requires(const T t) {
     } -> std::same_as<void>;
 };
 
+/**
+ * @brief Coroutine on_fragment() function requirements
+ */
 template<class T>
 concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
     requires ProgramInterface_MinimalSupport<T>;
@@ -56,35 +62,16 @@ concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
     } -> std::same_as<ProgramTokenGenerator>;
 };
 
-};
-/// @endcond
-
 /**
  * @brief Concept to follow the (shader) program interface
- *
- * @tparam T The type to check
  */
 template<class T>
 concept ProgramInterface = requires(const T t) {
-    requires detail::ProgramInterface_MinimalSupport<T>;
-    requires detail::ProgramInterface_FragRegularSupport<T>;
+    requires ProgramInterface_MinimalSupport<T>;
+    requires ProgramInterface_FragRegularSupport<T>;
 } || requires(const T t) {
-    requires detail::ProgramInterface_MinimalSupport<T>;
-    requires detail::ProgramInterface_FragCoroutineSupport<T>;
+    requires ProgramInterface_MinimalSupport<T>;
+    requires ProgramInterface_FragCoroutineSupport<T>;
 };
-
-/// @cond DO_NOT_DOCUMENT
-namespace detail {
-
-template<ProgramInterface Program, class Uniform, class Vertex, FrameBufferInterface FrameBuffer>
-struct can_use_program_with
-{
-    static constexpr bool value = std::is_same_v<typename Program::Uniform, Uniform> &&
-                                  std::is_same_v<typename Program::Vertex, Vertex> &&
-                                  std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>;
-};
-
-};
-/// @endcond
 
 }; // namespace asciirast

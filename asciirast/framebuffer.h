@@ -9,9 +9,9 @@
 
 namespace asciirast {
 
-/// @cond DO_NOT_DOCUMENT
-namespace detail {
-
+/**
+ * @brief Check if framebuffer has plot() support
+ */
 template<class T>
 concept FrameBuffer_PlotSupport = requires(T t) {
     typename T::Targets;
@@ -21,6 +21,9 @@ concept FrameBuffer_PlotSupport = requires(T t) {
     } -> std::same_as<void>;
 };
 
+/**
+ * @brief Check if framebuffer has test_and_set_depth() support
+ */
 template<class T>
 concept FrameBuffer_DepthSupport = requires(T t) {
     {
@@ -29,20 +32,13 @@ concept FrameBuffer_DepthSupport = requires(T t) {
     } -> std::same_as<bool>;
 };
 
-};
-/// @endcond
-
 /**
- * @brief Concept for following the framebuffer interface
- *
- * @tparam T The type to check
+ * @brief Concept to follow the framebuffer interface
  */
 template<class T>
-concept FrameBufferInterface = requires(T t) {
-    requires detail::FrameBuffer_PlotSupport<T>;
-} || requires(T t) {
-    requires detail::FrameBuffer_PlotSupport<T>;
-    requires detail::FrameBuffer_DepthSupport<T>;
+concept FrameBufferInterface = requires(T t) { requires FrameBuffer_PlotSupport<T>; } || requires(T t) {
+    requires FrameBuffer_PlotSupport<T>;
+    requires FrameBuffer_DepthSupport<T>;
 };
 
 } // namespace asciirast

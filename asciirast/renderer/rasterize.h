@@ -3,9 +3,9 @@
 #include <cassert>
 #include <cfloat>
 
+#include "../fragment.h"
 #include "../math/types.h"
 #include "../renderer_options.h"
-#include "./interpolate.h"
 
 namespace asciirast::renderer {
 

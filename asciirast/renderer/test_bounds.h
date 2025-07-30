@@ -6,7 +6,6 @@
 
 #include "../fragment.h"
 #include "../math/types.h"
-#include "./interpolate.h"
 
 // on homogenous coordinates:
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction

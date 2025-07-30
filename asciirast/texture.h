@@ -30,25 +30,10 @@
 
 namespace asciirast {
 
-/// @cond DO_NOT_DOCUMENT
 namespace detail {
-
 #include "external/stb_image/stb_image.h"
 #include "external/stb_image/stb_image_write.h"
-
-[[maybe_unused]]
-static auto
-texture_index(math::Int width, math::Int height, math::Int x, math::Int y) -> std::size_t
-{
-    assert(0 <= y && "index is non-negative");
-    assert(0 <= x && "index is non-negative");
-    assert(width * y + x < width * height && "index is in bounds");
-    (void)(height);
-
-    return static_cast<std::size_t>(width * y + x);
 }
-}
-/// @endcond
 
 /**
  * @brief Texture storage class
@@ -63,6 +48,19 @@ class TextureStorage
     std::vector<T, Allocator> m_pixels;
 
 public:
+    /**
+     * @brief Indexing function
+     */
+    static auto texture_index(math::Int width, [[maybe_unused]] math::Int height, math::Int x, math::Int y)
+            -> std::size_t
+    {
+        assert(0 <= y && "index is non-negative");
+        assert(0 <= x && "index is non-negative");
+        assert(width * y + x < width * height && "index is in bounds");
+
+        return static_cast<std::size_t>(width * y + x);
+    }
+
     /**
      * @brief Construct a default texture
      *
@@ -123,7 +121,7 @@ public:
      */
     [[nodiscard]] T& operator[](const math::Int y, const math::Int x)
     {
-        return m_pixels[detail::texture_index(m_width, m_height, x, y)];
+        return m_pixels[texture_index(m_width, m_height, x, y)];
     }
 
     /**
@@ -135,7 +133,7 @@ public:
      */
     [[nodiscard]] const T& operator[](const math::Int y, const math::Int x) const
     {
-        return m_pixels[detail::texture_index(m_width, m_height, x, y)];
+        return m_pixels[texture_index(m_width, m_height, x, y)];
     }
 };
 
@@ -302,7 +300,7 @@ public:
 
         for (math::Int y = 0; y < height; y++) {
             for (math::Int x = 0; x < width; x++) {
-                const std::size_t idx = detail::texture_index(width, height, x, y);
+                const std::size_t idx = RGBA_8bit_TextureStorage::texture_index(width, height, x, y);
 
                 m_mipmaps[0].data()[idx] = ptr_rgba[idx];
             }

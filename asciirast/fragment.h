@@ -17,46 +17,10 @@
 
 #include "./math/types.h"
 #include "./program_token.h"
-#include "renderer_options.h"
+#include "./renderer_options.h"
+#include "./varying.h"
 
 namespace asciirast {
-
-/**
- * @brief Empty varying type
- */
-struct EmptyVarying
-{};
-
-/**
- * @brief Concept to follow the varying interface
- *
- * Varying are the interpolated attributes of verticies.
- */
-template<typename T>
-concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) {
-    { x + x } -> std::same_as<T>;
-    { x * math::Float{ -1 } } -> std::same_as<T>;
-    requires std::semiregular<T>;
-};
-
-/**
- * @brief Linear interpolation of varying types
- *
- * @param a Left hand side varying
- * @param b Right hand side varying
- * @param t How much to interpolate between the two as a number between 0 and 1
- * @return The interpolated varying
- */
-template<VaryingInterface Varying>
-static Varying
-lerp_varying(const Varying& a, const Varying& b, const math::Float t)
-{
-    if constexpr (std::is_same_v<Varying, EmptyVarying>) {
-        return EmptyVarying();
-    } else {
-        return a * (1 - t) + b * t;
-    }
-}
 
 /**
  * @brief Fragment type
@@ -101,6 +65,40 @@ project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
         .depth = v.z,
         .Z_inv = Z_inv,
         .attrs = frag.attrs,
+    };
+}
+
+/**
+ * @brief Linear interpolation of fragments
+ */
+template<VaryingInterface T>
+[[maybe_unused]]
+static auto
+lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
+{
+    return Fragment<T>{ .pos = lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
+}
+
+/**
+ * @brief Linear interpolation of projected fragments
+ */
+template<VaryingInterface T>
+[[maybe_unused]]
+static auto
+lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
+{
+    if (t == 0) {
+        return a;
+    } else if (t == 1) {
+        return b;
+    }
+    const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);
+
+    return ProjectedFragment<T>{
+        .pos = lerp(a.pos, b.pos, t),
+        .depth = lerp_varying_perspective_corrected(a.depth, b.depth, t, a.Z_inv, b.Z_inv, Z_inv_t),
+        .Z_inv = Z_inv_t,
+        .attrs = lerp_varying_perspective_corrected(a.attrs, b.attrs, t, a.Z_inv, b.Z_inv, Z_inv_t)
     };
 }
 
