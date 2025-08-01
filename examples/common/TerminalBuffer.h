@@ -130,7 +130,7 @@ public:
 
         m_screen_to_window = asciirast::SCREEN_BOUNDS //
                                      .to_transform()
-                                     .reversed()
+                                     .inversed()
                                      .reflectY()
                                      .translate(0, 1.f)
                                      .scale(m_width - 1, m_height - 1);

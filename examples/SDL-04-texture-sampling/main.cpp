@@ -147,7 +147,7 @@ handle_events(bool& running,
         final_transform = math::Transform2D()
                                   .stack(screen_transform)
                                   .scale(zoom, zoom)
-                                  .stack(screen_transform.reversed())
+                                  .stack(screen_transform.inversed())
                                   .translate(shift);
     }
 }

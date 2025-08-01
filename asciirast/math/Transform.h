@@ -62,19 +62,29 @@ public:
     [[nodiscard]] constexpr Vec2 apply(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 1 } }; }
 
     /**
-     * @brief Apply the inverse transformation "action" on a 2D vector
+     * @brief Apply the transformation "action" on a 2D direction vector
      *
-     * @param v The vector at hand
-     * @return A copy of the vector transformed back
+     * @param v The vector direction at hand
+     * @return A copy of the vector transformed
      */
-    [[nodiscard]] constexpr Vec2 apply_inv(const Vec2& v) const { return Vec2{ m_mat_inv * Vec3{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec2 apply_to_dir(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 0 } }; }
 
     /**
-     * @brief Get transformation object that performs the reverse transformation
+     * @brief Get transformation object that performs the inverse transformation
      *
-     * @return Copy of this that performs the reverse transfromation
+     * @return Copy of this that performs the inverse transfromation
      */
-    [[nodiscard]] constexpr Transform2D reversed() const { return Transform2D{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform2D inversed() const { return Transform2D{ this->m_mat_inv, this->m_mat }; }
+
+    /**
+     * @brief Get transformation object that performs the transpose transformation
+     *
+     * @return Copy of this that performs the transpose transfromation
+     */
+    [[nodiscard]] constexpr Transform2D transposed() const
+    {
+        return Transform2D{ this->m_mat.transposed(), this->m_mat_inv.transposed() };
+    }
 
     /**
      * @brief Stack another Transform on top of this
@@ -287,19 +297,29 @@ public:
     [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 1 } }; }
 
     /**
-     * @brief Apply the inverse transformation "action" on a 3D vector
+     * @brief Apply the transformation "action" on a 3D direction vector
      *
      * @param v The vector at hand
-     * @return A copy of the vector transformed back
+     * @return A copy of the vector transformed
      */
-    [[nodiscard]] constexpr Vec3 apply_inv(const Vec3& v) const { return Vec3{ m_mat_inv * Vec4{ v, 1 } }; }
+    [[nodiscard]] constexpr Vec3 apply_to_dir(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 0 } }; }
 
     /**
-     * @brief Get transformation object that performs the reverse transformation
+     * @brief Get transformation object that performs the inverse transformation
      *
-     * @return Copy of this that performs the reverse transfromation
+     * @return Copy of this that performs the inverse transfromation
      */
-    [[nodiscard]] constexpr Transform3D reversed() const { return Transform3D{ this->m_mat_inv, this->m_mat }; }
+    [[nodiscard]] constexpr Transform3D inversed() const { return Transform3D{ this->m_mat_inv, this->m_mat }; }
+
+    /**
+     * @brief Get transformation object that performs the transpose transformation
+     *
+     * @return Copy of this that performs the transpose transfromation
+     */
+    [[nodiscard]] constexpr Transform3D transposed() const
+    {
+        return Transform3D{ this->m_mat.transposed(), this->m_mat_inv.transposed() };
+    }
 
     /**
      * @brief Stack another Transform on top of this

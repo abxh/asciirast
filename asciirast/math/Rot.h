@@ -87,11 +87,11 @@ public:
     }
 
     /**
-     * @brief Get rotation object that performs the reverse rotation
+     * @brief Get rotation object that performs the inverse rotation
      *
-     * @return Copy of this that performs the reverse rotation
+     * @return Copy of this that performs the inverse rotation
      */
-    [[nodiscard]] Rot2D reversed() const { return Rot2D{ -m_angle }; }
+    [[nodiscard]] Rot2D inversed() const { return Rot2D{ -m_angle }; }
 
     /**
      * @brief Stack another rotation object on top of this
@@ -240,7 +240,7 @@ public:
      *
      * @return Copy of this performing the inverse rotation
      */
-    [[nodiscard]] Rot3D reversed() const
+    [[nodiscard]] Rot3D inversed() const
     {
         Rot3D res = (*this);
         res.m_quat.xyz *= -1;
@@ -282,7 +282,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] Vec3 apply(const Vec3& v) const { return quat_mul(quat_mul(this->m_quat, v), reversed().m_quat).xyz; }
+    [[nodiscard]] Vec3 apply(const Vec3& v) const { return quat_mul(quat_mul(this->m_quat, v), inversed().m_quat).xyz; }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -292,7 +292,7 @@ public:
      */
     [[nodiscard]] Vec3 apply_inv(const Vec3& v) const
     {
-        return quat_mul(quat_mul(reversed().m_quat, v), this->m_quat).xyz;
+        return quat_mul(quat_mul(inversed().m_quat, v), this->m_quat).xyz;
     }
 
 private:
