@@ -36,7 +36,7 @@ point_in_frustum(const math::Vec4& p) -> bool
 
     const bool x_in_bounds = -p.w <= p.x && p.x <= +p.w;
     const bool y_in_bounds = -p.w <= p.y && p.y <= +p.w;
-    const bool z_in_bounds = -p.w <= p.z && p.z <= +p.w;
+    const bool z_in_bounds = -0.f <= p.z && p.z <= +p.w;
 
     return x_in_bounds && y_in_bounds && z_in_bounds;
 }
@@ -190,7 +190,7 @@ line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std
         return {};
     }
 
-    const math::Vec3 min_ = { -p0.w, -p0.w, -p0.w };
+    const math::Vec3 min_ = { -p0.w, -p0.w, -0.0f };
     const math::Vec3 max_ = { +p0.w, +p0.w, +p0.w };
 
     math::Float t0 = 0;
@@ -373,7 +373,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                const math::Vec3 min_ = { -p0.w, -p0.w, -p0.w };
+                const math::Vec3 min_ = { -p0.w, -p0.w, -0.0f };
                 const math::Vec3 max_ = { +p0.w, +p0.w, +p0.w };
 
                 math::Float t0a = 0.f;
@@ -410,10 +410,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                const math::Vec3 min0 = { -p0.w, -p0.w, -p0.w };
+                const math::Vec3 min0 = { -p0.w, -p0.w, -0.0f };
                 const math::Vec3 max0 = { +p0.w, +p0.w, +p0.w };
 
-                const math::Vec3 min1 = { -p1.w, -p1.w, -p1.w };
+                const math::Vec3 min1 = { -p1.w, -p1.w, -0.0f };
                 const math::Vec3 max1 = { +p1.w, +p1.w, +p1.w };
 
                 math::Float t0 = 0.f;
