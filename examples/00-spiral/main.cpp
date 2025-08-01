@@ -112,6 +112,11 @@ main(int, char**)
 
         framebuffer.render();
 
+        if (framebuffer.out_of_bounds_error_occurred()) {
+            std::cout << "error: point plotted outside of border! the library should not allow this.\n";
+            break;
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if (framebuffer.clear_and_update_size()) {
