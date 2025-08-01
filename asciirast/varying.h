@@ -106,7 +106,7 @@ lerp_varying_perspective_corrected(const Varying& a,
 /**
  * @brief Derived varying-varying addition operator
  */
-template<typename Varying, std::enable_if_t<DeriveVaryingOps<Varying>::value && std::is_class_v<Varying>, int> = 0>
+template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
 auto
 operator+(const Varying& lhs, const Varying& rhs) -> Varying
 {
@@ -118,7 +118,7 @@ operator+(const Varying& lhs, const Varying& rhs) -> Varying
 /**
  * @brief Derived varying-scalar multiplication operator
  */
-template<typename Varying, std::enable_if_t<DeriveVaryingOps<Varying>::value && std::is_class_v<Varying>, int> = 0>
+template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
 auto
 operator*(const Varying& lhs, const math::Float& scalar) -> Varying
 {
