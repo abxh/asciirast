@@ -297,7 +297,7 @@ texture(FragmentContextType<ValueTypes...>& context,
 
 #ifdef __GNUC__
 /**
- * @def TEXTURE(a,b)
+ * @def TEXTURE(context, sampler, texture_, uv)
  * @brief Initialize and execute the texture call in one go in a GNU C expression statement
  */
 #define TEXTURE(context, sampler, texture_, uv)                                                                        \

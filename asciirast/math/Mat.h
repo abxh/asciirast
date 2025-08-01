@@ -249,32 +249,48 @@ public:
     [[nodiscard]] static constexpr std::size_t size() { return M_y * N_x; }
 
     /**
-     * @brief Get pointer to the underlying data in the matrix major order
+     * @brief Get pointer to the underlying data
      *
-     * @return The pointer to the first element of the underlying data
+     * @return The pointer to the first component of the underlying data
      */
-    [[nodiscard]] constexpr T* data() { return &m_elements[0]; }
+    [[nodiscard]]
+    constexpr T* data()
+    {
+        return &m_elements[0];
+    }
 
     /**
-     * @brief Get const pointer to the underlying data in the matrix major order
+     * @brief Get pointer to the underlying data
      *
-     * @return The const pointer to the first element of the underlying data
+     * @return The pointer to the first component of the underlying data
      */
-    [[nodiscard]] constexpr const T* data() const { return &m_elements[0]; }
+    [[nodiscard]]
+    constexpr const T* data() const
+    {
+        return &m_elements[0];
+    }
 
     /**
-     * @brief Get underlying array in matrix major order
+     * @brief Get underlying array
      *
      * @return A reference to the underlying array
      */
-    [[nodiscard]] constexpr std::array<T, M_y * N_x>& array() { return m_elements; }
+    [[nodiscard]]
+    constexpr std::array<T, size()>& array()
+    {
+        return m_elements;
+    }
 
     /**
-     * @brief Get underlying array in matrix major order
+     * @brief Get underlying array
      *
      * @return A const reference to the underlying array
      */
-    [[nodiscard]] constexpr const std::array<T, M_y * N_x>& array() const { return m_elements; }
+    [[nodiscard]]
+    constexpr const std::array<T, size()>& array() const
+    {
+        return m_elements;
+    }
 
     /**
      * @brief Index the underlying array
@@ -738,7 +754,7 @@ public:
             for (std::size_t y = 0; y < M_y; y++) {
                 const auto lb = &lhs.data()[N_x * y];
                 const auto le = &lhs.data()[N_x * (y + 1)];
-                const auto rb = rhs.array().begin();
+                const auto rb = rhs.data();
 
                 res[y] = std::inner_product(lb, le, rb, T{});
             }

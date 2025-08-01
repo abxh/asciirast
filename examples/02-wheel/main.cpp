@@ -39,10 +39,9 @@ struct MyVertex
 struct MyVarying
 {
     math::Vec3 color;
-
-    MyVarying operator+(const MyVarying& that) const { return { this->color + that.color }; }
-    MyVarying operator*(const math::Float scalar) const { return { this->color * scalar }; }
 };
+
+DERIVE_VARYING_OPS(MyVarying);
 
 class MyProgram
 {

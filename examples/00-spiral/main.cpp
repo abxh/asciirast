@@ -33,10 +33,9 @@ struct MyVertex
 struct MyVarying
 {
     math::Float id;
-
-    MyVarying operator+(const MyVarying& that) const { return { this->id + that.id }; }
-    MyVarying operator*(const math::Float scalar) const { return { this->id * scalar }; }
 };
+
+DERIVE_VARYING_OPS(MyVarying);
 
 class MyProgram
 {

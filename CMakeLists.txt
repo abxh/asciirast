@@ -59,6 +59,7 @@ if (NOT MSVC)
 	endif()
 endif()
 
+add_subdirectory(external/boost_pfr) 
 add_subdirectory(external/stb_image) 
 add_subdirectory(asciirast)
 

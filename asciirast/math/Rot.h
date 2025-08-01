@@ -60,11 +60,11 @@ public:
             : m_angle{ std::remainder(angle(from_dir, to_dir), 2 * std::numbers::pi_v<T>) } {};
 
     /**
-     * @brief Get underlying angle in radians
+     * @brief Convert this to angle
      *
      * @return The angle in radians
      */
-    [[nodiscard]] const T& angle() const { return m_angle; }
+    [[nodiscard]] T to_angle() const { return m_angle; }
 
     /**
      * @brief Convert this to unit complex number
@@ -95,8 +95,6 @@ public:
 
     /**
      * @brief Stack another rotation object on top of this
-     *
-     * @note Normalization should be performed occasionally for fixing floating-point errors.
      *
      * @param that The other rotation at hand
      * @return This modified
@@ -162,11 +160,11 @@ public:
             : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
 
     /**
-     * @brief Get underlying quaternion
+     * @brief Conver to quaternion
      *
      * @return Quaternion as Vec4
      */
-    [[nodiscard]] const Vec4& quat() const { return m_quat; }
+    [[nodiscard]] Vec4 to_quat() const { return m_quat; }
 
     /**
      * @brief Convert to (normalized) axis and angle

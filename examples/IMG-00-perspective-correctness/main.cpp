@@ -27,10 +27,9 @@ struct MyVarying
 {
     RGBFloat color;
     math::Vec2 uv;
-
-    MyVarying operator+(const MyVarying& that) const { return { this->color + that.color, this->uv + that.uv }; }
-    MyVarying operator*(const math::Float scalar) const { return { this->color * scalar, this->uv * scalar }; }
 };
+
+DERIVE_VARYING_OPS(MyVarying);
 
 class RGBProgram
 {

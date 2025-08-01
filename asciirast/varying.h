@@ -7,6 +7,8 @@
 
 #include "./math/types.h"
 
+#include "external/boost_pfr/include/boost/pfr.hpp"
+
 #include <type_traits>
 
 // on perspective corrected interpolation:
@@ -32,6 +34,27 @@ concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) 
     { x * math::Float{ -1 } } -> std::same_as<T>;
     requires std::semiregular<T>;
 };
+
+/**
+ * @brief Tag struct to derive varying operations if every member themselves fullfills VaryingInterface
+ */
+template<typename T>
+    requires(std::is_aggregate_v<T> &&
+             []<std::size_t... I>(const std::index_sequence<I...>&) {
+                 return (VaryingInterface<boost::pfr::tuple_element_t<I, T>> && ...);
+             }(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()))
+struct DeriveVaryingOps : std::false_type
+{};
+
+/**
+ * @brief Helper macro to tag type for derivation of varying operations
+ */
+#define DERIVE_VARYING_OPS(T)                                                                                          \
+    template<>                                                                                                         \
+    struct asciirast::DeriveVaryingOps<T> : std::true_type                                                             \
+    {};                                                                                                                \
+    using asciirast::operator+;                                                                                        \
+    using asciirast::operator*;
 
 /**
  * @brief Linear interpolation of varying types
@@ -78,6 +101,36 @@ lerp_varying_perspective_corrected(const Varying& a,
 
         return (l + r) * (1 / acc_Z_inv);
     }
+}
+
+/**
+ * @brief enable_if type to selectively define operators of Varying types
+ */
+template<typename T>
+using enable_varying_ops_t = std::enable_if_t<DeriveVaryingOps<T>::value && std::is_class_v<T>, int>;
+
+/**
+ * @brief Derived varying-varying addition operator
+ */
+template<typename Varying, enable_varying_ops_t<Varying> = 0>
+auto
+operator+(const Varying& lhs, const Varying& rhs) -> Varying
+{
+    return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
+        return Varying{ (boost::pfr::get<I>(lhs) + boost::pfr::get<I>(rhs))... };
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
+}
+
+/**
+ * @brief Derived varying-scalar multiplication operator
+ */
+template<typename Varying, enable_varying_ops_t<Varying> = 0>
+auto
+operator*(const Varying& lhs, const math::Float& scalar) -> Varying
+{
+    return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
+        return Varying{ (boost::pfr::get<I>(lhs) * scalar)... };
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
 }
 
 };
