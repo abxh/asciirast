@@ -373,7 +373,7 @@ public:
                      math::Vec4Int{ mipmap[y + 1, x + 1] } };
         };
         const auto blend_colors = [](const std::array<math::Vec4Int, 4>& colors) -> math::Vec4Int {
-            math::Vec4Int res{ 0 };
+            auto res = math::Vec4Int::from_value(0);
             math::Int alpha_sum = 0;
             for (std::size_t j = 0; j < 4; j++) {
                 alpha_sum += colors[j].a;

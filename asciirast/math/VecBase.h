@@ -23,80 +23,21 @@ namespace asciirast::math {
  * @tparam T    Type of components
  */
 template<template<std::size_t, typename> class Vec, std::size_t N, typename T>
+    requires(N > 1)
 class VecBase
 {
 public:
     std::array<T, N> m_components = {}; ///< array of components
 
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~VecBase() = default;
     constexpr VecBase() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr VecBase(const VecBase&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
     constexpr VecBase(VecBase&&) = default;
-};
-
-/**
- * @brief Specialized 1D vector base class.
- *
- * Takes a Vec type that accepts size_t and type as parameters. This is
- * passed along to the Swizzled class.
- *
- * @tparam Vec  The vector class as a type, unintansiated.
- * @tparam T    Type of components
- */
-template<template<std::size_t, typename> class Vec, typename T>
-class VecBase<Vec, 1, T>
-{
-    static constexpr std::size_t N = 1;
-
-    template<std::size_t Index>
-    using Component = SwizzledSingle<N, T, Index>;
-
-    template<std::size_t... Indicies>
-    using Components = Swizzled<Vec<sizeof...(Indicies), T>, N, T, Indicies...>;
-
-public:
-    /**
-     * @brief Default constructor
-     */
-    constexpr VecBase() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
-    constexpr VecBase(const VecBase&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
-    constexpr VecBase(VecBase&&) = default;
-
-    union
-    {
-        std::array<T, N> m_components = {}; ///< array of components
-
-        /**
-         * @name Swizzled permutatons of {x} or {r} of max size 4 as
-         * members.
-         * @{
-         */
-        /// @cond DO_NOT_DOCUMENT
-        Component<0> x, r;
-        Components<0, 0> xx, rr;
-        Components<0, 0, 0> xxx, rrr;
-        Components<0, 0, 0, 0> xxxx, rrrr;
-        /// @endcond
-        /// @}
-    };
+    /// @}
 };
 
 /**
@@ -121,19 +62,14 @@ class VecBase<Vec, 2, T>
 
 public:
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~VecBase() = default;
     constexpr VecBase() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr VecBase(const VecBase&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
     constexpr VecBase(VecBase&&) = default;
+    /// @}
 
     union
     {
@@ -206,19 +142,14 @@ class VecBase<Vec, 3, T>
 
 public:
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~VecBase() = default;
     constexpr VecBase() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr VecBase(const VecBase&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
     constexpr VecBase(VecBase&&) = default;
+    /// @}
 
     union
     {
@@ -392,19 +323,14 @@ class VecBase<Vec, 4, T>
 
 public:
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~VecBase() = default;
     constexpr VecBase() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr VecBase(const VecBase&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
     constexpr VecBase(VecBase&&) = default;
+    /// @}
 
     union
     {

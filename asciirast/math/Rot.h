@@ -2,7 +2,6 @@
  * @file Rot.h
  * @brief Classes for rotation
  *
- * @todo use library or wait for c++26 for constexpr math functions
  * @todo spherical interpolation
  *
  * Quaternion implementation initially based on following:
@@ -14,7 +13,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <complex>
 #include <type_traits>
 
 #include "./Mat.h"
@@ -40,48 +38,64 @@ public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    Rot2DType() {};
+    constexpr Rot2DType() = default;
 
     /**
      * @brief (Implicitly) construct rotation object from angle
      *
      * @param radians The angle at hand in radians
      */
-    Rot2DType(const T radians)
-            : m_angle{ std::remainder(radians, 2 * std::numbers::pi_v<T>) } {};
+    constexpr Rot2DType(const T radians)
+            : m_complex{ complex_from(radians) } {};
 
     /**
      * @brief Construct rotation object from the angle between two vectors.
      *
      * @param from_dir The source direction vector
      * @param to_dir The destination direction vector
+     * @param normalize Whether to_dir is not normalized
      */
-    Rot2DType(const Vec2& from_dir, const Vec2& to_dir) noexcept
-            : m_angle{ std::remainder(angle(from_dir, to_dir), 2 * std::numbers::pi_v<T>) } {};
+    constexpr Rot2DType(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
+            : m_complex{ complex_div(to_dir, from_dir, normalize) } {};
 
     /**
-     * @brief Convert this to angle
+     * @brief Construct rotation object from complex number
      *
-     * @return The angle in radians
+     * @param complex The complex number at hand
      */
-    [[nodiscard]] T to_angle() const { return m_angle; }
+    explicit constexpr Rot2DType(const Vec2& complex)
+            : m_complex{ complex } {};
 
     /**
-     * @brief Convert this to unit complex number
+     * @brief Normalize underlying complex number in-place
      *
-     * @return The unit complex number as std::complex
+     * @return This
      */
-    [[nodiscard]] std::complex<T> to_complex() const { return std::complex<T>(std::cos(m_angle), std::sin(m_angle)); }
+    constexpr Rot2D& normalize()
+    {
+        m_complex = std::move(m_complex.normalized());
+        return (*this);
+    }
+
+    /**
+     * @brief Convert to angle in radians
+     */
+    [[nodiscard]] constexpr T to_angle() { return atan2(m_complex.y, m_complex.x); }
+
+    /**
+     * @brief Convert to complex number
+     */
+    [[nodiscard]] constexpr Vec2 to_complex() const { return m_complex; }
 
     /**
      * @brief Convert to 2D transformation matrix
      *
      * @return The tranformation matrix that performs the same rotation as this
      */
-    [[nodiscard]] Mat2 to_mat() const
+    [[nodiscard]] constexpr Mat2 to_mat() const
     {
-        const Vec2 x_hat = apply(Vec2{ 1, 0 });
-        const Vec2 y_hat = apply(Vec2{ 0, 1 });
+        const Vec2 x_hat = apply({ 1, 0 });
+        const Vec2 y_hat = apply({ 0, 1 });
 
         return Mat2::from_cols(x_hat, y_hat);
     }
@@ -91,17 +105,23 @@ public:
      *
      * @return Copy of this that performs the inverse rotation
      */
-    [[nodiscard]] Rot2D inversed() const { return Rot2D{ -m_angle }; }
+    [[nodiscard]] constexpr Rot2D inversed() const { return Rot2D{ complex_conj(m_complex) }; }
 
     /**
      * @brief Stack another rotation object on top of this
      *
+     * @note Normalization should be performed occasionally for fixing floating-point errors.
+     *
      * @param that The other rotation at hand
+     * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    Rot2D& stack(const Rot2D& that)
+    constexpr Rot2D& stack(const Rot2D& that, bool normalize = true)
     {
-        this->m_angle = std::remainder(this->m_angle + that.m_angle, 2 * std::numbers::pi_v<T>);
+        this->m_complex = complex_mul(this->m_complex, that.m_complex);
+        if (normalize) {
+            this->normalize();
+        }
         return (*this);
     }
 
@@ -111,7 +131,7 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] Vec2 apply(const Vec2& v) const { return as_vec(as_complex(v) * this->to_complex()); }
+    [[nodiscard]] constexpr Vec2 apply(const Vec2& v) const { return complex_mul(v, m_complex); }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -119,13 +139,31 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    [[nodiscard]] Vec2 apply_inv(const Vec2& v) const { return as_vec(as_complex(v) / this->to_complex()); }
+    [[nodiscard]] constexpr Vec2 apply_inv(const Vec2& v) const { return complex_div(v, m_complex, false); }
 
 private:
-    T m_angle = 0.f;
+    Vec2 m_complex = { 1, 0 };
 
-    static Vec2 as_vec(const std::complex<T>& c) { return { c.real(), c.imag() }; }
-    static std::complex<T> as_complex(const Vec2& v) { return { v.x, v.y }; }
+    static constexpr Vec2 complex_from(const T angle) { return { cos(angle), sin(angle) }; }
+
+    static constexpr Vec2 complex_conj(const Vec2& v) { return { v.x, -v.y }; }
+
+    static constexpr Vec2 complex_mul(const Vec2& lhs, const Vec2& rhs)
+    {
+        /*
+            (a + bi) * (c + di), where i^2 = -1
+            = ac - bd + (ad + bc)i
+            = ac + (-b)d + (ad - (-b)c)i
+         */
+        const auto lhs_conj = complex_conj(lhs);
+        return { dot(lhs_conj, rhs), cross(lhs_conj, rhs) };
+    }
+
+    static constexpr Vec2 complex_div(const Vec2& lhs, const Vec2& rhs, const bool normalize)
+    {
+        const T d = normalize ? dot(rhs, rhs) : 1;
+        return complex_mul(lhs, complex_conj(rhs)) / d;
+    }
 };
 
 /**
@@ -147,7 +185,7 @@ public:
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    Rot3DType() {};
+    constexpr Rot3DType() = default;
 
     /**
      * @brief Construct rotation object from axis and angle in radians
@@ -156,7 +194,7 @@ public:
      * @param radians The angle (in radians) the "axis" vector is rotated by
      * @param normalize Whether to normalize this in case the axis vector was not pre-normalized
      */
-    Rot3DType(const Vec3& axis, const T radians, bool normalize = true)
+    constexpr Rot3DType(const Vec3& axis, const T radians, bool normalize = true)
             : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
 
     /**
@@ -164,21 +202,21 @@ public:
      *
      * @return Quaternion as Vec4
      */
-    [[nodiscard]] Vec4 to_quat() const { return m_quat; }
+    [[nodiscard]] constexpr Vec4 to_quat() const { return m_quat; }
 
     /**
      * @brief Convert to (normalized) axis and angle
      *
      * @return Tuple of unit axis vector and angle
      */
-    [[nodiscard]] std::tuple<Vec3, T> to_axis_angle() const
+    [[nodiscard]] constexpr std::tuple<Vec3, T> to_axis_angle() const
     {
-        const T half_angle = std::acos(this->m_quat.w);
+        const T half_angle = acos(this->m_quat.w);
 
         if (almost_equal<T>(half_angle, 0.f)) {
             return { this->m_quat.xyz, T{ 2 } * half_angle };
         } else {
-            return { this->m_quat.xyz / std::sin(half_angle), T{ 2 } * half_angle };
+            return { this->m_quat.xyz / sin(half_angle), T{ 2 } * half_angle };
         }
     }
 
@@ -187,11 +225,11 @@ public:
      *
      * @return Matrix performing the same rotation as this
      */
-    [[nodiscard]] Mat3 to_mat() const
+    [[nodiscard]] constexpr Mat3 to_mat() const
     {
-        const Vec3 x_hat = apply(Vec3{ 1, 0, 0 });
-        const Vec3 y_hat = apply(Vec3{ 0, 1, 0 });
-        const Vec3 z_hat = apply(Vec3{ 0, 0, 1 });
+        const Vec3 x_hat = apply({ 1, 0, 0 });
+        const Vec3 y_hat = apply({ 0, 1, 0 });
+        const Vec3 z_hat = apply({ 0, 0, 1 });
 
         return Mat3::from_cols(x_hat, y_hat, z_hat);
     }
@@ -203,21 +241,21 @@ public:
      * @param normalize Whether to normalize quaternion for numerical stability purposes
      * @return This
      */
-    Rot3D& rotateYZ(const T radians, const bool normalize = true)
+    constexpr Rot3D& rotateYZ(const T radians, const bool normalize = true)
     {
         return this->stack(Rot3D{ Vec3{ 1, 0, 0 }, -radians }, normalize);
     }
 
     /**
-     * @brief Rotate XZ plane by angle around y-axis
+     * @brief Rotate ZX plane by angle around y-axis
      *
-     * @param radians The angle in radians measured from x-axis
+     * @param radians The angle in radians measured from z-axis
      * @param normalize Whether to normalize quaternion for numerical stability purposes
      * @return This
      */
-    Rot3D& rotateXZ(const T radians, const bool normalize = true)
+    constexpr Rot3D& rotateZX(const T radians, const bool normalize = true)
     {
-        return this->stack(Rot3D{ Vec3{ 0, 1, 0 }, +radians }, normalize);
+        return this->stack(Rot3D{ Vec3{ 0, 1, 0 }, -radians }, normalize);
     }
 
     /**
@@ -227,7 +265,7 @@ public:
      * @param normalize Whether to normalize quaternion for numerical stability purposes
      * @return This
      */
-    Rot3D& rotateXY(const T radians, const bool normalize = true)
+    constexpr Rot3D& rotateXY(const T radians, const bool normalize = true)
     {
         return this->stack(Rot3D{ Vec3{ 0, 0, 1 }, -radians }, normalize);
     }
@@ -238,7 +276,7 @@ public:
      *
      * @return Copy of this performing the inverse rotation
      */
-    [[nodiscard]] Rot3D inversed() const
+    [[nodiscard]] constexpr Rot3D inversed() const
     {
         Rot3D res = (*this);
         res.m_quat.xyz *= -1;
@@ -250,7 +288,7 @@ public:
      *
      * @return This
      */
-    Rot3D& normalize()
+    constexpr Rot3D& normalize()
     {
         m_quat = std::move(m_quat.normalized());
         return (*this);
@@ -265,7 +303,7 @@ public:
      * @param normalize Whether to normalize the rotation object
      * @return This modified
      */
-    Rot3D& stack(const Rot3D& that, bool normalize = true)
+    constexpr Rot3D& stack(const Rot3D& that, bool normalize = true)
     {
         this->m_quat = quat_mul(this->m_quat, that.m_quat);
         if (normalize) {
@@ -280,7 +318,10 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated
      */
-    [[nodiscard]] Vec3 apply(const Vec3& v) const { return quat_mul(quat_mul(this->m_quat, v), inversed().m_quat).xyz; }
+    [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const
+    {
+        return quat_mul(quat_mul(this->m_quat, { v.xyz, 0 }), inversed().m_quat).xyz;
+    }
 
     /**
      * @brief Apply the inverse rotation "action" on a vector
@@ -288,20 +329,20 @@ public:
      * @param v The vector at hand
      * @return The copy of the vector rotated back
      */
-    [[nodiscard]] Vec3 apply_inv(const Vec3& v) const
+    [[nodiscard]] constexpr Vec3 apply_inv(const Vec3& v) const
     {
-        return quat_mul(quat_mul(inversed().m_quat, v), this->m_quat).xyz;
+        return quat_mul(quat_mul(inversed().m_quat, { v.xyz, 0 }), this->m_quat).xyz;
     }
 
 private:
     Vec4 m_quat = { 0, 0, 0, 1 }; ///< quaternion object
 
-    static Vec4 quat_from(const Vec3& n, const T radians)
+    static constexpr Vec4 quat_from(const Vec3& n, const T radians)
     {
-        return { std::sin(radians / 2.f) * n, std::cos(radians / 2.f) };
+        return { sin(radians / 2.f) * n, cos(radians / 2.f) };
     }
 
-    static Vec4 quat_mul(const Vec4& lhs, const Vec4& rhs)
+    static constexpr Vec4 quat_mul(const Vec4& lhs, const Vec4& rhs)
     {
         return { lhs.w * rhs.xyz + lhs.xyz * rhs.w + cross(lhs.xyz, rhs.xyz), lhs.w * rhs.w - dot(lhs.xyz, rhs.xyz) };
     }

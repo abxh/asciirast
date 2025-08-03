@@ -1,9 +1,6 @@
 /**
  * @file Vec.h
  * @brief File with definition of the math vector class
- *
- * Global functions forwards parameters to the functions that perform the actual operation
- * to allow implicit conversion of Swizzled objects.
  */
 
 #pragma once
@@ -23,20 +20,17 @@ namespace asciirast::math {
 
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
-template<std::size_t N, typename T, typename... Args>
-struct vec_constructible_from;
-template<std::size_t N, typename T>
-struct vec_initializer;
-template<typename T, typename... Args>
-struct not_a_single_value;
-template<typename T, typename... Args>
-struct not_a_single_convertible_value;
+
 template<typename TT>
 struct vec_info;
-template<typename T1, typename T2>
-consteval bool
-same_vec_kind();
-} // namespace detail
+
+template<typename T, typename... Args>
+struct vec_args_info;
+
+template<std::size_t N, typename T>
+struct vec_initializer;
+
+}
 /// @endcond
 
 /**
@@ -46,117 +40,55 @@ same_vec_kind();
  * @tparam T    Type of components
  */
 template<std::size_t N, typename T>
-    requires(N > 0 && std::is_arithmetic_v<T>)
+    requires(N > 1 && std::is_arithmetic_v<T>)
 class Vec : public VecBase<Vec, N, T>
 {
-    template<typename... Args>
-    static constexpr bool constructible_from_args_v = (detail::not_a_single_convertible_value<T, Args...>::value &&
-                                                       detail::not_a_single_value<Vec, Args...>::value) &&
-                                                      detail::vec_constructible_from<N, T, Args...>::value;
-
     using VecBase<Vec, N, T>::m_components; ///< array of components
 
 public:
     using value_type = T; ///< value type
 
     /**
-     * @brief Default constructor
+     * @brief Construct vector by broadcasting a single value to all elements
      */
-    constexpr Vec() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
-    constexpr Vec(const Vec&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
-    constexpr Vec(Vec&&) = default;
-
-    /**
-     * @brief Implicitly construct vector from swizzled components.
-     *
-     * @param that The Swizzled object
-     */
-    template<std::size_t M, std::size_t... Is>
-        requires(M > 1)
-    constexpr Vec(const Swizzled<Vec, M, T, Is...>& that) noexcept
+    template<typename U>
+        requires(std::convertible_to<U, T>)
+    static constexpr Vec from_value(const U value)
     {
+        Vec res;
         for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
+            res[i] = value;
         }
+        return res;
     }
 
     /**
      * @brief Construct vector from a mix of values and (smaller) vectors,
-     *        padding the rest of the vector with zeroes.
+     * padding the rest of the vector with zeroes.
      *
      * @param args A mix of values and smaller vectors
      */
     template<typename... Args>
         requires(sizeof...(Args) > 0)
-    constexpr Vec(Args&&... args) noexcept
-        requires(constructible_from_args_v<Args...>)
+    static constexpr Vec zero_padded(Args&&... args) noexcept
+        requires(detail::vec_args_info<T, Args...>::accepted_types && (detail::vec_args_info<T, Args...>::size <= N))
     {
         using initializer = detail::vec_initializer<N, T>;
-
-        initializer::init_from(*this, std::forward<Args>(args)...);
+        Vec res;
+        initializer::init_from(0, res, std::forward<Args>(args)...);
+        return res;
     };
 
     /**
-     * @brief Construct vector with given a value for all components.
-     *
-     * @param value The value at hand
+     * @name Default constructors / destructors
+     * @{
      */
-    template<typename U>
-        requires(std::is_convertible_v<U, T>)
-    explicit constexpr Vec(const U value) noexcept
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = static_cast<T>(value);
-        }
-    }
+    constexpr ~Vec() = default;
+    constexpr Vec() = default;
+    constexpr Vec(const Vec&) = default;
+    constexpr Vec(Vec&&) = default;
+    /// @}
 
-    /**
-     * @brief Construct vector from a larger vector that is truncated.
-     *
-     * @param that The larger vector to be truncated
-     */
-    template<std::size_t M>
-        requires(M > N)
-    explicit constexpr Vec(const Vec<M, T>& that) noexcept
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
-        }
-    }
-
-    /**
-     * @brief Construct vector from a array
-     *
-     * @param that The array
-     */
-    explicit constexpr Vec(const std::array<T, N>& that) noexcept
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
-        }
-    }
-
-    /**
-     * @brief Construct vector from a span
-     *
-     * @param that The span
-     */
-    explicit constexpr Vec(const std::span<T, N>& that) noexcept
-    {
-        for (std::size_t i = 0; i < N; i++) {
-            (*this)[i] = that[i];
-        }
-    }
-
-public:
     /**
      * @brief In-place copy assignment with other Vec
      */
@@ -178,32 +110,52 @@ public:
     }
 
     /**
-     * @brief Delete copy assignment from a single smaller vector
-     */
-    template<std::size_t M>
-        requires(M < N)
-    Vec& operator=(const Vec<M, T>&) = delete;
-
-    /**
-     * @brief Delete move assignment from a single smaller vector
-     */
-    template<std::size_t M>
-        requires(M < N)
-    Vec& operator=(Vec<M, T>&&) = delete;
-
-    /**
-     * @brief Delete copy assignment from a single smaller swizzled
+     * @brief (Implicitly) construct vector from swizzled components.
+     *
+     * @param that The Swizzled object
      */
     template<std::size_t M, std::size_t... Is>
-        requires(sizeof...(Is) < N)
-    Vec& operator=(const Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>&) = delete;
+        requires(sizeof...(Is) > 1)
+    constexpr Vec(const Swizzled<Vec, M, T, Is...>& that) noexcept
+    {
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
+        }
+    }
 
     /**
-     * @brief Delete move assignment from a single smaller swizzled
+     * @brief (Implicitly) construct vector from a mix of values and (smaller) vectors,
+     * the total size of which matches exactly the vector size.
+     *
+     * @param args A mix of values and smaller vectors
      */
-    template<std::size_t M, std::size_t... Is>
-        requires(sizeof...(Is) < N)
-    Vec& operator=(Swizzled<Vec<sizeof...(Is), T>, M, T, Is...>&&) = delete;
+    template<typename... Args>
+        requires(sizeof...(Args) > 0)
+    constexpr Vec(Args&&... args) noexcept
+        requires(detail::vec_args_info<T, Args...>::accepted_types && (detail::vec_args_info<T, Args...>::size == N))
+    {
+        using initializer = detail::vec_initializer<N, T>;
+        initializer::init_from(0, *this, std::forward<Args>(args)...);
+    };
+
+    /**
+     * @brief Construct vector from a larger vector that is truncated.
+     *
+     * @param that The larger vector to be truncated
+     */
+    template<std::size_t M>
+        requires(M > N)
+    explicit constexpr Vec(const Vec<M, T>& that) noexcept
+    {
+        for (std::size_t i = 0; i < N; i++) {
+            (*this)[i] = that[i];
+        }
+    }
+
+    /**
+     * @brief Construct vector from a array
+     */
+    explicit constexpr Vec(const std::array<T, N>& that) noexcept { m_components = that; }
 
 public:
     /**
@@ -661,7 +613,7 @@ public:
     {
         const Vec v = (*this);
 
-        return detail::sqrt(dot(v, v));
+        return sqrt(dot(v, v));
     }
 
     /**
@@ -765,10 +717,10 @@ public:
         */
 
         const T YZ = lhs.y * rhs.z - lhs.z * rhs.y;
-        const T XZ = lhs.x * rhs.z - lhs.z * rhs.x;
+        const T ZX = lhs.z * rhs.x - lhs.x * rhs.z;
         const T XY = lhs.x * rhs.y - lhs.y * rhs.x;
 
-        return Vec{ +YZ, -XZ, +XY };
+        return Vec{ YZ, ZX, XY };
     }
 
     /**
@@ -781,7 +733,7 @@ public:
      * @return The resulting angle
      */
     [[nodiscard]]
-    friend T angle(const Vec& lhs, const Vec& rhs)
+    friend constexpr T angle(const Vec& lhs, const Vec& rhs)
         requires(N == 2 && std::is_floating_point_v<T>)
     {
         /*
@@ -791,7 +743,7 @@ public:
             cross2d(lhs, rhs) = sin(theta) |lhs| |rhs|
             dot(lhs, rhs)     = cos(theta) |lhs| |rhs|
         */
-        return std::atan2(cross(lhs, rhs), dot(lhs, rhs));
+        return atan2(cross(lhs, rhs), dot(lhs, rhs));
     }
 
     /**
@@ -804,12 +756,12 @@ public:
      * @return The resulting angle
      */
     [[nodiscard]]
-    friend T angle(const Vec& lhs, const Vec& rhs, const Vec& up_, const bool up_is_normalized)
+    friend constexpr T angle(const Vec& lhs, const Vec& rhs, const Vec& up_, const bool up_is_normalized)
         requires(N == 3 && std::is_floating_point_v<T>)
     {
         const Vec& up = up_is_normalized ? up_ : up_.normalized();
 
-        return std::atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
+        return atan2(dot(cross(lhs, rhs), up), dot(lhs, rhs));
     }
 
     /**
@@ -973,28 +925,6 @@ public:
 
 namespace detail {
 
-template<typename T, typename... Args>
-struct not_a_single_value_impl
-        : std::bool_constant<(sizeof...(Args) != 1) ||
-                             (sizeof...(Args) == 1 &&
-                              !std::is_same_v<T, typename std::tuple_element<0, std::tuple<Args...>>::type>)>
-{};
-
-template<typename T, typename... Args>
-struct not_a_single_value : not_a_single_value_impl<T, std::remove_cvref_t<Args>...>
-{};
-
-template<typename T, typename... Args>
-struct not_a_single_convertible_value_impl
-        : std::bool_constant<(sizeof...(Args) != 1) ||
-                             (sizeof...(Args) == 1 &&
-                              !std::is_convertible_v<typename std::tuple_element<0, std::tuple<Args...>>::type, T>)>
-{};
-
-template<typename T, typename... Args>
-struct not_a_single_convertible_value : not_a_single_convertible_value_impl<T, std::remove_cvref_t<Args>...>
-{};
-
 template<typename TT>
 struct vec_info_impl : std::false_type
 {
@@ -1021,70 +951,52 @@ template<typename TT>
 struct vec_info : vec_info_impl<std::remove_cvref_t<TT>>
 {};
 
-template<std::size_t N, typename T, typename... Args>
-class vec_constructible_from_impl
+template<typename T, typename... Args>
+struct vec_args_info_impl
 {
-private:
     static constexpr bool accepted_types = ((std::convertible_to<Args, T> || vec_info_impl<Args>::value) && ...);
 
-    static constexpr std::size_t num_values = ((std::convertible_to<Args, T> ? 1 : 0) + ...);
-
-    static constexpr bool total_size_in_bounds = (N >= num_values + (vec_info_impl<Args>::size + ...));
-
-public:
-    static constexpr bool value = accepted_types && total_size_in_bounds;
+    static constexpr std::size_t size =
+            ((std::convertible_to<Args, T> ? 1 : 0) + ...) + (vec_info_impl<Args>::size + ...);
 };
 
-template<std::size_t N, typename T, typename... Args>
-struct vec_constructible_from : vec_constructible_from_impl<N, T, std::remove_cvref_t<Args>...>
+template<typename T, typename... Args>
+struct vec_args_info : vec_args_info_impl<T, std::remove_cvref_t<Args>...>
 {};
 
 template<std::size_t N, typename T>
 struct vec_initializer
 {
-public:
-    template<typename... Args>
-    static constexpr void init_from(Vec<N, T>& out, Args&&... args)
-        requires(vec_constructible_from<N, T, Args...>::value)
-    {
-        std::size_t idx = 0;
-        init_from_inner(idx, out, std::forward<Args>(args)...);
-    }
-
-private:
-    static constexpr void init_from_inner([[maybe_unused]] std::size_t& idx, [[maybe_unused]] Vec<N, T>& out) {}
+    static constexpr void init_from([[maybe_unused]] const std::size_t idx, [[maybe_unused]] Vec<N, T>& out) {}
 
     template<typename U>
         requires(std::convertible_to<U, T>)
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const U arg, auto&&... rest)
+    static constexpr void init_from(const std::size_t idx, Vec<N, T>& out, const U arg, auto&&... rest)
     {
         out[idx] = static_cast<T>(arg);
-        idx += 1;
-        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
+        init_from(idx + 1, out, std::forward<decltype(rest)>(rest)...);
     }
 
     template<std::size_t M, typename U>
-    static constexpr void init_from_inner(std::size_t& idx, Vec<N, T>& out, const Vec<M, U>& arg, auto&&... rest)
+    static constexpr void init_from(const std::size_t idx, Vec<N, T>& out, const Vec<M, U>& arg, auto&&... rest)
     {
         for (std::size_t j = 0; j < M; j++) {
             out[idx + j] = static_cast<T>(arg[j]);
         }
-        idx += M;
-        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
+        init_from(idx + M, out, std::forward<decltype(rest)>(rest)...);
     }
 
     template<std::size_t M, typename U, std::size_t... Is>
         requires(sizeof...(Is) > 1)
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Vec<N, T>& out,
-                                          const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
-                                          auto&&... rest)
+    static constexpr void init_from(const std::size_t idx,
+                                    Vec<N, T>& out,
+                                    const Swizzled<Vec<sizeof...(Is), U>, M, U, Is...>& arg,
+                                    auto&&... rest)
     {
         for (std::size_t j = 0; j < sizeof...(Is); j++) {
             out[idx + j] = static_cast<T>(arg[j]);
         }
-        idx += sizeof...(Is);
-        init_from_inner(idx, out, std::forward<decltype(rest)>(rest)...);
+        init_from(idx + sizeof...(Is), out, std::forward<decltype(rest)>(rest)...);
     }
 };
 

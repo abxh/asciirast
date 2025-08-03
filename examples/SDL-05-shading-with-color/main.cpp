@@ -214,13 +214,13 @@ main(int argc, char* argv[])
             }
         }
     } else {
-        vertex_buf.verticies.push_back(MyVertex{ { -1, -1 }, { 0, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ { +1, -1 }, { 1, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ { -1, +1 }, { 0, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, -1), { 0, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, -1), { 1, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, +1), { 0, 1 } });
 
-        vertex_buf.verticies.push_back(MyVertex{ { -1, +1 }, { 0, 1 } });
-        vertex_buf.verticies.push_back(MyVertex{ { +1, -1 }, { 1, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ { +1, +1 }, { 1, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, +1), { 0, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, -1), { 1, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, +1), { 1, 1 } });
     }
     math::Rot3D rot;
     SDLClock clock;
@@ -244,7 +244,7 @@ main(int argc, char* argv[])
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
-            uniforms.rot.rotateXZ(-1.f * dt_sec);
+            uniforms.rot.rotateZX(+1 * dt_sec);
 #endif
         });
 

@@ -93,7 +93,7 @@ main(int, char**)
     }
 
     MyProgram program;
-    TerminalBuffer framebuffer;
+    TerminalBuffer framebuffer(5 / 2.f);
 
     asciirast::Renderer<> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };

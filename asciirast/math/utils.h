@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <gcem.hpp>
+
 #include <cmath>
 #include <numbers>
 #include <stdexcept>
@@ -171,23 +173,9 @@ almost_less_than(const T lhs, const T rhs) -> bool
     return almost_less_than(lhs, rhs, 17);
 }
 
-/// @cond DO_NOT_DOCUMENT
-namespace detail {
-
-// square root with newton-raphson
-// -------------------------------
-
-template<typename T>
-    requires(std::is_floating_point_v<T>)
-constexpr auto
-sqrt_newton_raphson(const T x, const T curr, const T prev) -> T
-{
-    // constexpr sqrt:
-    // https://stackoverflow.com/a/34134071
-
-    return almost_equal(curr, prev) ? curr : sqrt_newton_raphson<T>(x, T{ 0.5 } * (curr + x / curr), curr);
-}
-
+/**
+ * @brief constexpr sqrt wrapper
+ */
 template<typename T>
     requires(std::is_floating_point_v<T>)
 constexpr auto
@@ -195,16 +183,147 @@ sqrt(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
         if (0 <= x && x < std::numeric_limits<float>().infinity()) {
-            return detail::sqrt_newton_raphson<T>(x, x, 0);
+            return gcem::sqrt(x);
         } else {
-            throw std::domain_error("asciirast::math::details::sqrt() : input is not a positive real");
+            throw std::domain_error("asciirast::math::sqrt() : input is not a positive real");
         }
     } else {
         return std::sqrt(x);
     }
 }
 
-};
-/// @endcond
+/**
+ * @brief constexpr sin wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+sin(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+            return gcem::sin(x);
+        } else {
+            throw std::domain_error("asciirast::math::sin() : input is not a real");
+        }
+    } else {
+        return std::sin(x);
+    }
+}
+
+/**
+ * @brief constexpr cos wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+cos(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+            return gcem::cos(x);
+        } else {
+            throw std::domain_error("asciirast::math::cos() : input is not a real");
+        }
+    } else {
+        return std::cos(x);
+    }
+}
+
+/**
+ * @brief constexpr tan wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+tan(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+            return gcem::tan(x);
+        } else {
+            throw std::domain_error("asciirast::math::tan() : input is not a real");
+        }
+    } else {
+        return std::tan(x);
+    }
+}
+
+/**
+ * @brief constexpr asin wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+asin(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (0 <= x && x <= 1) {
+            return gcem::asin(x);
+        } else {
+            throw std::domain_error("asciirast::math::asin() : input is not between 0 and 1");
+        }
+    } else {
+        return std::asin(x);
+    }
+}
+
+/**
+ * @brief constexpr acos wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+acos(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (0 <= x && x <= 1) {
+            return gcem::acos(x);
+        } else {
+            throw std::domain_error("asciirast::math::acos() : input is not between 0 and 1");
+        }
+    } else {
+        return std::acos(x);
+    }
+}
+
+/**
+ * @brief constexpr atan wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+atan(const T x) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+            return gcem::atan(x);
+        } else {
+            throw std::domain_error("asciirast::math::atan() : input is not a real");
+        }
+    } else {
+        return std::atan(x);
+    }
+}
+
+/**
+ * @brief constexpr atan2 wrapper
+ */
+template<typename T>
+    requires(std::is_floating_point_v<T>)
+constexpr auto
+atan2(const T x, const T y) -> T
+{
+    if (std::is_constant_evaluated()) {
+        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity() &&
+            -std::numeric_limits<float>().infinity() < y && y < +std::numeric_limits<float>().infinity()) {
+            return gcem::atan2(x, y);
+        } else {
+            throw std::domain_error("asciirast::math::atan2() : inputs are not reals");
+        }
+    } else {
+        return std::atan2(x, y);
+    }
+}
 
 } // namespace asciirast::math

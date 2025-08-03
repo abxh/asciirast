@@ -187,7 +187,7 @@ main(int, char**)
     line_buf.shape_type = asciirast::ShapeType::Lines;
 
     MyProgram program;
-    TerminalBuffer framebuffer;
+    TerminalBuffer framebuffer(5 / 2.f);
     MyUniform uniforms;
     uniforms.aspect_ratio = framebuffer.aspect_ratio();
     std::vector<FramebufferPoint> points;

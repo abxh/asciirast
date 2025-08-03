@@ -117,7 +117,7 @@ main(int, char**)
     sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
     MyProgram program;
-    TerminalBuffer framebuffer;
+    TerminalBuffer framebuffer(5 / 3.f);
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 

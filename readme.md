@@ -3,6 +3,10 @@
 A software rasterizer based on the classical OpenGL graphics pipeline made for educational purposes.
 It is meant to both render ascii art and real images. It currently simulates vertex and fragment shaders.
 
+The `.obj` are expected to follow a left-handed y-up coordinate system. See
+[this](https://github.com/jakelazaroff/til/blob/main/math/convert-between-3d-coordinate-systems.md)
+for details on converting between coordinate systems.
+
 ## Dependencies
 
 For the examples:

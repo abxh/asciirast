@@ -187,7 +187,7 @@ main(int argc, char* argv[])
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
-            uniforms.rot.rotateXZ(-1.f * dt_sec);
+            uniforms.rot.rotateZX(1 * dt_sec);
 #endif
         });
 

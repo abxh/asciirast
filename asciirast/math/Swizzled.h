@@ -18,6 +18,7 @@
 
 namespace asciirast::math {
 
+/// @cond DO_NOT_DOCUMENT
 namespace detail {
 
 template<std::size_t... Is>
@@ -37,6 +38,7 @@ template<std::size_t... Is>
 static constexpr bool non_duplicate_indicies_v = non_duplicate_indicies<Is...>::value;
 
 }
+/// @endcond
 
 /**
  * @brief Class for swizzled vector components
@@ -64,19 +66,34 @@ public:
     using value_type = T;
 
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~Swizzled() = default;
     constexpr Swizzled() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr Swizzled(const Swizzled&) = default;
+    constexpr Swizzled(Swizzled&&) = default;
+    /// @}
 
     /**
-     * @brief Default move constructor
+     * @brief In-place component-wise assignment with other Swizzled of
+     * same kind
      */
-    constexpr Swizzled(Swizzled&&) = default;
+    constexpr Swizzled& operator=(const Swizzled& that)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
+    {
+        return (*this = Vec{ that });
+    }
+
+    /**
+     * @brief In-place component-wise assignment with other Swizzled of
+     * same kind
+     */
+    constexpr Swizzled& operator=(const Swizzled&& that)
+        requires(detail::non_duplicate_indicies_v<Indicies...>)
+    {
+        return (*this = Vec{ that });
+    }
 
     /**
      * @brief Size of swizzled component
@@ -193,20 +210,6 @@ public:
     }
 
     /**
-     * @brief In-place component-wise assignment with other Swizzled of
-     * same kind
-     *
-     * @param that Other swizzled object
-     * @return This
-     */
-    constexpr Swizzled& operator=(const Swizzled& that)
-        requires(detail::non_duplicate_indicies_v<Indicies...>)
-    {
-        *this = Vec{ that };
-        return *this;
-    }
-
-    /**
      * @brief In-place scalar multiplication
      *
      * @param scalar Scalar value
@@ -257,19 +260,14 @@ public:
     using value_type = T;
 
     /**
-     * @brief Default constructor
+     * @name Default constructors / destructors
+     * @{
      */
+    constexpr ~SwizzledSingle() = default;
     constexpr SwizzledSingle() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
     constexpr SwizzledSingle(const SwizzledSingle&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
     constexpr SwizzledSingle(SwizzledSingle&&) = default;
+    /// @}
 
     /**
      * @brief Size of swizzled component

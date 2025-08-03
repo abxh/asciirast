@@ -135,6 +135,20 @@ public:
     };
 
     /**
+     * @brief Construct a new fragment context
+     */
+    FragmentContextType(const std::size_t id,
+                        std::array<ValueVariant, 4>& quad,
+                        const Type type,
+                        const bool is_helper_invocation = false,
+                        const bool is_initialized = false)
+            : m_id{ id }
+            , m_quad{ quad }
+            , m_type{ type }
+            , m_is_helper_invocation{ is_helper_invocation }
+            , m_is_initialized{ is_initialized } {};
+
+    /**
      * @brief Initialize context with value for this particular fragment
      *
      * @param value The value at hand
@@ -265,20 +279,6 @@ private:
     Type m_type;
     bool m_is_helper_invocation;
     bool m_is_initialized;
-
-    FragmentContextType(const std::size_t id,
-                        std::array<ValueVariant, 4>& quad,
-                        const Type type,
-                        const bool is_helper_invocation = false,
-                        const bool is_initialized = false)
-            : m_id{ id }
-            , m_quad{ quad }
-            , m_type{ type }
-            , m_is_helper_invocation{ is_helper_invocation }
-            , m_is_initialized{ is_initialized } {};
-
-    template<RendererOptions>
-    friend class Renderer;
 };
 
 };

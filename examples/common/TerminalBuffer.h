@@ -30,12 +30,13 @@ class TerminalBuffer
 public:
     using Targets = std::tuple<char, RGBFloat>;
 
-    TerminalBuffer()
+    TerminalBuffer(const math::Float aspect_ratio_scaling)
             : m_rgbc_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
 
+        m_aspect_ratio_scaling = aspect_ratio_scaling;
         m_oob_error = false;
 
         m_width = m_height = 0;
@@ -47,6 +48,8 @@ public:
         std::cout << CSI::ESC << CSI::RESET_COLOR;
         terminal_utils::just_fix_windows_console(false);
     }
+    TerminalBuffer(const TerminalBuffer& that) = default;
+    TerminalBuffer& operator=(const TerminalBuffer& that) = default;
 
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
@@ -57,12 +60,7 @@ public:
         return m_rgbc_buf[index((std::size_t)pos.y, (std::size_t)pos.x)].c;
     }
 
-    math::Float aspect_ratio() const
-    {
-        // this ratio worked best for my terminal
-
-        return (5.f * (math::Float)m_height) / (2.f * (math::Float)m_width);
-    }
+    math::Float aspect_ratio() const { return m_aspect_ratio_scaling * (math::Float)m_height / (math::Float)m_width; }
 
     const math::Transform2D& screen_to_window() const { return m_screen_to_window; }
 
@@ -157,6 +155,7 @@ private:
         }
     }
     bool m_oob_error;
+    math::Float m_aspect_ratio_scaling;
 
     std::size_t m_width;
     std::size_t m_height;

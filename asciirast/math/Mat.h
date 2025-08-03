@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <iomanip>
 #include <numeric>
 #include <ostream>
@@ -22,13 +23,17 @@ namespace asciirast::math {
 
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
-template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
-struct mat_constructible_from;
+
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer;
+
+template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major, typename... Args>
+struct mat_constructible_from;
+
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
-} // namespace detail
+
+}
 /// @endcond
 
 /**
@@ -40,7 +45,7 @@ struct mat_printer;
  * @tparam is_col_major     Whether the matrix is in column major
  */
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
-    requires(M_y > 0 && N_x > 0 && std::is_arithmetic_v<T>)
+    requires(M_y > 1 && N_x > 1 && std::is_arithmetic_v<T>)
 class Mat
 {
     template<typename... Args>
@@ -52,12 +57,6 @@ class Mat
     static constexpr bool constructible_from_rows_v =
             (detail::vec_info<Args>::value && ...) && (0 < sizeof...(Args) && sizeof...(Args) <= M_y) &&
             ((detail::vec_info<Args>::size <= N_x) && ...);
-
-    template<typename... Args>
-    static constexpr bool constructible_from_args_v =
-            detail::not_a_single_convertible_value<T, Args...>::value &&
-            detail::not_a_single_value<Mat, Args...>::value &&
-            detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value;
 
     std::array<T, M_y * N_x> m_elements = {}; ///< 1D array of elements
 
@@ -144,89 +143,6 @@ public:
         }
     }
 
-public:
-    /**
-     * @brief Default constructor
-     */
-    constexpr Mat() = default;
-
-    /**
-     * @brief Default copy constructor
-     */
-    constexpr Mat(const Mat&) = default;
-
-    /**
-     * @brief Default move constructor
-     */
-    constexpr Mat(Mat&&) = default;
-
-    /**
-     * @brief Construct matrix from a mix of smaller matricies and vectors
-     *        with the rest padded with zeroes, initialized with the
-     *        arguments in the same order as the matrix major order.
-     *
-     * @param args A mix of smaller matricies and vectors
-     */
-    template<typename... Args>
-        requires(sizeof...(Args) > 0)
-    constexpr Mat(Args&&... args) noexcept
-        requires(constructible_from_args_v<Args...>)
-    {
-        using initializer = detail::mat_initializer<M_y, N_x, T, is_col_major>;
-
-        initializer::init_from(*this, std::forward<Args>(args)...);
-    };
-
-public:
-    /**
-     * @brief In-place copy assignment with other Mat
-     */
-    constexpr Mat& operator=(const Mat& that)
-    {
-        this->m_elements = that.m_elements;
-        return *this;
-    }
-
-    /**
-     * @brief In-place move assignment with other Mat
-     */
-    constexpr Mat& operator=(Mat&& that) noexcept
-    {
-        if (this != &that) {
-            this->m_elements = std::move(that.m_elements);
-        }
-        return *this;
-    }
-
-    /**
-     * @brief Delete copy assignment from a single smaller vector
-     */
-    template<std::size_t X>
-        requires((is_col_major && X < M_y) || (!is_col_major && X < N_x))
-    Mat& operator=(const Vec<X, T>&) = delete;
-
-    /**
-     * @brief Delete move assignment from a single smaller vector
-     */
-    template<std::size_t X>
-        requires((is_col_major && X < M_y) || (!is_col_major && X < N_x))
-    Mat& operator=(Vec<X, T>&&) = delete;
-
-    /**
-     * @brief Delete copy assignment from a single smaller matrix
-     */
-    template<std::size_t M1_y, std::size_t N1_x>
-        requires(M1_y < M_y && N1_x < N_x)
-    Mat& operator=(const Mat<M1_y, N1_x, T, is_col_major>&) = delete;
-
-    /**
-     * @brief Delete move assignment from a single smaller matrix
-     */
-    template<std::size_t M1_y, std::size_t N1_x>
-        requires(M1_y < M_y && N1_x < N_x)
-    Mat& operator=(Mat<M1_y, N1_x, T, is_col_major>&&) = delete;
-
-public:
     /**
      * @brief Get number of rows in the matrix
      *
@@ -248,6 +164,70 @@ public:
      */
     [[nodiscard]] static constexpr std::size_t size() { return M_y * N_x; }
 
+    /**
+     * @name Default constructors / destructors
+     * @{
+     */
+    constexpr ~Mat() = default;
+    constexpr Mat() = default;
+    constexpr Mat(const Mat&) = default;
+    constexpr Mat(Mat&&) = default;
+    /// @}
+
+    /**
+     * @brief In-place copy assignment with other Mat
+     */
+    constexpr Mat& operator=(const Mat& that)
+    {
+        this->m_elements = that.m_elements;
+        return *this;
+    }
+
+    /**
+     * @brief In-place move assignment with other Mat
+     */
+    constexpr Mat& operator=(Mat&& that) noexcept
+    {
+        if (this != &that) {
+            this->m_elements = std::move(that.m_elements);
+        }
+        return *this;
+    }
+
+    /**
+     * @brief Construct matrix from numbers in row-major order
+     *
+     * @param args The numbers in row major order
+     */
+    template<typename... Args>
+    explicit constexpr Mat(Args&&... args) noexcept
+        requires(sizeof...(Args) == size() && (std::is_convertible_v<Args, T> && ...))
+    {
+        m_elements = { static_cast<T>(args)... };
+        if constexpr (is_col_major) {
+            *this = std::move(this->transposed());
+        }
+    };
+
+    /**
+     * @brief Construct matrix from a mix of smaller matricies and vectors,
+     * initialized in the same order as the matrix major order.
+     *
+     * The diagonal elements, if unset, are set to 1.
+     *
+     * @param args A mix of smaller matricies and vectors
+     */
+    template<typename... Args>
+        requires(sizeof...(Args) > 0)
+    explicit constexpr Mat(Args&&... args) noexcept
+        requires(detail::mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
+    {
+        using initializer = detail::mat_initializer<M_y, N_x, T, is_col_major>;
+        *this = identity();
+        initializer::init_from(0, *this, std::forward<Args>(args)...);
+    };
+
+public:
     /**
      * @brief Get pointer to the underlying data
      *
@@ -456,6 +436,50 @@ public:
         }
 
         return *this;
+    }
+
+    /**
+     * @brief Get the y'th row as a std::span
+     */
+    [[nodiscard]] std::span<const T, N_x> row_span(const std::size_t y) const
+        requires(!is_col_major)
+    {
+        assert(y < M_y && "index is inside bounds");
+
+        return std::span<const T, N_x>{ &m_elements[N_x * y], N_x };
+    }
+
+    /**
+     * @brief Get the y'th row as a std::span
+     */
+    [[nodiscard]] std::span<T, N_x> row_span(const std::size_t y)
+        requires(!is_col_major)
+    {
+        assert(y < M_y && "index is inside bounds");
+
+        return std::span<T, N_x>{ &m_elements[N_x * y], N_x };
+    }
+
+    /**
+     * @brief Get the x'th column as a std::span
+     */
+    [[nodiscard]] std::span<const T, M_y> col_span(const std::size_t x) const
+        requires(is_col_major)
+    {
+        assert(x < N_x && "index is inside bounds");
+
+        return std::span<const T, M_y>{ &m_elements[M_y * x], M_y };
+    }
+
+    /**
+     * @brief Get the x'th column as a std::span
+     */
+    [[nodiscard]] std::span<T, M_y> col_span(const std::size_t x)
+        requires(is_col_major)
+    {
+        assert(x < N_x && "index is inside bounds");
+
+        return std::span<T, M_y>{ &m_elements[M_y * x], M_y };
     }
 
 public:
@@ -705,11 +729,10 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < rhs.col_count(); i++) {
                 for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
-                    const auto lb = &rhs.data()[M_y * i];
-                    const auto le = &rhs.data()[M_y * (i + 1)];
-                    const auto rb = &lhs_T.data()[M_y * j];
+                    const auto r = rhs.col_span(i);
+                    const auto l = lhs_T.col_span(j);
 
-                    res[idx++] = std::inner_product(lb, le, rb, T{});
+                    res[idx++] = std::inner_product(r.begin(), r.end(), l.begin(), T{});
                 }
             }
         } else {
@@ -718,11 +741,10 @@ public:
             std::size_t idx = 0;
             for (std::size_t i = 0; i < lhs.row_count(); i++) {
                 for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    const auto lb = &lhs.data()[N_x * i];
-                    const auto le = &lhs.data()[N_x * (i + 1)];
-                    const auto rb = &rhs_T.data()[N_x * j];
+                    const auto l = lhs.row_span(i);
+                    const auto r = rhs_T.row_span(j);
 
-                    res[idx++] = std::inner_product(lb, le, rb, T{});
+                    res[idx++] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
                 }
             }
         }
@@ -752,11 +774,10 @@ public:
             }
         } else {
             for (std::size_t y = 0; y < M_y; y++) {
-                const auto lb = &lhs.data()[N_x * y];
-                const auto le = &lhs.data()[N_x * (y + 1)];
-                const auto rb = rhs.data();
+                const auto l = lhs.row_span(y);
+                const auto r = rhs.array();
 
-                res[y] = std::inner_product(lb, le, rb, T{});
+                res[y] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
             }
         }
         return res;
@@ -821,68 +842,83 @@ struct mat_constructible_from : mat_constructible_from_impl<M_y, N_x, T, is_col_
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_initializer
 {
-public:
-    template<typename... Args>
-    static constexpr void init_from(Mat<M_y, N_x, T, is_col_major>& out, Args&&... args)
-        requires(mat_constructible_from<M_y, N_x, T, is_col_major, Args...>::value)
-    {
-        std::size_t idx = 0;
-        init_from_inner(idx, out, std::forward<Args>(args)...);
-    }
-
-private:
-    static constexpr void init_from_inner([[maybe_unused]] std::size_t& idx,
-                                          [[maybe_unused]] Mat<M_y, N_x, T, is_col_major>& out)
+    static constexpr void init_from([[maybe_unused]] const std::size_t idx,
+                                    [[maybe_unused]] Mat<M_y, N_x, T, is_col_major>& out)
     {
     }
 
     template<std::size_t M, typename U>
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Mat<M_y, N_x, T, is_col_major>& out,
-                                          const Vec<M, U>& arg,
-                                          auto&&... rest)
+    static constexpr void init_from(const std::size_t idx,
+                                    Mat<M_y, N_x, T, is_col_major>& out,
+                                    const Vec<M, U>& arg,
+                                    auto&&... rest)
     {
         if constexpr (is_col_major) {
-            out.col_set(idx++, Vec<M_y, T>{ arg });
+            auto out_span = out.col_span(idx);
+
+            for (std::size_t i = 0; i < M; i++) {
+                out_span[i] = arg[i];
+            }
         } else {
-            out.row_set(idx++, Vec<N_x, T>{ arg });
+            auto out_span = out.row_span(idx);
+
+            for (std::size_t i = 0; i < M; i++) {
+                out_span[i] = arg[i];
+            }
         }
-        init_from_inner(idx, out, rest...);
+        init_from(idx + 1, out, rest...);
     }
 
     template<std::size_t M, typename U, std::size_t... Is>
         requires(sizeof...(Is) > 1)
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Mat<M_y, N_x, T, is_col_major>& out,
-                                          const Swizzled<Vec<sizeof...(Is), T>, M, U, Is...>& arg,
-                                          auto&&... rest)
+    static constexpr void init_from(const std::size_t idx,
+                                    Mat<M_y, N_x, T, is_col_major>& out,
+                                    const Swizzled<Vec<sizeof...(Is), T>, M, U, Is...>& arg,
+                                    auto&&... rest)
     {
         if constexpr (is_col_major) {
-            out.col_set(idx++, Vec<M_y, T>{ arg });
+            auto out_span = out.col_span(idx);
+
+            for (std::size_t i = 0; i < sizeof...(Is); i++) {
+                out_span[i] = arg[i];
+            }
         } else {
-            out.row_set(idx++, Vec<N_x, T>{ arg });
+            auto out_span = out.row_span(idx);
+
+            for (std::size_t i = 0; i < sizeof...(Is); i++) {
+                out_span[i] = arg[i];
+            }
         }
-        init_from_inner(idx, out, rest...);
+        init_from(idx + 1, out, rest...);
     }
 
     template<std::size_t M1_y, std::size_t N1_x>
-    static constexpr void init_from_inner(std::size_t& idx,
-                                          Mat<M_y, N_x, T, is_col_major>& out,
-                                          const Mat<M1_y, N1_x, T, is_col_major>& arg,
-                                          auto&&... rest)
+    static constexpr void init_from(const std::size_t idx,
+                                    Mat<M_y, N_x, T, is_col_major>& out,
+                                    const Mat<M1_y, N1_x, T, is_col_major>& arg,
+                                    auto&&... rest)
     {
         if constexpr (is_col_major) {
             for (std::size_t i = 0; i < arg.col_count(); i++) {
-                out.col_set(idx + i, Vec<M_y, T>{ arg.col_get(i) });
+                auto out_span = out.col_span(idx + i);
+                const auto in_span = arg.col_span(i);
+
+                for (std::size_t j = 0; j < in_span.size(); j++) {
+                    out_span[j] = in_span[j];
+                }
             }
-            idx += arg.col_count();
+            init_from(idx + arg.col_count(), out, rest...);
         } else {
             for (std::size_t i = 0; i < arg.row_count(); i++) {
-                out.row_set(idx + i, Vec<N_x, T>{ arg.row_get(i) });
+                auto out_span = out.row_span(idx + i);
+                const auto in_span = arg.row_span(i);
+
+                for (std::size_t j = 0; j < in_span.size(); j++) {
+                    out_span[j] = in_span[j];
+                }
             }
-            idx += arg.row_count();
+            init_from(idx + arg.row_count(), out, rest...);
         }
-        init_from_inner(idx, out, rest...);
     }
 };
 
@@ -897,8 +933,9 @@ struct mat_printer<M_y, N_x, T, false>
             s << value;
             return s.str().size();
         };
-        std::array<int, mat.size()> lengths;
-        std::transform(mat.array().begin(), mat.array().end(), lengths.begin(), count_chars);
+        const std::array mat_array = mat.array();
+        std::array<int, mat_array.size()> lengths;
+        std::transform(mat_array.begin(), mat_array.end(), lengths.begin(), count_chars);
         const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";
@@ -941,8 +978,9 @@ struct mat_printer<M_y, N_x, T, true>
             s << value;
             return s.str().size();
         };
-        std::array<int, mat.size()> lengths;
-        std::transform(mat.array().begin(), mat.array().end(), lengths.begin(), count_chars);
+        const std::array mat_array = mat.array();
+        std::array<int, mat_array.size()> lengths;
+        std::transform(mat_array.begin(), mat_array.end(), lengths.begin(), count_chars);
         const auto max_length = *std::max_element(lengths.begin(), lengths.end());
 
         out << "[";

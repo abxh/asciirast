@@ -1,8 +1,6 @@
 /**
  * @file Transform.h
  * @brief Class for composing primitive transformation matricies and their inverses
- *
- * @todo Transposed Transform
  */
 
 #pragma once
@@ -54,6 +52,36 @@ public:
     constexpr const Mat3& mat_inv() const { return m_mat_inv; }
 
     /**
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param mat_inv The inverse transformation matrix
+     * @return This
+     */
+    constexpr Transform2D& stack(const Mat3& mat, const Mat3& mat_inv)
+    {
+        assert(mat * mat_inv == Mat3::identity());
+
+        return this->stack_internal(mat, mat_inv);
+    }
+
+    /**
+     * @brief Stack another Transform on top of this
+     *
+     * @param that The other Transform
+     * @return This
+     */
+    constexpr Transform2D& stack(const Transform2D& that) { return this->stack_internal(that.m_mat, that.m_mat_inv); }
+
+    /**
+     * @brief Apply the transformation "action" on a 3D homogenous vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed
+     */
+    [[nodiscard]] constexpr Vec3 apply(const Vec3& v) const { return m_mat * v; }
+
+    /**
      * @brief Apply the transformation "action" on a 2D vector
      *
      * @param v The vector at hand
@@ -87,14 +115,6 @@ public:
     }
 
     /**
-     * @brief Stack another Transform on top of this
-     *
-     * @param that The other Transform
-     * @return This
-     */
-    constexpr Transform2D& stack(const Transform2D& that) { return this->stack(that.m_mat, that.m_mat_inv); }
-
-    /**
      * @brief Stack (x', y') = (x + delta_x, y + delta_y)
      *
      * @param delta_x How much to translate in x-axis
@@ -103,13 +123,13 @@ public:
      */
     constexpr Transform2D& translate(const T delta_x, const T delta_y)
     {
-        const Vec3 vr = { +delta_x, +delta_y, 1 };
+        const Vec3 vt = { +delta_x, +delta_y, 1 };
         const Vec3 vi = { -delta_x, -delta_y, 1 };
 
-        const auto mr = Mat3{ Mat2::identity(), vr };
-        const auto mi = Mat3{ Mat2::identity(), vi };
+        const auto mt = Mat3{ Mat2::identity() }.col_set(2, vt);
+        const auto mi = Mat3{ Mat2::identity() }.col_set(2, vi);
 
-        return this->stack(mr, mi);
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -126,12 +146,12 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    Transform2D& rotate(const Rot2D& rot)
+    constexpr Transform2D& rotate(const Rot2D& rot)
     {
-        const Mat3 mr = { rot.to_mat(), Vec3{ 0, 0, 1 } };
-        const Mat3 mi = mr.transposed();
+        const auto mt = Mat3{ rot.to_mat(), Vec3{ 0, 0, 1 } };
+        const auto mi = mt.transposed();
 
-        return this->stack(mr, mi);
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -144,22 +164,19 @@ public:
     constexpr Transform2D& scale(const T scale_x, const T scale_y)
     {
         assert(scale_x != 0);
-        [[assume(scale_x != 0)]];
-
         assert(scale_y != 0);
-        [[assume(scale_y != 0)]];
 
-        Mat3 mr{}, mi{};
-
-        mr[0, 0] = scale_x;
-        mr[1, 1] = scale_y;
-        mr[2, 2] = 1;
-
-        mi[0, 0] = 1 / scale_x;
-        mi[1, 1] = 1 / scale_y;
-        mi[2, 2] = 1;
-
-        return this->stack(mr, mi);
+        const auto mt = Mat3{
+            scale_x, 0,       0, //
+            0,       scale_y, 0, //
+            0,       0,       1,
+        };
+        const auto mi = Mat3{
+            1 / scale_x, 0,           0, //
+            0,           1 / scale_y, 0, //
+            0,           0,           1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -192,17 +209,17 @@ public:
      */
     constexpr Transform2D& shearX(const T t)
     {
-        const Vec3 ar = { 1, +t, 0 };
-        const Vec3 br = { 0, 1., 0 };
-        const Vec3 cr = { 0, 0., 1 };
-        const auto mr = Mat3::from_rows(ar, br, cr);
-
-        const Vec3 ai = { 1, -t, 0 };
-        const Vec3 bi = { 0, 1., 0 };
-        const Vec3 ci = { 0, 0., 1 };
-        const auto mi = Mat3::from_rows(ai, bi, ci);
-
-        return this->stack(mr, mi);
+        const auto mt = Mat3{
+            1, +t, 0, //
+            0, 1,  0, //
+            0, 0,  1,
+        };
+        const auto mi = Mat3{
+            1, -t, 0, //
+            0, 1,  0, //
+            0, 0,  1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -213,17 +230,17 @@ public:
      */
     constexpr Transform2D& shearY(const T t)
     {
-        const Vec3 ar = { 1., 0, 0 };
-        const Vec3 br = { +t, 1, 0 };
-        const Vec3 cr = { 0., 0, 1 };
-        const auto mr = Mat3::from_rows(ar, br, cr);
-
-        const Vec3 ai = { 1., 0, 0 };
-        const Vec3 bi = { -t, 1, 0 };
-        const Vec3 ci = { 0., 0, 1 };
-        const auto mi = Mat3::from_rows(ai, bi, ci);
-
-        return this->stack(mr, mi);
+        const auto mt = Mat3{
+            1,  0, 0, //
+            +t, 1, 0, //
+            0,  0, 1,
+        };
+        const auto mi = Mat3{
+            1,  0, 0, //
+            -t, 1, 0, //
+            0,  0, 1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
 private:
@@ -234,17 +251,10 @@ private:
             : m_mat{ mat }
             , m_mat_inv{ mat_inv } {};
 
-    /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
-     *
-     * @param mat The transformation matrix
-     * @param inv_mat The inverse transformation matrix
-     * @return This
-     */
-    constexpr Transform2D& stack(const Mat3& mat, const Mat3& inv_mat)
+    constexpr Transform2D& stack_internal(const Mat3& mat, const Mat3& mat_inv)
     {
         m_mat = mat * m_mat;
-        m_mat_inv = m_mat_inv * inv_mat;
+        m_mat_inv = m_mat_inv * mat_inv;
         return *this;
     }
 };
@@ -289,6 +299,36 @@ public:
     [[nodiscard]] constexpr const Mat4& mat_inv() const { return m_mat_inv; }
 
     /**
+     * @brief Stack a new transformation matrix and it's inverse on top of this
+     *
+     * @param mat The transformation matrix
+     * @param mat_inv The inverse transformation matrix
+     * @return This
+     */
+    constexpr Transform3D& stack(const Mat4& mat, const Mat4& mat_inv)
+    {
+        assert(mat * mat_inv == Mat4::identity());
+
+        return this->stack_internal(mat, mat_inv);
+    }
+
+    /**
+     * @brief Stack another Transform on top of this
+     *
+     * @param that The other Transform
+     * @return This
+     */
+    constexpr Transform3D& stack(const Transform3D& that) { return this->stack_internal(that.m_mat, that.m_mat_inv); }
+
+    /**
+     * @brief Apply the transformation "action" on a 4D homogenous vector
+     *
+     * @param v The vector at hand
+     * @return A copy of the vector transformed
+     */
+    [[nodiscard]] constexpr Vec4 apply(const Vec4& v) const { return m_mat * v; }
+
+    /**
      * @brief Apply the transformation "action" on a 3D vector
      *
      * @param v The vector at hand
@@ -322,14 +362,6 @@ public:
     }
 
     /**
-     * @brief Stack another Transform on top of this
-     *
-     * @param that The other Transform
-     * @return This
-     */
-    constexpr Transform3D& stack(const Transform3D& that) { return this->stack(that.m_mat, that.m_mat_inv); }
-
-    /**
      * @brief Stack (x', y', z') = (x + delta_x, y + delta_y, z + delta_z)
      *
      * @param delta_x How much to move in x-axis
@@ -339,13 +371,13 @@ public:
      */
     constexpr Transform3D& translate(const T delta_x, const T delta_y, const T delta_z)
     {
-        const Vec4 vr = { +delta_x, +delta_y, +delta_z, 1 };
-        const auto mr = Mat4{ Mat3::identity(), vr };
+        const Vec4 vt = { +delta_x, +delta_y, +delta_z, 1 };
+        const auto mt = Mat4{ Mat3::identity() }.col_set(2, vt);
 
         const Vec4 vi = { -delta_x, -delta_y, -delta_z, 1 };
-        const auto mi = Mat4{ Mat3::identity(), vi };
+        const auto mi = Mat4{ Mat3::identity() }.col_set(2, vi);
 
-        return this->stack(mr, mi);
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -366,12 +398,12 @@ public:
      * @param rot The rotation object
      * @return This
      */
-    Transform3D& rotate(const Rot3D& rot)
+    constexpr Transform3D& rotate(const Rot3D& rot)
     {
-        const Mat4 mr = { rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
-        const Mat4 mi = mr.transposed();
+        const auto mr = Mat4{ rot.to_mat(), Vec4{ 0, 0, 0, 1 } };
+        const auto mi = mr.transposed();
 
-        return this->stack(mr, mi);
+        return this->stack_internal(mr, mi);
     }
 
     /**
@@ -386,27 +418,22 @@ public:
     constexpr Transform3D& scale(const T scale_x, const T scale_y, const T scale_z)
     {
         assert(scale_x != 0);
-        [[assume(scale_x != 0)]];
-
         assert(scale_y != 0);
-        [[assume(scale_y != 0)]];
-
         assert(scale_z != 0);
-        [[assume(scale_z != 0)]];
 
-        Mat4 mr{}, mi{};
-
-        mr[0, 0] = scale_x;
-        mr[1, 1] = scale_y;
-        mr[2, 2] = scale_z;
-        mr[3, 3] = 1;
-
-        mi[0, 0] = 1 / scale_x;
-        mi[1, 1] = 1 / scale_y;
-        mi[2, 2] = 1 / scale_z;
-        mi[3, 3] = 1;
-
-        return this->stack(mr, mi);
+        const auto mt = Mat3{
+            scale_x, 0,       0,       0, //
+            0,       scale_y, 0,       0, //
+            0,       0,       scale_z, 0, //
+            0,       0,       0,       1,
+        };
+        const auto mi = Mat3{
+            1 / scale_x, 0,           0,           0, //
+            0,           1 / scale_y, 0,           0, //
+            0,           0,           1 / scale_z, 0, //
+            0,           0,           0,           1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -448,19 +475,19 @@ public:
      */
     constexpr Transform3D& shearXY(const T s, const T t)
     {
-        const Vec4 ar = { 1, 0, +s, 0 };
-        const Vec4 br = { 0, 1, +t, 0 };
-        const Vec4 cr = { 0, 0, 1., 0 };
-        const Vec4 dr = { 0, 0, 0., 1 };
-        const auto mr = Mat4::from_rows(ar, br, cr, dr);
-
-        const Vec4 ai = { 1, 0, -s, 0 };
-        const Vec4 bi = { 0, 1, -t, 0 };
-        const Vec4 ci = { 0, 0, 1., 0 };
-        const Vec4 di = { 0, 0, 0., 1 };
-        const auto mi = Mat4::from_rows(ai, bi, ci, di);
-
-        return this->stack(mr, mi);
+        const auto mt = Mat4{
+            1, 0, +s, 0, //
+            0, 1, +t, 0, //
+            0, 0, 1,  0, //
+            0, 0, 0,  1,
+        };
+        const auto mi = Mat4{
+            1, 0, -s, 0, //
+            0, 1, -t, 0, //
+            0, 0, 1,  0, //
+            0, 0, 0,  1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -472,19 +499,19 @@ public:
      */
     constexpr Transform3D& shearXZ(const T s, const T t)
     {
-        const Vec4 ar = { 1, +s, 0, 0 };
-        const Vec4 br = { 0, 1., 0, 0 };
-        const Vec4 cr = { 0, +t, 1, 0 };
-        const Vec4 dr = { 0, 0., 0, 1 };
-        const auto mr = Mat4::from_rows(ar, br, cr, dr);
-
-        const Vec4 ai = { 1, -s, 0, 0 };
-        const Vec4 bi = { 0, 1., 0, 0 };
-        const Vec4 ci = { 0, -t, 1, 0 };
-        const Vec4 di = { 0, 0., 0, 1 };
-        const auto mi = Mat4::from_rows(ai, bi, ci, di);
-
-        return this->stack(mr, mi);
+        const auto mt = Mat4{
+            1, +s, 0, 0, //
+            0, 1,  0, 0, //
+            0, +t, 1, 0, //
+            0, 0,  0, 1,
+        };
+        const auto mi = Mat4{
+            1, -s, 0, 0, //
+            0, 1,  0, 0, //
+            0, -t, 1, 0, //
+            0, 0,  0, 1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
     /**
@@ -496,19 +523,19 @@ public:
      */
     constexpr Transform3D& shearYZ(const T s, const T t)
     {
-        const Vec4 ar = { 1., 0, 0, 0 };
-        const Vec4 br = { +s, 1, 0, 0 };
-        const Vec4 cr = { +t, 0, 1, 0 };
-        const Vec4 dr = { 0., 0, 0, 1 };
-        const auto mr = Mat4::from_rows(ar, br, cr, dr);
-
-        const Vec4 ai = { 1., 0, 0, 0 };
-        const Vec4 bi = { -s, 1, 0, 0 };
-        const Vec4 ci = { -t, 0, 1, 0 };
-        const Vec4 di = { 0., 0, 0, 1 };
-        const auto mi = Mat4::from_rows(ai, bi, ci, di);
-
-        return this->stack(mr, mi);
+        const auto mt = Mat4{
+            1,  0, 0, 0, //
+            +s, 1, 0, 0, //
+            +t, 0, 1, 0, //
+            0,  0, 0, 1,
+        };
+        const auto mi = Mat4{
+            1,  0, 0, 0, //
+            -s, 1, 0, 0, //
+            -t, 0, 1, 0, //
+            0,  0, 0, 1,
+        };
+        return this->stack_internal(mt, mi);
     }
 
 private:
@@ -519,17 +546,10 @@ private:
             : m_mat{ mat }
             , m_mat_inv{ mat_inv } {};
 
-    /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
-     *
-     * @param mat The transformation matrix
-     * @param inv_mat The inverse transformation matrix
-     * @return This
-     */
-    constexpr Transform3D& stack(const Mat4& mat, const Mat4& inv_mat)
+    constexpr Transform3D& stack_internal(const Mat4& mat, const Mat4& mat_inv)
     {
         m_mat = mat * m_mat;
-        m_mat_inv = m_mat_inv * inv_mat;
+        m_mat_inv = m_mat_inv * mat_inv;
         return *this;
     }
 };

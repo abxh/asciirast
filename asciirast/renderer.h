@@ -70,30 +70,18 @@ struct IndexedVertexBuffer : VertexBuffer<Vertex, VertexAllocator>
 template<VaryingInterface Varying,
          typename Vec4TripletAllocator = std::allocator<std::array<math::Vec4, 3>>,
          typename AttrsTripletAllocator = std::allocator<std::array<Varying, 3>>>
-class RendererData
+struct RendererData
 {
-    using Vec4TripletQueue = std::deque<std::array<math::Vec4, 3>, Vec4TripletAllocator>;
-    using AttrsTripletQueue = std::deque<std::array<Varying, 3>, AttrsTripletAllocator>;
+    using Vec4TripletDeque = std::deque<std::array<math::Vec4, 3>, Vec4TripletAllocator>;
+    using AttrsTripletDeque = std::deque<std::array<Varying, 3>, AttrsTripletAllocator>;
 
-    Vec4TripletQueue m_vec_queue0 = {};
-    Vec4TripletQueue m_vec_queue1 = {};
-
-    AttrsTripletQueue m_attrs_queue0 = {};
-    AttrsTripletQueue m_attrs_queue1 = {};
-
-    template<RendererOptions>
-    friend class Renderer;
-
-public:
     math::Transform2D screen_to_window; ///< Screen to window transform
 
-    /**
-     * @brief Construct renderer data
-     *
-     * @param screen_to_window_ The screen to window transform to use
-     */
-    explicit RendererData(const math::Transform2D& screen_to_window_) noexcept
-            : screen_to_window{ screen_to_window_ } {};
+    Vec4TripletDeque vec_queue = {};        ///< Deque for clipping NDC triangles attributes
+    Vec4TripletDeque vec_queue_screen = {}; ///< Deque for clipping screen triangles
+
+    AttrsTripletDeque attrs_queue = {};        ///< Deque for clipping NDC triangle attributes
+    AttrsTripletDeque attrs_queue_screen = {}; ///< Deque for clipping screen triangle attributes
 };
 
 /**
@@ -797,18 +785,17 @@ private:
         program.on_vertex(uniform, v1, frag1);
         program.on_vertex(uniform, v2, frag2);
 
-        data.m_vec_queue0.clear();
-        data.m_attrs_queue0.clear();
-        data.m_vec_queue0.insert(data.m_vec_queue0.end(), renderer::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
-        data.m_attrs_queue0.insert(data.m_attrs_queue0.end(),
-                                   renderer::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
+        data.vec_queue.clear();
+        data.attrs_queue.clear();
+        data.vec_queue.insert(data.vec_queue.end(), renderer::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
+        data.attrs_queue.insert(data.attrs_queue.end(),
+                                renderer::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
 
         // clip triangle so it's inside the viewing volume:
-        if (!renderer::triangle_in_frustum(data.m_vec_queue0, data.m_attrs_queue0)) {
+        if (!renderer::triangle_in_frustum(data.vec_queue, data.attrs_queue)) {
             return;
         }
-        for (const auto& [vec_triplet, attrs_triplet] :
-             std::ranges::views::zip(data.m_vec_queue0, data.m_attrs_queue0)) {
+        for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(data.vec_queue, data.attrs_queue)) {
 
             const auto [vec0, vec1, vec2] = vec_triplet;
             const auto [attrs0, attrs1, attrs2] = attrs_triplet;
@@ -840,8 +827,8 @@ private:
                 continue;
             }
 
-            data.m_vec_queue1.clear();
-            data.m_attrs_queue1.clear();
+            data.vec_queue_screen.clear();
+            data.attrs_queue_screen.clear();
 
             const auto p0 = math::Vec4{ vfrag0.pos, vfrag0.depth, vfrag0.Z_inv };
             const auto p1 = math::Vec4{ vfrag1.pos, vfrag1.depth, vfrag1.Z_inv };
@@ -850,15 +837,15 @@ private:
             const auto lp = renderer::Vec4Triplet{ p0, p1, p2 };
             const auto la = renderer::AttrsTriplet<Varying>{ a0, a1, a2 };
 
-            data.m_vec_queue1.insert(data.m_vec_queue1.end(), lp);
-            data.m_attrs_queue1.insert(data.m_attrs_queue1.end(), la);
+            data.vec_queue_screen.insert(data.vec_queue_screen.end(), lp);
+            data.attrs_queue_screen.insert(data.attrs_queue_screen.end(), la);
 
             // clip line so it's inside the screen:
-            if (!renderer::triangle_in_screen(data.m_vec_queue1, data.m_attrs_queue1, SCREEN_BOUNDS)) {
+            if (!renderer::triangle_in_screen(data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
                 continue;
             }
             for (const auto& [inner_vec_triplet, inner_attrs_triplet] :
-                 std::ranges::views::zip(data.m_vec_queue1, data.m_attrs_queue1)) {
+                 std::ranges::views::zip(data.vec_queue_screen, data.attrs_queue_screen)) {
 
                 const auto [inner_vec0, inner_vec1, inner_vec2] = inner_vec_triplet;
                 const auto [inner_attrs0, inner_attrs1, inner_attrs2] = inner_attrs_triplet;

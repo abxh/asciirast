@@ -69,6 +69,8 @@ public:
         SDL_DestroyWindow(m_window);
         SDL_Quit();
     }
+    SDLBuffer(const SDLBuffer& that) = default;
+    SDLBuffer& operator=(const SDLBuffer& that) = default;
 
     bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
     {

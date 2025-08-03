@@ -29,7 +29,7 @@ point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
 static auto
 point_in_frustum(const math::Vec4& p) -> bool
 {
-    if (std::ranges::equal(p.array(), math::Vec4{ 0 }.array())) [[unlikely]] {
+    if (std::ranges::equal(p.array(), math::Vec4::from_value(0).array())) [[unlikely]] {
         // degenerate point
         return false;
     }
@@ -184,8 +184,8 @@ line_in_screen(const math::Vec2& p0, const math::Vec2& p1, const math::AABB2D& S
 static auto
 line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
-    if (std::ranges::equal(p0.array(), math::Vec4{ 0 }.array()) ||
-        std::ranges::equal(p1.array(), math::Vec4{ 0 }.array())) [[unlikely]] {
+    if (std::ranges::equal(p0.array(), math::Vec4::from_value(0).array()) ||
+        std::ranges::equal(p1.array(), math::Vec4::from_value(0).array())) [[unlikely]] {
         // degenerate line
         return {};
     }
@@ -346,10 +346,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
     assert(vec_queue.size() > 0);
     assert(vec_queue.size() == attrs_queue.size());
 
-    if (const auto [p0, p1, p2] = *vec_queue.begin(); std::ranges::equal(p0.array(), math::Vec4{ 0 }.array()) ||
-                                                      std::ranges::equal(p1.array(), math::Vec4{ 0 }.array()) ||
-                                                      std::ranges::equal(p2.array(), math::Vec4{ 0 }.array()))
-            [[unlikely]] {
+    if (const auto [p0, p1, p2] = *vec_queue.begin();
+        std::ranges::equal(p0.array(), math::Vec4::from_value(0).array()) ||
+        std::ranges::equal(p1.array(), math::Vec4::from_value(0).array()) ||
+        std::ranges::equal(p2.array(), math::Vec4::from_value(0).array())) [[unlikely]] {
         // degenerate triangle
         return false;
     }
