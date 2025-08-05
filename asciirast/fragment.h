@@ -15,6 +15,7 @@
 #include <variant>
 
 #include "./detail/assert.h"
+#include "./detail/has_minus_operator.h"
 #include "./math/types.h"
 #include "./math/utils.h"
 #include "./program_token.h"
@@ -102,23 +103,13 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
     };
 }
 
-/// @cond DO_NOT_DOCUMENT
-namespace detail {
-template<typename T>
-concept has_minus_operator = requires(T t) {
-    { t - t } -> std::same_as<T>;
-    requires std::semiregular<T>;
-};
-};
-/// @endcond
-
 /**
  * @brief Fragment context to access fragment specific things
  *
  * @tparam ValueTypes The value types it can be initialized with
  */
 template<typename... ValueTypes>
-    requires(detail::has_minus_operator<ValueTypes> && ...)
+    requires((::detail::has_minus_operator<ValueTypes> && ...) && (std::semiregular<ValueTypes> && ...))
 class FragmentContextType
 {
 public:
