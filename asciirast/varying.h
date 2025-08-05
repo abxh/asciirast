@@ -5,12 +5,12 @@
 
 #pragma once
 
+#include <type_traits>
+
+#include <external/boost_pfr/include/boost/pfr.hpp>
+
 #include "./math/types.h"
 #include "./math/utils.h"
-
-#include "external/boost_pfr/include/boost/pfr.hpp"
-
-#include <type_traits>
 
 // on perspective corrected interpolation:
 // https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)

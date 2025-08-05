@@ -14,8 +14,7 @@
 #include <type_traits>
 #include <variant>
 
-#include <external/libassert/include/libassert/assert.hpp>
-
+#include "./detail/assert.h"
 #include "./math/types.h"
 #include "./math/utils.h"
 #include "./program_token.h"
@@ -56,7 +55,7 @@ template<VaryingInterface Varying>
 static auto
 project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
 {
-    DEBUG_ASSERT(frag.pos.w != 0, "non-zero w coordinate. the fragment should be culled by now", frag.pos);
+    ASCIIRAST_ASSERT(frag.pos.w != 0, "non-zero w coordinate. the fragment should be culled by now", frag.pos);
 
     const auto Z_inv = 1 / frag.pos.w;
     const auto v = frag.pos.xyz * Z_inv;
@@ -196,10 +195,10 @@ public:
     template<typename T>
     [[nodiscard]] T at(const std::size_t id, std::type_identity<T> = {}) const
     {
-        DEBUG_ASSERT(m_is_initialized, "FragmentContext is initalized");
-        DEBUG_ASSERT(id < 1 && m_type == Type::POINT || m_type != Type::POINT, "possible point id: 0", id, m_type);
-        DEBUG_ASSERT(id < 2 && m_type == Type::LINE || m_type != Type::LINE, "possible line id: 0,1", id, m_type);
-        DEBUG_ASSERT(
+        ASCIIRAST_ASSERT(m_is_initialized, "FragmentContext is initalized");
+        ASCIIRAST_ASSERT(id < 1 && m_type == Type::POINT || m_type != Type::POINT, "possible point id: 0", id, m_type);
+        ASCIIRAST_ASSERT(id < 2 && m_type == Type::LINE || m_type != Type::LINE, "possible line id: 0,1", id, m_type);
+        ASCIIRAST_ASSERT(
                 id < 4 && m_type == Type::FILLED || m_type != Type::FILLED, "possible filled id: 0,1,2,3", id, m_type);
 
         return std::get<T>(m_quad[id]);
@@ -215,8 +214,8 @@ public:
     template<typename T>
     [[nodiscard]] T dFdx(std::type_identity<T> = {}) const
     {
-        DEBUG_ASSERT(m_is_initialized, "FragmentContext is initalized");
-        DEBUG_ASSERT(m_type == Type::FILLED, "FragmentContext is initialized for filled type");
+        ASCIIRAST_ASSERT(m_is_initialized, "FragmentContext is initalized");
+        ASCIIRAST_ASSERT(m_type == Type::FILLED, "FragmentContext is initialized for filled type");
 
         /*
             0 --> 1
@@ -242,8 +241,8 @@ public:
     template<typename T>
     [[nodiscard]] T dFdy(std::type_identity<T> = {}) const
     {
-        DEBUG_ASSERT(m_is_initialized, "FragmentContext is initalized");
-        DEBUG_ASSERT(m_type == Type::FILLED, "FragmentContext is initialized for filled type");
+        ASCIIRAST_ASSERT(m_is_initialized, "FragmentContext is initalized");
+        ASCIIRAST_ASSERT(m_type == Type::FILLED, "FragmentContext is initialized for filled type");
 
         /*
              0 --> 1
@@ -269,8 +268,8 @@ public:
     template<typename T>
     [[nodiscard]] T dFdv(std::type_identity<T> = {}) const
     {
-        DEBUG_ASSERT(m_is_initialized, "FragmentContext is initalized");
-        DEBUG_ASSERT(m_type == Type::LINE, "FragmentContext is initialized for line type");
+        ASCIIRAST_ASSERT(m_is_initialized, "FragmentContext is initalized");
+        ASCIIRAST_ASSERT(m_type == Type::LINE, "FragmentContext is initialized for line type");
 
         return std::get<T>(m_quad[1]) - std::get<T>(m_quad[0]);
     }

@@ -56,7 +56,7 @@ class Sampler
 public:
     static constexpr auto blank_color = math::Vec4{ 1, 0, 1, 1 }; ///< default blank color
 
-    WrapMethod wrap_method = WrapMethod::Clamp;               ///< border wrapping method
+    WrapMethod wrap_method = WrapMethod::Clamp;                ///< border wrapping method
     SampleMethod sample_method = SampleMethod::Nearest;        ///< pixel sampling method
     SampleMethod mipmap_sample_method = SampleMethod::Nearest; ///< mipmap sampling method
 
@@ -103,7 +103,7 @@ protected:
                                     const math::Vec2& uv,
                                     const std::size_t i) const
     {
-        DEBUG_ASSERT(i < t.mipmaps().size(), "index is inside bounds");
+        ASCIIRAST_ASSERT(i < t.mipmaps().size(), "index is inside bounds");
 
         const auto size_x = t.mipmaps()[i].width();
         const auto size_y = t.mipmaps()[i].height();
@@ -150,7 +150,7 @@ protected:
                         const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& t,
                         const std::size_t i) const
     {
-        DEBUG_ASSERT(i < t.mipmaps().size(), "debug is inside bounds");
+        ASCIIRAST_ASSERT(i < t.mipmaps().size(), "debug is inside bounds");
 
         const auto size_x = t.mipmaps()[i].width();
         const auto size_y = t.mipmaps()[i].height();
@@ -243,7 +243,7 @@ texture_init(FragmentContextType<ValueTypes...>& context,
              const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
              const math::Vec2& uv)
 {
-    DEBUG_ASSERT(texture.mipmaps_generated(), "mipmaps generated before texture_init is called");
+    ASCIIRAST_ASSERT(texture.mipmaps_generated(), "mipmaps generated before texture_init is called");
 
     const auto texture_size = math::Vec2{ texture.width(), texture.height() };
 

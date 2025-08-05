@@ -17,8 +17,6 @@
 
 #pragma once
 
-#include <external/libassert/include/libassert/assert.hpp>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -55,7 +53,7 @@ public:
     static auto texture_index(math::Int width, [[maybe_unused]] math::Int height, math::Int x, math::Int y)
             -> std::size_t
     {
-        DEBUG_ASSERT(0 <= y && y < height && 0 <= x && x < width, "index is inside bounds");
+        ASCIIRAST_ASSERT(0 <= y && y < height && 0 <= x && x < width, "index is inside bounds");
 
         return static_cast<std::size_t>(width * y + x);
     }
@@ -190,7 +188,7 @@ public:
      */
     [[nodiscard]] const Mipmaps& mipmaps() const
     {
-        DEBUG_ASSERT(this->mipmaps_generated(), "mipmaps have been generated");
+        ASCIIRAST_ASSERT(this->mipmaps_generated(), "mipmaps have been generated");
 
         return m_mipmaps;
     }
@@ -202,7 +200,7 @@ public:
      */
     [[nodiscard]] TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get()
     {
-        DEBUG_ASSERT(this->has_loaded(), "texture has been loaded");
+        ASCIIRAST_ASSERT(this->has_loaded(), "texture has been loaded");
 
         return m_mipmaps.front();
     }
@@ -214,7 +212,7 @@ public:
      */
     [[nodiscard]] const TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>& get() const
     {
-        DEBUG_ASSERT(this->has_loaded(), "texture has been loaded");
+        ASCIIRAST_ASSERT(this->has_loaded(), "texture has been loaded");
 
         return m_mipmaps.front();
     }
@@ -324,7 +322,7 @@ public:
                      const std::size_t min_mipmap_level = 0,
                      const std::size_t max_mipmap_level = std::numeric_limits<std::size_t>::max())
     {
-        DEBUG_ASSERT(this->has_loaded(), "texture has been loaded");
+        ASCIIRAST_ASSERT(this->has_loaded(), "texture has been loaded");
 
         if (file_path.extension().string() != ".png") {
             throw std::runtime_error("asciirast::Texture::save() : " + file_path.string() + " is not a .png file");
@@ -387,7 +385,7 @@ public:
             return res;
         };
 
-        DEBUG_ASSERT(this->has_loaded(), "texture has been loaded");
+        ASCIIRAST_ASSERT(this->has_loaded(), "texture has been loaded");
 
         math::Int mip_width = m_mipmaps[0].width();
         math::Int mip_height = m_mipmaps[0].height();

@@ -5,6 +5,7 @@
 
 #include "../fragment.h"
 #include "../math/types.h"
+#include "./detail/assert.h"
 
 // on homogenous coordinates:
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
@@ -340,8 +341,8 @@ static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
 {
-    DEBUG_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
-    DEBUG_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
+    ASCIIRAST_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
+    ASCIIRAST_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
 
     if (const auto [p0, p1, p2] = *vec_queue.begin();
         std::ranges::equal(p0.array(), math::Vec4::from_value(0).array()) ||
@@ -381,8 +382,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const bool b01 = line_in_bounds(p0, p1, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0, p2, border, min_, max_, t0b, t02);
 
-                DEBUG_ASSERT(b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
-                DEBUG_ASSERT(b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
+                ASCIIRAST_ASSERT(
+                        b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                ASCIIRAST_ASSERT(
+                        b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
                 [[assume(t0a == 0.f)]];
                 [[assume(t01 <= 1.f)]];
@@ -416,8 +419,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const bool b02 = line_in_bounds(p0, p2, border, min0, max0, t0, t02);
                 const bool b12 = line_in_bounds(p1, p2, border, min1, max1, t1, t12);
 
-                DEBUG_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
-                DEBUG_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
+                ASCIIRAST_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
+                ASCIIRAST_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
 
                 [[assume(b02 == true)]];
                 [[assume(t0 == 0.f)]];
@@ -460,8 +463,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
     const math::Vec2 min_ = SCREEN_BOUNDS.min_get();
     const math::Vec2 max_ = SCREEN_BOUNDS.max_get();
 
-    DEBUG_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
-    DEBUG_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
+    ASCIIRAST_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
+    ASCIIRAST_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
         auto it_vec = vec_queue.begin();
@@ -489,8 +492,10 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0b, t02);
 
-                DEBUG_ASSERT(b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
-                DEBUG_ASSERT(b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
+                ASCIIRAST_ASSERT(
+                        b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                ASCIIRAST_ASSERT(
+                        b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
                 [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
@@ -531,8 +536,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0, t02);
                 const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min_, max_, t1, t12);
 
-                DEBUG_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
-                DEBUG_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
+                ASCIIRAST_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
+                ASCIIRAST_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
 
                 [[assume(b02 == true)]];
                 [[assume(t0 == 0.f)]];

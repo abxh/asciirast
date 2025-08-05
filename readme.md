@@ -9,6 +9,9 @@ for details on converting between coordinate systems.
 
 ## Dependencies
 
+Though not necessary, preferably install system-wide:
+- `libdwarf-dev`
+
 For the examples:
 - `libsdl2-dev`
 - `libsdl2-ttf-dev`

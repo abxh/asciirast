@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <external/libassert/include/libassert/assert.hpp>
+#include "../detail/assert.h"
 
 #include "./types.h"
 
@@ -23,7 +23,7 @@ namespace asciirast::math {
 static math::Float
 compute_reverse_depth(const math::Float z, const math::Float near, const math::Float far)
 {
-    DEBUG_ASSERT(almost_equal<Float>(near, far) == false);
+    ASCIIRAST_ASSERT(almost_equal<Float>(near, far) == false);
 
     return (far - z) / (far - near);
 }
@@ -61,14 +61,14 @@ make_perspective(const Float near,
      * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
      */
 
-    DEBUG_ASSERT(tan(fovy_rad / 2.0f) != 0.f);
-    DEBUG_ASSERT(aspect_ratio != 0.f);
+    ASCIIRAST_ASSERT(tan(fovy_rad / 2.0f) != 0.f);
+    ASCIIRAST_ASSERT(aspect_ratio != 0.f);
 
     const auto tan_half_fov = tan(fovy_rad / 2.0f);
     const auto sx = tan_half_fov * aspect_ratio;
     const auto sy = tan_half_fov;
 
-    DEBUG_ASSERT(almost_equal<Float>(near, far) == false);
+    ASCIIRAST_ASSERT(almost_equal<Float>(near, far) == false);
 
     /* Solving:
         A z + B = depth z
