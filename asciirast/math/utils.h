@@ -71,15 +71,14 @@ make_perspective(const Float near,
     DEBUG_ASSERT(almost_equal<Float>(near, far) == false);
 
     /* Solving:
-        A + B / z = depth
+        A z + B = depth z
+    <=> A + B / z = depth
        With constraints:
         A + B / near = 1
         A + B / far  = 0
        Gives:
         A = -near / (far - near)
         B = -far * A
-       Therefore:
-        A z + B = depth * z
     */
 
     const auto A = -near / (far - near);
