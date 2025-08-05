@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include <cassert>
 #include <deque>
 #include <ranges>
 #include <stdexcept>
 #include <vector>
 
 #include "./math/types.h"
+#include "./math/utils.h"
 #include "./program.h"
 #include "./renderer/rasterize.h"
 #include "./renderer/test_bounds.h"
@@ -200,8 +200,8 @@ public:
     static auto scale_to_viewport_transform(const math::AABB2D& viewport_bounds, const math::AABB2D& screen_bounds)
             -> math::Transform2D
     {
-        assert(viewport_bounds.size_get().x != 0 && "non-zero size");
-        assert(viewport_bounds.size_get().y != 0 && "non-zero size");
+        DEBUG_ASSERT(viewport_bounds.size_get().x != 0, "non-zero x size");
+        DEBUG_ASSERT(viewport_bounds.size_get().y != 0, "non-zero y size");
 
         const auto rel_size = viewport_bounds.size_get() / screen_bounds.size_get();
         const auto shf_size = (screen_bounds.min_get() * rel_size).vector_to(viewport_bounds.min_get());

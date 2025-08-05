@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cfloat>
 
 #include "../fragment.h"

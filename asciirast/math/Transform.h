@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <cassert>
+#include <external/libassert/include/libassert/assert.hpp>
 
 #include "./Mat.h"
 #include "./Rot.h"
@@ -60,7 +60,7 @@ public:
      */
     constexpr Transform2D& stack(const Mat3& mat, const Mat3& mat_inv)
     {
-        assert(mat * mat_inv == Mat3::identity());
+        DEBUG_ASSERT(mat * mat_inv == Mat3::identity(), "reversable matrix given", mat, mat_inv);
 
         return this->stack_internal(mat, mat_inv);
     }
@@ -163,8 +163,8 @@ public:
      */
     constexpr Transform2D& scale(const T scale_x, const T scale_y)
     {
-        assert(scale_x != 0);
-        assert(scale_y != 0);
+        DEBUG_ASSERT(scale_x != 0, "non-zero x scalar");
+        DEBUG_ASSERT(scale_y != 0, "non-zero y scalar");
 
         const auto mt = Mat3{
             scale_x, 0,       0, //
@@ -307,7 +307,7 @@ public:
      */
     constexpr Transform3D& stack(const Mat4& mat, const Mat4& mat_inv)
     {
-        assert(mat * mat_inv == Mat4::identity());
+        DEBUG_ASSERT(mat * mat_inv == Mat4::identity(), "reversable matrix given", mat, mat_inv);
 
         return this->stack_internal(mat, mat_inv);
     }
@@ -417,9 +417,9 @@ public:
      */
     constexpr Transform3D& scale(const T scale_x, const T scale_y, const T scale_z)
     {
-        assert(scale_x != 0);
-        assert(scale_y != 0);
-        assert(scale_z != 0);
+        DEBUG_ASSERT(scale_x != 0, "non-zero x scalar");
+        DEBUG_ASSERT(scale_y != 0, "non-zero y scalar");
+        DEBUG_ASSERT(scale_z != 0, "non-zero z scalar");
 
         const auto mt = Mat3{
             scale_x, 0,       0,       0, //

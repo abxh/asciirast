@@ -3,7 +3,6 @@
 // https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
 
 #include "examples/common/SDLBuffer.h"
-#include "examples/common/SDLClock.h"
 
 #include "asciirast/math/types.h"
 #include "asciirast/program.h"
@@ -12,7 +11,6 @@
 #include "external/tiny_obj_loader/tiny_obj_loader.h"
 #include "external/tinyfiledialogs/tinyfiledialogs.h"
 
-#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -20,8 +18,8 @@
 struct MyUniform
 {
     math::Rot3D rot;
-    math::Float z_near;
-    math::Float z_far;
+    math::Float z_dist;
+    math::Float z_near = 0.1f;
 };
 
 struct MyVertex
@@ -49,13 +47,11 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos;
+        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 4 };
+        const auto depth = math::compute_reverse_depth(pos.z, u.z_near, u.z_near + u.z_dist + 4);
 
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-        const auto depth = pos.z * depth_scalar - u.z_near * depth_scalar;
-
-        out.pos = { pos.xy, 1.f - depth, 1 };
-        out.attrs = { math::Vec3{ depth, depth, depth } };
+        out.pos = { pos.xy, depth, 1 };
+        out.attrs = { math::Vec3::from_value(depth) };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
@@ -126,14 +122,15 @@ main(int argc, char* argv[])
 
     asciirast::IndexedVertexBuffer<MyVertex> vertex_buf{};
     vertex_buf.shape_type = asciirast::ShapeType::Triangles;
-    vertex_buf.verticies =
-            attrib.vertices                                                                    //
-            | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
-            | std::ranges::views::chunk(3U)                                                    //
-            | std::ranges::views::transform([](auto&& range) {                                 //
-                  return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
-              }) //
-            | std::ranges::to<decltype(vertex_buf.verticies)>();
+    vertex_buf.verticies = attrib.vertices                                                                    //
+                           | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
+                           | std::ranges::views::chunk(3U)                                                    //
+                           | std::ranges::views::transform([](auto&& range) {                                 //
+                                 const math::Vec3 p = { *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) };
+                                 return MyVertex{ { p.xy, -p.z } };
+                             }) //
+                           | std::ranges::to<decltype(vertex_buf.verticies)>();
+
     for (std::size_t s = 0; s < shapes.size(); s++) {
         std::size_t index_offset = 0;
         for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
@@ -155,14 +152,15 @@ main(int argc, char* argv[])
 
     SDLClock clock;
     MyUniform uniforms;
-    uniforms.z_near = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); });
-    uniforms.z_far = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
+    uniforms.z_dist = std::abs(
+            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
+                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
+                                   math::Float{},
+                                   [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); }) -
+            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
+                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
+                                   math::Float{},
+                                   [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); }));
 
     SDLBuffer screen(512, 512);
     MyProgram program;

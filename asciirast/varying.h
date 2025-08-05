@@ -6,6 +6,7 @@
 #pragma once
 
 #include "./math/types.h"
+#include "./math/utils.h"
 
 #include "external/boost_pfr/include/boost/pfr.hpp"
 

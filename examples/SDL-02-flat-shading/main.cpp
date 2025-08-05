@@ -6,7 +6,6 @@
 // https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
 
 #include "examples/common/SDLBuffer.h"
-#include "examples/common/SDLClock.h"
 
 #include "asciirast/math/types.h"
 #include "asciirast/program.h"
@@ -23,8 +22,8 @@
 struct MyUniform
 {
     math::Rot3D rot;
-    math::Float z_near;
-    math::Float z_far;
+    math::Float z_near = 0.1f;
+    math::Float z_far = 100.f;
 };
 
 struct MyVertex
@@ -53,12 +52,10 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos;
+        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 2 };
+        const auto depth = math::compute_reverse_depth(pos.z, u.z_near, u.z_far);
 
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-        const auto depth = pos.z * depth_scalar - u.z_near * depth_scalar;
-
-        out.pos = { pos.xy, 1.f - depth, 1 };
+        out.pos = { pos.xy, depth, 1 };
         out.attrs = { vert.color };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -149,18 +146,19 @@ main(int argc, char* argv[])
             const std::size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
 
             if (fv == 3) {
+                const auto color = math::Vec3{ dis(gen), dis(gen), dis(gen) };
+
                 tinyobj::index_t idx0 = shapes[s].mesh.indices[index_offset + 0];
                 tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + 1];
                 tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 2];
 
-                const auto color = math::Vec3{ dis(gen), dis(gen), dis(gen) };
+                const auto p0 = positions[static_cast<std::size_t>(idx0.vertex_index)];
+                const auto p1 = positions[static_cast<std::size_t>(idx1.vertex_index)];
+                const auto p2 = positions[static_cast<std::size_t>(idx2.vertex_index)];
 
-                vertex_buf.verticies.push_back(
-                        MyVertex{ positions[static_cast<std::size_t>(idx0.vertex_index)], color });
-                vertex_buf.verticies.push_back(
-                        MyVertex{ positions[static_cast<std::size_t>(idx1.vertex_index)], color });
-                vertex_buf.verticies.push_back(
-                        MyVertex{ positions[static_cast<std::size_t>(idx2.vertex_index)], color });
+                vertex_buf.verticies.push_back(MyVertex{ { p0.xy, -p0.z }, color });
+                vertex_buf.verticies.push_back(MyVertex{ { p1.xy, -p1.z }, color });
+                vertex_buf.verticies.push_back(MyVertex{ { p2.xy, -p2.z }, color });
             }
 
             index_offset += fv;
@@ -172,14 +170,6 @@ main(int argc, char* argv[])
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     MyUniform uniforms;
-    uniforms.z_near = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); });
-    uniforms.z_far = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
 
     bool running = true;
     while (running) {

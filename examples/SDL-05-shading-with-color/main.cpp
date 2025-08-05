@@ -6,7 +6,6 @@
 // https://github.com/ssloy/tinyrenderer/wiki/Lesson-4:-Perspective-projection
 
 #include "examples/common/SDLBuffer.h"
-#include "examples/common/SDLClock.h"
 
 #include "asciirast/math/types.h"
 #include "asciirast/program.h"
@@ -16,7 +15,6 @@
 #include "external/tiny_obj_loader/tiny_obj_loader.h"
 #include "external/tinyfiledialogs/tinyfiledialogs.h"
 
-#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -58,18 +56,9 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos;
+        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 2 };
 
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-        const auto depth = pos.z * depth_scalar - u.z_near * depth_scalar;
-
-        const auto fov_angle = math::radians(60.f);
-        const auto fov_scalar = tanf(fov_angle / 2.f);
-        const auto fov_scalar_inv = 1 / fov_scalar;
-
-        const auto z_shf = 2.f;
-
-        out.pos = { fov_scalar_inv * pos.x, fov_scalar_inv * pos.y, u.z_far - depth, -pos.z + z_shf };
+        out.pos = math::make_perspective(u.z_near, u.z_far).apply({ pos, 1 });
         out.attrs = { vert.uv };
     }
 
@@ -197,42 +186,32 @@ main(int argc, char* argv[])
                     const tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset + 1];
                     const tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 2];
 
-                    const auto pi0 = static_cast<std::size_t>(idx0.vertex_index);
-                    const auto pi1 = static_cast<std::size_t>(idx1.vertex_index);
-                    const auto pi2 = static_cast<std::size_t>(idx2.vertex_index);
+                    const auto p0 = positions[static_cast<std::size_t>(idx0.vertex_index)];
+                    const auto p1 = positions[static_cast<std::size_t>(idx1.vertex_index)];
+                    const auto p2 = positions[static_cast<std::size_t>(idx2.vertex_index)];
 
-                    const auto tci0 = static_cast<std::size_t>(idx0.texcoord_index);
-                    const auto tci1 = static_cast<std::size_t>(idx1.texcoord_index);
-                    const auto tci2 = static_cast<std::size_t>(idx2.texcoord_index);
+                    const auto tc0 = texcoords[static_cast<std::size_t>(idx0.texcoord_index)];
+                    const auto tc1 = texcoords[static_cast<std::size_t>(idx1.texcoord_index)];
+                    const auto tc2 = texcoords[static_cast<std::size_t>(idx2.texcoord_index)];
 
-                    vertex_buf.verticies.push_back(MyVertex{ positions[pi0], texcoords[tci0] });
-                    vertex_buf.verticies.push_back(MyVertex{ positions[pi1], texcoords[tci1] });
-                    vertex_buf.verticies.push_back(MyVertex{ positions[pi2], texcoords[tci2] });
+                    vertex_buf.verticies.push_back(MyVertex{ { p0.xy, -p0.z }, tc0 });
+                    vertex_buf.verticies.push_back(MyVertex{ { p1.xy, -p1.z }, tc1 });
+                    vertex_buf.verticies.push_back(MyVertex{ { p2.xy, -p2.z }, tc2 });
                 }
 
                 index_offset += fv;
             }
         }
     } else {
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, -1), { 0, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, -1), { 1, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, +1), { 0, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ { -1, -1, 0 }, { 0, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ { +1, -1, 0 }, { 1, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ { -1, +1, 0 }, { 0, 1 } });
 
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(-1, +1), { 0, 1 } });
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, -1), { 1, 0 } });
-        vertex_buf.verticies.push_back(MyVertex{ math::Vec3::zero_padded(+1, +1), { 1, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ { -1, +1, 0 }, { 0, 1 } });
+        vertex_buf.verticies.push_back(MyVertex{ { +1, -1, 0 }, { 1, 0 } });
+        vertex_buf.verticies.push_back(MyVertex{ { +1, +1, 0 }, { 1, 1 } });
     }
-    math::Rot3D rot;
     SDLClock clock;
-    uniforms.z_near = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); });
-    uniforms.z_far = std::ranges::fold_left(
-            vertex_buf.verticies | std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
-            math::Float{},
-            [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); });
-
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;

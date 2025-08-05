@@ -9,7 +9,6 @@
 #pragma once
 
 #include <array>
-#include <cassert>
 #include <coroutine>
 #include <cstddef>
 #include <cstdint>
@@ -17,6 +16,8 @@
 #include <new>
 #include <optional>
 #include <ranges>
+
+#include <external/libassert/include/libassert/assert.hpp>
 
 namespace asciirast {
 
@@ -66,11 +67,11 @@ public:
         [[maybe_unused]] const auto end = reinterpret_cast<std::byte*>(&m_pool[FrameCount]);
         const auto p = reinterpret_cast<std::byte*>(ptr);
 
-        assert(begin <= p && p < end && "pointer points to part of the pool");
+        DEBUG_ASSERT(begin <= p && p < end, "pointer points to part of the pool");
 
         const auto offset = static_cast<std::uintptr_t>(p - begin);
 
-        assert(offset % sizeof(Frame) == 0 && "pointer is aligned correctly");
+        DEBUG_ASSERT(offset % sizeof(Frame) == 0, "pointer is aligned correctly");
 
         const auto index = offset / sizeof(Frame);
         m_free_indices.push(index);
@@ -85,12 +86,12 @@ private:
     {
         constexpr void push(const std::uintptr_t& value)
         {
-            assert(m_size < FrameCount && "enough frames allocated");
+            DEBUG_ASSERT(m_size < FrameCount, "enough frames allocated");
             m_data[m_size++] = value;
         }
         constexpr std::uintptr_t pop()
         {
-            assert(m_size > 0 && "no double free or corruption");
+            DEBUG_ASSERT(m_size > 0, "no double free or corruption");
             return m_data[--m_size];
         }
         std::array<std::uintptr_t, FrameCount> m_data = {};

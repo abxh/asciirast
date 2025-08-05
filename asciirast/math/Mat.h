@@ -9,13 +9,14 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <numeric>
 #include <ostream>
 #include <sstream>
 #include <type_traits>
+
+#include <external/libassert/include/libassert/assert.hpp>
 
 #include "./Vec.h"
 
@@ -280,7 +281,7 @@ public:
      */
     [[nodiscard]] constexpr T& operator[](const std::size_t i)
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", *this);
 
         return m_elements[i];
     }
@@ -293,7 +294,7 @@ public:
      */
     [[nodiscard]] constexpr T operator[](const std::size_t i) const
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", *this);
 
         return m_elements[i];
     }
@@ -307,8 +308,8 @@ public:
      */
     [[nodiscard]] constexpr T& operator[](const std::size_t y, const std::size_t x)
     {
-        assert(y < M_y && "index is inside bounds");
-        assert(x < N_x && "index is inside bounds");
+        DEBUG_ASSERT(x < N_x, "index is inside bounds", *this);
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         return m_elements[map_index(y, x)];
     }
@@ -322,8 +323,8 @@ public:
      */
     [[nodiscard]] constexpr T operator[](const std::size_t y, const std::size_t x) const
     {
-        assert(y < M_y && "index is inside bounds");
-        assert(x < N_x && "index is inside bounds");
+        DEBUG_ASSERT(x < N_x, "index is inside bounds", *this);
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         return m_elements[map_index(y, x)];
     }
@@ -374,7 +375,7 @@ public:
      */
     [[nodiscard]] constexpr Vec<N_x, T> row_get(const std::size_t y) const
     {
-        assert(y < M_y && "index is inside bounds");
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         Vec<N_x, T> res{};
         for (std::size_t x = 0; x < N_x; x++) {
@@ -393,7 +394,7 @@ public:
      */
     constexpr Mat& row_set(const std::size_t y, const Vec<N_x, T>& v)
     {
-        assert(y < M_y && "index is inside bounds");
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         for (std::size_t x = 0; x < N_x; x++) {
             (*this)[y, x] = v[x];
@@ -410,7 +411,7 @@ public:
      */
     [[nodiscard]] constexpr Vec<M_y, T> col_get(const std::size_t x) const
     {
-        assert(x < N_x && "index is inside bounds");
+        DEBUG_ASSERT(x < N_x, "index is inside bounds", *this);
 
         Vec<M_y, T> res{};
         for (std::size_t y = 0; y < M_y; y++) {
@@ -429,7 +430,7 @@ public:
      */
     constexpr Mat& col_set(const std::size_t x, const Vec<M_y, T>& v)
     {
-        assert(x < M_y && "index is inside bounds");
+        DEBUG_ASSERT(x < M_y, "index is inside bounds", *this);
 
         for (std::size_t y = 0; y < M_y; y++) {
             (*this)[y, x] = v[y];
@@ -444,7 +445,7 @@ public:
     [[nodiscard]] std::span<const T, N_x> row_span(const std::size_t y) const
         requires(!is_col_major)
     {
-        assert(y < M_y && "index is inside bounds");
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         return std::span<const T, N_x>{ &m_elements[N_x * y], N_x };
     }
@@ -455,7 +456,7 @@ public:
     [[nodiscard]] std::span<T, N_x> row_span(const std::size_t y)
         requires(!is_col_major)
     {
-        assert(y < M_y && "index is inside bounds");
+        DEBUG_ASSERT(y < M_y, "index is inside bounds", *this);
 
         return std::span<T, N_x>{ &m_elements[N_x * y], N_x };
     }
@@ -466,7 +467,7 @@ public:
     [[nodiscard]] std::span<const T, M_y> col_span(const std::size_t x) const
         requires(is_col_major)
     {
-        assert(x < N_x && "index is inside bounds");
+        DEBUG_ASSERT(x < N_x, "index is inside bounds", *this);
 
         return std::span<const T, M_y>{ &m_elements[M_y * x], M_y };
     }
@@ -477,7 +478,7 @@ public:
     [[nodiscard]] std::span<T, M_y> col_span(const std::size_t x)
         requires(is_col_major)
     {
-        assert(x < N_x && "index is inside bounds");
+        DEBUG_ASSERT(x < N_x, "index is inside bounds", *this);
 
         return std::span<T, M_y>{ &m_elements[M_y * x], M_y };
     }
@@ -582,7 +583,7 @@ public:
     constexpr Mat& operator/=(const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != 0 && "non-zero division");
+            DEBUG_ASSERT(scalar != 0, "non-zero division", *this);
         }
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] /= scalar;
@@ -686,7 +687,7 @@ public:
     [[nodiscard]] friend constexpr Mat operator/(const Mat& lhs, const T scalar)
     {
         if constexpr (std::is_integral_v<T>) {
-            assert(scalar != 0 && "non-zero division");
+            DEBUG_ASSERT(scalar != 0, "non-zero division", lhs);
         }
         Mat res{};
         for (std::size_t i = 0; i < size(); i++) {

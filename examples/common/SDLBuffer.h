@@ -14,9 +14,10 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
+#include <iostream>
 #include <vector>
 
-// sdl code based on:
+// sdl buffer code based on:
 // https://stackoverflow.com/questions/33304351/sdl2-fast-pixel-manipulation
 
 namespace math = asciirast::math;
@@ -37,6 +38,7 @@ class SDLBuffer
 {
 public:
     using Targets = RGBA;
+    static constexpr math::Float DEFAULT_DEPTH = -1; // or -infty
 
     SDLBuffer(const unsigned width, const unsigned height)
     {
@@ -62,6 +64,9 @@ public:
         const std::uint32_t pixel_format = SDL_PIXELFORMAT_ARGB8888; // use SDL_GetRendererInfo to get more info
         m_texture = SDL_CreateTexture(m_renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, m_width, m_height);
         SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND);
+
+        this->clear();
+        this->render();
     }
     ~SDLBuffer()
     {
@@ -80,7 +85,7 @@ public:
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
         depth = std::clamp<math::Float>(depth, 0, 1);
 
-        if (depth < m_depth_buf[idx]) {
+        if (depth > m_depth_buf[idx]) {
             m_depth_buf[idx] = depth;
             return true;
         }
@@ -124,7 +129,7 @@ public:
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
             m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
-            m_depth_buf[i] = 2; // or +infty
+            m_depth_buf[i] = DEFAULT_DEPTH;
         }
     }
 
@@ -206,4 +211,39 @@ private:
     SDLBuffer& m_screen;
     SDL_Surface* m_surface = nullptr;
     SDL_Texture* m_texture = nullptr;
+};
+
+class SDLClock
+{
+public:
+    SDLClock(int ms_per_update = 100)
+    {
+        m_previous_time_ms = SDL_GetTicks64();
+        m_lag_ms = 0;
+        m_ms_per_update = ms_per_update;
+    }
+
+    template<typename F>
+        requires(std::invocable<F, float>)
+    void update(F callback)
+    {
+        while (m_lag_ms >= 0) {
+            const auto dt_sec = m_ms_per_update / 1000.f;
+            callback(dt_sec);
+            m_lag_ms -= m_ms_per_update;
+        }
+    }
+
+    void tick()
+    {
+        const uint64_t current_time_ms = SDL_GetTicks64();
+        const int elapsed_ms = static_cast<int>(current_time_ms - m_previous_time_ms);
+        m_previous_time_ms = current_time_ms;
+        m_lag_ms += elapsed_ms;
+    }
+
+private:
+    std::uint64_t m_previous_time_ms;
+    int m_lag_ms;
+    int m_ms_per_update;
 };

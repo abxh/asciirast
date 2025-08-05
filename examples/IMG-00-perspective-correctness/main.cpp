@@ -1,6 +1,5 @@
 // Based on:
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes.html
-// https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
 
 #include "examples/common/PPMBuffer.h"
 
@@ -44,9 +43,7 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-
-        out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
+        out.pos = { vert.pos.xy, math::compute_reverse_depth(vert.pos.z, u.z_near, u.z_far), vert.pos.z };
         out.attrs = { vert.color, vert.uv };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -70,9 +67,7 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto depth_scalar = u.z_far / (u.z_far - u.z_near);
-
-        out.pos = { vert.pos.xy, vert.pos.z * depth_scalar - u.z_near * depth_scalar, vert.pos.z };
+        out.pos = { vert.pos.xy, math::compute_reverse_depth(vert.pos.z, u.z_near, u.z_far), vert.pos.z };
         out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <deque>
 #include <utility>
 
@@ -287,9 +286,9 @@ count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v
                    v2.y <= +v2.w };
         break;
     case BorderType::NEAR:
-        inside = { -v0.w <= v0.z,
-                   -v1.w <= v1.z,
-                   -v2.w <= v2.z };
+        inside = { -0.f <= v0.z,
+                   -0.f <= v1.z,
+                   -0.f <= v2.z };
         break;
     case BorderType::FAR:
         inside = { v0.z <= +v0.w,
@@ -320,7 +319,7 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
         } else if (inside[2]) {
             return { 2, 0, 1 };
         }
-    } else if constexpr (count == 2) {
+    } else {
         // first two points are inside. last one is outside.
         if (inside[0] && inside[1]) {
             return { 0, 1, 2 };
@@ -330,8 +329,6 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
             return { 1, 2, 0 };
         }
     }
-    assert(false && "should be unreachable");
-    std::unreachable();
     return { 0, 0, 0 };
 }
 
@@ -343,8 +340,8 @@ static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
 {
-    assert(vec_queue.size() > 0);
-    assert(vec_queue.size() == attrs_queue.size());
+    DEBUG_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
+    DEBUG_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
 
     if (const auto [p0, p1, p2] = *vec_queue.begin();
         std::ranges::equal(p0.array(), math::Vec4::from_value(0).array()) ||
@@ -384,21 +381,16 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const bool b01 = line_in_bounds(p0, p1, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0, p2, border, min_, max_, t0b, t02);
 
-                assert(b01);
-                assert(t0a == 0.f);
-                assert(t01 <= 1.f);
+                DEBUG_ASSERT(b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                DEBUG_ASSERT(b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
-                assert(b02);
-                assert(t0b == 0.f);
-                assert(t02 <= 1.f);
-
-                [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
                 [[assume(t01 <= 1.f)]];
+                [[assume(b01 == true)]];
 
-                [[assume(b02 == true)]];
                 [[assume(t0b == 0.f)]];
                 [[assume(t02 <= 1.f)]];
+                [[assume(b02 == true)]];
 
                 *it_vec = Vec4Triplet{ p0, lerp(p0, p1, t01), lerp(p0, p2, t02) };
                 *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
@@ -424,13 +416,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const bool b02 = line_in_bounds(p0, p2, border, min0, max0, t0, t02);
                 const bool b12 = line_in_bounds(p1, p2, border, min1, max1, t1, t12);
 
-                assert(b02);
-                assert(t0 == 0.f);
-                assert(t02 <= 1.f);
-
-                assert(b12);
-                assert(t1 == 0.f);
-                assert(t12 <= 1.f);
+                DEBUG_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
+                DEBUG_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
 
                 [[assume(b02 == true)]];
                 [[assume(t0 == 0.f)]];
@@ -452,11 +439,7 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 it_vec = vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
                 it_attr = attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
             } break;
-            case 3:
-                break;
             default:
-                assert(false && "should be unreachable");
-                std::unreachable();
                 break;
             }
             ++it_vec;
@@ -477,8 +460,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
     const math::Vec2 min_ = SCREEN_BOUNDS.min_get();
     const math::Vec2 max_ = SCREEN_BOUNDS.max_get();
 
-    assert(vec_queue.size() > 0);
-    assert(vec_queue.size() == attrs_queue.size());
+    DEBUG_ASSERT(vec_queue.size() > 0, "verticies provided", vec_queue);
+    DEBUG_ASSERT(vec_queue.size() == attrs_queue.size(), "same number of vertices and attributes provided");
 
     for (auto border = BorderType::BEGIN; border < BorderType::END2D; border = detail::next_border_type(border)) {
         auto it_vec = vec_queue.begin();
@@ -506,13 +489,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0b, t02);
 
-                assert(b01);
-                assert(t0a == 0.f);
-                assert(t01 <= 1.f);
-
-                assert(b02);
-                assert(t0b == 0.f);
-                assert(t02 <= 1.f);
+                DEBUG_ASSERT(b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                DEBUG_ASSERT(b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
                 [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
@@ -553,13 +531,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0, t02);
                 const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min_, max_, t1, t12);
 
-                assert(b02);
-                assert(t0 == 0.f);
-                assert(t02 <= 1.f);
-
-                assert(b12);
-                assert(t1 == 0.f);
-                assert(t12 <= 1.f);
+                DEBUG_ASSERT(b02 && t0 == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0, t02);
+                DEBUG_ASSERT(b12 && t1 == 0.f && t12 <= 1.f, "only the end of the line is clippable", b12, t1, t12);
 
                 [[assume(b02 == true)]];
                 [[assume(t0 == 0.f)]];
@@ -590,11 +563,7 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 it_vec = vec_queue.insert(it_vec, Vec4Triplet{ p1, p12, p02 });
                 it_attr = attrs_queue.insert(it_attr, AttrsTriplet{ a1, a12, a02 });
             } break;
-            case 3:
-                break;
             default:
-                assert(false && "should be unreachable");
-                std::unreachable();
                 break;
             }
             ++it_vec;

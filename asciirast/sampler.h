@@ -21,10 +21,9 @@
 #pragma once
 
 #include "./math/types.h"
+#include "./math/utils.h"
 #include "fragment.h"
 #include "texture.h"
-
-#include <cassert>
 
 namespace asciirast {
 
@@ -104,7 +103,7 @@ protected:
                                     const math::Vec2& uv,
                                     const std::size_t i) const
     {
-        assert(i < t.mipmaps().size());
+        DEBUG_ASSERT(i < t.mipmaps().size(), "index is inside bounds");
 
         const auto size_x = t.mipmaps()[i].width();
         const auto size_y = t.mipmaps()[i].height();
@@ -151,7 +150,7 @@ protected:
                         const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& t,
                         const std::size_t i) const
     {
-        assert(i < t.mipmaps().size());
+        DEBUG_ASSERT(i < t.mipmaps().size(), "debug is inside bounds");
 
         const auto size_x = t.mipmaps()[i].width();
         const auto size_y = t.mipmaps()[i].height();
@@ -244,7 +243,7 @@ texture_init(FragmentContextType<ValueTypes...>& context,
              const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
              const math::Vec2& uv)
 {
-    assert(texture.mipmaps_generated());
+    DEBUG_ASSERT(texture.mipmaps_generated(), "mipmaps generated before texture_init is called");
 
     const auto texture_size = math::Vec2{ texture.width(), texture.height() };
 

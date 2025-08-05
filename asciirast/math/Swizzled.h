@@ -13,8 +13,9 @@
 #pragma once
 
 #include <array>
-#include <cassert>
 #include <type_traits>
+
+#include <external/libassert/include/libassert/assert.hpp>
 
 namespace asciirast::math {
 
@@ -117,7 +118,7 @@ public:
      */
     [[nodiscard]] constexpr T& operator[](const std::size_t i)
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", this->to_vec());
 
         return m_components[IndiciesArray[i]];
     }
@@ -130,7 +131,7 @@ public:
      */
     [[nodiscard]] constexpr T operator[](const std::size_t i) const
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", this->to_vec());
 
         return m_components[IndiciesArray[i]];
     }
@@ -233,7 +234,7 @@ public:
     constexpr Swizzled& operator/=(const T scalar)
         requires(detail::non_duplicate_indicies_v<Indicies...>)
     {
-        assert(scalar != 0 && "non-zero division");
+        DEBUG_ASSERT(scalar != 0, "non-zero division", this->to_vec());
 
         for (std::size_t i = 0; i < size(); i++) {
             (*this)[i] /= scalar;

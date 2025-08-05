@@ -164,4 +164,4 @@ private:
     std::vector<RGBC> m_rgbc_buf;
 };
 
-static_assert(asciirast::FrameBufferInterface<TerminalBuffer>); // alternative
+static_assert(asciirast::FrameBufferInterface<TerminalBuffer>);

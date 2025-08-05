@@ -5,16 +5,17 @@
 
 #pragma once
 
+#include <external/libassert/include/libassert/assert.hpp>
+
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <numeric>
 #include <ostream>
 #include <type_traits>
 
+#include "./Float.h"
 #include "./VecBase.h"
-#include "./utils.h"
 
 namespace asciirast::math {
 
@@ -222,7 +223,7 @@ public:
     [[nodiscard]]
     constexpr T& operator[](const std::size_t i)
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", *this);
 
         return m_components[i];
     }
@@ -236,7 +237,7 @@ public:
     [[nodiscard]]
     constexpr T operator[](const std::size_t i) const
     {
-        assert(i < this->size() && "index is inside bounds");
+        DEBUG_ASSERT(i < this->size(), "index is inside bounds", *this);
 
         return m_components[i];
     }
@@ -426,7 +427,7 @@ public:
      */
     constexpr Vec& operator/=(const T scalar)
     {
-        assert(scalar != 0 && "non-zero division");
+        DEBUG_ASSERT(scalar != 0, "non-zero division", *this);
 
         for (std::size_t i = 0; i < N; i++) {
             (*this)[i] /= scalar;
@@ -557,7 +558,7 @@ public:
     [[nodiscard]]
     friend constexpr Vec operator/(const Vec& lhs, const T scalar)
     {
-        assert(scalar != 0 && "non-zero division");
+        DEBUG_ASSERT(scalar != 0, "non-zero division", lhs);
         Vec res{};
         for (std::size_t i = 0; i < N; i++) {
             res[i] = lhs[i] / scalar;
@@ -577,7 +578,7 @@ public:
     {
 #ifndef NDEBUG
         for (std::size_t i = 0; i < N; i++) {
-            assert(rhs[i] != 0 && "non-zero division");
+            DEBUG_ASSERT(rhs[i] != 0, "non-zero division", rhs, i);
         }
 #endif
         Vec res{};
