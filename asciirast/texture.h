@@ -24,15 +24,13 @@
 #include <stdexcept>
 #include <vector>
 
+#include <external/stb_image/stb_image.h>
+#include <external/stb_image/stb_image_write.h>
+
 #include "./math/types.h"
 #include "./math/utils.h"
 
 namespace asciirast {
-
-namespace detail {
-#include <external/stb_image/stb_image.h>
-#include <external/stb_image/stb_image_write.h>
-}
 
 /**
  * @brief Texture storage class
@@ -282,10 +280,10 @@ public:
         static_assert(4 * sizeof(unsigned char) == sizeof(math::RGBA_8bit));
 
         int width, height, n;
-        detail::stbi_set_flip_vertically_on_load(true);
-        unsigned char* ptr = detail::stbi_load(file_path.c_str(), &width, &height, &n, detail::STBI_rgb_alpha);
+        stbi_set_flip_vertically_on_load(true);
+        unsigned char* ptr = stbi_load(file_path.c_str(), &width, &height, &n, STBI_rgb_alpha);
         if (!ptr) {
-            throw std::runtime_error("asciirast::Texture::load() : " + std::string(detail::stbi_failure_reason()));
+            throw std::runtime_error("asciirast::Texture::load() : " + std::string(stbi_failure_reason()));
         }
 
         const auto mip_levels =
@@ -335,7 +333,7 @@ public:
             const auto width_str = std::to_string(width);
             const auto height_str = std::to_string(height);
 
-            detail::stbi_flip_vertically_on_write(true);
+            stbi_flip_vertically_on_write(true);
 
             const auto dir = file_path.parent_path();
             const auto path_str = ((dir / file_path.stem()).string() + "_" + width_str + "x" + height_str + ".png");
@@ -345,7 +343,7 @@ public:
             }
 
             errno = 0;
-            const int ret_val = detail::stbi_write_png(path_str.c_str(), width, height, 4, m_mipmaps[i].data(), stride);
+            const int ret_val = stbi_write_png(path_str.c_str(), width, height, 4, m_mipmaps[i].data(), stride);
             if (ret_val == 0) {
                 if (errno != 0) {
                     throw std::runtime_error("asciirast::Texture::save() : " + std::string(std::strerror(errno)));
