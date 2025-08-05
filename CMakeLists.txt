@@ -62,6 +62,7 @@ endif()
 add_subdirectory(external/boost_pfr) 
 add_subdirectory(external/gcem) 
 add_subdirectory(external/stb_image) 
+add_subdirectory(external/libassert) 
 add_subdirectory(asciirast)
 
 if (ASCIIRAST_EXAMPLES)
