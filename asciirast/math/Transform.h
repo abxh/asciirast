@@ -372,10 +372,10 @@ public:
     constexpr Transform3D& translate(const T delta_x, const T delta_y, const T delta_z)
     {
         const Vec4 vt = { +delta_x, +delta_y, +delta_z, 1 };
-        const auto mt = Mat4{ Mat3::identity() }.col_set(2, vt);
+        const auto mt = Mat4{ Mat3::identity() }.col_set(3, vt);
 
         const Vec4 vi = { -delta_x, -delta_y, -delta_z, 1 };
-        const auto mi = Mat4{ Mat3::identity() }.col_set(2, vi);
+        const auto mi = Mat4{ Mat3::identity() }.col_set(3, vi);
 
         return this->stack_internal(mt, mi);
     }

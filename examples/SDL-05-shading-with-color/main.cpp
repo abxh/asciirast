@@ -56,9 +56,12 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 2 };
+        const auto transform = math::Transform3D()
+                                       .rotate(u.rot)
+                                       .translate({ 0, 0, 2 })
+                                       .stack(math::make_perspective(u.z_near, u.z_far));
 
-        out.pos = math::make_perspective(u.z_near, u.z_far).apply({ pos, 1 });
+        out.pos = transform.apply({ vert.pos, 1 });
         out.attrs = { vert.uv };
     }
 
