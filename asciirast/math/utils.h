@@ -92,7 +92,7 @@ make_perspective(const Float near,
     const auto mat_inv = Mat4::from_rows(Vec4{ sx, 0, 0, 0 },          // x = x' * sx
                                          Vec4{ 0, sy, 0, 0 },          // y = y' * sy
                                          Vec4{ 0, 0, 0, 1 },           // z = w'
-                                         Vec4{ 0, 0, 5 / B, -A / B }); // w = 1/B * z' - A/B * w'
+                                         Vec4{ 0, 0, 1 / B, -A / B }); // w = 1/B * z' - A/B * w'
 
     return Transform3D().stack(mat, mat_inv);
 }
