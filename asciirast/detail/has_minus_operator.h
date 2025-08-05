@@ -12,6 +12,8 @@
 
 #include <concepts>
 
+namespace asciirast {
+
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
 
@@ -22,3 +24,5 @@ concept has_minus_operator = requires(T t) {
 
 };
 /// @endcond
+
+}

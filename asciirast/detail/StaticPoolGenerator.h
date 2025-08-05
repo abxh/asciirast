@@ -18,6 +18,8 @@
 #include <new>
 #include <optional>
 
+namespace asciirast {
+
 /// @cond DO_NOT_DOCUMENT
 namespace detail {
 
@@ -195,3 +197,5 @@ private:
 
 };
 /// @endcond
+
+};

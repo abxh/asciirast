@@ -109,7 +109,7 @@ lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::F
  * @tparam ValueTypes The value types it can be initialized with
  */
 template<typename... ValueTypes>
-    requires((::detail::has_minus_operator<ValueTypes> && ...) && (std::semiregular<ValueTypes> && ...))
+    requires((detail::has_minus_operator<ValueTypes> && ...) && (std::semiregular<ValueTypes> && ...))
 class FragmentContextType
 {
 public:
