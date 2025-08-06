@@ -11,16 +11,24 @@
 namespace asciirast {
 
 /**
- * @brief NDC boundary
+ * @brief Normalized Device Coordinates boundary
  *
- * Verticies outside of this boundary are not shown.
+ * This the bounding box, vertices are to be mapped to, before vertices outside of it are
+ * clipped / culled.
+ *
+ * @note The z coordinate is used for depth. z-near should be mapped to 1, and z-far to 0, and all
+ * other z-values are linearly interpolated between them.
  */
 static inline constexpr auto NDC_BOUNDS = math::AABB3D::from_min_max({ -1, -1, 0 }, { +1, +1, +1 });
 
 /**
  * @brief Screen boundary
  *
- * Verticies outside of this boundary are not shown.
+ * This is bounding box used for screen clipping, in case the given viewport maps points
+ * outside of it.
+ * 
+ * It is meant to be used to easily compose Transforms from the screen coordinates to
+ * the desired framebuffer coordinates.
  */
 static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
 
@@ -36,6 +44,11 @@ static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1
 static math::Float
 compute_reverse_depth(const math::Float z, const math::Float near, const math::Float far)
 {
+    /*
+     * reverse depth:
+     * - https://developer.nvidia.com/blog/visualizing-depth-precision/
+     * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
+     */
     ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
 
     return (far - z) / (far - near);
@@ -94,11 +107,7 @@ make_perspective(const math::Float near,
      * perspective projection matrix:
      * - https://www.youtube.com/watch?v=EqNcqBdrNyI
      * - https://www.youtube.com/watch?v=k_L6edKHKfA
-     * - http://www.songho.ca/opengl/gl_projectionmatrix.html
-     *
-     * reverse depth:
-     * - https://developer.nvidia.com/blog/visualizing-depth-precision/
-     * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
+     * - http://www.songho.ca/opengl/gl_projectionmatrix.htm
      */
 
     ASCIIRAST_ASSERT(tan(fovy_rad / 2.0f) != 0.f, "tangent to half fov angle is not 0", fovy_rad);
