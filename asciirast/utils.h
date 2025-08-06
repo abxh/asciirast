@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "./detail/assert.h"
 #include "./math/types.h"
 
@@ -43,6 +41,15 @@ compute_reverse_depth(const math::Float z, const math::Float near, const math::F
     return (far - z) / (far - near);
 }
 
+/**
+ * @brief Make orthographic matrix
+ *
+ * @param near Z-Distance to the near plane
+ * @param far Z-Dinstance to the far plane
+ * @param min_ Minimum xy-coordinate of camera bounding box
+ * @param max_ Maximum xy-coordinate of camera bounding box
+ * @return A transform object that can map the camera bounding box to the NDC bounding box and back.
+ */
 [[maybe_unused]]
 static math::Transform3D
 make_orthographic(const math::Float near,
@@ -62,7 +69,7 @@ make_orthographic(const math::Float near,
 }
 
 /**
- * @brief Make perspective matrix, assuming a y-up left-handed coordinate system
+ * @brief Make perspective matrix
  *
  * Assuming a symmetrical camera frustum. The camera frustum is the volumen the camera can
  * see.
@@ -104,8 +111,8 @@ make_perspective(const math::Float near,
     ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
 
     /* Solving:
-        A z + B = depth z
-    <=> A + B / z = depth
+        A z + B     = depth z
+        A   + B / z = depth   <=> 
        With constraints:
         A + B / near = 1
         A + B / far  = 0
