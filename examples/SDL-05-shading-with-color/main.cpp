@@ -59,7 +59,7 @@ public:
         const auto transform = math::Transform3D()
                                        .rotate(u.rot)
                                        .translate({ 0, 0, 2 })
-                                       .stack(math::make_perspective(u.z_near, u.z_far));
+                                       .stack(asciirast::make_perspective(u.z_near, u.z_far));
 
         out.pos = transform.apply({ vert.pos, 1 });
         out.attrs = { vert.uv };

@@ -11,19 +11,12 @@
 #include <vector>
 
 #include "./math/types.h"
-#include "./math/utils.h"
+#include "./utils.h"
 #include "./program.h"
 #include "./renderer/rasterize.h"
 #include "./renderer/test_bounds.h"
 
 namespace asciirast {
-
-/**
- * @brief Screen boundary
- *
- * Verticies outside of this boundary are not shown.
- */
-static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
 
 /**
  * @brief Shape primitives
@@ -375,7 +368,7 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        auto frag = Frag{ .pos = { 0, 0, 0, 1 } };
+        auto frag = Frag{ .pos = { 0, 0, 1, 1 } };
         program.on_vertex(uniform, vert, frag);
 
         // cull points outside of viewing volume:
@@ -458,8 +451,8 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        Frag frag0 = { .pos = { 0, 0, 0, 1 } };
-        Frag frag1 = { .pos = { 0, 0, 0, 1 } };
+        Frag frag0 = { .pos = { 0, 0, 1, 1 } };
+        Frag frag1 = { .pos = { 0, 0, 1, 1 } };
 
         program.on_vertex(uniform, v0, frag0);
         program.on_vertex(uniform, v1, frag1);
@@ -777,9 +770,9 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        Frag frag0 = { .pos = { 0, 0, 0, 1 } };
-        Frag frag1 = { .pos = { 0, 0, 0, 1 } };
-        Frag frag2 = { .pos = { 0, 0, 0, 1 } };
+        Frag frag0 = { .pos = { 0, 0, 1, 1 } };
+        Frag frag1 = { .pos = { 0, 0, 1, 1 } };
+        Frag frag2 = { .pos = { 0, 0, 1, 1 } };
 
         program.on_vertex(uniform, v0, frag0);
         program.on_vertex(uniform, v1, frag1);

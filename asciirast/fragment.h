@@ -17,7 +17,6 @@
 #include "./detail/assert.h"
 #include "./detail/has_minus_operator.h"
 #include "./math/types.h"
-#include "./math/utils.h"
 #include "./program_token.h"
 #include "./renderer_options.h"
 #include "./varying.h"

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "./detail/assert.h"
+#include "../detail/assert.h"
 
 #include "./Mat.h"
 #include "./Rot.h"
@@ -421,13 +421,13 @@ public:
         ASCIIRAST_ASSERT(scale_y != 0, "non-zero y scalar");
         ASCIIRAST_ASSERT(scale_z != 0, "non-zero z scalar");
 
-        const auto mt = Mat3{
+        const auto mt = Mat4{
             scale_x, 0,       0,       0, //
             0,       scale_y, 0,       0, //
             0,       0,       scale_z, 0, //
             0,       0,       0,       1,
         };
-        const auto mi = Mat3{
+        const auto mi = Mat4{
             1 / scale_x, 0,           0,           0, //
             0,           1 / scale_y, 0,           0, //
             0,           0,           1 / scale_z, 0, //

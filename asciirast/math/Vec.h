@@ -14,7 +14,7 @@
 
 #include "./Float.h"
 #include "./VecBase.h"
-#include "./detail/assert.h"
+#include "../detail/assert.h"
 
 namespace asciirast::math {
 

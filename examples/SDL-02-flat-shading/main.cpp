@@ -52,10 +52,12 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 2 };
-        const auto depth = math::compute_reverse_depth(pos.z, u.z_near, u.z_far);
+        const auto transform = math::Transform3D()
+                                       .rotate(u.rot)
+                                       .translate({ 0, 0, 2 })
+                                       .stack(asciirast::make_orthographic(u.z_near, u.z_far));
 
-        out.pos = { pos.xy, depth, 1 };
+        out.pos = transform.apply({ vert.pos, 1 });
         out.attrs = { vert.color };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const

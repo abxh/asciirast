@@ -15,7 +15,7 @@
 #include <array>
 #include <type_traits>
 
-#include "./detail/assert.h"
+#include "../detail/assert.h"
 
 namespace asciirast::math {
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "./detail/assert.h"
+#include "./assert.h"
 
 #include <array>
 #include <coroutine>

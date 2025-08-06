@@ -1,0 +1,133 @@
+/**
+ * @file utils.h
+ * @brief Miscellaneous functions
+ */
+
+#pragma once
+
+#include <iostream>
+
+#include "./detail/assert.h"
+#include "./math/types.h"
+
+namespace asciirast {
+
+/**
+ * @brief NDC boundary
+ *
+ * Verticies outside of this boundary are not shown.
+ */
+static inline constexpr auto NDC_BOUNDS = math::AABB3D::from_min_max({ -1, -1, 0 }, { +1, +1, +1 });
+
+/**
+ * @brief Screen boundary
+ *
+ * Verticies outside of this boundary are not shown.
+ */
+static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
+
+/**
+ * @brief Calculate the reverse depth, given z-distances to near and far planes and the z-value itself.
+ *
+ * @param z The z value
+ * @param near Z-Distance to the near plane
+ * @param far Z-Dinstance to the far plane
+ * @return The reverse depth between 1 (meaning z = near) and 0 (meaning z = far)
+ */
+[[maybe_unused]]
+static math::Float
+compute_reverse_depth(const math::Float z, const math::Float near, const math::Float far)
+{
+    ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
+
+    return (far - z) / (far - near);
+}
+
+[[maybe_unused]]
+static math::Transform3D
+make_orthographic(const math::Float near,
+                  const math::Float far,
+                  const math::Vec2 min_ = { -1, -1 },
+                  const math::Vec2 max_ = { +1, +1 })
+{
+    ASCIIRAST_ASSERT(math::almost_less_than<math::Float>(near, far), "near is less than far", near, far);
+    ASCIIRAST_ASSERT(min_ < max_, "min_ Vec is less than max_ Vec lexigraphically");
+
+    return math::AABB3D::from_min_max({ min_, near }, { max_, far }) //
+            .to_transform()
+            .inversed()
+            .stack(NDC_BOUNDS.to_transform())
+            .reflectZ()
+            .translate(0, 0, 1);
+}
+
+/**
+ * @brief Make perspective matrix, assuming a y-up left-handed coordinate system
+ *
+ * Assuming a symmetrical camera frustum. The camera frustum is the volumen the camera can
+ * see.
+ *
+ * The perspective matrix brings points in the camera frustum to the NDC bounding box. Depth
+ * is assumed to lie between 0 and 1 instead of -1 to 1.
+ *
+ * @param near Z-Distance to the near plane
+ * @param far Z-Dinstance to the far plane
+ * @param aspect_ratio Fraction to multiply to adjust to the ratio between screen width and screen height.
+ * @param fovy_rad The fov y angle in radians
+ * @return A transform object that can map the camera frustum to the NDC bounding box and back.
+ */
+[[maybe_unused]]
+static math::Transform3D
+make_perspective(const math::Float near,
+                 const math::Float far,
+                 const math::Float fovy_rad = math::radians<math::Float>(90),
+                 const math::Float aspect_ratio = 1.f)
+{
+    /*
+     * perspective projection matrix:
+     * - https://www.youtube.com/watch?v=EqNcqBdrNyI
+     * - https://www.youtube.com/watch?v=k_L6edKHKfA
+     * - http://www.songho.ca/opengl/gl_projectionmatrix.html
+     *
+     * reverse depth:
+     * - https://developer.nvidia.com/blog/visualizing-depth-precision/
+     * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
+     */
+
+    ASCIIRAST_ASSERT(tan(fovy_rad / 2.0f) != 0.f, "tangent to half fov angle is not 0", fovy_rad);
+    ASCIIRAST_ASSERT(aspect_ratio != 0.f);
+
+    const auto tan_half_fov = tan(fovy_rad / 2.0f);
+    const auto sx = tan_half_fov * aspect_ratio;
+    const auto sy = tan_half_fov;
+
+    ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
+
+    /* Solving:
+        A z + B = depth z
+    <=> A + B / z = depth
+       With constraints:
+        A + B / near = 1
+        A + B / far  = 0
+       Gives:
+        A = -near / (far - near)
+        B = -far * A
+    */
+
+    const auto A = -near / (far - near);
+    const auto B = -far * A;
+
+    const auto mat = math::Mat4::from_rows(math::Vec4{ 1 / sx, 0, 0, 0 }, // x' = x / sx
+                                           math::Vec4{ 0, 1 / sy, 0, 0 }, // y' = y / sy
+                                           math::Vec4{ 0, 0, A, B },      // z' = A * z + B * w, assuming w = 1
+                                           math::Vec4{ 0, 0, 1, 0 });     // w' = z
+
+    const auto mat_inv = math::Mat4::from_rows(math::Vec4{ sx, 0, 0, 0 },          // x = x' * sx
+                                               math::Vec4{ 0, sy, 0, 0 },          // y = y' * sy
+                                               math::Vec4{ 0, 0, 0, 1 },           // z = w'
+                                               math::Vec4{ 0, 0, 1 / B, -A / B }); // w = 1/B * z' - A/B * w'
+
+    return math::Transform3D().stack(mat, mat_inv);
+}
+
+}

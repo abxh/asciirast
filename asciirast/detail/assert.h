@@ -6,7 +6,7 @@
 #pragma once
 
 #ifndef NDEBUG
-#include <external/libassert/include/libassert/assert.hpp>
+#include "../../external/libassert/include/libassert/assert.hpp"
 #define ASCIIRAST_ASSERT(...) DEBUG_ASSERT(__VA_ARGS__)
 #else
 #include <cassert>

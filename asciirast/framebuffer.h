@@ -6,7 +6,6 @@
 #pragma once
 
 #include "./math/types.h"
-#include "./math/utils.h"
 
 namespace asciirast {
 

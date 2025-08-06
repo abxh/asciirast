@@ -21,7 +21,6 @@
 #pragma once
 
 #include "./math/types.h"
-#include "./math/utils.h"
 #include "fragment.h"
 #include "texture.h"
 

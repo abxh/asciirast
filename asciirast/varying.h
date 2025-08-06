@@ -7,10 +7,9 @@
 
 #include <type_traits>
 
-#include <external/boost_pfr/include/boost/pfr.hpp>
+#include "../external/boost_pfr/include/boost/pfr.hpp"
 
 #include "./math/types.h"
-#include "./math/utils.h"
 
 // on perspective corrected interpolation:
 // https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)

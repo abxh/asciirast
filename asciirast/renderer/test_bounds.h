@@ -5,7 +5,7 @@
 
 #include "../fragment.h"
 #include "../math/types.h"
-#include "./detail/assert.h"
+#include "../detail/assert.h"
 
 // on homogenous coordinates:
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction

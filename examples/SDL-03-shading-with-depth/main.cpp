@@ -47,8 +47,9 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        const auto pos = u.rot.to_mat() * vert.pos + math::Vec3{ 0, 0, 4 };
-        const auto depth = math::compute_reverse_depth(pos.z, u.z_near, u.z_near + u.z_dist + 4);
+        const auto transform = math::Transform3D().rotate(u.rot).translate({ 0, 0, 4 });
+        const auto pos = transform.apply(vert.pos);
+        const auto depth = asciirast::compute_reverse_depth(pos.z, u.z_near, u.z_near + u.z_dist + 4);
 
         out.pos = { pos.xy, depth, 1 };
         out.attrs = { math::Vec3::from_value(depth) };
