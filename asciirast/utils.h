@@ -13,16 +13,21 @@
 namespace asciirast {
 
 /**
- * @brief NDC boundary
+ * @brief Normalized Device Coordinates boundary
  *
- * Verticies outside of this boundary are not shown.
+ * This the bounding box, vertices are to be mapped to, before vertices outside of it are
+ * clipped / culled.
  */
 static inline constexpr auto NDC_BOUNDS = math::AABB3D::from_min_max({ -1, -1, 0 }, { +1, +1, +1 });
 
 /**
  * @brief Screen boundary
  *
- * Verticies outside of this boundary are not shown.
+ * This is bounding box used for screen clipping, in case the given viewport maps points
+ * outside of it.
+ * 
+ * It is meant to be used to easily compose Transforms from the screen coordinates to
+ * the desired framebuffer coordinates.
  */
 static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
 
