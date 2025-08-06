@@ -17,6 +17,9 @@ namespace asciirast {
  *
  * This the bounding box, vertices are to be mapped to, before vertices outside of it are
  * clipped / culled.
+ *
+ * @note The z coordinate is used for depth. z-near should be mapped to 1, and z-far to 0, and all
+ * other z-values are linearly interpolated between them.
  */
 static inline constexpr auto NDC_BOUNDS = math::AABB3D::from_min_max({ -1, -1, 0 }, { +1, +1, +1 });
 
