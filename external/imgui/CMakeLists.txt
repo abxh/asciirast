@@ -2,7 +2,7 @@
 
 file(GLOB CURRENT_DIR_CPP CONFIGURE_DEPENDS *.cpp)
 
-add_library(imgui_sdl2 SHARED
+add_library(imgui_sdl2 STATIC
     ${CURRENT_DIR_CPP}
     ${CMAKE_CURRENT_SOURCE_DIR}/imgui-1.92.1/backends/imgui_impl_sdl2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/imgui-1.92.1/backends/imgui_impl_sdlrenderer2.cpp)
