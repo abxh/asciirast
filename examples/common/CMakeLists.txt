@@ -1,11 +1,11 @@
-add_library(examples_common INTERFACE)
+file(GLOB_RECURSE LIB_FILES CONFIGURE_DEPENDS *.cpp)
 
-target_include_directories(examples_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(examples_common STATIC ${LIB_FILES})
 
-target_link_libraries(examples_common INTERFACE terminal_utils)
+target_include_directories(examples_common PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(TARGET SDL2::SDL2main)
-    target_link_libraries(examples_common INTERFACE SDL2::SDL2main)
+    target_link_libraries(examples_common PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(examples_common INTERFACE SDL2::SDL2 SDL2_ttf::SDL2_ttf)
+target_link_libraries(examples_common PRIVATE SDL2::SDL2 SDL2_ttf::SDL2_ttf)

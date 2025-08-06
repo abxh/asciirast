@@ -9,14 +9,16 @@ for details on converting between coordinate systems.
 
 ## Dependencies
 
-Though not necessary, preferably install system-wide:
-- `libdwarf-dev`
-
-For the examples:
-- `libsdl2-dev`
-- `libsdl2-ttf-dev`
+For the examples, the following is required:
+- `sdl2`
+- `sdl2-ttf`
 
 ## Build steps
+
+Clone this repository:
+```bash
+git clone --depth=1 https://github.com/abxh/asciirast
+```
 
 Build in release mode preferably for preview:
 ```bash
@@ -27,7 +29,7 @@ Then the executables will be visible in `build_release/bin` directory. Use `-j %
 
 Alternatively, build in debug mode and export compile commands for LSP support:
 ```bash
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -B build
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
 cmake --build build -j $(nproc) 
 ```
 

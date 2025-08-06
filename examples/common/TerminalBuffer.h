@@ -4,7 +4,8 @@
 #include "asciirast/framebuffer.h"
 #include "asciirast/math/types.h"
 #include "asciirast/renderer.h"
-#include "external/terminal_utils/terminal_utils.h"
+
+#include "./terminal_utils.h"
 
 #include <algorithm>
 #include <cassert>
