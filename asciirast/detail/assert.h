@@ -19,7 +19,8 @@
 
 #else
 
-#include <cassert>
-#define ASCIIRAST_ASSERT(...) assert(...)
+#ifndef ASCIIRAST_ASSERT
+#define ASCIIRAST_ASSERT(...)
+#endif
 
 #endif
