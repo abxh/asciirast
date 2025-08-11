@@ -1,3 +1,8 @@
+/**
+ * @file rasterize.h
+ * @brief Functions for rasterizing lines and triangles
+ */
+
 #pragma once
 
 #include <cfloat>
@@ -33,21 +38,19 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
 
     const auto inc_t = len_inv;
     const auto inc_v = (v1 - v0) * len_inv;
+    const auto inc_depth = (depth1 - depth0) * len_inv;
     const auto inc_Z_inv = (Z_inv1 - Z_inv0) * len_inv;
 
-    auto acc_t = math::Float{ 0 };
-    auto acc_v = v0;
-    auto acc_Z_inv = Z_inv0;
-
     const auto func = [&depth0, &depth1, &Z_inv0, &Z_inv1, &attrs0, &attrs1](
-                              const math::Float& acc_t_,
-                              const math::Vec2& acc_v_,
-                              const math::Float& acc_Z_inv_) -> ProjectedFragment<Varying> {
+                              const math::Float& acc_t,
+                              const math::Vec2& acc_v,
+                              const math::Float& acc_depth,
+                              const math::Float& acc_Z_inv) -> ProjectedFragment<Varying> {
         return ProjectedFragment<Varying>{
-            .pos = trunc(acc_v_),
-            .depth = lerp_varying_perspective_corrected(depth0, depth1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_),
-            .Z_inv = acc_Z_inv_,
-            .attrs = lerp_varying_perspective_corrected(attrs0, attrs1, acc_t_, Z_inv0, Z_inv1, acc_Z_inv_)
+            .pos = trunc(acc_v),
+            .depth = acc_depth,
+            .Z_inv = acc_Z_inv,
+            .attrs = lerp_projected_varying(attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv),
         };
     };
 
@@ -56,31 +59,39 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
     const auto bias1 = !(Options.line_ends_inclusion == LineEndsInclusion::IncludeEnd ||
                          Options.line_ends_inclusion == LineEndsInclusion::IncludeBoth);
 
+    auto acc_t = math::Float{ 0 };
+    auto acc_v = v0;
+    auto acc_depth = depth0;
+    auto acc_Z_inv = Z_inv0;
+
     if (bias0) {
         acc_t += inc_t;
         acc_v += inc_v;
+        acc_depth += inc_depth;
         acc_Z_inv += inc_Z_inv;
     }
 
     if constexpr (std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>) {
         for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
-            plot(func(acc_t, acc_v, acc_Z_inv));
+            plot(func(acc_t, acc_v, acc_depth, acc_Z_inv));
 
             acc_t += inc_t;
             acc_v += inc_v;
+            acc_depth += inc_depth;
             acc_Z_inv += inc_Z_inv;
         }
     } else {
         std::array<ProjectedFragment<Varying>, 2> rfrag;
-        rfrag[0] = func(acc_t, acc_v, acc_Z_inv);
+        rfrag[0] = func(acc_t, acc_v, acc_depth, acc_Z_inv);
 
         // process 1 fragment at a time, but pass both the current and the one ahead:
         for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
             acc_t += inc_t;
             acc_v += inc_v;
+            acc_depth += inc_depth;
             acc_Z_inv += inc_Z_inv;
 
-            rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_Z_inv);
+            rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_depth, acc_Z_inv);
 
             plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] }, { true, false });
         }
@@ -125,10 +136,10 @@ barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> V
 template<VaryingInterface Varying>
 [[maybe_unused]]
 static auto
-barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
-                                  const math::Vec3& weights,
-                                  const math::Vec3& Z_inv,
-                                  const math::Float& acc_Z_inv) -> Varying
+barycentric_projected(const std::array<Varying, 3>& attrs,
+                      const math::Vec3& weights,
+                      const math::Vec3& Z_inv,
+                      const math::Float& acc_Z_inv) -> Varying
 {
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
         return EmptyVarying();
@@ -143,22 +154,6 @@ barycentric_perspective_corrected(const std::array<Varying, 3>& attrs,
 
         return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
     }
-}
-
-/**
- * @brief Interpolation of fragments with barycentric coordinates of
- *        triangles
- */
-[[maybe_unused]]
-static auto
-barycentric_perspective_corrected(const math::Vec3& v,
-                                  const math::Vec3& weights,
-                                  const math::Vec3& Z_inv,
-                                  const math::Float& acc_Z_inv) -> math::Float
-{
-    // acc_Z_inv := barycentric(weights, Z_inv)
-
-    return dot(v, weights * Z_inv) * (1 / acc_Z_inv);
 }
 
 [[maybe_unused]]
@@ -207,16 +202,16 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
 
     /* optimised calculation of:
      *    p = {x, y}
-     *   w0 = cross(v1v2, v1p) // opposite of v0 : v1v2
-     *   w1 = cross(v2v0, v2p) // opposite of v1 : v2v0
-     *   w2 = cross(v0v1, v0p) // opposite of v2 : v0v1
+     *   w0 = cross(v1v2, v1p) // opposite of v0 is v1v2
+     *   w1 = cross(v2v0, v2p) // opposite of v1 is v2v0
+     *   w2 = cross(v0v1, v0p) // opposite of v2 is v0v1
      *
-     *            ,>v1
-     *          .'    ´.
+     *            ,.v2_
+     *          .'   |´.
      *        .'        ´.
      *      .'     p      ´.
-     *    .'                _|
-     *   v0<-----------------v2
+     *    |_                `
+     *   v0----------------->v1
      *
      * note:
      *  cross(lhs, rhs) = lhs.x * rhs.y - rhs.x * lhs.y, for "2D" vectors
@@ -225,10 +220,6 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
      *  cross(vivj, {1, 0} + min - vi) - cross(vivj, min - vi) = -vivj.y
      *  cross(vivj, {0, 1} + min - vi) - cross(vivj, min - vi) = +vivj.x
      */
-
-    const math::Vec2 v1v2 = v1.vector_to(v2);
-    const math::Vec2 v2v0 = v2.vector_to(v0);
-    const math::Vec2 v0v1 = v0.vector_to(v1);
 
     // bias to exclude either top-left or bottom-right edge
     const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2)
@@ -241,30 +232,33 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                                       ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
                                       : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
 
-    const math::Float triangle_area_2 = cross(v0.vector_to(v2), v0.vector_to(v1));
-    if (std::trunc(triangle_area_2) == 0) {
-        return;
-    }
+    const math::Float triangle_area_2 = cross(v0.vector_to(v1), v0.vector_to(v2));
+    ASCIIRAST_ASSERT(triangle_area_2 > 0, "non-negative triangle area");
 
-    math::Vec2 p = min_ + math::Vec2{ 0.5f, 0.5f };
-    auto w_y_minx = math::Vec3{ cross(v1v2, v1.vector_to(p)) + bias0,
-                                cross(v2v0, v2.vector_to(p)) + bias1,
-                                cross(v0v1, v0.vector_to(p)) + bias2 };
+    const math::Vec2 v1v2 = v1.vector_to(v2);
+    const math::Vec2 v2v0 = v2.vector_to(v0);
+    const math::Vec2 v0v1 = v0.vector_to(v1);
+
+    const math::Vec2 offset = math::Vec2{ 0.5f, 0.5f };
+    math::Vec2 p = min_ + offset;
+    math::Vec3 w_y_minx = { cross(v1v2, v1.vector_to(p)) + bias0,
+                            cross(v2v0, v2.vector_to(p)) + bias1,
+                            cross(v0v1, v0.vector_to(p)) + bias2 };
 
     // cross product terms:
-    const auto delta_w_x = math::Vec3{ -v1v2.y, -v2v0.y, -v0v1.y };
-    const auto delta_w_y = math::Vec3{ +v1v2.x, +v2v0.x, +v0v1.x };
+    const math::Vec3 delta_w_x = { -v1v2.y, -v2v0.y, -v0v1.y };
+    const math::Vec3 delta_w_y = { +v1v2.x, +v2v0.x, +v0v1.x };
 
     // bounding box as integer:
     const auto x_diff = static_cast<std::size_t>(max_.x) - static_cast<std::size_t>(min_.x);
     const auto y_diff = static_cast<std::size_t>(max_.y) - static_cast<std::size_t>(min_.y);
 
-    const auto func = [&triangle_area_2, &Z_inv, &depth, &attrs](const math::Vec3& w,
+    const auto func = [&triangle_area_2, &depth, &Z_inv, &attrs](const math::Vec3& w,
                                                                  const math::Vec2& pos) -> ProjectedFragment<Varying> {
         const auto weights = w / triangle_area_2;
+        const auto acc_depth = barycentric(depth, weights);
         const auto acc_Z_inv = barycentric(Z_inv, weights);
-        const auto acc_depth = barycentric_perspective_corrected(depth, weights, Z_inv, acc_Z_inv);
-        const auto acc_attrs = barycentric_perspective_corrected(attrs, weights, Z_inv, acc_Z_inv);
+        const auto acc_attrs = barycentric_projected(attrs, weights, Z_inv, acc_Z_inv);
 
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };
@@ -272,7 +266,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     if constexpr (std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>) {
         for (std::size_t y = 0; y <= y_diff; y++) {
             auto w = w_y_minx;
-            p.x = min_.x + 0.5f;
+            p.x = min_.x + offset.x;
 
             for (std::size_t x = 0; x <= x_diff; x++) {
                 if (const bool in_triangle = w.x >= 0 && w.y >= 0 && w.z >= 0; in_triangle) {
@@ -287,7 +281,7 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     } else {
         for (std::size_t y = 0; y <= y_diff / 2 + y_diff % 2; y++) {
             auto w = w_y_minx;
-            p.x = min_.x + 0.5f;
+            p.x = min_.x + offset.x;
 
             for (std::size_t x = 0; x <= x_diff / 2 + x_diff % 2; x++) {
                 const auto w00 = w;

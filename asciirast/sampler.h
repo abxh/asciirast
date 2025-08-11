@@ -20,9 +20,9 @@
 
 #pragma once
 
+#include "./fragment.h"
 #include "./math/types.h"
-#include "fragment.h"
-#include "texture.h"
+#include "./texture.h"
 
 namespace asciirast {
 

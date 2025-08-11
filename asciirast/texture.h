@@ -17,17 +17,17 @@
 
 #pragma once
 
+#include "../external/stb_image/stb_image.h"
+#include "../external/stb_image/stb_image_write.h"
+
+#include "./math/types.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
-
-#include "../external/stb_image/stb_image.h"
-#include "../external/stb_image/stb_image_write.h"
-
-#include "./math/types.h"
 
 namespace asciirast {
 

@@ -18,7 +18,6 @@
 #include "./detail/has_minus_operator.h"
 #include "./math/types.h"
 #include "./program_token.h"
-#include "./renderer_options.h"
 #include "./varying.h"
 
 namespace asciirast {
@@ -29,8 +28,8 @@ namespace asciirast {
 template<VaryingInterface Varying>
 struct Fragment
 {
-    math::Vec4 pos = {}; ///< position in homogenous space
-    Varying attrs = {};  ///< vertex attributes
+    math::Vec4 pos = { 0, 0, 1, 1 }; ///< position in homogenous space
+    Varying attrs = {};              ///< vertex attributes
 };
 
 /**
@@ -48,23 +47,20 @@ struct ProjectedFragment
 /**
  * @brief Project a Fragment to convert it to ProjectFragment
  *
- * @param frag The Fragment object
+ * @param in The Fragment object
  * @return The ProjectedFragment object
  */
 template<VaryingInterface Varying>
 static auto
-project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
+project_fragment(const Fragment<Varying>& in) -> ProjectedFragment<Varying>
 {
-    ASCIIRAST_ASSERT(frag.pos.w != 0, "non-zero w coordinate. the fragment should be culled by now", frag.pos);
-
-    const auto Z_inv = 1 / frag.pos.w;
-    const auto v = frag.pos.xyz * Z_inv;
+    const auto Z_inv = 1 / in.pos.w;
 
     return ProjectedFragment<Varying>{
-        .pos = v.xy,
-        .depth = v.z,
+        .pos = in.pos.xy * Z_inv,
+        .depth = in.pos.z * Z_inv,
         .Z_inv = Z_inv,
-        .attrs = frag.attrs,
+        .attrs = in.attrs,
     };
 }
 
@@ -74,9 +70,12 @@ project_fragment(const Fragment<Varying>& frag) -> ProjectedFragment<Varying>
 template<VaryingInterface T>
 [[maybe_unused]]
 static auto
-lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragment<T>
+lerp(const Fragment<T>& lhs, const Fragment<T>& rhs, const math::Float t) -> Fragment<T>
 {
-    return Fragment<T>{ .pos = lerp(a.pos, b.pos, t), .attrs = lerp_varying(a.attrs, b.attrs, t) };
+    return Fragment<T>{
+        .pos = lerp(lhs.pos, rhs.pos, t),
+        .attrs = lerp_varying(lhs.attrs, rhs.attrs, t),
+    };
 }
 
 /**
@@ -85,20 +84,18 @@ lerp(const Fragment<T>& a, const Fragment<T>& b, const math::Float t) -> Fragmen
 template<VaryingInterface T>
 [[maybe_unused]]
 static auto
-lerp(const ProjectedFragment<T>& a, const ProjectedFragment<T>& b, const math::Float t) -> ProjectedFragment<T>
+lerp(const ProjectedFragment<T>& lhs, const ProjectedFragment<T>& rhs, const math::Float t) -> ProjectedFragment<T>
 {
-    if (t == 0) {
-        return a;
-    } else if (t == 1) {
-        return b;
-    }
-    const auto Z_inv_t = std::lerp(a.Z_inv, b.Z_inv, t);
+    if (t == 0) return lhs;
+    if (t == 1) return rhs;
+
+    const auto Z_inv_t = std::lerp(lhs.Z_inv, rhs.Z_inv, t);
 
     return ProjectedFragment<T>{
-        .pos = lerp(a.pos, b.pos, t),
-        .depth = lerp_varying_perspective_corrected(a.depth, b.depth, t, a.Z_inv, b.Z_inv, Z_inv_t),
+        .pos = lerp(lhs.pos, rhs.pos, t),
+        .depth = std::lerp(lhs.depth, rhs.depth, t),
         .Z_inv = Z_inv_t,
-        .attrs = lerp_varying_perspective_corrected(a.attrs, b.attrs, t, a.Z_inv, b.Z_inv, Z_inv_t)
+        .attrs = lerp_projected_varying(lhs.attrs, rhs.attrs, t, lhs.Z_inv, rhs.Z_inv, Z_inv_t),
     };
 }
 

@@ -1,11 +1,16 @@
+/**
+ * @file test_bounds.h
+ * @brief Functions for frustum clipping and screen clipping
+ */
+
 #pragma once
 
 #include <deque>
 #include <utility>
 
-#include "../fragment.h"
-#include "../math/types.h"
 #include "../detail/assert.h"
+#include "../math/types.h"
+#include "../varying.h"
 
 // on homogenous coordinates:
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction
@@ -374,10 +379,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const math::Vec3 min_ = { -p0.w, -p0.w, -0.0f };
                 const math::Vec3 max_ = { +p0.w, +p0.w, +p0.w };
 
-                math::Float t0a = 0.f;
-                math::Float t0b = 0.f;
-                math::Float t01 = 1.f;
-                math::Float t02 = 1.f;
+                math::Float t0a = 0.f, t0b = 0.f;
+                math::Float t01 = 1.f, t02 = 1.f;
 
                 const bool b01 = line_in_bounds(p0, p1, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0, p2, border, min_, max_, t0b, t02);
@@ -406,15 +409,13 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
                 const math::Vec3 min0 = { -p0.w, -p0.w, -0.0f };
-                const math::Vec3 max0 = { +p0.w, +p0.w, +p0.w };
-
                 const math::Vec3 min1 = { -p1.w, -p1.w, -0.0f };
+
+                const math::Vec3 max0 = { +p0.w, +p0.w, +p0.w };
                 const math::Vec3 max1 = { +p1.w, +p1.w, +p1.w };
 
-                math::Float t0 = 0.f;
-                math::Float t1 = 0.f;
-                math::Float t02 = 1.f;
-                math::Float t12 = 1.f;
+                math::Float t0 = 0.f, t1 = 0.f;
+                math::Float t02 = 1.f, t12 = 1.f;
 
                 const bool b02 = line_in_bounds(p0, p2, border, min0, max0, t0, t02);
                 const bool b12 = line_in_bounds(p1, p2, border, min1, max1, t1, t12);
@@ -484,10 +485,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                math::Float t0a = 0.f;
-                math::Float t0b = 0.f;
-                math::Float t01 = 1.f;
-                math::Float t02 = 1.f;
+                math::Float t0a = 0.f, t0b = 0.f;
+                math::Float t01 = 1.f, t02 = 1.f;
 
                 const bool b01 = line_in_bounds(p0.xy, p1.xy, border, min_, max_, t0a, t01);
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0b, t02);
@@ -510,16 +509,14 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
 
                 *it_vec = Vec4Triplet{
                     p0,
-                    math::Vec4{ lerp(p0.xy, p1.xy, t01),
-                                lerp_varying_perspective_corrected<math::Float>(p0.z, p1.z, t01, p0.w, p1.w, p01w),
-                                p01w },
-                    math::Vec4{ lerp(p0.xy, p2.xy, t02),
-                                lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
-                                p02w },
+                    { lerp(p0.xyz, p1.xyz, t01), p01w },
+                    { lerp(p0.xyz, p2.xyz, t02), p02w },
                 };
-                *it_attr = AttrsTriplet{ a0,
-                                         lerp_varying_perspective_corrected(a0, a1, t01, p0.w, p1.w, p01w),
-                                         lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w) };
+                *it_attr = AttrsTriplet{
+                    a0,
+                    lerp_projected_varying(a0, a1, t01, p0.w, p1.w, p01w),
+                    lerp_projected_varying(a0, a2, t02, p0.w, p2.w, p02w),
+                };
             } break;
             case 2: {
                 const auto vec_triplet = *it_vec;
@@ -528,10 +525,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto [p0, p1, p2] = Vec4Triplet{ vec_triplet[i0], vec_triplet[i1], vec_triplet[i2] };
                 const auto [a0, a1, a2] = AttrsTriplet{ attrs_triplet[i0], attrs_triplet[i1], attrs_triplet[i2] };
 
-                math::Float t0 = 0.f;
-                math::Float t1 = 0.f;
-                math::Float t02 = 1.f;
-                math::Float t12 = 1.f;
+                math::Float t0 = 0.f, t1 = 0.f;
+                math::Float t02 = 1.f, t12 = 1.f;
 
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0, t02);
                 const bool b12 = line_in_bounds(p1.xy, p2.xy, border, min_, max_, t1, t12);
@@ -550,17 +545,11 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const auto p02w = std::lerp(p0.w, p2.w, t02);
                 const auto p12w = std::lerp(p1.w, p2.w, t12);
 
-                const auto p02 =
-                        math::Vec4{ lerp(p0.xy, p2.xy, t02),
-                                    lerp_varying_perspective_corrected<math::Float>(p0.z, p2.z, t02, p0.w, p2.w, p02w),
-                                    p02w };
-                const auto p12 =
-                        math::Vec4{ lerp(p1.xy, p2.xy, t12),
-                                    lerp_varying_perspective_corrected<math::Float>(p1.z, p2.z, t12, p1.w, p2.w, p12w),
-                                    p12w };
+                const math::Vec4 p02 = { lerp(p0.xyz, p2.xyz, t02), p02w };
+                const math::Vec4 p12 = { lerp(p1.xyz, p2.xyz, t12), p12w };
 
-                const Varying a02 = lerp_varying_perspective_corrected(a0, a2, t02, p0.w, p2.w, p02w);
-                const Varying a12 = lerp_varying_perspective_corrected(a1, a2, t12, p1.w, p2.w, p12w);
+                const Varying a02 = lerp_projected_varying(a0, a2, t02, p0.w, p2.w, p02w);
+                const Varying a12 = lerp_projected_varying(a1, a2, t12, p1.w, p2.w, p12w);
 
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };

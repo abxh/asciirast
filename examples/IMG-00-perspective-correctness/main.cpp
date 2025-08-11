@@ -8,6 +8,7 @@
 #include "asciirast/renderer.h"
 
 #include <filesystem>
+#include <iostream>
 
 struct MyUniform
 {
@@ -43,7 +44,9 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos = { vert.pos.xy, asciirast::compute_reverse_depth(vert.pos.z, u.z_near, u.z_far), vert.pos.z };
+        out.pos = { vert.pos.xy,
+                    asciirast::compute_reverse_depth_hyperbolic(vert.pos.z, u.z_near, u.z_far),
+                    vert.pos.z };
         out.attrs = { vert.color, vert.uv };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -67,7 +70,9 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos = { vert.pos.xy, asciirast::compute_reverse_depth(vert.pos.z, u.z_near, u.z_far), vert.pos.z };
+        out.pos = { vert.pos.xy,
+                    asciirast::compute_reverse_depth_hyperbolic(vert.pos.z, u.z_near, u.z_far),
+                    vert.pos.z };
         out.attrs = { math::Vec3{ 1.f, 1.f, 1.f }, vert.uv };
     }
 

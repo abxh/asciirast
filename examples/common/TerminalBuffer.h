@@ -1,13 +1,14 @@
 
 #pragma once
 
-#include "asciirast/framebuffer.h"
-#include "asciirast/math/types.h"
-#include "asciirast/renderer.h"
+#include "../../asciirast/framebuffer.h"
+#include "../../asciirast/math/types.h"
+#include "../../asciirast/utils.h"
 
 #include "./terminal_utils.h"
 
 #include <algorithm>
+#include <vector>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

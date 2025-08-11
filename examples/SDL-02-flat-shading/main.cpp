@@ -23,7 +23,7 @@ struct MyUniform
 {
     math::Rot3D rot;
     math::Float z_near = 0.1f;
-    math::Float z_far = 100.f;
+    math::Float z_dist;
 };
 
 struct MyVertex
@@ -55,9 +55,9 @@ public:
         const auto transform = math::Transform3D()
                                        .rotate(u.rot)
                                        .translate({ 0, 0, 2 })
-                                       .stack(asciirast::make_orthographic(u.z_near, u.z_far));
+                                       .stack(asciirast::make_orthographic(u.z_near, u.z_near + u.z_dist + 4));
 
-        out.pos = transform.apply({ vert.pos, 1 });
+        out.pos = { transform.apply(vert.pos), 1 };
         out.attrs = { vert.color };
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -172,6 +172,15 @@ main(int argc, char* argv[])
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     MyUniform uniforms;
+    uniforms.z_dist = std::abs(
+            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
+                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
+                                   math::Float{},
+                                   [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); }) -
+            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
+                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
+                                   math::Float{},
+                                   [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); }));
 
     bool running = true;
     while (running) {
@@ -184,6 +193,9 @@ main(int argc, char* argv[])
         });
 
         screen.clear();
+        vertex_buf.shape_type = asciirast::ShapeType::Lines;
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        vertex_buf.shape_type = asciirast::ShapeType::Triangles;
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
 

@@ -6,15 +6,14 @@
 #pragma once
 
 #include <deque>
-#include <ranges>
-#include <stdexcept>
 #include <vector>
 
+#include "./framebuffer.h"
 #include "./math/types.h"
-#include "./utils.h"
 #include "./program.h"
 #include "./renderer/rasterize.h"
 #include "./renderer/test_bounds.h"
+#include "./utils.h"
 
 namespace asciirast {
 
@@ -368,7 +367,7 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        auto frag = Frag{ .pos = { 0, 0, 1, 1 } };
+        Frag frag{};
         program.on_vertex(uniform, vert, frag);
 
         // cull points outside of viewing volume:
@@ -451,8 +450,8 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        Frag frag0 = { .pos = { 0, 0, 1, 1 } };
-        Frag frag1 = { .pos = { 0, 0, 1, 1 } };
+        Frag frag0{};
+        Frag frag1{};
 
         program.on_vertex(uniform, v0, frag0);
         program.on_vertex(uniform, v1, frag1);
@@ -626,21 +625,20 @@ private:
 
         const auto rasterize_triangle = [&program, &framebuffer, &uniform](
                                                 const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+            constexpr bool neither_winding_order = Options.winding_order == WindingOrder::Neither;
             constexpr bool clockwise_winding_order = Options.winding_order == WindingOrder::Clockwise;
             constexpr bool cclockwise_winding_order = Options.winding_order == WindingOrder::CounterClockwise;
-            constexpr bool neither_winding_order = Options.winding_order == WindingOrder::Neither;
 
-            // perform backface culling:
-            const auto p0p2 = wfrag0.pos.vector_to(wfrag2.pos);
-            const auto p0p1 = wfrag0.pos.vector_to(wfrag1.pos);
-            const auto signed_area_2 = cross(p0p2, p0p1);
-            const bool backface_cull_cond =
-                    !neither_winding_order && ((clockwise_winding_order && 0 < signed_area_2) || //
-                                               (cclockwise_winding_order && 0 > signed_area_2));
-            if (backface_cull_cond) {
+            const auto signed_area_2 = cross(wfrag0.pos.vector_to(wfrag1.pos), wfrag0.pos.vector_to(wfrag2.pos));
+            if (signed_area_2 == 0) {
                 return;
             }
-            const bool keep_vertex_order = clockwise_winding_order || (neither_winding_order && 0 > signed_area_2);
+
+            const bool backface_cull_cond = (cclockwise_winding_order && 0 < signed_area_2) || //
+                                            (clockwise_winding_order && 0 > signed_area_2);
+            if (!neither_winding_order && backface_cull_cond) {
+                return;
+            }
 
             if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
                 const auto plot_func =
@@ -731,7 +729,7 @@ private:
                     }
                 };
 
-                if (keep_vertex_order) {
+                if (signed_area_2 > 0) {
                     renderer::rasterize_triangle<Options>(
                             wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
@@ -758,7 +756,7 @@ private:
                     }
                 };
 
-                if (keep_vertex_order) {
+                if (signed_area_2 > 0) {
                     renderer::rasterize_triangle<Options>(
                             wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
@@ -770,9 +768,9 @@ private:
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
-        Frag frag0 = { .pos = { 0, 0, 1, 1 } };
-        Frag frag1 = { .pos = { 0, 0, 1, 1 } };
-        Frag frag2 = { .pos = { 0, 0, 1, 1 } };
+        Frag frag0{};
+        Frag frag1{};
+        Frag frag2{};
 
         program.on_vertex(uniform, v0, frag0);
         program.on_vertex(uniform, v1, frag1);
@@ -780,9 +778,18 @@ private:
 
         data.vec_queue.clear();
         data.attrs_queue.clear();
-        data.vec_queue.insert(data.vec_queue.end(), renderer::Vec4Triplet{ frag0.pos, frag1.pos, frag2.pos });
+        data.vec_queue.insert(data.vec_queue.end(),
+                              renderer::Vec4Triplet{
+                                      frag0.pos,
+                                      frag1.pos,
+                                      frag2.pos,
+                              });
         data.attrs_queue.insert(data.attrs_queue.end(),
-                                renderer::AttrsTriplet<Varying>{ frag0.attrs, frag1.attrs, frag2.attrs });
+                                renderer::AttrsTriplet<Varying>{
+                                        frag0.attrs,
+                                        frag1.attrs,
+                                        frag2.attrs,
+                                });
 
         // clip triangle so it's inside the viewing volume:
         if (!renderer::triangle_in_frustum(data.vec_queue, data.attrs_queue)) {

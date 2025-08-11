@@ -1,6 +1,10 @@
 /**
  * @file utils.h
  * @brief Miscellaneous functions
+ *
+ * reverse depth:
+ * - https://developer.nvidia.com/blog/visualizing-depth-precision/
+ * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
  */
 
 #pragma once
@@ -26,39 +30,77 @@ static inline constexpr auto NDC_BOUNDS = math::AABB3D::from_min_max({ -1, -1, 0
  *
  * This is bounding box used for screen clipping, in case the given viewport maps points
  * outside of it.
- * 
+ *
  * It is meant to be used to easily compose Transforms from the screen coordinates to
  * the desired framebuffer coordinates.
  */
 static inline constexpr auto SCREEN_BOUNDS = math::AABB2D::from_min_max({ -1, -1 }, { +1, +1 });
 
 /**
- * @brief Calculate the reverse depth, given z-distances to near and far planes and the z-value itself.
+ * @brief Calculate the linear reverse depth, given z-distances to near and far planes and the z-value itself.
  *
  * @param z The z value
  * @param near Z-Distance to the near plane
- * @param far Z-Dinstance to the far plane
+ * @param far Z-Distance to the far plane
  * @return The reverse depth between 1 (meaning z = near) and 0 (meaning z = far)
  */
 [[maybe_unused]]
 static math::Float
-compute_reverse_depth(const math::Float z, const math::Float near, const math::Float far)
+compute_reverse_depth_linear(const math::Float z, const math::Float near, const math::Float far)
 {
-    /*
-     * reverse depth:
-     * - https://developer.nvidia.com/blog/visualizing-depth-precision/
-     * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
-     */
     ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
 
+    /* Solving:
+        depth(z) is linear
+       With constraints:
+        depth(near) = 1
+        depth(far)  = 0
+       Gives:
+        depth(z) = 1 - (z - near) / (far - near) <=>
+                 = (far - z) / (far - near)
+     */
+
     return (far - z) / (far - near);
+}
+
+/**
+ * @brief Calculate the hyperbolic reverse depth, given z-distances to near and far planes and the z-value itself.
+ *
+ * This quantity is to be divided by z.
+ *
+ * @param z The z value
+ * @param near Z-Distance to the near plane
+ * @param far Z-Distance to the far plane
+ * @return The reverse depth between 1 (meaning z = near) and 0 (meaning z = far)
+ */
+[[maybe_unused]]
+static math::Float
+compute_reverse_depth_hyperbolic(const math::Float z, const math::Float near, const math::Float far)
+{
+    ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
+
+    /* Solving:
+        A z + B     = depth z
+        A   + B / z = depth   <=>
+       With constraints:
+        A + B / near = 1
+        A + B / far  = 0
+       Gives:
+        A = -near / (far - near)
+        B = -far * A
+    */
+
+    const auto A = -near / (far - near);
+    const auto B = -far * A;
+
+    return A * z + B;
 }
 
 /**
  * @brief Make orthographic matrix
  *
  * @param near Z-Distance to the near plane
- * @param far Z-Dinstance to the far plane
+ * @param far Z-Distance to the far plane
  * @param min_ Minimum xy-coordinate of camera bounding box
  * @param max_ Maximum xy-coordinate of camera bounding box
  * @return A transform object that can map the camera bounding box to the NDC bounding box and back.
@@ -74,11 +116,11 @@ make_orthographic(const math::Float near,
     ASCIIRAST_ASSERT(min_ < max_, "min_ Vec is less than max_ Vec lexigraphically");
 
     return math::AABB3D::from_min_max({ min_, near }, { max_, far }) //
-            .to_transform()
-            .inversed()
-            .stack(NDC_BOUNDS.to_transform())
-            .reflectZ()
-            .translate(0, 0, 1);
+                             .to_transform()
+                             .inversed()
+                             .stack(NDC_BOUNDS.to_transform())
+                             .reflectZ()
+                             .translate(0, 0, 1);
 }
 
 /**
@@ -91,7 +133,7 @@ make_orthographic(const math::Float near,
  * is assumed to lie between 0 and 1 instead of -1 to 1.
  *
  * @param near Z-Distance to the near plane
- * @param far Z-Dinstance to the far plane
+ * @param far Z-Distance to the far plane
  * @param aspect_ratio Fraction to multiply to adjust to the ratio between screen width and screen height.
  * @param fovy_rad The fov y angle in radians
  * @return A transform object that can map the camera frustum to the NDC bounding box and back.
@@ -118,17 +160,6 @@ make_perspective(const math::Float near,
     const auto sy = tan_half_fov;
 
     ASCIIRAST_ASSERT(math::almost_equal<math::Float>(near, far) == false, "near is not equal to far", near, far);
-
-    /* Solving:
-        A z + B     = depth z
-        A   + B / z = depth   <=> 
-       With constraints:
-        A + B / near = 1
-        A + B / far  = 0
-       Gives:
-        A = -near / (far - near)
-        B = -far * A
-    */
 
     const auto A = -near / (far - near);
     const auto B = -far * A;

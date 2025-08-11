@@ -71,8 +71,7 @@ public:
         const math::Vec2Int dv =
                 (c.type() == FragmentContext::Type::LINE) ? c.dFdv<math::Vec2Int>() : math::Vec2Int{ 0, 0 };
 
-        const char ch = u.table[(size_t)(std::clamp<math::Int>(dv.y, -1, 1) + 1)]
-                               [(size_t)(std::clamp<math::Int>(dv.x, -1, 1) + 1)];
+        const char ch = u.table[(size_t)(dv.y + 1)][(size_t)(dv.x + 1)];
 
         const bool keep = (u.draw_horizontal && ch == '_') ||  //
                           (!u.draw_horizontal && ch != '_') || //

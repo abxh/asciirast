@@ -49,7 +49,7 @@ public:
     {
         const auto transform = math::Transform3D().rotate(u.rot).translate({ 0, 0, 4 });
         const auto pos = transform.apply(vert.pos);
-        const auto depth = asciirast::compute_reverse_depth(pos.z, u.z_near, u.z_near + u.z_dist + 4);
+        const auto depth = asciirast::compute_reverse_depth_linear(pos.z, u.z_near, u.z_near + u.z_dist + 4);
 
         out.pos = { pos.xy, depth, 1 };
         out.attrs = { math::Vec3::from_value(depth) };
@@ -179,7 +179,11 @@ main(int argc, char* argv[])
         });
 
         screen.clear();
+        vertex_buf.shape_type = asciirast::ShapeType::Lines;
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+        vertex_buf.shape_type = asciirast::ShapeType::Triangles;
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+
         screen.render();
 
         clock.tick();

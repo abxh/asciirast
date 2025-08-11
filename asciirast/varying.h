@@ -1,19 +1,20 @@
 /**
- * @file varying_mixin.h
- * @brief Definition of Varying Mixin
+ * @file varying.h
+ * @brief Definition of Varying and related things
+ *
+ * on perspective corrected interpolation:
+ * @li https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
+ * @li https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
+ * @li https://www.cs.cornell.edu/courses/cs4620/2015fa/lectures/PerspectiveCorrectZU.pdf
  */
 
 #pragma once
-
-#include <type_traits>
 
 #include "../external/boost_pfr/include/boost/pfr.hpp"
 
 #include "./math/types.h"
 
-// on perspective corrected interpolation:
-// https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
-// https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
+#include <type_traits>
 
 namespace asciirast {
 
@@ -61,12 +62,12 @@ struct DeriveVaryingOps : std::false_type
  */
 template<VaryingInterface Varying>
 static Varying
-lerp_varying(const Varying& a, const Varying& b, const math::Float t)
+lerp_varying(const Varying& lhs, const Varying& rhs, const math::Float t)
 {
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
         return EmptyVarying();
     } else {
-        return a * (1 - t) + b * t;
+        return lhs * (1 - t) + rhs * t;
     }
 }
 
@@ -76,30 +77,23 @@ lerp_varying(const Varying& a, const Varying& b, const math::Float t)
 template<VaryingInterface Varying>
 [[maybe_unused]]
 static auto
-lerp_varying_perspective_corrected(const Varying& a,
-                                   const Varying& b,
-                                   const math::Float t,
-                                   const math::Float Z_inv0,
-                                   const math::Float Z_inv1,
-                                   const math::Float acc_Z_inv) -> Varying
+lerp_projected_varying(const Varying& lhs,
+                       const Varying& rhs,
+                       const math::Float t,
+                       const math::Float Z_inv0,
+                       const math::Float Z_inv1,
+                       const math::Float acc_Z_inv) -> Varying
 {
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
         return EmptyVarying();
     } else {
-        if (t == 0) {
-            return a;
-        } else if (t == 1) {
-            return b;
-        }
-        // acc_Z_inv := lerp(Z_inv0, Z_inv1, t)
+        if (t == 0) return lhs;
+        if (t == 1) return rhs;
 
-        const auto w0 = (1 - t) * Z_inv0;
-        const auto w1 = t * Z_inv1;
+        const auto l = lhs * Z_inv0;
+        const auto r = rhs * Z_inv1;
 
-        const auto l = a * w0;
-        const auto r = b * w1;
-
-        return (l + r) * (1 / acc_Z_inv);
+        return (l * (1 - t) + r * t) * (1 / acc_Z_inv);
     }
 }
 

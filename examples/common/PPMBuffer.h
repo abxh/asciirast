@@ -1,10 +1,11 @@
 #pragma once
 
-#include "asciirast/framebuffer.h"
-#include "asciirast/math/types.h"
-#include "asciirast/renderer.h"
+#include "../../asciirast/framebuffer.h"
+#include "../../asciirast/math/types.h"
+#include "../../asciirast/utils.h"
 
 #include <cassert>
+#include <vector>
 #include <fstream>
 
 namespace math = asciirast::math;
@@ -100,12 +101,12 @@ public:
         out.close();
     }
 
-    bool test_and_set_depth(const math::Vec2Int& pos, math::Float depth)
+    bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
+        assert(0 <= depth && depth <= 1);
 
-        depth = std::clamp<math::Float>(depth, 0, 1);
         // reverse depth:
         // 1: near
         // 0: far
@@ -153,3 +154,4 @@ private:
 };
 
 static_assert(asciirast::FrameBufferInterface<PPMBuffer>);
+static_assert(asciirast::FrameBuffer_DepthSupport<PPMBuffer>);

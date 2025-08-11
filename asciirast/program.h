@@ -8,7 +8,6 @@
 #include <concepts>
 
 #include "./fragment.h"
-#include "./framebuffer.h"
 #include "./program_token.h"
 
 namespace asciirast {
