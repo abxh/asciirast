@@ -1,14 +1,25 @@
 /**
  * @file assert.h
- * @brief assert macro definition
+ * @brief custom assert macro definition
  */
 
 #pragma once
 
 #ifndef NDEBUG
+
+#ifndef ASCIIRAST_ASSERT
+
 #include "../../external/libassert/include/libassert/assert.hpp"
 #define ASCIIRAST_ASSERT(...) DEBUG_ASSERT(__VA_ARGS__)
+
+#endif
+
+// #include <cassert>
+// #define ASCIIRAST_ASSERT(arg, ...) assert(arg)
+
 #else
+
 #include <cassert>
 #define ASCIIRAST_ASSERT(...) assert(...)
+
 #endif
