@@ -112,9 +112,6 @@ make_orthographic(const math::Float near,
                   const math::Vec2 min_ = { -1, -1 },
                   const math::Vec2 max_ = { +1, +1 })
 {
-    ASCIIRAST_ASSERT(math::almost_less_than<math::Float>(near, far), "near is less than far", near, far);
-    ASCIIRAST_ASSERT(min_ < max_, "min_ Vec is less than max_ Vec lexigraphically");
-
     return math::AABB3D::from_min_max({ min_, near }, { max_, far }) //
                              .to_transform()
                              .inversed()
