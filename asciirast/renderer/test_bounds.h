@@ -340,7 +340,10 @@ get_ordered_triangle_verticies(const std::array<bool, 3>& inside) -> std::array<
 
 }; // namespace detail
 
-template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
+template<AttrInterpolation Option,
+         VaryingInterface Varying,
+         typename Vec4TripletAllocatorType,
+         typename AttrAllocatorType>
 [[maybe_unused]]
 static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
@@ -399,7 +402,11 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 [[assume(b02 == true)]];
 
                 *it_vec = Vec4Triplet{ p0, lerp(p0, p1, t01), lerp(p0, p2, t02) };
-                *it_attr = AttrsTriplet{ a0, lerp_varying(a0, a1, t01), lerp_varying(a0, a2, t02) };
+                *it_attr = AttrsTriplet{
+                    a0,
+                    lerp_varying_conditionally<Option>(a0, a1, t01),
+                    lerp_varying_conditionally<Option>(a0, a2, t02),
+                };
             } break;
             case 2: {
                 const auto vec_triplet = *it_vec;
@@ -434,8 +441,8 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const auto p02 = lerp(p0, p2, t02);
                 const auto p12 = lerp(p1, p2, t12);
 
-                const auto a02 = lerp_varying(a0, a2, t02);
-                const auto a12 = lerp_varying(a1, a2, t12);
+                const auto a02 = lerp_varying_conditionally<Option>(a0, a2, t02);
+                const auto a12 = lerp_varying_conditionally<Option>(a1, a2, t12);
 
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };
@@ -454,7 +461,10 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
     return vec_queue.size() != 0;
 }
 
-template<VaryingInterface Varying, typename Vec4TripletAllocatorType, typename AttrAllocatorType>
+template<AttrInterpolation Option,
+         VaryingInterface Varying,
+         typename Vec4TripletAllocatorType,
+         typename AttrAllocatorType>
 [[maybe_unused]]
 static auto
 triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
@@ -514,8 +524,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 };
                 *it_attr = AttrsTriplet{
                     a0,
-                    lerp_projected_varying(a0, a1, t01, p0.w, p1.w, p01w),
-                    lerp_projected_varying(a0, a2, t02, p0.w, p2.w, p02w),
+                    lerp_projected_varying_conditionally<Option>(a0, a1, t01, p0.w, p1.w, p01w),
+                    lerp_projected_varying_conditionally<Option>(a0, a2, t02, p0.w, p2.w, p02w),
                 };
             } break;
             case 2: {
@@ -548,8 +558,8 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const math::Vec4 p02 = { lerp(p0.xyz, p2.xyz, t02), p02w };
                 const math::Vec4 p12 = { lerp(p1.xyz, p2.xyz, t12), p12w };
 
-                const Varying a02 = lerp_projected_varying(a0, a2, t02, p0.w, p2.w, p02w);
-                const Varying a12 = lerp_projected_varying(a1, a2, t12, p1.w, p2.w, p12w);
+                const Varying a02 = lerp_projected_varying_conditionally<Option>(a0, a2, t02, p0.w, p2.w, p02w);
+                const Varying a12 = lerp_projected_varying_conditionally<Option>(a1, a2, t12, p1.w, p2.w, p12w);
 
                 *it_vec = Vec4Triplet{ p0, p1, p02 };
                 *it_attr = AttrsTriplet{ a0, a1, a02 };

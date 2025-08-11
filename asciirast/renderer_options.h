@@ -50,6 +50,16 @@ enum class TriangleFillBias
 };
 
 /**
+ * @brief Attribute interpolation qualifier
+ */
+enum class AttrInterpolation
+{
+    Smooth,
+    NoPerspective,
+    Flat,
+};
+
+/**
  * @brief Renderer options
  */
 struct RendererOptions
@@ -61,6 +71,8 @@ struct RendererOptions
     LineDrawingDirection line_drawing_direction = LineDrawingDirection::Downwards; ///< line drawing direction
 
     LineEndsInclusion line_ends_inclusion = LineEndsInclusion::IncludeBoth; ///< line ends inclusion option
+
+    AttrInterpolation attr_interpolation = AttrInterpolation::Smooth; ///< attribute interpolation qualifier
 };
 
 };

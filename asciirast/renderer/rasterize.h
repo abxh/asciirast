@@ -50,7 +50,8 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
             .pos = trunc(acc_v),
             .depth = acc_depth,
             .Z_inv = acc_Z_inv,
-            .attrs = lerp_projected_varying(attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv),
+            .attrs = lerp_projected_varying_conditionally<Options.attr_interpolation>(
+                    attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv),
         };
     };
 
@@ -110,7 +111,7 @@ barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
 }
 
 /**
- * @brief Interpolation of fragments with barycentric coordinates of
+ * @brief Interpolation of varying with barycentric coordinates of
  *        triangles
  */
 template<VaryingInterface Varying>
@@ -130,7 +131,7 @@ barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> V
 }
 
 /**
- * @brief Interpolation of fragments with barycentric coordinates of
+ * @brief Interpolation of varying with barycentric coordinates of
  *        triangles
  */
 template<VaryingInterface Varying>
@@ -153,6 +154,27 @@ barycentric_projected(const std::array<Varying, 3>& attrs,
         const auto aw2 = attrs[2] * w[2];
 
         return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
+    }
+}
+
+/**
+ * @brief Interpolation of varying with barycentric coordinates of
+ *        triangles depending on option
+ */
+template<AttrInterpolation Option, VaryingInterface Varying>
+[[maybe_unused]]
+static auto
+barycentric_projected_conditionally(const std::array<Varying, 3>& attrs,
+                                    [[maybe_unused]] const math::Vec3& weights,
+                                    [[maybe_unused]] const math::Vec3& Z_inv,
+                                    [[maybe_unused]] const math::Float& acc_Z_inv) -> Varying
+{
+    if constexpr (Option == AttrInterpolation::Smooth) {
+        return barycentric_projected(attrs, weights, Z_inv, acc_Z_inv);
+    } else if constexpr (Option == AttrInterpolation::NoPerspective) {
+        return barycentric(attrs, weights);
+    } else {
+        return attrs[0];
     }
 }
 
@@ -239,11 +261,13 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const math::Vec2 v2v0 = v2.vector_to(v0);
     const math::Vec2 v0v1 = v0.vector_to(v1);
 
-    const math::Vec2 offset = math::Vec2{ 0.5f, 0.5f };
+    const math::Vec2 offset = { 0.5f, 0.5f };
     math::Vec2 p = min_ + offset;
-    math::Vec3 w_y_minx = { cross(v1v2, v1.vector_to(p)) + bias0,
-                            cross(v2v0, v2.vector_to(p)) + bias1,
-                            cross(v0v1, v0.vector_to(p)) + bias2 };
+    math::Vec3 w_y_minx = {
+        cross(v1v2, v1.vector_to(p)) + bias0,
+        cross(v2v0, v2.vector_to(p)) + bias1,
+        cross(v0v1, v0.vector_to(p)) + bias2,
+    };
 
     // cross product terms:
     const math::Vec3 delta_w_x = { -v1v2.y, -v2v0.y, -v0v1.y };
@@ -258,7 +282,11 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
         const auto weights = w / triangle_area_2;
         const auto acc_depth = barycentric(depth, weights);
         const auto acc_Z_inv = barycentric(Z_inv, weights);
-        const auto acc_attrs = barycentric_projected(attrs, weights, Z_inv, acc_Z_inv);
+        const auto acc_attrs = barycentric_projected_conditionally<Options.attr_interpolation>( //
+                attrs,
+                weights,
+                Z_inv,
+                acc_Z_inv);
 
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };

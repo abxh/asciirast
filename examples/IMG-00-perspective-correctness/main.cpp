@@ -8,7 +8,6 @@
 #include "asciirast/renderer.h"
 
 #include <filesystem>
-#include <iostream>
 
 struct MyUniform
 {

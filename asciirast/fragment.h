@@ -19,6 +19,7 @@
 #include "./math/types.h"
 #include "./program_token.h"
 #include "./varying.h"
+#include "renderer_options.h"
 
 namespace asciirast {
 
@@ -67,21 +68,21 @@ project_fragment(const Fragment<Varying>& in) -> ProjectedFragment<Varying>
 /**
  * @brief Linear interpolation of fragments
  */
-template<VaryingInterface T>
+template<AttrInterpolation Option, VaryingInterface T>
 [[maybe_unused]]
 static auto
 lerp(const Fragment<T>& lhs, const Fragment<T>& rhs, const math::Float t) -> Fragment<T>
 {
     return Fragment<T>{
         .pos = lerp(lhs.pos, rhs.pos, t),
-        .attrs = lerp_varying(lhs.attrs, rhs.attrs, t),
+        .attrs = lerp_varying_conditionally<Option>(lhs.attrs, rhs.attrs, t),
     };
 }
 
 /**
  * @brief Linear interpolation of projected fragments
  */
-template<VaryingInterface T>
+template<AttrInterpolation Option, VaryingInterface T>
 [[maybe_unused]]
 static auto
 lerp(const ProjectedFragment<T>& lhs, const ProjectedFragment<T>& rhs, const math::Float t) -> ProjectedFragment<T>
@@ -95,7 +96,7 @@ lerp(const ProjectedFragment<T>& lhs, const ProjectedFragment<T>& rhs, const mat
         .pos = lerp(lhs.pos, rhs.pos, t),
         .depth = std::lerp(lhs.depth, rhs.depth, t),
         .Z_inv = Z_inv_t,
-        .attrs = lerp_projected_varying(lhs.attrs, rhs.attrs, t, lhs.Z_inv, rhs.Z_inv, Z_inv_t),
+        .attrs = lerp_projected_varying_conditionally<Option>(lhs.attrs, rhs.attrs, t, lhs.Z_inv, rhs.Z_inv, Z_inv_t),
     };
 }
 

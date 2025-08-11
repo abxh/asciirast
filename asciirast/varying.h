@@ -13,6 +13,7 @@
 #include "../external/boost_pfr/include/boost/pfr.hpp"
 
 #include "./math/types.h"
+#include "renderer_options.h"
 
 #include <type_traits>
 
@@ -94,6 +95,45 @@ lerp_projected_varying(const Varying& lhs,
         const auto r = rhs * Z_inv1;
 
         return (l * (1 - t) + r * t) * (1 / acc_Z_inv);
+    }
+}
+
+/**
+ * @brief Linear interpolation of varying depending on option
+ */
+template<AttrInterpolation Option, VaryingInterface Varying>
+[[maybe_unused]]
+static Varying
+lerp_varying_conditionally(const Varying& lhs,
+                           [[maybe_unused]] const Varying& rhs,
+                           [[maybe_unused]] const math::Float t)
+{
+    if constexpr (Option != AttrInterpolation::Flat) {
+        return lerp_varying(lhs, rhs, t);
+    } else {
+        return lhs;
+    }
+}
+
+/**
+ * @brief Linear interpolation of projected varying depending on option
+ */
+template<AttrInterpolation Option, VaryingInterface Varying>
+[[maybe_unused]]
+static auto
+lerp_projected_varying_conditionally(const Varying& lhs,
+                                     [[maybe_unused]] const Varying& rhs,
+                                     [[maybe_unused]] const math::Float t,
+                                     [[maybe_unused]] const math::Float Z_inv0,
+                                     [[maybe_unused]] const math::Float Z_inv1,
+                                     [[maybe_unused]] const math::Float acc_Z_inv) -> Varying
+{
+    if constexpr (Option == AttrInterpolation::Smooth) {
+        return lerp_projected_varying(lhs, rhs, t, Z_inv0, Z_inv1, acc_Z_inv);
+    } else if constexpr (Option == AttrInterpolation::NoPerspective) {
+        return lerp_varying(lhs, rhs, t);
+    } else {
+        return lhs;
     }
 }
 

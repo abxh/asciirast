@@ -462,8 +462,8 @@ private:
             return;
         }
         const auto [t0, t1] = tup.value();
-        const Frag tfrag0 = lerp(frag0, frag1, t0);
-        const Frag tfrag1 = lerp(frag0, frag1, t1);
+        const Frag tfrag0 = lerp<Options.attr_interpolation>(frag0, frag1, t0);
+        const Frag tfrag1 = lerp<Options.attr_interpolation>(frag0, frag1, t1);
 
         // perspective divide
         // clip space -> screen space:
@@ -483,8 +483,8 @@ private:
                 return;
             }
             const auto [inner_t0, inner_t1] = inner_tup.value();
-            inner_tfrag0 = lerp(vfrag0, vfrag1, inner_t0);
-            inner_tfrag1 = lerp(vfrag0, vfrag1, inner_t1);
+            inner_tfrag0 = lerp<Options.attr_interpolation>(vfrag0, vfrag1, inner_t0);
+            inner_tfrag1 = lerp<Options.attr_interpolation>(vfrag0, vfrag1, inner_t1);
         }
 
         // screen space -> window space:
@@ -792,7 +792,7 @@ private:
                                 });
 
         // clip triangle so it's inside the viewing volume:
-        if (!renderer::triangle_in_frustum(data.vec_queue, data.attrs_queue)) {
+        if (!renderer::triangle_in_frustum<Options.attr_interpolation>(data.vec_queue, data.attrs_queue)) {
             return;
         }
         for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(data.vec_queue, data.attrs_queue)) {
@@ -841,7 +841,8 @@ private:
             data.attrs_queue_screen.insert(data.attrs_queue_screen.end(), la);
 
             // clip line so it's inside the screen:
-            if (!renderer::triangle_in_screen(data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
+            if (!renderer::triangle_in_screen<Options.attr_interpolation>(
+                        data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
                 continue;
             }
             for (const auto& [inner_vec_triplet, inner_attrs_triplet] :

@@ -95,7 +95,7 @@ main(int, char**)
     MyProgram program;
     TerminalBuffer framebuffer(5 / 2.f);
 
-    asciirast::Renderer<> renderer;
+    asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::NoPerspective }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
     std::binary_semaphore sem{ 0 };

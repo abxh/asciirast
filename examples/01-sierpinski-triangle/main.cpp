@@ -118,7 +118,7 @@ main(int, char**)
 
     MyProgram program;
     TerminalBuffer framebuffer(5 / 3.f);
-    asciirast::Renderer renderer;
+    asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::NoPerspective }> renderer;
     asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
 
     framebuffer.clear_and_update_size();

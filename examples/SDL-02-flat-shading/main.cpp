@@ -169,7 +169,9 @@ main(int argc, char* argv[])
     SDLClock clock;
     SDLBuffer screen(512, 512);
     MyProgram program;
-    asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
+    asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise,
+                          .attr_interpolation = asciirast::AttrInterpolation::Flat }>
+            renderer;
     asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
     MyUniform uniforms;
     uniforms.z_dist = std::abs(
@@ -193,9 +195,6 @@ main(int argc, char* argv[])
         });
 
         screen.clear();
-        vertex_buf.shape_type = asciirast::ShapeType::Lines;
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
-        vertex_buf.shape_type = asciirast::ShapeType::Triangles;
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.render();
 

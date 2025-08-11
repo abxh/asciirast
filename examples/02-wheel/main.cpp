@@ -194,11 +194,13 @@ main(int, char**)
     constexpr asciirast::RendererOptions circle_options{
         .line_drawing_direction = asciirast::LineDrawingDirection::Downwards,
         .line_ends_inclusion = asciirast::LineEndsInclusion::IncludeBoth,
+        .attr_interpolation = asciirast::AttrInterpolation::NoPerspective,
     };
 
     constexpr asciirast::RendererOptions line_options{
         .line_drawing_direction = asciirast::LineDrawingDirection::Downwards,
         .line_ends_inclusion = asciirast::LineEndsInclusion::ExcludeBoth,
+        .attr_interpolation = asciirast::AttrInterpolation::NoPerspective,
     };
 
     asciirast::Renderer<circle_options> cr0{ math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }) };
