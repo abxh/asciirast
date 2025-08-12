@@ -179,11 +179,7 @@ main(int argc, char* argv[])
         });
 
         screen.clear();
-        vertex_buf.shape_type = asciirast::ShapeType::Lines;
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
-        vertex_buf.shape_type = asciirast::ShapeType::Triangles;
-        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
-
         screen.render();
 
         clock.tick();
