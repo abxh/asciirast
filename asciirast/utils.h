@@ -147,10 +147,6 @@ make_perspective(const math::Float near,
      * - https://www.youtube.com/watch?v=EqNcqBdrNyI
      * - https://www.youtube.com/watch?v=k_L6edKHKfA
      * - http://www.songho.ca/opengl/gl_projectionmatrix.html
-     *
-     * reverse depth:
-     * - https://developer.nvidia.com/blog/visualizing-depth-precision/
-     * - https://tomhultonharrop.com/mathematics/graphics/2023/08/06/reverse-z.html
      */
 
     ASCIIRAST_ASSERT(tan(fovy_rad / 2.0f) != 0.f, "tangent to half fov angle is not 0", fovy_rad);
