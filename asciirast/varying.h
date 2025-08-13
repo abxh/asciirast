@@ -141,7 +141,7 @@ lerp_projected_varying_conditionally(const Varying& lhs,
  * @brief Derived varying-varying addition operator
  */
 template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
-auto
+constexpr auto
 operator+(const Varying& lhs, const Varying& rhs) -> Varying
 {
     return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
@@ -153,7 +153,7 @@ operator+(const Varying& lhs, const Varying& rhs) -> Varying
  * @brief Derived varying-scalar multiplication operator
  */
 template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
-auto
+constexpr auto
 operator*(const Varying& lhs, const math::Float& scalar) -> Varying
 {
     return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
