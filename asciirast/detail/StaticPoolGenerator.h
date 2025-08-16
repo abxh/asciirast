@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void* allocate() { return std::launder(reinterpret_cast<T*>(&m_pool[m_free_indices.pop()])); }
+    void* allocate() { return &m_pool[m_free_indices.pop()]; }
 
     void deallocate(void* ptr)
     {
