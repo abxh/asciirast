@@ -137,7 +137,7 @@ fix_corners(const MyUniform& u,
         }
         const auto frag0 = asciirast::project_fragment(asciirast::Fragment{ pos1, asciirast::EmptyVarying() });
         const auto frag1 = asciirast::Renderer<>::apply_scale_to_viewport(r.scale_to_viewport(), frag0);
-        const auto frag2 = asciirast::Renderer<>::apply_screen_to_window(t.screen_to_window(), frag1);
+        const auto frag2 = asciirast::Renderer<>::apply_screen_to_window_transform(t.screen_to_window_transform(), frag1);
         const auto pos2 = math::Vec2Int{ frag2.pos };
         if (math::Vec2Int{ 0, 0 } <= pos2 - math::Vec2Int{ 1, 1 } && //
             pos2 + math::Vec2Int{ 1, 1 } <= t.size()) {

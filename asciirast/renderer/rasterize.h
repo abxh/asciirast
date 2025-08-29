@@ -154,7 +154,7 @@ barycentric_projected(const std::array<Varying, 3>& attrs,
         const auto aw1 = attrs[1] * w[1];
         const auto aw2 = attrs[2] * w[2];
 
-        return (aw0 + aw1 + aw2) * (1 / acc_Z_inv);
+        return (aw0 + aw1 + aw2) / acc_Z_inv;
     }
 }
 

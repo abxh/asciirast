@@ -228,8 +228,8 @@ public:
      * @return The projected fragment transformed
      */
     template<VaryingInterface Varying>
-    static auto apply_screen_to_window_tranform(const math::Transform2D& screen_to_window,
-                                                ProjectedFragment<Varying> frag) -> ProjectedFragment<Varying>
+    static auto apply_screen_to_window_transform(const math::Transform2D& screen_to_window,
+                                                 ProjectedFragment<Varying> frag) -> ProjectedFragment<Varying>
     {
         frag.pos = round(screen_to_window.apply(frag.pos));
         return frag;
@@ -370,7 +370,7 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag);
+        const PFrag wfrag = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), vfrag);
 
         if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
             using FragmentContext = typename Program::FragmentContext;
@@ -469,8 +469,8 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag0 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag0);
-        const PFrag wfrag1 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag1);
+        const PFrag wfrag0 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag0);
+        const PFrag wfrag1 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag1);
 
         // swap vertices after line drawing direction
         bool keep_vertex_order = true;
@@ -798,9 +798,9 @@ private:
 
             if (!requires_screen_clipping) {
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag0);
-                const PFrag wfrag1 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag1);
-                const PFrag wfrag2 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag2);
+                const PFrag wfrag0 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), vfrag0);
+                const PFrag wfrag1 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), vfrag1);
+                const PFrag wfrag2 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), vfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);
@@ -837,11 +837,11 @@ private:
 
                 // screen space -> window space:
                 const PFrag wfrag0 =
-                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag0);
+                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag0);
                 const PFrag wfrag1 =
-                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag1);
+                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag1);
                 const PFrag wfrag2 =
-                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag2);
+                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);

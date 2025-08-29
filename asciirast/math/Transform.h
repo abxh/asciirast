@@ -75,11 +75,6 @@ public:
      * @return This
      */
     constexpr Transform2D& stack(const Transform2D& that) { return this->stack_internal(that.m_mat, that.m_mat_inv); }
-    std::byte* begin() { return reinterpret_cast<std::byte*>(&m_pool[0]); }
-    const std::byte* begin() const { return reinterpret_cast<const std::byte*>(&m_pool[0]); }
-
-    std::byte* end() { return reinterpret_cast<std::byte*>(&m_pool[FrameCount]); }
-    const std::byte* end() const { return reinterpret_cast<const std::byte*>(&m_pool[FrameCount]); }
 
     /**
      * @brief Apply the transformation "action" on a 3D homogenous vector
