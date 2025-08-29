@@ -45,17 +45,18 @@ public:
      * @param radians The angle at hand in radians
      */
     constexpr Rot2DType(const T radians)
-            : m_complex{ complex_from(radians) } {};
+        : m_complex{ complex_from(radians) } {};
 
     /**
-     * @brief Construct rotation object from the angle between two vectors.
+     * @brief Construct rotation object from the angle between two
+     * vectors.
      *
      * @param from_dir The source direction vector
      * @param to_dir The destination direction vector
      * @param normalize Whether to_dir is not normalized
      */
     constexpr Rot2DType(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
-            : m_complex{ complex_div(to_dir, from_dir, normalize) } {};
+        : m_complex{ complex_div(to_dir, from_dir, normalize) } {};
 
     /**
      * @brief Construct rotation object from complex number
@@ -63,7 +64,7 @@ public:
      * @param complex The complex number at hand
      */
     explicit constexpr Rot2DType(const Vec2& complex)
-            : m_complex{ complex } {};
+        : m_complex{ complex } {};
 
     /**
      * @brief Normalize underlying complex number in-place
@@ -89,7 +90,8 @@ public:
     /**
      * @brief Convert to 2D transformation matrix
      *
-     * @return The tranformation matrix that performs the same rotation as this
+     * @return The tranformation matrix that performs the same rotation as
+     * this
      */
     [[nodiscard]] constexpr Mat2 to_mat() const
     {
@@ -109,7 +111,8 @@ public:
     /**
      * @brief Stack another rotation object on top of this
      *
-     * @note Normalization should be performed occasionally for fixing floating-point errors.
+     * @note Normalization should be performed occasionally for fixing
+     * floating-point errors.
      *
      * @param that The other rotation at hand
      * @param normalize Whether to normalize the rotation object
@@ -169,7 +172,8 @@ private:
  * @brief Class for composing 3D rotations
  *
  * @tparam T                Type of elements
- * @tparam is_col_major     Whether the produced matrix is in column major
+ * @tparam is_col_major     Whether the produced matrix is in column
+ * major
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
@@ -190,11 +194,13 @@ public:
      * @brief Construct rotation object from axis and angle in radians
      *
      * @param axis The "axis" vector
-     * @param radians The angle (in radians) the "axis" vector is rotated by
-     * @param normalize Whether to normalize this in case the axis vector was not pre-normalized
+     * @param radians The angle (in radians) the "axis" vector is rotated
+     * by
+     * @param normalize Whether to normalize this in case the axis vector
+     * was not pre-normalized
      */
     constexpr Rot3DType(const Vec3& axis, const T radians, bool normalize = true)
-            : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
+        : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
 
     /**
      * @brief Conver to quaternion
@@ -237,7 +243,8 @@ public:
      * @brief Rotate YZ plane by angle around x-axis
      *
      * @param radians The angle in radians measured from y-axis
-     * @param normalize Whether to normalize quaternion for numerical stability purposes
+     * @param normalize Whether to normalize quaternion for numerical
+     * stability purposes
      * @return This
      */
     constexpr Rot3D& rotateYZ(const T radians, const bool normalize = true)
@@ -249,7 +256,8 @@ public:
      * @brief Rotate ZX plane by angle around y-axis
      *
      * @param radians The angle in radians measured from z-axis
-     * @param normalize Whether to normalize quaternion for numerical stability purposes
+     * @param normalize Whether to normalize quaternion for numerical
+     * stability purposes
      * @return This
      */
     constexpr Rot3D& rotateZX(const T radians, const bool normalize = true)
@@ -261,7 +269,8 @@ public:
      * @brief Rotate XY plane by angle around z-axis
      *
      * @param radians The angle in radians measured from x-axis
-     * @param normalize Whether to normalize quaternion for numerical stability purposes
+     * @param normalize Whether to normalize quaternion for numerical
+     * stability purposes
      * @return This
      */
     constexpr Rot3D& rotateXY(const T radians, const bool normalize = true)
@@ -296,7 +305,8 @@ public:
     /**
      * @brief Stack another rotation object on top of this
      *
-     * @note Normalization should be performed occasionally for fixing floating-point errors.
+     * @note Normalization should be performed occasionally for fixing
+     * floating-point errors.
      *
      * @param that The other rotation at hand
      * @param normalize Whether to normalize the rotation object
@@ -347,4 +357,4 @@ private:
     }
 };
 
-} // namespace asciirast::inverse
+} // namespace asciirast::math

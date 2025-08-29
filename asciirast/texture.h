@@ -2,8 +2,8 @@
  * @file texture.h
  * @brief Texture class
  *
- * Supports all textures stb_image supports. That means: jpeg / png / tga / bmp / psd / gif / hdr / pic / pnm
- * No animated gifs however.
+ * Supports all textures stb_image supports. That means: jpeg / png /
+ * tga / bmp / psd / gif / hdr / pic / pnm No animated gifs however.
  *
  * stb_image:
  * https://github.com/nothings/stb/blob/master/stb_image.h
@@ -17,17 +17,16 @@
 
 #pragma once
 
-#include "../external/stb_image/stb_image.h"
-#include "../external/stb_image/stb_image_write.h"
-
-#include "./math/types.h"
-
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
+
+#include "../external/stb_image/stb_image.h"
+#include "../external/stb_image/stb_image_write.h"
+#include "./math/types.h"
 
 namespace asciirast {
 
@@ -48,7 +47,7 @@ public:
      * @brief Indexing function
      */
     static auto texture_index(math::Int width, [[maybe_unused]] math::Int height, math::Int x, math::Int y)
-            -> std::size_t
+        -> std::size_t
     {
         ASCIIRAST_ASSERT(0 <= y && y < height && 0 <= x && x < width, "index is inside bounds");
 
@@ -63,8 +62,8 @@ public:
      * @param default_color The default color to use
      */
     explicit TextureStorage(const math::Int width = 1, const math::Int height = 1, const T default_color = T()) noexcept
-            : m_width{ std::max(1, width) }
-            , m_height{ std::max(1, height) }
+        : m_width{ std::max(1, width) }
+        , m_height{ std::max(1, height) }
     {
         m_pixels.resize(static_cast<std::size_t>(m_width * m_height));
 
@@ -138,8 +137,10 @@ template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
 class TextureType
 {
 protected:
-    using RGBA_8bit_TextureStorage = TextureStorage<math::RGBA_8bit, RGBA_8bit_Allocator>; ///< mipmap alias
-    using Mipmaps = std::vector<RGBA_8bit_TextureStorage, MipmapAllocator>;                ///< mipmaps
+    using RGBA_8bit_TextureStorage = TextureStorage<math::RGBA_8bit,
+                                                    RGBA_8bit_Allocator>; ///< mipmap alias
+    using Mipmaps = std::vector<RGBA_8bit_TextureStorage,
+                                MipmapAllocator>; ///< mipmaps
 
     Mipmaps m_mipmaps;                ///< mipmaps
     bool m_has_loaded = false;        ///< whether a texture has been loaded
@@ -152,7 +153,8 @@ public:
     TextureType() = default;
 
     /**
-     * @brief Construct a texture and it's mipmaps from a texture file path
+     * @brief Construct a texture and it's mipmaps from a texture file
+     * path
      *
      * @throws std::runtime_error For various errors about the texture
      *
@@ -286,7 +288,7 @@ public:
         }
 
         const auto mip_levels =
-                std::max<unsigned>(1U, static_cast<unsigned>(std::floor(std::log2(std::max(width, height)))));
+            std::max<unsigned>(1U, static_cast<unsigned>(std::floor(std::log2(std::max(width, height)))));
         const auto ptr_rgba = reinterpret_cast<const math::RGBA_8bit*>(ptr);
 
         m_mipmaps.resize(mip_levels);
@@ -347,7 +349,8 @@ public:
                 if (errno != 0) {
                     throw std::runtime_error("asciirast::Texture::save() : " + std::string(std::strerror(errno)));
                 } else {
-                    throw std::runtime_error("asciirast::Texture::save() : stb_write_png() failed for some reason!");
+                    throw std::runtime_error("asciirast::Texture::save() : stb_write_png() failed for "
+                                             "some reason!");
                 }
             }
         }

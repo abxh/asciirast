@@ -14,10 +14,13 @@
 namespace asciirast::renderer {
 
 template<RendererOptions Options, VaryingInterface Varying, typename Plot>
-    requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&> ||
-             std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
-[[maybe_unused]]
-static void
+static constexpr bool rasterize_line_plot_func_conds =
+    std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&> ||
+    std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>;
+
+template<RendererOptions Options, VaryingInterface Varying, typename Plot>
+    requires(rasterize_line_plot_func_conds<Options, Varying, Plot>)
+[[maybe_unused]] static void
 rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<Varying>& proj1, const Plot&& plot)
 {
     // Modified DDA Line algorithm:
@@ -41,17 +44,17 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
     const auto inc_depth = (depth1 - depth0) * len_inv;
     const auto inc_Z_inv = (Z_inv1 - Z_inv0) * len_inv;
 
-    const auto func = [&depth0, &depth1, &Z_inv0, &Z_inv1, &attrs0, &attrs1](
-                              const math::Float& acc_t,
-                              const math::Vec2& acc_v,
-                              const math::Float& acc_depth,
-                              const math::Float& acc_Z_inv) -> ProjectedFragment<Varying> {
+    const auto func = [&](const math::Float& acc_t, //
+                          const math::Vec2& acc_v,
+                          const math::Float& acc_depth,
+                          const math::Float& acc_Z_inv) {
+        static constexpr auto Option = Options.attr_interpolation;
+
         return ProjectedFragment<Varying>{
             .pos = trunc(acc_v),
             .depth = acc_depth,
             .Z_inv = acc_Z_inv,
-            .attrs = lerp_projected_varying_conditionally<Options.attr_interpolation>(
-                    attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv),
+            .attrs = lerp_projected_varying_conditionally<Option>(attrs0, attrs1, acc_t, Z_inv0, Z_inv1, acc_Z_inv),
         };
     };
 
@@ -85,7 +88,8 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
         std::array<ProjectedFragment<Varying>, 2> rfrag;
         rfrag[0] = func(acc_t, acc_v, acc_depth, acc_Z_inv);
 
-        // process 1 fragment at a time, but pass both the current and the one ahead:
+        // process 1 fragment at a time, but pass both the current and the
+        // one ahead:
         for (std::size_t i = bias0; i <= len_uint - bias1; i++) {
             acc_t += inc_t;
             acc_v += inc_v;
@@ -103,8 +107,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
  * @brief Interpolation of vectors with barycentric coordinates of
  *        triangles
  */
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
 {
     return dot(v, weights);
@@ -115,8 +118,7 @@ barycentric(const math::Vec3& v, const math::Vec3& weights) -> math::Float
  *        triangles
  */
 template<VaryingInterface Varying>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> Varying
 {
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
@@ -135,8 +137,7 @@ barycentric(const std::array<Varying, 3>& attrs, const math::Vec3& weights) -> V
  *        triangles
  */
 template<VaryingInterface Varying>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 barycentric_projected(const std::array<Varying, 3>& attrs,
                       const math::Vec3& weights,
                       const math::Vec3& Z_inv,
@@ -162,8 +163,7 @@ barycentric_projected(const std::array<Varying, 3>& attrs,
  *        triangles depending on option
  */
 template<AttrInterpolation Option, VaryingInterface Varying>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 barycentric_projected_conditionally(const std::array<Varying, 3>& attrs,
                                     [[maybe_unused]] const math::Vec3& weights,
                                     [[maybe_unused]] const math::Vec3& Z_inv,
@@ -178,8 +178,7 @@ barycentric_projected_conditionally(const std::array<Varying, 3>& attrs,
     }
 }
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> bool
 {
     const auto edge = src.vector_to(dest);
@@ -196,14 +195,14 @@ is_top_left_edge_of_triangle(const math::Vec2& src, const math::Vec2& dest) -> b
 template<RendererOptions Options, VaryingInterface Varying, typename Plot>
     requires(std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 4>&, const std::array<bool, 4>&> ||
              std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>)
-[[maybe_unused]]
-static void
+[[maybe_unused]] static void
 rasterize_triangle(const ProjectedFragment<Varying>& proj0,
                    const ProjectedFragment<Varying>& proj1,
                    const ProjectedFragment<Varying>& proj2,
                    const Plot&& plot)
 {
-    // Modified algorithm which uses cross products and bayesian coordinates for triangles:
+    // Modified algorithm which uses cross products and bayesian
+    // coordinates for triangles:
     // - https://www.youtube.com/watch?v=k5wtuKWmV48
 
     // get the bounding box of the triangle
@@ -244,15 +243,15 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
      */
 
     // bias to exclude either top-left or bottom-right edge
-    const math::Float bias0 = is_top_left_edge_of_triangle(v1, v2)
-                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
-    const math::Float bias1 = is_top_left_edge_of_triangle(v2, v0)
-                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
-    const math::Float bias2 = is_top_left_edge_of_triangle(v0, v1)
-                                      ? (Options.triangle_fill_bias == TriangleFillBias::TopLeft ? 0.f : -1.f)
-                                      : (Options.triangle_fill_bias == TriangleFillBias::BottomRight ? 0.f : -1.f);
+    static constexpr bool top_left_bias = Options.triangle_fill_bias == TriangleFillBias::TopLeft;
+    static constexpr bool bottom_right_bias = Options.triangle_fill_bias == TriangleFillBias::BottomRight;
+
+    const math::Float bias0 =
+        is_top_left_edge_of_triangle(v1, v2) ? (top_left_bias ? 0.f : -1.f) : (bottom_right_bias ? 0.f : -1.f);
+    const math::Float bias1 =
+        is_top_left_edge_of_triangle(v2, v0) ? (top_left_bias ? 0.f : -1.f) : (bottom_right_bias ? 0.f : -1.f);
+    const math::Float bias2 =
+        is_top_left_edge_of_triangle(v0, v1) ? (top_left_bias ? 0.f : -1.f) : (bottom_right_bias ? 0.f : -1.f);
 
     const math::Float triangle_area_2 = cross(v0.vector_to(v1), v0.vector_to(v2));
     ASCIIRAST_ASSERT(triangle_area_2 > 0, "non-negative triangle area");
@@ -277,16 +276,13 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     const auto x_diff = static_cast<std::size_t>(max_.x) - static_cast<std::size_t>(min_.x);
     const auto y_diff = static_cast<std::size_t>(max_.y) - static_cast<std::size_t>(min_.y);
 
-    const auto func = [&triangle_area_2, &depth, &Z_inv, &attrs](const math::Vec3& w,
-                                                                 const math::Vec2& pos) -> ProjectedFragment<Varying> {
+    const auto func = [&](const math::Vec3& w, const math::Vec2& pos) {
+        static constexpr auto Option = Options.attr_interpolation;
+
         const auto weights = w / triangle_area_2;
         const auto acc_depth = barycentric(depth, weights);
         const auto acc_Z_inv = barycentric(Z_inv, weights);
-        const auto acc_attrs = barycentric_projected_conditionally<Options.attr_interpolation>( //
-                attrs,
-                weights,
-                Z_inv,
-                acc_Z_inv);
+        const auto acc_attrs = barycentric_projected_conditionally<Option>(attrs, weights, Z_inv, acc_Z_inv);
 
         return ProjectedFragment<Varying>{ .pos = pos, .depth = acc_depth, .Z_inv = acc_Z_inv, .attrs = acc_attrs };
     };
@@ -340,4 +336,4 @@ rasterize_triangle(const ProjectedFragment<Varying>& proj0,
     }
 }
 
-} // namespace asciirast::rasterize
+} // namespace asciirast::renderer

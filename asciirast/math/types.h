@@ -5,13 +5,13 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "./AABB.h"
 #include "./Mat.h"
 #include "./Rot.h"
 #include "./Transform.h"
 #include "./Vec.h"
-
-#include <cstdint>
 
 namespace asciirast::math {
 
@@ -37,8 +37,10 @@ using Mat4 = Mat<4, 4, Float, uses_col_major>; ///< 4x4 matrix
 using Rot2D = Rot2DType<Float, uses_col_major>; ///< 2D rotation abstraction
 using Rot3D = Rot3DType<Float, uses_col_major>; ///< 3D rotation abstraction
 
-using Transform2D = Transform2DType<Float, uses_col_major>; ///< 2D Transformation abstraction
-using Transform3D = Transform3DType<Float, uses_col_major>; ///< 3D Transformation abstraction
+using Transform2D = Transform2DType<Float,
+                                    uses_col_major>; ///< 2D Transformation abstraction
+using Transform3D = Transform3DType<Float,
+                                    uses_col_major>; ///< 3D Transformation abstraction
 
 using AABB2D = AABB<2, Float, uses_col_major>; ///< 2D Axis-Aligned Bounding Box
 using AABB3D = AABB<3, Float, uses_col_major>; ///< 3D Axis-Aligned Bounding Box

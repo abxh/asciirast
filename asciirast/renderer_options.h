@@ -75,4 +75,4 @@ struct RendererOptions
     AttrInterpolation attr_interpolation = AttrInterpolation::Smooth; ///< attribute interpolation qualifier
 };
 
-};
+}; // namespace asciirast

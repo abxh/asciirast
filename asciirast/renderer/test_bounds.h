@@ -17,8 +17,7 @@
 
 namespace asciirast::renderer {
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
 {
     const auto min_ = SCREEN_BOUNDS.min_get();
@@ -30,8 +29,7 @@ point_in_screen(const math::Vec2& p, const math::AABB2D& SCREEN_BOUNDS) -> bool
     return x_in_bounds && y_in_bounds;
 }
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 point_in_frustum(const math::Vec4& p) -> bool
 {
     if (std::ranges::equal(p.array(), math::Vec4::from_value(0).array())) [[unlikely]] {
@@ -64,8 +62,7 @@ enum class BorderType
 
 namespace detail {
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 next_border_type(BorderType b) -> BorderType
 {
     return static_cast<BorderType>(static_cast<std::size_t>(b) + 1);
@@ -77,8 +74,7 @@ next_border_type(BorderType b) -> BorderType
 // https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
 // https://github.com/Larry57/WinForms3D/blob/master/WinForms3D/Clipping/LiangBarskyClippingHomogeneous.cs
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 line_in_bounds(const T q, const T p, T& t0, T& t1) -> bool
 {
     // q: delta from border to vector tail
@@ -166,10 +162,9 @@ line_in_bounds(const math::Vec4& p0,
     return line_in_bounds(q[border_id], -delta.w + p[border_id], t0, t1);
 }
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 line_in_screen(const math::Vec2& p0, const math::Vec2& p1, const math::AABB2D& SCREEN_BOUNDS)
-        -> std::optional<std::tuple<math::Float, math::Float>>
+    -> std::optional<std::tuple<math::Float, math::Float>>
 {
     const math::Vec2 min_ = SCREEN_BOUNDS.min_get();
     const math::Vec2 max_ = SCREEN_BOUNDS.max_get();
@@ -185,8 +180,7 @@ line_in_screen(const math::Vec2& p0, const math::Vec2& p1, const math::AABB2D& S
     return std::make_optional(std::make_tuple(t0, t1));
 }
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 line_in_frustum(const math::Vec4& p0, const math::Vec4& p1) -> std::optional<std::tuple<math::Float, math::Float>>
 {
     if (std::ranges::equal(p0.array(), math::Vec4::from_value(0).array()) ||
@@ -219,8 +213,7 @@ using AttrsTriplet = std::array<VaryingType, 3>;
 
 namespace detail {
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 count_num_triangle_vertices_inside(const BorderType border,
                                    const Vec4Triplet& v,
                                    const math::Vec2& min_,
@@ -260,10 +253,9 @@ count_num_triangle_vertices_inside(const BorderType border,
     return { inside[0] + inside[1] + inside[2], inside };
 }
 
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 count_num_triangle_vertices_inside(const BorderType border, const Vec4Triplet& v)
-        -> std::tuple<unsigned, std::array<bool, 3>>
+    -> std::tuple<unsigned, std::array<bool, 3>>
 {
     const auto [v0, v1, v2] = v;
 
@@ -344,8 +336,7 @@ template<AttrInterpolation Option,
          VaryingInterface Varying,
          typename Vec4TripletAllocatorType,
          typename AttrAllocatorType>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                     std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue)
 {
@@ -389,9 +380,9 @@ triangle_in_frustum(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue
                 const bool b02 = line_in_bounds(p0, p2, border, min_, max_, t0b, t02);
 
                 ASCIIRAST_ASSERT(
-                        b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                    b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
                 ASCIIRAST_ASSERT(
-                        b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
+                    b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
                 [[assume(t0a == 0.f)]];
                 [[assume(t01 <= 1.f)]];
@@ -465,8 +456,7 @@ template<AttrInterpolation Option,
          VaryingInterface Varying,
          typename Vec4TripletAllocatorType,
          typename AttrAllocatorType>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                    std::deque<AttrsTriplet<Varying>, AttrAllocatorType>& attrs_queue,
                    const math::AABB2D& SCREEN_BOUNDS)
@@ -502,9 +492,9 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
                 const bool b02 = line_in_bounds(p0.xy, p2.xy, border, min_, max_, t0b, t02);
 
                 ASCIIRAST_ASSERT(
-                        b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
+                    b01 && t0a == 0.f && t01 <= 1.f, "only the end of the line is clippable", b01, t0a, t01);
                 ASCIIRAST_ASSERT(
-                        b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
+                    b02 && t0b == 0.f && t02 <= 1.f, "only the end of the line is clippable", b02, t0b, t02);
 
                 [[assume(b01 == true)]];
                 [[assume(t0a == 0.f)]];
@@ -577,4 +567,4 @@ triangle_in_screen(std::deque<Vec4Triplet, Vec4TripletAllocatorType>& vec_queue,
     return vec_queue.size() != 0;
 }
 
-} // namespace asciirast::rasterize
+} // namespace asciirast::renderer

@@ -4,11 +4,13 @@
  *
  * @todo determinant function
  * @todo inverse function
+ * @todo simd'ify col_major matrix-vec multiplication in c++26
  */
 
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <iomanip>
 #include <numeric>
@@ -17,7 +19,6 @@
 #include <type_traits>
 
 #include "../detail/assert.h"
-
 #include "./Vec.h"
 
 namespace asciirast::math {
@@ -34,7 +35,7 @@ struct mat_constructible_from;
 template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
 struct mat_printer;
 
-}
+} // namespace detail
 /// @endcond
 
 /**
@@ -49,21 +50,67 @@ template<std::size_t M_y, std::size_t N_x, typename T, bool is_col_major>
     requires(M_y > 1 && N_x > 1 && std::is_arithmetic_v<T>)
 class Mat
 {
-    template<typename... Args>
-    static constexpr bool constructible_from_cols_v =
-            (detail::vec_info<Args>::value && ...) && (0 < sizeof...(Args) && sizeof...(Args) <= N_x) &&
-            ((detail::vec_info<Args>::size <= M_y) && ...);
-
-    template<typename... Args>
-    static constexpr bool constructible_from_rows_v =
-            (detail::vec_info<Args>::value && ...) && (0 < sizeof...(Args) && sizeof...(Args) <= M_y) &&
-            ((detail::vec_info<Args>::size <= N_x) && ...);
-
     std::array<T, M_y * N_x> m_elements = {}; ///< 1D array of elements
+
+    friend constexpr Mat<M_y, M_y, T, is_col_major> mat_mul(const Mat<M_y, N_x, T, is_col_major>& lhs,
+                                                            const Mat<N_x, M_y, T, is_col_major>& rhs)
+    {
+        Mat<M_y, M_y, T, is_col_major> res{};
+
+        if constexpr (is_col_major) {
+            const auto lhs_T = lhs.transposed();
+
+            std::size_t idx = 0;
+            for (std::size_t i = 0; i < rhs.col_count(); i++) {
+                for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
+                    const auto r = rhs.col_span(i);
+                    const auto l = lhs_T.col_span(j);
+
+                    res[idx++] = std::inner_product(r.begin(), r.end(), l.begin(), T{});
+                }
+            }
+        } else {
+            const auto rhs_T = rhs.transposed();
+
+            std::size_t idx = 0;
+            for (std::size_t i = 0; i < lhs.row_count(); i++) {
+                for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
+                    const auto l = lhs.row_span(i);
+                    const auto r = rhs_T.row_span(j);
+
+                    res[idx++] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
+                }
+            }
+        }
+        return res;
+    }
+
+    friend constexpr Vec<M_y, T> mat_vec(const Mat<M_y, N_x, T, is_col_major>& lhs, const Vec<N_x, T>& rhs)
+    {
+        Vec<M_y, T> res{};
+
+        if constexpr (is_col_major) {
+            std::size_t idx = 0;
+            for (std::size_t x = 0; x < N_x; x++) {
+                for (std::size_t y = 0; y < M_y; y++) {
+                    res[y] += lhs[idx++] * rhs[x];
+                }
+            }
+        } else {
+            for (std::size_t y = 0; y < M_y; y++) {
+                const auto l = lhs.row_span(y);
+                const auto r = rhs.array();
+
+                res[y] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
+            }
+        }
+        return res;
+    }
 
 public:
     /**
-     * @brief Map two-dimensional matrix indicies to a single dimensional array index
+     * @brief Map two-dimensional matrix indicies to a single dimensional
+     * array index
      *
      * @param y Zero-based row index
      * @param x Zero-based column index
@@ -105,12 +152,13 @@ public:
     /**
      * @brief Create matrix from column vectors
      *
-     * @param args The column vectors
-     * @return The matrix consisting of the column vectors with the rest padded with zero
+     * @param args Column vectors arguments
+     * @return The matrix consisting of column vectors
      */
     template<typename... Args>
-        requires(constructible_from_cols_v<Args...>)
+        requires(sizeof...(Args) == N_x)
     [[nodiscard]] static constexpr Mat from_cols(Args&&... args) noexcept
+        requires((detail::vec_info<Args>::value && detail::vec_info<Args>::size == M_y) && ...)
     {
         if constexpr (is_col_major) {
             using MatType = Mat<M_y, N_x, T, is_col_major>;
@@ -126,12 +174,13 @@ public:
     /**
      * @brief Create matrix from row vectors
      *
-     * @param args The row vectors
-     * @return The matrix consisting of the row vectors with the rest padded with zero
+     * @param args Row vectors arguments
+     * @return The matrix consisting of the row vectors
      */
     template<typename... Args>
-        requires(constructible_from_rows_v<Args...>)
+        requires(sizeof...(Args) == M_y)
     [[nodiscard]] static constexpr Mat from_rows(Args&&... args) noexcept
+        requires((detail::vec_info<Args>::value && detail::vec_info<Args>::size == N_x) && ...)
     {
         if constexpr (is_col_major) {
             using MatType = Mat<N_x, M_y, T, is_col_major>;
@@ -211,8 +260,8 @@ public:
     };
 
     /**
-     * @brief Construct matrix from a mix of smaller matricies and vectors,
-     * initialized in the same order as the matrix major order.
+     * @brief Construct matrix from a mix of smaller matricies and
+     * vectors, initialized in the same order as the matrix major order.
      *
      * The diagonal elements, if unset, are set to 1.
      *
@@ -234,44 +283,28 @@ public:
      *
      * @return The pointer to the first component of the underlying data
      */
-    [[nodiscard]]
-    constexpr T* data()
-    {
-        return &m_elements[0];
-    }
+    [[nodiscard]] constexpr T* data() { return &m_elements[0]; }
 
     /**
      * @brief Get pointer to the underlying data
      *
      * @return The pointer to the first component of the underlying data
      */
-    [[nodiscard]]
-    constexpr const T* data() const
-    {
-        return &m_elements[0];
-    }
+    [[nodiscard]] constexpr const T* data() const { return &m_elements[0]; }
 
     /**
      * @brief Get underlying array
      *
      * @return A reference to the underlying array
      */
-    [[nodiscard]]
-    constexpr std::array<T, size()>& array()
-    {
-        return m_elements;
-    }
+    [[nodiscard]] constexpr std::array<T, size()>& array() { return m_elements; }
 
     /**
      * @brief Get underlying array
      *
      * @return A const reference to the underlying array
      */
-    [[nodiscard]]
-    constexpr const std::array<T, size()>& array() const
-    {
-        return m_elements;
-    }
+    [[nodiscard]] constexpr const std::array<T, size()>& array() const { return m_elements; }
 
     /**
      * @brief Index the underlying array
@@ -547,7 +580,8 @@ public:
     }
 
     /**
-     * @brief Perform in-place component-wise subtraction with other matrix
+     * @brief Perform in-place component-wise subtraction with other
+     * matrix
      *
      * @param that The other matrix at hand
      * @return This
@@ -578,7 +612,8 @@ public:
      * @brief Perform in-place matrix-scalar division
      *
      * @param scalar The scalar at hand
-     * @return The matrix with it's element inversely scaled by the given scalar
+     * @return The matrix with it's element inversely scaled by the given
+     * scalar
      */
     constexpr Mat& operator/=(const T scalar)
     {
@@ -705,15 +740,12 @@ public:
      */
     constexpr Mat& operator*=(const Mat& that)
     {
-        *this = std::move((*this) * that);
+        *this = std::move(mat_vec(*this, that));
         return *this;
     }
 
     /**
      * @brief Perform matrix-matrix multiplication
-     *
-     * Does a small optimisation of using the transposed matrix for
-     * optimal access. But is not particularly optimised.
      *
      * @param lhs The left hand side of the operand
      * @param rhs The right hand side of the operand
@@ -722,67 +754,28 @@ public:
     [[nodiscard]] friend constexpr Mat<M_y, M_y, T, is_col_major> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
                                                                             const Mat<N_x, M_y, T, is_col_major>& rhs)
     {
-        Mat<M_y, M_y, T, is_col_major> res{};
-
-        if constexpr (is_col_major) {
-            const auto lhs_T = lhs.transposed();
-
-            std::size_t idx = 0;
-            for (std::size_t i = 0; i < rhs.col_count(); i++) {
-                for (std::size_t j = 0; j < lhs_T.col_count(); j++) {
-                    const auto r = rhs.col_span(i);
-                    const auto l = lhs_T.col_span(j);
-
-                    res[idx++] = std::inner_product(r.begin(), r.end(), l.begin(), T{});
-                }
-            }
-        } else {
-            const auto rhs_T = rhs.transposed();
-
-            std::size_t idx = 0;
-            for (std::size_t i = 0; i < lhs.row_count(); i++) {
-                for (std::size_t j = 0; j < rhs_T.row_count(); j++) {
-                    const auto l = lhs.row_span(i);
-                    const auto r = rhs_T.row_span(j);
-
-                    res[idx++] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
-                }
-            }
-        }
-        return res;
+        return mat_mul(lhs, rhs);
     }
 
     /**
-     * @brief Perform matrix-matrix multiplication
-     *
-     * @todo simd'ify col_major matrix-vec multiplication in c++26
+     * @brief Perform matrix-vector multiplication
      *
      * @param lhs The left hand side of the operand
      * @param rhs The right hand side of the operand
-     * @return The resulting matrix
+     * @return The resulting vector
      */
     [[nodiscard]] friend constexpr Vec<M_y, T> operator*(const Mat<M_y, N_x, T, is_col_major>& lhs,
                                                          const Vec<N_x, T>& rhs)
     {
-        Vec<M_y, T> res{};
-
-        if constexpr (is_col_major) {
-            std::size_t idx = 0;
-            for (std::size_t x = 0; x < N_x; x++) {
-                for (std::size_t y = 0; y < M_y; y++) {
-                    res[y] += lhs[idx++] * rhs[x];
-                }
-            }
-        } else {
-            for (std::size_t y = 0; y < M_y; y++) {
-                const auto l = lhs.row_span(y);
-                const auto r = rhs.array();
-
-                res[y] = std::inner_product(l.begin(), l.end(), r.begin(), T{});
-            }
-        }
-        return res;
+        return mat_vec(lhs, rhs);
     }
+
+public:
+    /**
+     * @brief Calculate matrix determinant
+     * @return The determinant of the this matrix
+     */
+    [[nodiscard]] constexpr T det() { return det(*this); }
 };
 
 /// @cond DO_NOT_DOCUMENT
@@ -824,13 +817,13 @@ private:
     static constexpr std::size_t mat_max_height = std::max({ mat_info<Args>::height... });
 
     static constexpr bool total_area_in_bounds_col_major =
-            (std::max(vec_max_length, mat_max_height) <= M_y) && (num_vecs + (mat_info<Args>::width + ...) <= N_x);
+        (std::max(vec_max_length, mat_max_height) <= M_y) && (num_vecs + (mat_info<Args>::width + ...) <= N_x);
 
     static constexpr bool total_area_in_bounds_row_major =
-            (std::max(vec_max_length, mat_max_width) <= N_x) && (num_vecs + (mat_info<Args>::height + ...) <= M_y);
+        (std::max(vec_max_length, mat_max_width) <= N_x) && (num_vecs + (mat_info<Args>::height + ...) <= M_y);
 
     static constexpr bool total_area_in_bounds =
-            (is_col_major && total_area_in_bounds_col_major) || (!is_col_major && total_area_in_bounds_row_major);
+        (is_col_major && total_area_in_bounds_col_major) || (!is_col_major && total_area_in_bounds_row_major);
 
 public:
     static constexpr bool value = accepted_types && total_area_in_bounds;

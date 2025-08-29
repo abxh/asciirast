@@ -22,8 +22,7 @@ namespace asciirast::math {
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 radians(const T degrees) -> T
 {
     return std::numbers::pi_v<T> * degrees / T{ 180 };
@@ -37,8 +36,7 @@ radians(const T degrees) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 degrees(const T radians) -> T
 {
     return T{ 180 } * radians / std::numbers::pi_v<T>;
@@ -58,8 +56,7 @@ degrees(const T radians) -> T
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
     // Based on:
@@ -74,7 +71,8 @@ almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
 }
 
 /**
- * @brief Check two float's are approximately equal with default precision
+ * @brief Check two float's are approximately equal with default
+ * precision
  *
  * @param lhs left hand side of operand
  * @param rhs right hand side of operand
@@ -82,8 +80,7 @@ almost_equal(const T lhs, const T rhs, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
 {
@@ -94,7 +91,8 @@ almost_equal(const T lhs, const T rhs) -> bool
 }
 
 /**
- * @brief Check two double's are approximately equal with default precision
+ * @brief Check two double's are approximately equal with default
+ * precision
  *
  * @param lhs left hand side of operand
  * @param rhs right hand side of operand
@@ -102,8 +100,7 @@ almost_equal(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_equal(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)
 {
@@ -114,8 +111,8 @@ almost_equal(const T lhs, const T rhs) -> bool
 }
 
 /**
- * @brief Check if two floating point values are approximately less than one another,
- *        given a precision for ulps (units in last place).
+ * @brief Check if two floating point values are approximately less than
+ * one another, given a precision for ulps (units in last place).
  *
  * The lower, the more precise --- desirable for small floats.
  * The higher, the less precise --- desirable for large floats
@@ -127,8 +124,7 @@ almost_equal(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
 {
     const T ulps = static_cast<T>(ulps_);
@@ -140,7 +136,8 @@ almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
 }
 
 /**
- * @brief Check two float's are approximately less than one another with default precision
+ * @brief Check two float's are approximately less than one another with
+ * default precision
  *
  * @param lhs left hand side of operand
  * @param rhs right hand side of operand
@@ -148,8 +145,7 @@ almost_less_than(const T lhs, const T rhs, const unsigned ulps_) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, float>)
 {
@@ -157,7 +153,8 @@ almost_less_than(const T lhs, const T rhs) -> bool
 }
 
 /**
- * @brief Check two double's are approximately less than one another with default precision
+ * @brief Check two double's are approximately less than one another
+ * with default precision
  *
  * @param lhs left hand side of operand
  * @param rhs right hand side of operand
@@ -165,8 +162,7 @@ almost_less_than(const T lhs, const T rhs) -> bool
  */
 template<typename T>
     requires(std::is_floating_point_v<T>)
-[[nodiscard]]
-constexpr auto
+[[nodiscard]] constexpr auto
 almost_less_than(const T lhs, const T rhs) -> bool
     requires(std::is_same_v<T, double>)
 {
@@ -201,7 +197,9 @@ constexpr auto
 sin(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+        constexpr bool in_domain =
+            -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
+        if (in_domain) {
             return gcem::sin(x);
         } else {
             throw std::domain_error("asciirast::math::sin() : input is not a real");
@@ -220,7 +218,9 @@ constexpr auto
 cos(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+        constexpr bool in_domain =
+            -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
+        if (in_domain) {
             return gcem::cos(x);
         } else {
             throw std::domain_error("asciirast::math::cos() : input is not a real");
@@ -239,7 +239,9 @@ constexpr auto
 tan(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+        constexpr bool in_domain =
+            -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
+        if (in_domain) {
             return gcem::tan(x);
         } else {
             throw std::domain_error("asciirast::math::tan() : input is not a real");
@@ -258,7 +260,8 @@ constexpr auto
 asin(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (0 <= x && x <= 1) {
+        constexpr bool in_domain = 0 <= x && x <= 1;
+        if (in_domain) {
             return gcem::asin(x);
         } else {
             throw std::domain_error("asciirast::math::asin() : input is not between 0 and 1");
@@ -277,7 +280,8 @@ constexpr auto
 acos(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (0 <= x && x <= 1) {
+        constexpr bool in_domain = 0 <= x && x <= 1;
+        if (in_domain) {
             return gcem::acos(x);
         } else {
             throw std::domain_error("asciirast::math::acos() : input is not between 0 and 1");
@@ -296,7 +300,9 @@ constexpr auto
 atan(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity()) {
+        constexpr bool in_domain =
+            -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
+        if (in_domain) {
             return gcem::atan(x);
         } else {
             throw std::domain_error("asciirast::math::atan() : input is not a real");
@@ -315,8 +321,11 @@ constexpr auto
 atan2(const T x, const T y) -> T
 {
     if (std::is_constant_evaluated()) {
-        if (-std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity() &&
-            -std::numeric_limits<float>().infinity() < y && y < +std::numeric_limits<float>().infinity()) {
+        constexpr bool x_in_domain =
+            -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
+        constexpr bool y_in_domain =
+            -std::numeric_limits<float>().infinity() < y && y < +std::numeric_limits<float>().infinity();
+        if (x_in_domain && y_in_domain) {
             return gcem::atan2(x, y);
         } else {
             throw std::domain_error("asciirast::math::atan2() : inputs are not reals");

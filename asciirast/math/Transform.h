@@ -1,19 +1,20 @@
 /**
  * @file Transform.h
- * @brief Class for composing primitive transformation matricies and their inverses
+ * @brief Class for composing primitive transformation matricies and
+ * their inverses
  */
 
 #pragma once
 
 #include "../detail/assert.h"
-
 #include "./Mat.h"
 #include "./Rot.h"
 
 namespace asciirast::math {
 
 /**
- * @brief Class for composing primitive 2D transformation matricies and their inverses
+ * @brief Class for composing primitive 2D transformation matricies and
+ * their inverses
  *
  * @tparam T             Type of elements
  * @tparam is_col_major  Whether the matrix is in column major
@@ -31,11 +32,12 @@ public:
     using Transform2D = Transform2DType<T, is_col_major>;
 
     /**
-     * @brief Construct a identity transform object that performs "nothing"
+     * @brief Construct a identity transform object that performs
+     * "nothing"
      */
     constexpr Transform2DType()
-            : m_mat{ Mat3::identity() }
-            , m_mat_inv{ Mat3::identity() } {};
+        : m_mat{ Mat3::identity() }
+        , m_mat_inv{ Mat3::identity() } {};
 
     /**
      * @brief Get underlying matrix
@@ -52,7 +54,8 @@ public:
     constexpr const Mat3& mat_inv() const { return m_mat_inv; }
 
     /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
+     * @brief Stack a new transformation matrix and it's inverse on top of
+     * this
      *
      * @param mat The transformation matrix
      * @param mat_inv The inverse transformation matrix
@@ -72,6 +75,11 @@ public:
      * @return This
      */
     constexpr Transform2D& stack(const Transform2D& that) { return this->stack_internal(that.m_mat, that.m_mat_inv); }
+    std::byte* begin() { return reinterpret_cast<std::byte*>(&m_pool[0]); }
+    const std::byte* begin() const { return reinterpret_cast<const std::byte*>(&m_pool[0]); }
+
+    std::byte* end() { return reinterpret_cast<std::byte*>(&m_pool[FrameCount]); }
+    const std::byte* end() const { return reinterpret_cast<const std::byte*>(&m_pool[FrameCount]); }
 
     /**
      * @brief Apply the transformation "action" on a 3D homogenous vector
@@ -98,14 +106,16 @@ public:
     [[nodiscard]] constexpr Vec2 apply_to_dir(const Vec2& v) const { return Vec2{ m_mat * Vec3{ v, 0 } }; }
 
     /**
-     * @brief Get transformation object that performs the inverse transformation
+     * @brief Get transformation object that performs the inverse
+     * transformation
      *
      * @return Copy of this that performs the inverse transfromation
      */
     [[nodiscard]] constexpr Transform2D inversed() const { return Transform2D{ this->m_mat_inv, this->m_mat }; }
 
     /**
-     * @brief Get transformation object that performs the transpose transformation
+     * @brief Get transformation object that performs the transpose
+     * transformation
      *
      * @return Copy of this that performs the transpose transfromation
      */
@@ -155,7 +165,8 @@ public:
     }
 
     /**
-     * @brief Stack (x', y') = (scale_x * x, scale_y * y), assuming scale_x * scale_y != 0
+     * @brief Stack (x', y') = (scale_x * x, scale_y * y), assuming
+     * scale_x * scale_y != 0
      *
      * @param scale_x How much to scale x
      * @param scale_y How much to scale y
@@ -180,7 +191,8 @@ public:
     }
 
     /**
-     * @brief Stack (x', y') = (scale.x * x, scale.y * y), assuming scale.x * scale.y != 0
+     * @brief Stack (x', y') = (scale.x * x, scale.y * y), assuming
+     * scale.x * scale.y != 0
      *
      * @param scale How much to scale as a Vec
      * @return This
@@ -248,8 +260,8 @@ private:
     Mat3 m_mat_inv; ///< underlying inverse matrix
 
     constexpr Transform2DType(const Mat3& mat, const Mat3& mat_inv)
-            : m_mat{ mat }
-            , m_mat_inv{ mat_inv } {};
+        : m_mat{ mat }
+        , m_mat_inv{ mat_inv } {};
 
     constexpr Transform2D& stack_internal(const Mat3& mat, const Mat3& mat_inv)
     {
@@ -260,7 +272,8 @@ private:
 };
 
 /**
- * @brief Class for composing primitive 3D transformation matricies and their inverses
+ * @brief Class for composing primitive 3D transformation matricies and
+ * their inverses
  *
  * @tparam T             Type of elements
  * @tparam is_col_major  Whether the matrix is in column major
@@ -278,11 +291,12 @@ public:
     using Transform3D = Transform3DType<T, is_col_major>;
 
     /**
-     * @brief Construct a identity transform object that performs "nothing"
+     * @brief Construct a identity transform object that performs
+     * "nothing"
      */
     constexpr Transform3DType()
-            : m_mat{ Mat4::identity() }
-            , m_mat_inv{ Mat4::identity() } {};
+        : m_mat{ Mat4::identity() }
+        , m_mat_inv{ Mat4::identity() } {};
 
     /**
      * @brief Get underlying transformation matrix
@@ -299,7 +313,8 @@ public:
     [[nodiscard]] constexpr const Mat4& mat_inv() const { return m_mat_inv; }
 
     /**
-     * @brief Stack a new transformation matrix and it's inverse on top of this
+     * @brief Stack a new transformation matrix and it's inverse on top of
+     * this
      *
      * @param mat The transformation matrix
      * @param mat_inv The inverse transformation matrix
@@ -345,14 +360,16 @@ public:
     [[nodiscard]] constexpr Vec3 apply_to_dir(const Vec3& v) const { return Vec3{ m_mat * Vec4{ v, 0 } }; }
 
     /**
-     * @brief Get transformation object that performs the inverse transformation
+     * @brief Get transformation object that performs the inverse
+     * transformation
      *
      * @return Copy of this that performs the inverse transfromation
      */
     [[nodiscard]] constexpr Transform3D inversed() const { return Transform3D{ this->m_mat_inv, this->m_mat }; }
 
     /**
-     * @brief Get transformation object that performs the transpose transformation
+     * @brief Get transformation object that performs the transpose
+     * transformation
      *
      * @return Copy of this that performs the transpose transfromation
      */
@@ -407,8 +424,8 @@ public:
     }
 
     /**
-     * @brief Stack (x', y', z') = (scale_x * x, scale_y * y, scale_z * z),
-     *        assuming scale_x * scale_y * scale_z != 0
+     * @brief Stack (x', y', z') = (scale_x * x, scale_y * y, scale_z *
+     * z), assuming scale_x * scale_y * scale_z != 0
      *
      * @param scale_x How much to scale x
      * @param scale_y How much to scale y
@@ -437,8 +454,8 @@ public:
     }
 
     /**
-     * @brief Stack (x', y', z') = (scale.x * x, scale.y * y, scale.z * z),
-     *        assuming scale.x * scale.y * scale.z != 0
+     * @brief Stack (x', y', z') = (scale.x * x, scale.y * y, scale.z *
+     * z), assuming scale.x * scale.y * scale.z != 0
      *
      * @param scale How much to scale as a Vec
      * @return This
@@ -543,8 +560,8 @@ private:
     Mat4 m_mat_inv; ///< underlying inverse matrix
 
     constexpr Transform3DType(const Mat4& mat, const Mat4& mat_inv)
-            : m_mat{ mat }
-            , m_mat_inv{ mat_inv } {};
+        : m_mat{ mat }
+        , m_mat_inv{ mat_inv } {};
 
     constexpr Transform3D& stack_internal(const Mat4& mat, const Mat4& mat_inv)
     {

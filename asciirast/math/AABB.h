@@ -16,7 +16,8 @@ namespace asciirast::math {
  *
  * @tparam N             Number of dimensions being operated on.
  * @tparam T             Type of elements
- * @tparam is_col_major  Whether the produced matricies uses column major
+ * @tparam is_col_major  Whether the produced matricies uses column
+ * major
  */
 template<std::size_t N, typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
@@ -48,8 +49,8 @@ public:
      * @param size The Vec spanning from the minimum to the maximum
      */
     constexpr explicit AABB(const Vec<N, T>& center, const Vec<N, T>& size) noexcept
-            : m_center{ center }
-            , m_extent{ max(size / 2, math::Vec<N, T>::from_value(0)) } {};
+        : m_center{ center }
+        , m_extent{ max(size / 2, math::Vec<N, T>::from_value(0)) } {};
 
     /**
      * @brief Check if a point is contained within the AABB
@@ -79,7 +80,8 @@ public:
      * @brief Convert this AABB to it's corresponding transform
      * object, that takes in a unit area and converts it to it's area
      *
-     * @return The Transform object that converts a unit area to the AABB's area
+     * @return The Transform object that converts a unit area to the
+     * AABB's area
      */
     [[nodiscard]] constexpr Transform2D to_transform() const
         requires(N == 2)
@@ -91,7 +93,8 @@ public:
      * @brief Convert this AABB to it's corresponding transform
      * object, that takes in a unit volume and converts it to it's volume
      *
-     * @return The Transform object tha converts a unit volume to the AABB's voume
+     * @return The Transform object tha converts a unit volume to the
+     * AABB's voume
      */
     [[nodiscard]] constexpr Transform3D to_transform() const
         requires(N == 3)

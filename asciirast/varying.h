@@ -4,18 +4,19 @@
  *
  * on perspective corrected interpolation:
  * @li https://www.youtube.com/watch?v=1Dv2-cLAJXw (ChilliTomatoNoodle)
- * @li https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
- * @li https://www.cs.cornell.edu/courses/cs4620/2015fa/lectures/PerspectiveCorrectZU.pdf
+ * @li
+ * https://www.comp.nus.edu.sg/~lowkl/publications/lowk_persp_interp_techrep.pdf
+ * @li
+ * https://www.cs.cornell.edu/courses/cs4620/2015fa/lectures/PerspectiveCorrectZU.pdf
  */
 
 #pragma once
 
-#include "../external/boost_pfr/include/boost/pfr.hpp"
+#include <type_traits>
 
+#include "../external/boost_pfr/include/boost/pfr.hpp"
 #include "./math/types.h"
 #include "renderer_options.h"
-
-#include <type_traits>
 
 namespace asciirast {
 
@@ -32,13 +33,18 @@ struct EmptyVarying
  */
 template<typename T>
 concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) {
-    { x + x } -> std::same_as<T>;
-    { x * math::Float{ -1 } } -> std::same_as<T>;
+    {
+        x + x
+    } -> std::same_as<T>;
+    {
+        x* math::Float{ -1 }
+    } -> std::same_as<T>;
     requires std::semiregular<T>;
 };
 
 /**
- * @brief Tag struct to derive varying operations if every member themselves fullfills VaryingInterface
+ * @brief Tag struct to derive varying operations if every member
+ * themselves fullfills VaryingInterface
  */
 template<typename T>
     requires(std::is_aggregate_v<T> &&
@@ -76,8 +82,7 @@ lerp_varying(const Varying& lhs, const Varying& rhs, const math::Float t)
  * @brief Linear interpolation of varying perspective corrected
  */
 template<VaryingInterface Varying>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 lerp_projected_varying(const Varying& lhs,
                        const Varying& rhs,
                        const math::Float t,
@@ -102,8 +107,7 @@ lerp_projected_varying(const Varying& lhs,
  * @brief Linear interpolation of varying depending on option
  */
 template<AttrInterpolation Option, VaryingInterface Varying>
-[[maybe_unused]]
-static Varying
+[[maybe_unused]] static Varying
 lerp_varying_conditionally(const Varying& lhs,
                            [[maybe_unused]] const Varying& rhs,
                            [[maybe_unused]] const math::Float t)
@@ -119,8 +123,7 @@ lerp_varying_conditionally(const Varying& lhs,
  * @brief Linear interpolation of projected varying depending on option
  */
 template<AttrInterpolation Option, VaryingInterface Varying>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 lerp_projected_varying_conditionally(const Varying& lhs,
                                      [[maybe_unused]] const Varying& rhs,
                                      [[maybe_unused]] const math::Float t,
@@ -161,4 +164,4 @@ operator*(const Varying& lhs, const math::Float& scalar) -> Varying
     }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
 }
 
-};
+}; // namespace asciirast

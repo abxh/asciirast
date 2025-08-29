@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include "./assert.h"
-
 #include <array>
 #include <coroutine>
 #include <cstddef>
@@ -17,6 +15,8 @@
 #include <exception>
 #include <new>
 #include <optional>
+
+#include "./assert.h"
 
 namespace asciirast {
 
@@ -28,8 +28,8 @@ struct FramePool
 {
 public:
     constexpr FramePool()
-            : m_free_indices{}
-            , m_pool{}
+        : m_free_indices{}
+        , m_pool{}
     {
         for (std::size_t i = 0; i < FrameCount; ++i) {
             m_free_indices.push(i);
@@ -40,21 +40,28 @@ public:
 
     void deallocate(void* ptr)
     {
-        const auto begin = reinterpret_cast<std::byte*>(&m_pool[0]);
-        [[maybe_unused]] const auto end = reinterpret_cast<std::byte*>(&m_pool[FrameCount]);
         const auto p = reinterpret_cast<std::byte*>(ptr);
 
-        ASCIIRAST_ASSERT(begin <= p && p < end, "pointer points to part of the pool");
+        ASCIIRAST_ASSERT(begin() <= p && p < end(), "pointer points to part of the pool", begin(), p, end());
 
-        const auto offset = static_cast<std::uintptr_t>(p - begin);
+        const auto offset = static_cast<std::uintptr_t>(p - begin());
 
         ASCIIRAST_ASSERT(offset % sizeof(Frame) == 0, "pointer is aligned correctly");
 
         const auto index = offset / sizeof(Frame);
+
         m_free_indices.push(index);
     }
 
 private:
+    std::byte* begin() { return reinterpret_cast<std::byte*>(&m_pool[0]); }
+
+    const std::byte* begin() const { return reinterpret_cast<const std::byte*>(&m_pool[0]); }
+
+    std::byte* end() { return reinterpret_cast<std::byte*>(&m_pool[FrameCount]); }
+
+    const std::byte* end() const { return reinterpret_cast<const std::byte*>(&m_pool[FrameCount]); }
+
     struct Frame
     {
         alignas(std::max_align_t) std::byte storage[MaxFrameSize];
@@ -123,11 +130,11 @@ public:
             current_value = value;
             return {};
         }
-        void return_void() {};
+        void return_void(){};
     };
 
     explicit StaticPoolGenerator(const handle_type coroutine)
-            : m_coroutine{ coroutine } {};
+        : m_coroutine{ coroutine } {};
     StaticPoolGenerator() = default;
     ~StaticPoolGenerator()
     {
@@ -136,7 +143,7 @@ public:
     StaticPoolGenerator(const StaticPoolGenerator&) = delete;
     StaticPoolGenerator& operator=(const StaticPoolGenerator&) = delete;
     StaticPoolGenerator(StaticPoolGenerator&& other) noexcept
-            : m_coroutine{ other.m_coroutine }
+        : m_coroutine{ other.m_coroutine }
     {
         other.m_coroutine = {};
     }
@@ -158,7 +165,7 @@ public:
         using value_type = T;
 
         explicit Iterator(const handle_type coroutine)
-                : m_coroutine{ coroutine } {};
+            : m_coroutine{ coroutine } {};
 
         value_type operator*() const { return *m_coroutine.promise().current_value; }
 
@@ -195,7 +202,7 @@ private:
     handle_type m_coroutine;
 };
 
-};
+}; // namespace detail
 /// @endcond
 
-};
+}; // namespace asciirast

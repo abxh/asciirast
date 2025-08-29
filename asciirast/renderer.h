@@ -67,8 +67,6 @@ struct RendererData
     using Vec4TripletDeque = std::deque<std::array<math::Vec4, 3>, Vec4TripletAllocator>;
     using AttrsTripletDeque = std::deque<std::array<Varying, 3>, AttrsTripletAllocator>;
 
-    math::Transform2D screen_to_window; ///< Screen to window transform
-
     Vec4TripletDeque vec_queue = {};        ///< Deque for clipping NDC triangles attributes
     Vec4TripletDeque vec_queue_screen = {}; ///< Deque for clipping screen triangles
 
@@ -95,13 +93,14 @@ public:
      * @brief Construct renderer with custom viewport
      *
      * The portion of the viewport in the screen is shown.
-     * If the viewport is differently sized, the result is scaled accordingly.
+     * If the viewport is differently sized, the result is scaled
+     * accordingly.
      *
      * @param viewport_bounds The bounds of the viewport
      */
     explicit Renderer(const math::AABB2D& viewport_bounds) noexcept
-            : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
-            , m_scale_to_viewport{ scale_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
+        : m_requires_screen_clipping{ !SCREEN_BOUNDS.contains(viewport_bounds) }
+        , m_scale_to_viewport{ scale_to_viewport_transform(viewport_bounds, SCREEN_BOUNDS) } {};
 
     /**
      * @brief Get scale to viewport transform
@@ -114,7 +113,8 @@ public:
      * @brief Draw on a framebuffer using a program given uniform(s),
      * verticies and reusable data buffers
      *
-     * @throws std::logic_error If fragments do not syncronize in the same order
+     * @throws std::logic_error If fragments do not syncronize in the same
+     * order
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -146,7 +146,8 @@ public:
      * indexed verticies and reusable data buffers
      *
      * @throws std::runtime_error If the vertex indicies are out of bounds
-     * @throws std::logic_error If fragments do not syncronize in the same order
+     * @throws std::logic_error If fragments do not syncronize in the same
+     * order
      *
      * @param program The shader program
      * @param uniform The uniform(s)
@@ -173,7 +174,8 @@ public:
     {
         const auto func = [&verts](const std::size_t i) -> Vertex {
             if (i >= verts.verticies.size()) {
-                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of bounds");
+                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
+                                         "bounds");
             }
             return verts.verticies[i];
         };
@@ -183,14 +185,16 @@ public:
     }
 
     /**
-     * @brief Calculate the transform to convert screen_bounds points to viewport_bounds poins
+     * @brief Calculate the transform to convert screen_bounds points to
+     * viewport_bounds poins
      *
      * @param viewport_bounds The viewport bounds AABB
      * @param screen_bounds The screen bounds AABB
-     * @return The transform that converts points from the screen to the viewport
+     * @return The transform that converts points from the screen to the
+     * viewport
      */
     static auto scale_to_viewport_transform(const math::AABB2D& viewport_bounds, const math::AABB2D& screen_bounds)
-            -> math::Transform2D
+        -> math::Transform2D
     {
         ASCIIRAST_ASSERT(viewport_bounds.size_get().x != 0, "non-zero x size");
         ASCIIRAST_ASSERT(viewport_bounds.size_get().y != 0, "non-zero y size");
@@ -210,7 +214,7 @@ public:
      */
     template<VaryingInterface Varying>
     static auto apply_scale_to_viewport(const math::Transform2D& scale_to_viewport, ProjectedFragment<Varying> frag)
-            -> ProjectedFragment<Varying>
+        -> ProjectedFragment<Varying>
     {
         frag.pos = scale_to_viewport.apply(frag.pos);
         return frag;
@@ -224,8 +228,8 @@ public:
      * @return The projected fragment transformed
      */
     template<VaryingInterface Varying>
-    static auto apply_screen_to_window(const math::Transform2D& screen_to_window, ProjectedFragment<Varying> frag)
-            -> ProjectedFragment<Varying>
+    static auto apply_screen_to_window_tranform(const math::Transform2D& screen_to_window,
+                                                ProjectedFragment<Varying> frag) -> ProjectedFragment<Varying>
     {
         frag.pos = round(screen_to_window.apply(frag.pos));
         return frag;
@@ -247,35 +251,14 @@ private:
         using Vertex = typename Program::Vertex;
 
         const auto draw_point_func = [&](const Vertex& vert) -> void {
-            draw_point(program,
-                       uniform,
-                       m_requires_screen_clipping,
-                       m_scale_to_viewport,
-                       data.screen_to_window,
-                       framebuffer,
-                       vert);
+            draw_point(program, uniform, m_requires_screen_clipping, m_scale_to_viewport, framebuffer, vert);
         };
         const auto draw_line_func = [&](const Vertex& v0, const Vertex& v1) -> void {
-            draw_line(program,
-                      uniform,
-                      m_requires_screen_clipping,
-                      m_scale_to_viewport,
-                      data.screen_to_window,
-                      framebuffer,
-                      v0,
-                      v1);
+            draw_line(program, uniform, m_requires_screen_clipping, m_scale_to_viewport, framebuffer, v0, v1);
         };
         const auto draw_triangle_func = [&](const Vertex& v0, const Vertex& v1, const Vertex& v2) -> void {
-            draw_triangle(program,
-                          uniform,
-                          m_requires_screen_clipping,
-                          m_scale_to_viewport,
-                          data.screen_to_window,
-                          data,
-                          framebuffer,
-                          v0,
-                          v1,
-                          v2);
+            draw_triangle(
+                program, uniform, m_requires_screen_clipping, m_scale_to_viewport, data, framebuffer, v0, v1, v2);
         };
 
         switch (shape_type) {
@@ -355,7 +338,6 @@ private:
                            const Uniform& uniform,
                            const bool requires_screen_clipping,
                            const math::Transform2D& scale_to_viewport,
-                           const math::Transform2D& screen_to_window,
                            FrameBuffer& framebuffer,
                            const Vertex& vert)
     {
@@ -388,7 +370,7 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag = apply_screen_to_window(screen_to_window, vfrag);
+        const PFrag wfrag = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag);
 
         if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
             using FragmentContext = typename Program::FragmentContext;
@@ -437,7 +419,6 @@ private:
                           const Uniform& uniform,
                           const bool requires_screen_clipping,
                           const math::Transform2D& scale_to_viewport,
-                          const math::Transform2D& screen_to_window,
                           FrameBuffer& framebuffer,
                           const Vertex& v0,
                           const Vertex& v1)
@@ -488,8 +469,8 @@ private:
         }
 
         // screen space -> window space:
-        const PFrag wfrag0 = apply_screen_to_window(screen_to_window, inner_tfrag0);
-        const PFrag wfrag1 = apply_screen_to_window(screen_to_window, inner_tfrag1);
+        const PFrag wfrag0 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag0);
+        const PFrag wfrag1 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag1);
 
         // swap vertices after line drawing direction
         bool keep_vertex_order = true;
@@ -510,8 +491,8 @@ private:
 
         if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
             const auto plot_func =
-                    [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag,
-                                                       const std::array<bool, 2>& in_line) -> void {
+                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag,
+                                                   const std::array<bool, 2>& in_line) -> void {
                 const auto [rfrag0, rfrag1] = rfrag;
 
                 using FragmentContext = typename Program::FragmentContext;
@@ -531,7 +512,8 @@ private:
                                              program.on_fragment(c1, uniform, rfrag1, targets1))) {
                     if (r0 == ProgramToken::Syncronize || r1 == ProgramToken::Syncronize) {
                         if (r0 != ProgramToken::Syncronize || r1 != ProgramToken::Syncronize) {
-                            throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
+                            throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must "
+                                                   "should"
                                                    "syncronize in the same order in all instances");
                         }
                     }
@@ -606,16 +588,15 @@ private:
              class AttrsTripletAllocator>
         requires(std::is_same_v<Vertex, typename Program::Vertex>)
     static void draw_triangle(
-            const Program& program,
-            const Uniform& uniform,
-            const bool requires_screen_clipping,
-            const math::Transform2D& scale_to_viewport,
-            const math::Transform2D& screen_to_window,
-            RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
-            FrameBuffer& framebuffer,
-            const Vertex& v0,
-            const Vertex& v1,
-            const Vertex& v2)
+        const Program& program,
+        const Uniform& uniform,
+        const bool requires_screen_clipping,
+        const math::Transform2D& scale_to_viewport,
+        RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+        FrameBuffer& framebuffer,
+        const Vertex& v0,
+        const Vertex& v1,
+        const Vertex& v2)
     {
         using Varying = typename Program::Varying;
         using Targets = typename Program::Targets;
@@ -623,8 +604,8 @@ private:
         using Frag = Fragment<Varying>;
         using PFrag = ProjectedFragment<Varying>;
 
-        const auto rasterize_triangle = [&program, &framebuffer, &uniform](
-                                                const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
+        const auto rasterize_triangle =
+            [&program, &framebuffer, &uniform](const PFrag& wfrag0, const PFrag& wfrag1, const PFrag& wfrag2) -> void {
             constexpr bool neither_winding_order = Options.winding_order == WindingOrder::Neither;
             constexpr bool clockwise_winding_order = Options.winding_order == WindingOrder::Clockwise;
             constexpr bool cclockwise_winding_order = Options.winding_order == WindingOrder::CounterClockwise;
@@ -642,8 +623,8 @@ private:
 
             if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
                 const auto plot_func =
-                        [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 4>& rfrag,
-                                                           const std::array<bool, 4>& in_triangle) -> void {
+                    [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 4>& rfrag,
+                                                       const std::array<bool, 4>& in_triangle) -> void {
                     const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
                     using FragmentContext = typename Program::FragmentContext;
@@ -673,7 +654,8 @@ private:
                             r2 == ProgramToken::Syncronize || r3 == ProgramToken::Syncronize) {
                             if (r0 != ProgramToken::Syncronize || r1 != ProgramToken::Syncronize ||
                                 r2 != ProgramToken::Syncronize || r3 != ProgramToken::Syncronize) {
-                                throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must should"
+                                throw std::logic_error("asciirast::Renderer::draw() : Fragment shader "
+                                                       "must should"
                                                        "syncronize in the same order in all instances");
                             }
                         }
@@ -731,16 +713,16 @@ private:
 
                 if (signed_area_2 > 0) {
                     renderer::rasterize_triangle<Options>(
-                            wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
+                        wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
                     renderer::rasterize_triangle<Options>(
-                            wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
+                        wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
                 }
             } else {
                 static_assert(ProgramInterface_FragRegularSupport<Program>);
 
                 const auto plot_func =
-                        [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
+                    [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
                     const auto pos_int = math::Vec2Int{ rfrag.pos };
                     Targets targets = {};
 
@@ -758,10 +740,10 @@ private:
 
                 if (signed_area_2 > 0) {
                     renderer::rasterize_triangle<Options>(
-                            wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
+                        wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
                 } else {
                     renderer::rasterize_triangle<Options>(
-                            wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
+                        wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
                 }
             }
         };
@@ -780,15 +762,15 @@ private:
         data.attrs_queue.clear();
         data.vec_queue.insert(data.vec_queue.end(),
                               renderer::Vec4Triplet{
-                                      frag0.pos,
-                                      frag1.pos,
-                                      frag2.pos,
+                                  frag0.pos,
+                                  frag1.pos,
+                                  frag2.pos,
                               });
         data.attrs_queue.insert(data.attrs_queue.end(),
                                 renderer::AttrsTriplet<Varying>{
-                                        frag0.attrs,
-                                        frag1.attrs,
-                                        frag2.attrs,
+                                    frag0.attrs,
+                                    frag1.attrs,
+                                    frag2.attrs,
                                 });
 
         // clip triangle so it's inside the viewing volume:
@@ -796,7 +778,6 @@ private:
             return;
         }
         for (const auto& [vec_triplet, attrs_triplet] : std::ranges::views::zip(data.vec_queue, data.attrs_queue)) {
-
             const auto [vec0, vec1, vec2] = vec_triplet;
             const auto [attrs0, attrs1, attrs2] = attrs_triplet;
 
@@ -817,9 +798,9 @@ private:
 
             if (!requires_screen_clipping) {
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window(screen_to_window, vfrag0);
-                const PFrag wfrag1 = apply_screen_to_window(screen_to_window, vfrag1);
-                const PFrag wfrag2 = apply_screen_to_window(screen_to_window, vfrag2);
+                const PFrag wfrag0 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag0);
+                const PFrag wfrag1 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag1);
+                const PFrag wfrag2 = apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), vfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);
@@ -842,12 +823,11 @@ private:
 
             // clip line so it's inside the screen:
             if (!renderer::triangle_in_screen<Options.attr_interpolation>(
-                        data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
+                    data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
                 continue;
             }
             for (const auto& [inner_vec_triplet, inner_attrs_triplet] :
                  std::ranges::views::zip(data.vec_queue_screen, data.attrs_queue_screen)) {
-
                 const auto [inner_vec0, inner_vec1, inner_vec2] = inner_vec_triplet;
                 const auto [inner_attrs0, inner_attrs1, inner_attrs2] = inner_attrs_triplet;
 
@@ -856,9 +836,12 @@ private:
                 const PFrag inner_tfrag2 = { inner_vec2.xy, inner_vec2.z, inner_vec2.w, inner_attrs2 };
 
                 // screen space -> window space:
-                const PFrag wfrag0 = apply_screen_to_window(screen_to_window, inner_tfrag0);
-                const PFrag wfrag1 = apply_screen_to_window(screen_to_window, inner_tfrag1);
-                const PFrag wfrag2 = apply_screen_to_window(screen_to_window, inner_tfrag2);
+                const PFrag wfrag0 =
+                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag0);
+                const PFrag wfrag1 =
+                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag1);
+                const PFrag wfrag2 =
+                    apply_screen_to_window_tranform(framebuffer.screen_to_window_transform(), inner_tfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);

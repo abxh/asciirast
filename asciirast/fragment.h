@@ -15,7 +15,6 @@
 #include <variant>
 
 #include "./detail/assert.h"
-#include "./detail/has_minus_operator.h"
 #include "./math/types.h"
 #include "./program_token.h"
 #include "./varying.h"
@@ -69,8 +68,7 @@ project_fragment(const Fragment<Varying>& in) -> ProjectedFragment<Varying>
  * @brief Linear interpolation of fragments
  */
 template<AttrInterpolation Option, VaryingInterface T>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 lerp(const Fragment<T>& lhs, const Fragment<T>& rhs, const math::Float t) -> Fragment<T>
 {
     return Fragment<T>{
@@ -83,8 +81,7 @@ lerp(const Fragment<T>& lhs, const Fragment<T>& rhs, const math::Float t) -> Fra
  * @brief Linear interpolation of projected fragments
  */
 template<AttrInterpolation Option, VaryingInterface T>
-[[maybe_unused]]
-static auto
+[[maybe_unused]] static auto
 lerp(const ProjectedFragment<T>& lhs, const ProjectedFragment<T>& rhs, const math::Float t) -> ProjectedFragment<T>
 {
     if (t == 0) return lhs;
@@ -100,6 +97,19 @@ lerp(const ProjectedFragment<T>& lhs, const ProjectedFragment<T>& rhs, const mat
     };
 }
 
+/// @cond DO_NOT_DOCUMENT
+namespace detail {
+
+template<typename T>
+concept has_minus_operator = requires(T t) {
+    {
+        t - t
+    } -> std::same_as<T>;
+};
+
+};
+/// @endcond
+
 /**
  * @brief Fragment context to access fragment specific things
  *
@@ -110,7 +120,8 @@ template<typename... ValueTypes>
 class FragmentContextType
 {
 public:
-    using ValueVariant = std::variant<std::monostate, ValueTypes...>; ///< value type variant
+    using ValueVariant = std::variant<std::monostate,
+                                      ValueTypes...>; ///< value type variant
 
     /**
      * @brief Fragment context (runtime) type
@@ -130,11 +141,11 @@ public:
                         const Type type,
                         const bool is_helper_invocation = false,
                         const bool is_initialized = false)
-            : m_id{ id }
-            , m_quad{ quad }
-            , m_type{ type }
-            , m_is_helper_invocation{ is_helper_invocation }
-            , m_is_initialized{ is_initialized } {};
+        : m_id{ id }
+        , m_quad{ quad }
+        , m_type{ type }
+        , m_is_helper_invocation{ is_helper_invocation }
+        , m_is_initialized{ is_initialized } {};
 
     /**
      * @brief Initialize context with value for this particular fragment
@@ -153,7 +164,8 @@ public:
     }
 
     /**
-     * @brief Check if this fragment shader is called solely as a helper invocation
+     * @brief Check if this fragment shader is called solely as a helper
+     * invocation
      *
      * @return A bool indicating whether this call is a helper invocation
      */
@@ -176,9 +188,11 @@ public:
     /**
      * @brief Get the value at the (neighbouring) fragment with id
      *
-     * @throws std::bad_access_variant If context wasn't initialized with value
+     * @throws std::bad_access_variant If context wasn't initialized with
+     * value
      *
-     * @return The value at the fragment with value type deduced by destination type
+     * @return The value at the fragment with value type deduced by
+     * destination type
      */
     template<typename T>
     [[nodiscard]] T at(const std::size_t id, std::type_identity<T> = {}) const
@@ -187,7 +201,7 @@ public:
         ASCIIRAST_ASSERT(id < 1 && m_type == Type::POINT || m_type != Type::POINT, "possible point id: 0", id, m_type);
         ASCIIRAST_ASSERT(id < 2 && m_type == Type::LINE || m_type != Type::LINE, "possible line id: 0,1", id, m_type);
         ASCIIRAST_ASSERT(
-                id < 4 && m_type == Type::FILLED || m_type != Type::FILLED, "possible filled id: 0,1,2,3", id, m_type);
+            id < 4 && m_type == Type::FILLED || m_type != Type::FILLED, "possible filled id: 0,1,2,3", id, m_type);
 
         return std::get<T>(m_quad[id]);
     }
@@ -195,9 +209,11 @@ public:
     /**
      * @brief Get a derivative estimate of value with respect to x
      *
-     * @throws std::bad_access_variant If context wasn't initialized with value
+     * @throws std::bad_access_variant If context wasn't initialized with
+     * value
      *
-     * @return The value difference with value type deduced by destination type
+     * @return The value difference with value type deduced by destination
+     * type
      */
     template<typename T>
     [[nodiscard]] T dFdx(std::type_identity<T> = {}) const
@@ -222,9 +238,11 @@ public:
     /**
      * @brief Get a derivative estimate of value with respect to y
      *
-     * @throws std::bad_access_variant If context wasn't initialized with value
+     * @throws std::bad_access_variant If context wasn't initialized with
+     * value
      *
-     * @return The value difference with value type deduced by destination type
+     * @return The value difference with value type deduced by destination
+     * type
      */
     template<typename T>
     [[nodiscard]] T dFdy(std::type_identity<T> = {}) const
@@ -247,11 +265,14 @@ public:
     }
 
     /**
-     * @brief Get derivative of straight line with respect to the direction it's drawn
+     * @brief Get derivative of straight line with respect to the
+     * direction it's drawn
      *
-     * @throws std::bad_access_variant If context wasn't initialized with value
+     * @throws std::bad_access_variant If context wasn't initialized with
+     * value
      *
-     * @return The value difference with value type deduced by destination type
+     * @return The value difference with value type deduced by destination
+     * type
      */
     template<typename T>
     [[nodiscard]] T dFdv(std::type_identity<T> = {}) const
@@ -270,4 +291,4 @@ private:
     bool m_is_initialized;
 };
 
-};
+}; // namespace asciirast

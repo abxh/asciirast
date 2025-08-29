@@ -28,4 +28,4 @@ using ProgramTokenGenerator = detail::StaticPoolGenerator<ProgramToken, 512, 4>;
 
 static_assert(std::ranges::input_range<ProgramTokenGenerator>);
 
-}
+} // namespace asciirast

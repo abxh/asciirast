@@ -3,7 +3,6 @@
  * @brief Texture sampler classes
  *
  * @todo bicubic interpolation
- * @todo use mipmaps
  *
  * intro on texture samplers:
  * https://learnopengl.com/Getting-started/Textures
@@ -71,7 +70,8 @@ public:
 
     /**
      * @brief Sample texture at a uv coordinate
-     * @return Return a special fragment token to be co-yielded back to the renderer
+     * @return Return a special fragment token to be co-yielded back to
+     * the renderer
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     friend auto texture_init(const FragmentContextType<ValueTypes...>&,
@@ -188,17 +188,18 @@ protected:
 };
 
 /**
- * @brief Sample texture at a uv coordinate with a specific Level-Of-Detail
+ * @brief Sample texture at a uv coordinate with a specific
+ * Level-Of-Detail
  *
  * @param sampler The sampler
  * @param texture The texture
  * @param uv The uv coordinate
- * @param lod The level of detail as to be used as a index with 0 being the highest and +inf being the lowest.
+ * @param lod The level of detail as to be used as a index with 0 being
+ * the highest and +inf being the lowest.
  * @return Color at the uv coordinate
  */
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
-[[maybe_unused]]
-math::Vec4
+[[maybe_unused]] math::Vec4
 textureLOD(const Sampler& sampler,
            const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
            const math::Vec2& uv,
@@ -232,12 +233,12 @@ textureLOD(const Sampler& sampler,
  *
  * @param context Fragment context
  * @param texture The texture
- * @return Return a special fragment token to be co-yielded back to the renderer
+ * @return Return a special fragment token to be co-yielded back to the
+ * renderer
  */
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
-[[maybe_unused]]
-ProgramToken
+[[maybe_unused]] ProgramToken
 texture_init(FragmentContextType<ValueTypes...>& context,
              const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
              const math::Vec2& uv)
@@ -252,7 +253,8 @@ texture_init(FragmentContextType<ValueTypes...>& context,
 /**
  * @brief Sample texture at a uv coordinate
  *
- * @note must co_yield the result of texture_init() before calling texture()
+ * @note must co_yield the result of texture_init() before calling
+ * texture()
  *
  * @param context Fragment context
  * @param sampler The sampler
@@ -261,8 +263,7 @@ texture_init(FragmentContextType<ValueTypes...>& context,
  */
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
-[[maybe_unused]]
-math::Vec4
+[[maybe_unused]] math::Vec4
 texture(FragmentContextType<ValueTypes...>& context,
         const Sampler& sampler,
         const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
@@ -296,7 +297,8 @@ texture(FragmentContextType<ValueTypes...>& context,
 #ifdef __GNUC__
 /**
  * @def TEXTURE(context, sampler, texture_, uv)
- * @brief Initialize and execute the texture call in one go in a GNU C expression statement
+ * @brief Initialize and execute the texture call in one go in a GNU C
+ * expression statement
  */
 #define TEXTURE(context, sampler, texture_, uv)                                                                        \
     __extension__({                                                                                                    \
@@ -305,4 +307,4 @@ texture(FragmentContextType<ValueTypes...>& context,
     })
 #endif
 
-};
+}; // namespace asciirast

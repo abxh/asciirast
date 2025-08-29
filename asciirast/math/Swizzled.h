@@ -28,7 +28,7 @@ struct non_duplicate_indicies : std::true_type
 
 template<std::size_t First, std::size_t... Rest>
 struct non_duplicate_indicies<First, Rest...>
-        : std::bool_constant<((First != Rest) && ...) && non_duplicate_indicies<Rest...>::value>
+    : std::bool_constant<((First != Rest) && ...) && non_duplicate_indicies<Rest...>::value>
 {};
 
 template<std::size_t Last>
@@ -38,7 +38,7 @@ struct non_duplicate_indicies<Last> : std::true_type
 template<std::size_t... Is>
 static constexpr bool non_duplicate_indicies_v = non_duplicate_indicies<Is...>::value;
 
-}
+} // namespace detail
 /// @endcond
 
 /**
@@ -49,7 +49,8 @@ static constexpr bool non_duplicate_indicies_v = non_duplicate_indicies<Is...>::
  * The number of indicies given is used to determine the size of
  * the resulting swizzled component.
  *
- * @tparam Vec      Vec assumed to be instantiated with the correct size and type.
+ * @tparam Vec      Vec assumed to be instantiated with the correct size
+ * and type.
  * @tparam N        Number of components in the vector
  * @tparam T        Type of components
  * @tparam Indicies The indicies
@@ -139,14 +140,16 @@ public:
     /**
      * @brief Unary minus vector operator
      *
-     * @return The resulting vector of size equal to the number of indicies
+     * @return The resulting vector of size equal to the number of
+     * indicies
      */
     [[nodiscard]] constexpr Vec operator+() const { return +to_vec(); }
 
     /**
      * @brief Unary minus vector operator
      *
-     * @return The resulting vector of size equal to the number of indicies
+     * @return The resulting vector of size equal to the number of
+     * indicies
      */
     [[nodiscard]] constexpr Vec operator-() const { return -to_vec(); }
 
