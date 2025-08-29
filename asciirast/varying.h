@@ -40,10 +40,13 @@ concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) 
         x - x
     } -> std::same_as<T>;
     {
-        x* math::Float{ 1 }
+        x* math::Float()
     } -> std::same_as<T>;
     {
-        x / math::Float{ 1 }
+        math::Float() * x
+    } -> std::same_as<T>;
+    {
+        x / math::Float()
     } -> std::same_as<T>;
     requires std::semiregular<T>;
 };
