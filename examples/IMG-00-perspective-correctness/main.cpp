@@ -112,7 +112,7 @@ main(int, char**)
 
     PPMBuffer screen(512, 512);
     asciirast::Renderer renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     std::filesystem::create_directory("images");
     const auto image_path = std::filesystem::path("images");

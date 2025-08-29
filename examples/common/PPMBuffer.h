@@ -5,8 +5,8 @@
 #include "../../asciirast/utils.h"
 
 #include <cassert>
-#include <vector>
 #include <fstream>
+#include <vector>
 
 namespace math = asciirast::math;
 using RGBFloat = math::Vec3;
@@ -119,7 +119,7 @@ public:
         return false;
     }
 
-    const math::Transform2D& screen_to_window() { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window_transform() const { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, const Targets& targets)
     {

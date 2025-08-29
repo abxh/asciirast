@@ -150,7 +150,7 @@ main(int argc, char* argv[])
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::Flat }> renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
     MyUniform uniforms;
 
     bool running = true;

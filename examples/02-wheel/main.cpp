@@ -210,7 +210,7 @@ main(int, char**)
     asciirast::Renderer<line_options> lr{
         math::AABB2D::from_min_max({ -1, -1 }, { 1, 1 }).size_set(math::Vec2{ 1.5, 1.5 })
     };
-    asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     std::binary_semaphore sem{ 0 };
 
@@ -249,9 +249,7 @@ main(int, char**)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
-        if (framebuffer.clear_and_update_size()) {
-            renderer_data.screen_to_window = framebuffer.screen_to_window();
-        }
+        framebuffer.clear_and_update_size();
         uniforms.aspect_ratio = framebuffer.aspect_ratio();
         uniforms.rot.stack(math::radians(-10.f));
     }

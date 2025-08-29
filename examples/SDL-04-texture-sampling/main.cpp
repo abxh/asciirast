@@ -235,7 +235,7 @@ main(int argc, char* argv[])
     SDLBuffer screen(screen_size, screen_size);
     MyProgram program;
     asciirast::Renderer renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     const SDLStaticText text(screen,
                              font,

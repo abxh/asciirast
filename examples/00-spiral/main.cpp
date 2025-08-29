@@ -96,7 +96,7 @@ main(int, char**)
     TerminalBuffer framebuffer(5 / 2.f);
 
     asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::NoPerspective }> renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     std::binary_semaphore sem{ 0 };
 
@@ -119,9 +119,7 @@ main(int, char**)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        if (framebuffer.clear_and_update_size()) {
-            renderer_data.screen_to_window = framebuffer.screen_to_window();
-        }
+        framebuffer.clear_and_update_size();
 
         uniforms.rot.stack(math::radians(-45.f));
     }

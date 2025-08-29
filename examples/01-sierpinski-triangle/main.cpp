@@ -116,10 +116,12 @@ main(int, char**)
     vertex_buf.verticies.clear();
     sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
+    const auto aspect_ratio_scaling = 5 / 3.f;
+    TerminalBuffer framebuffer(aspect_ratio_scaling);
+
     MyProgram program;
-    TerminalBuffer framebuffer(5 / 3.f);
     asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::NoPerspective }> renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ framebuffer.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     framebuffer.clear_and_update_size();
     uniforms.aspect_ratio = framebuffer.aspect_ratio();
@@ -155,9 +157,7 @@ main(int, char**)
         vertex_buf.verticies.clear();
         sierpinski_triangle(vertex_buf.verticies, V1, V2, V3, i);
 
-        if (framebuffer.clear_and_update_size()) {
-            renderer_data.screen_to_window = framebuffer.screen_to_window();
-        }
+        framebuffer.clear_and_update_size();
         uniforms.aspect_ratio = framebuffer.aspect_ratio();
     }
     check_eof_program.join();

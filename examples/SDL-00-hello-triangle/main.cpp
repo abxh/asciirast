@@ -72,7 +72,7 @@ main(int, char**)
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
     MyUniform uniforms;
 
     bool running = true;

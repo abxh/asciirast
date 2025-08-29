@@ -8,11 +8,11 @@
 #include "./terminal_utils.h"
 
 #include <algorithm>
-#include <vector>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 namespace math = asciirast::math;
 namespace CSI = terminal_utils::CSI;
@@ -64,7 +64,7 @@ public:
 
     math::Float aspect_ratio() const { return m_aspect_ratio_scaling * (math::Float)m_height / (math::Float)m_width; }
 
-    const math::Transform2D& screen_to_window() const { return m_screen_to_window; }
+    const math::Transform2D& screen_to_window_transform() const { return m_screen_to_window; }
 
     void plot(const math::Vec2Int& pos, const Targets& targets)
     {

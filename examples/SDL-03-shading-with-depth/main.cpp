@@ -166,7 +166,7 @@ main(int argc, char* argv[])
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     bool running = true;
     while (running) {

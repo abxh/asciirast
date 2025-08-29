@@ -116,6 +116,13 @@ find_obj()
 int
 main(int argc, char* argv[])
 {
+    math::Mat2 m {
+        1, 0, //
+        0, 1
+    };
+    std::cout << "m:\n" << m;
+    std::cout << "det(m): " << m.det() << "\n";
+    return 0;
     std::string path_to_obj;
     std::string path_to_tga;
     if (argc < 3) {
@@ -218,7 +225,7 @@ main(int argc, char* argv[])
     SDLBuffer screen(512, 512);
     MyProgram program;
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise }> renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
 
     bool running = true;
     while (running) {

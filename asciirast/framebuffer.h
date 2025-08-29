@@ -10,6 +10,16 @@
 namespace asciirast {
 
 /**
+ * @brief Check if framebuffer has screen_to_window_transform() support
+ */
+template<class T>
+concept FrameBuffer_TransformSupport = requires(const T t) {
+    {
+        t.screen_to_window_transform()
+    } -> std::same_as<const math::Transform2D&>;
+};
+
+/**
  * @brief Check if framebuffer has plot() support
  */
 template<class T>
@@ -36,7 +46,11 @@ concept FrameBuffer_DepthSupport = requires(T t) {
  * @brief Concept to follow the framebuffer interface
  */
 template<class T>
-concept FrameBufferInterface = requires(T t) { requires FrameBuffer_PlotSupport<T>; } || requires(T t) {
+concept FrameBufferInterface = requires(T t) {
+    requires FrameBuffer_TransformSupport<T>;
+    requires FrameBuffer_PlotSupport<T>;
+} || requires(T t) {
+    requires FrameBuffer_TransformSupport<T>;
     requires FrameBuffer_PlotSupport<T>;
     requires FrameBuffer_DepthSupport<T>;
 };
