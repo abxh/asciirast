@@ -25,16 +25,9 @@ struct MyVertex
     math::Float id;
     math::Vec2 pos;
     RGBFloat color;
-
-    MyVertex operator+(const MyVertex& that) const
-    {
-        return { this->id + that.id, this->pos + that.pos, this->color + that.color };
-    }
-    MyVertex operator/(const math::Float scalar) const
-    {
-        return { this->id / scalar, this->pos / scalar, this->color / scalar };
-    }
 };
+
+DERIVE_VARYING_OPS(MyVertex);
 
 struct MyVarying
 {

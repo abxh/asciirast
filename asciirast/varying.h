@@ -176,6 +176,18 @@ operator-(const Varying& lhs, const Varying& rhs) -> Varying
 }
 
 /**
+ * @brief Derived scalar-varying multiplication operator
+ */
+template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
+constexpr auto
+operator*(const math::Float& scalar, const Varying& rhs) -> Varying
+{
+    return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
+        return Varying{ (scalar * boost::pfr::get<I>(rhs))... };
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
+}
+
+/**
  * @brief Derived varying-scalar multiplication operator
  */
 template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
