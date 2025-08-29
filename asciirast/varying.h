@@ -37,7 +37,13 @@ concept VaryingInterface = std::same_as<T, EmptyVarying> || requires(const T x) 
         x + x
     } -> std::same_as<T>;
     {
-        x* math::Float{ -1 }
+        x - x
+    } -> std::same_as<T>;
+    {
+        x* math::Float{ 1 }
+    } -> std::same_as<T>;
+    {
+        x / math::Float{ 1 }
     } -> std::same_as<T>;
     requires std::semiregular<T>;
 };
@@ -62,7 +68,9 @@ struct DeriveVaryingOps : std::false_type
     struct asciirast::DeriveVaryingOps<T> : std::true_type                                                             \
     {};                                                                                                                \
     using asciirast::operator+;                                                                                        \
-    using asciirast::operator*;
+    using asciirast::operator-;                                                                                        \
+    using asciirast::operator*;                                                                                        \
+    using asciirast::operator/;
 
 /**
  * @brief Linear interpolation of varying types
@@ -74,7 +82,10 @@ lerp_varying(const Varying& lhs, const Varying& rhs, const math::Float t)
     if constexpr (std::is_same_v<Varying, EmptyVarying>) {
         return EmptyVarying();
     } else {
-        return lhs * (1 - t) + rhs * t;
+        const auto l = lhs * (1 - t);
+        const auto r = rhs * t;
+
+        return l + r;
     }
 }
 
@@ -96,10 +107,10 @@ lerp_projected_varying(const Varying& lhs,
         if (t == 0) return lhs;
         if (t == 1) return rhs;
 
-        const auto l = lhs * Z_inv0;
-        const auto r = rhs * Z_inv1;
+        const auto l = lhs * Z_inv0 * (1 - t);
+        const auto r = rhs * Z_inv1 * t;
 
-        return (l * (1 - t) + r * t) * (1 / acc_Z_inv);
+        return (l + r) / acc_Z_inv;
     }
 }
 
@@ -153,6 +164,18 @@ operator+(const Varying& lhs, const Varying& rhs) -> Varying
 }
 
 /**
+ * @brief Derived varying-varying subtraction operator
+ */
+template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
+constexpr auto
+operator-(const Varying& lhs, const Varying& rhs) -> Varying
+{
+    return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
+        return Varying{ (boost::pfr::get<I>(lhs) - boost::pfr::get<I>(rhs))... };
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
+}
+
+/**
  * @brief Derived varying-scalar multiplication operator
  */
 template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
@@ -161,6 +184,18 @@ operator*(const Varying& lhs, const math::Float& scalar) -> Varying
 {
     return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
         return Varying{ (boost::pfr::get<I>(lhs) * scalar)... };
+    }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
+}
+
+/**
+ * @brief Derived varying-scalar division operator
+ */
+template<typename Varying, std::enable_if_t<std::is_class_v<Varying> && DeriveVaryingOps<Varying>::value, int> = 0>
+constexpr auto
+operator/(const Varying& lhs, const math::Float& scalar) -> Varying
+{
+    return [&]<std::size_t... I>(const std::index_sequence<I...>&) {
+        return Varying{ (boost::pfr::get<I>(lhs) / scalar)... };
     }(std::make_index_sequence<boost::pfr::tuple_size_v<Varying>>());
 }
 

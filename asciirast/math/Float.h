@@ -197,7 +197,7 @@ constexpr auto
 sin(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain =
+        const bool in_domain =
             -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
         if (in_domain) {
             return gcem::sin(x);
@@ -218,7 +218,7 @@ constexpr auto
 cos(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain =
+        const bool in_domain =
             -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
         if (in_domain) {
             return gcem::cos(x);
@@ -239,7 +239,7 @@ constexpr auto
 tan(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain =
+        const bool in_domain =
             -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
         if (in_domain) {
             return gcem::tan(x);
@@ -260,7 +260,7 @@ constexpr auto
 asin(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain = 0 <= x && x <= 1;
+        const bool in_domain = 0 <= x && x <= 1;
         if (in_domain) {
             return gcem::asin(x);
         } else {
@@ -280,7 +280,7 @@ constexpr auto
 acos(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain = 0 <= x && x <= 1;
+        const bool in_domain = 0 <= x && x <= 1;
         if (in_domain) {
             return gcem::acos(x);
         } else {
@@ -300,7 +300,7 @@ constexpr auto
 atan(const T x) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool in_domain =
+        const bool in_domain =
             -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
         if (in_domain) {
             return gcem::atan(x);
@@ -321,9 +321,9 @@ constexpr auto
 atan2(const T x, const T y) -> T
 {
     if (std::is_constant_evaluated()) {
-        constexpr bool x_in_domain =
+        const bool x_in_domain =
             -std::numeric_limits<float>().infinity() < x && x < +std::numeric_limits<float>().infinity();
-        constexpr bool y_in_domain =
+        const bool y_in_domain =
             -std::numeric_limits<float>().infinity() < y && y < +std::numeric_limits<float>().infinity();
         if (x_in_domain && y_in_domain) {
             return gcem::atan2(x, y);

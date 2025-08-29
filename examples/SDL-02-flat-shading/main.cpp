@@ -172,7 +172,7 @@ main(int argc, char* argv[])
     asciirast::Renderer<{ .winding_order = asciirast::WindingOrder::CounterClockwise,
                           .attr_interpolation = asciirast::AttrInterpolation::Flat }>
             renderer;
-    asciirast::RendererData<MyVarying> renderer_data{ screen.screen_to_window() };
+    asciirast::RendererData<MyVarying> renderer_data;
     MyUniform uniforms;
     uniforms.z_dist = std::abs(
             std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
