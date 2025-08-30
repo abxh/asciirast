@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "./detail/assert.h"
-#include "./math/types.h"
+#include "./detail/assert.hpp"
+#include "./math/types.hpp"
 
 namespace asciirast {
 

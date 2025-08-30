@@ -99,7 +99,7 @@ misrepresented as being the original software.
  #define TINYFD_SLASH "/"
 #endif /* _WIN32 */
 
-#include "tinyfiledialogs.h"
+#include "tinyfiledialogs.hpp"
 
 #define MAX_PATH_OR_CMD 1024 /* _MAX_PATH or MAX_PATH */
 

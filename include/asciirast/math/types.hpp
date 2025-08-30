@@ -7,11 +7,11 @@
 
 #include <cstdint>
 
-#include "./AABB.h"
-#include "./Mat.h"
-#include "./Rot.h"
-#include "./Transform.h"
-#include "./Vec.h"
+#include "./AABB.hpp"
+#include "./Mat.hpp"
+#include "./Rot.hpp"
+#include "./Transform.hpp"
+#include "./Vec.hpp"
 
 namespace asciirast::math {
 

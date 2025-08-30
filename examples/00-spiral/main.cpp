@@ -1,9 +1,7 @@
 
 #include "examples/common/TerminalBuffer.h"
 
-#include "asciirast/math/types.h"
-#include "asciirast/program.h"
-#include "asciirast/renderer.h"
+#include <asciirast.hpp>
 
 #include <algorithm>
 #include <cassert>

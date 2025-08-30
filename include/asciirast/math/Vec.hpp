@@ -12,9 +12,9 @@
 #include <ostream>
 #include <type_traits>
 
-#include "../detail/assert.h"
-#include "./Float.h"
-#include "./VecBase.h"
+#include "../detail/assert.hpp"
+#include "./Float.hpp"
+#include "./VecBase.hpp"
 
 namespace asciirast::math {
 

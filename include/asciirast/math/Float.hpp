@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "../../external/gcem/include/gcem.hpp"
+#include <gcem.hpp>
 
 namespace asciirast::math {
 

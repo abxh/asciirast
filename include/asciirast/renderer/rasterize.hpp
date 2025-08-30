@@ -7,9 +7,9 @@
 
 #include <cfloat>
 
-#include "../fragment.h"
-#include "../math/types.h"
-#include "../renderer_options.h"
+#include "../fragment.hpp"
+#include "../math/types.hpp"
+#include "../renderer_options.hpp"
 
 namespace asciirast::renderer {
 

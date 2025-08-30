@@ -1,9 +1,7 @@
 
 #pragma once
 
-#include "../../asciirast/framebuffer.h"
-#include "../../asciirast/math/types.h"
-#include "../../asciirast/utils.h"
+#include <asciirast.hpp>
 
 #include "./terminal_utils.h"
 

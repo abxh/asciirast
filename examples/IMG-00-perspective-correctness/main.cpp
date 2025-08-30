@@ -3,9 +3,7 @@
 
 #include "examples/common/PPMBuffer.h"
 
-#include "asciirast/math/types.h"
-#include "asciirast/program.h"
-#include "asciirast/renderer.h"
+#include <asciirast.hpp>
 
 #include <filesystem>
 

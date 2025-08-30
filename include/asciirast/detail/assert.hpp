@@ -9,7 +9,7 @@
 
 #ifndef ASCIIRAST_ASSERT
 
-#include "../../external/libassert/include/libassert/assert.hpp"
+#include <libassert/assert.hpp>
 #define ASCIIRAST_ASSERT(...) DEBUG_ASSERT(__VA_ARGS__)
 
 #endif

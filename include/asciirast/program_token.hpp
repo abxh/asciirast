@@ -7,7 +7,7 @@
 
 #include <ranges>
 
-#include "./detail/StaticPoolGenerator.h"
+#include "./detail/StaticPoolGenerator.hpp"
 
 namespace asciirast {
 

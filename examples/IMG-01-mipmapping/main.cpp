@@ -1,6 +1,6 @@
-#include "asciirast/texture.h"
+#include <asciirast.hpp>
 
-#include "external/tinyfiledialogs/tinyfiledialogs.h"
+#include <tinyfiledialogs.hpp>
 
 #include <filesystem>
 #include <iostream>

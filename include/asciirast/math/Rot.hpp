@@ -14,8 +14,8 @@
 #include <cmath>
 #include <type_traits>
 
-#include "./Mat.h"
-#include "./Vec.h"
+#include "./Mat.hpp"
+#include "./Vec.hpp"
 
 namespace asciirast::math {
 

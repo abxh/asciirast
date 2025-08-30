@@ -14,9 +14,10 @@
 
 #include <type_traits>
 
-#include "../external/boost_pfr/include/boost/pfr.hpp"
-#include "./math/types.h"
-#include "renderer_options.h"
+#include <boost/pfr.hpp>
+
+#include "./math/types.hpp"
+#include "./renderer_options.hpp"
 
 namespace asciirast {
 

@@ -7,8 +7,8 @@
 
 #include <concepts>
 
-#include "./fragment.h"
-#include "./program_token.h"
+#include "./fragment.hpp"
+#include "./program_token.hpp"
 
 namespace asciirast {
 

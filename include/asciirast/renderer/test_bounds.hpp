@@ -8,9 +8,9 @@
 #include <deque>
 #include <utility>
 
-#include "../detail/assert.h"
-#include "../math/types.h"
-#include "../varying.h"
+#include "../detail/assert.hpp"
+#include "../math/types.hpp"
+#include "../varying.hpp"
 
 // on homogenous coordinates:
 // https://en.wikipedia.org/wiki/Homogeneous_coordinates#Introduction

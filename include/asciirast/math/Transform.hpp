@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "../detail/assert.h"
-#include "./Mat.h"
-#include "./Rot.h"
+#include "../detail/assert.hpp"
+#include "./Mat.hpp"
+#include "./Rot.hpp"
 
 namespace asciirast::math {
 

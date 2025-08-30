@@ -1,12 +1,10 @@
 
 #include "examples/common/TerminalBuffer.h"
 
+#include <asciirast.hpp>
+
 #include "./ctables.hpp"
 
-#include "asciirast/math/types.h"
-#include "asciirast/renderer.h"
-
-#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstdio>

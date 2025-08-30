@@ -6,11 +6,10 @@
 
 #include "examples/common/SDLBuffer.h"
 
-#include "asciirast/program.h"
-#include "asciirast/renderer.h"
-#include "asciirast/sampler.h"
+#include <asciirast.hpp>
 
-#include "external/tinyfiledialogs/tinyfiledialogs.h"
+#include <tiny_obj_loader.hpp>
+#include <tinyfiledialogs.hpp>
 
 #include <iostream>
 

@@ -4,12 +4,10 @@
 
 #include "examples/common/SDLBuffer.h"
 
-#include "asciirast/math/types.h"
-#include "asciirast/program.h"
-#include "asciirast/renderer.h"
+#include <asciirast.hpp>
 
-#include "external/tiny_obj_loader/tiny_obj_loader.h"
-#include "external/tinyfiledialogs/tinyfiledialogs.h"
+#include <tiny_obj_loader.hpp>
+#include <tinyfiledialogs.hpp>
 
 #include <iostream>
 #include <ranges>

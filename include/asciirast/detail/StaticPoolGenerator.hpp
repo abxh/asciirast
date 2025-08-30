@@ -16,7 +16,7 @@
 #include <new>
 #include <optional>
 
-#include "./assert.h"
+#include "./assert.hpp"
 
 namespace asciirast {
 

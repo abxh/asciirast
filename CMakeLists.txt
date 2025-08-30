@@ -82,7 +82,7 @@ add_subdirectory(external/boost_pfr)
 add_subdirectory(external/gcem) 
 add_subdirectory(external/stb_image) 
 
-add_subdirectory(asciirast)
+add_subdirectory(include)
 
 # Examples:
 # ---------------------------------------------------------------------------------

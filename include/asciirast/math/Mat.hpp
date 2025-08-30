@@ -18,8 +18,8 @@
 #include <sstream>
 #include <type_traits>
 
-#include "../detail/assert.h"
-#include "./Vec.h"
+#include "../detail/assert.hpp"
+#include "./Vec.hpp"
 
 namespace asciirast::math {
 

@@ -8,12 +8,12 @@
 #include <deque>
 #include <vector>
 
-#include "./framebuffer.h"
-#include "./math/types.h"
-#include "./program.h"
-#include "./renderer/rasterize.h"
-#include "./renderer/test_bounds.h"
-#include "./utils.h"
+#include "./framebuffer.hpp"
+#include "./math/types.hpp"
+#include "./program.hpp"
+#include "./renderer/rasterize.hpp"
+#include "./renderer/test_bounds.hpp"
+#include "./utils.hpp"
 
 namespace asciirast {
 

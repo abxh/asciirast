@@ -14,11 +14,11 @@
 #include <type_traits>
 #include <variant>
 
-#include "./detail/assert.h"
-#include "./math/types.h"
-#include "./program_token.h"
-#include "./varying.h"
-#include "renderer_options.h"
+#include "./detail/assert.hpp"
+#include "./math/types.hpp"
+#include "./program_token.hpp"
+#include "./renderer_options.hpp"
+#include "./varying.hpp"
 
 namespace asciirast {
 

@@ -1,4 +1,4 @@
-#include "asciirast/math/types.h"
+#include <asciirast.hpp>
 
 #include <cassert>
 #include <cstdio>

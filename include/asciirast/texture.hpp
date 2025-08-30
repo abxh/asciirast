@@ -24,9 +24,10 @@
 #include <stdexcept>
 #include <vector>
 
-#include "../external/stb_image/stb_image.h"
-#include "../external/stb_image/stb_image_write.h"
-#include "./math/types.h"
+#include <stb_image.hpp>
+#include <stb_image_write.hpp>
+
+#include "./math/types.hpp"
 
 namespace asciirast {
 

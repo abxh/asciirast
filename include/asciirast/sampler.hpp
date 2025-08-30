@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "./fragment.h"
-#include "./math/types.h"
-#include "./texture.h"
+#include "./fragment.hpp"
+#include "./math/types.hpp"
+#include "./texture.hpp"
 
 namespace asciirast {
 

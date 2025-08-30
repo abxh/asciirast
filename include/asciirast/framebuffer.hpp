@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "./math/types.h"
+#include "./math/types.hpp"
 
 namespace asciirast {
 
