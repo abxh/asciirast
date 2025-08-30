@@ -1,9 +1,8 @@
 
-#include "examples/common/TerminalBuffer.h"
+#include "../common/TerminalBuffer.hpp"
+#include "./ctables.hpp"
 
 #include <asciirast.hpp>
-
-#include "./ctables.hpp"
 
 #include <cassert>
 #include <chrono>

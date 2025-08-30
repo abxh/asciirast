@@ -14,7 +14,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#include "terminal_utils.h"
+#include "./terminal_utils.hpp"
 
 namespace terminal_utils {
 

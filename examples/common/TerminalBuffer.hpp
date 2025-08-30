@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include <asciirast.hpp>
+#include "./terminal_utils.hpp"
 
-#include "./terminal_utils.h"
+#include <asciirast.hpp>
 
 #include <algorithm>
 #include <cassert>

@@ -1,7 +1,7 @@
 // Based on:
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes.html
 
-#include "examples/common/PPMBuffer.h"
+#include "../common/PPMBuffer.hpp"
 
 #include <asciirast.hpp>
 

@@ -2,7 +2,7 @@
 // based on:
 // https://github.com/ssloy/tinyrenderer/wiki/Lesson-3:-Hidden-faces-removal-(z-buffer)
 
-#include "examples/common/SDLBuffer.h"
+#include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>
 

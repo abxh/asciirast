@@ -6,7 +6,7 @@
 // based on:
 // https://github.com/ssloy/tinyrenderer/wiki/Lesson-1:-Bresenham%E2%80%99s-Line-Drawing-Algorithm
 
-#include "examples/common/SDLBuffer.h"
+#include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>
 

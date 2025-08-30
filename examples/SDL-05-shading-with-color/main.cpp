@@ -5,7 +5,7 @@
 // and:
 // https://github.com/ssloy/tinyrenderer/wiki/Lesson-4:-Perspective-projection
 
-#include "examples/common/SDLBuffer.h"
+#include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>
 

@@ -1,4 +1,5 @@
-#include "examples/common/TerminalBuffer.h"
+
+#include "../common/TerminalBuffer.hpp"
 
 #include <asciirast.hpp>
 

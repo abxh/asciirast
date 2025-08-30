@@ -4,7 +4,7 @@
 // Test inspired by:
 // https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
 
-#include "examples/common/SDLBuffer.h"
+#include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>
 
