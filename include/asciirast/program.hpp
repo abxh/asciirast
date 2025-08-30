@@ -1,5 +1,5 @@
 /**
- * @file program.h
+ * @file program.hpp
  * @brief Definition of program interface
  */
 

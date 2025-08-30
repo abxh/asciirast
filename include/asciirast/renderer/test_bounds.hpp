@@ -1,5 +1,5 @@
 /**
- * @file test_bounds.h
+ * @file test_bounds.hpp
  * @brief Functions for frustum clipping and screen clipping
  */
 

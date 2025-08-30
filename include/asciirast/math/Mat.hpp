@@ -1,5 +1,5 @@
 /**
- * @file Mat.h
+ * @file Mat.hpp
  * @brief Math matrix
  *
  * @todo determinant function

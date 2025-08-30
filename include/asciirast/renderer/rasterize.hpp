@@ -1,5 +1,5 @@
 /**
- * @file rasterize.h
+ * @file rasterize.hpp
  * @brief Functions for rasterizing lines and triangles
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file fragment.h
+ * @file fragment.hpp
  * @brief Fragment type and related types
  *
  * On 2x2 block processing:

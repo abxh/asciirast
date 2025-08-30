@@ -1,5 +1,5 @@
 /**
- * @file AABB.h
+ * @file AABB.hpp
  * @brief Axis-Aligned Bounding Box
  */
 

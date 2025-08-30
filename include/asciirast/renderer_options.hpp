@@ -1,5 +1,5 @@
 /**
- * @file renderer_options.h
+ * @file renderer_options.hpp
  * @brief Renderer options
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file program_token.h
+ * @file program_token.hpp
  * @brief Special program tokens
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file types.h
+ * @file types.hpp
  * @brief File to import default math types
  */
 

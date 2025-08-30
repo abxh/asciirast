@@ -1,5 +1,5 @@
 /**
- * @file varying.h
+ * @file varying.hpp
  * @brief Definition of Varying and related things
  *
  * on perspective corrected interpolation:

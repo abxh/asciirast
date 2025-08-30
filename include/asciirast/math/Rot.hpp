@@ -1,5 +1,5 @@
 /**
- * @file Rot.h
+ * @file Rot.hpp
  * @brief Classes for rotation
  *
  * @todo spherical interpolation

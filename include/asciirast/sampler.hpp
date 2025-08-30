@@ -1,5 +1,5 @@
 /**
- * @file sampler.h
+ * @file sampler.hpp
  * @brief Texture sampler classes
  *
  * @todo bicubic interpolation

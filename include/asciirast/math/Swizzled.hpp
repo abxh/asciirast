@@ -1,5 +1,5 @@
 /**
- * @file Swizzled.h
+ * @file Swizzled.hpp
  * @brief File with definition of the swizzled class
  *
  * This file contains the Swizzled class. It can be explictly converted

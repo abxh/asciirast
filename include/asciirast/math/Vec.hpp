@@ -1,5 +1,5 @@
 /**
- * @file Vec.h
+ * @file Vec.hpp
  * @brief File with definition of the math vector class
  */
 

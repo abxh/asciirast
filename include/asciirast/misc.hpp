@@ -1,5 +1,5 @@
 /**
- * @file utils.h
+ * @file misc.hpp
  * @brief Miscellaneous functions
  *
  * reverse depth:
@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "./detail/assert.hpp"
 #include "./math/types.hpp"
 
 namespace asciirast {

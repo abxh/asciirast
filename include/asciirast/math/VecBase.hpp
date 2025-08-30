@@ -1,5 +1,5 @@
 /**
- * @file VecBase.h
+ * @file VecBase.hpp
  * @brief File with definitions of the generic and specialized vector
  *        base classes
  */

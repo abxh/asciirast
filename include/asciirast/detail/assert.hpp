@@ -1,5 +1,5 @@
 /**
- * @file assert.h
+ * @file assert.hpp
  * @brief custom assert macro definition
  */
 

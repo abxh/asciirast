@@ -1,6 +1,8 @@
 /**
- * @file texture.h
+ * @file texture.hpp
  * @brief Texture class
+ *
+ * @todo Redo texture class to support wider range of textures
  *
  * Supports all textures stb_image supports. That means: jpeg / png /
  * tga / bmp / psd / gif / hdr / pic / pnm No animated gifs however.
@@ -410,6 +412,9 @@ public:
     }
 };
 
+/**
+ * @brief Handy alias to TextureType, using std::allocator
+ */
 using Texture = TextureType<std::allocator<math::RGBA_8bit>,
                             std::allocator<TextureStorage<math::RGBA_8bit, std::allocator<math::RGBA_8bit>>>>;
 

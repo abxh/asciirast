@@ -1,5 +1,5 @@
 /**
- * @file framebuffer.h
+ * @file framebuffer.hpp
  * @brief Definition of framebuffer interface
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file StaticPoolGenerator.h
+ * @file StaticPoolGenerator.hpp
  * @brief Static Pool Generator
  *
  * See:

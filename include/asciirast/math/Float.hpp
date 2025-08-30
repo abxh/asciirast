@@ -1,5 +1,5 @@
 /**
- * @file Float.h
+ * @file Float.hpp
  * @brief Functions operating on floats
  */
 

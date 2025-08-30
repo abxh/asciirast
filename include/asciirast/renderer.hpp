@@ -1,5 +1,5 @@
 /**
- * @file renderer.h
+ * @file renderer.hpp
  * @brief The renderer class and related types
  */
 
@@ -10,10 +10,10 @@
 
 #include "./framebuffer.hpp"
 #include "./math/types.hpp"
+#include "./misc.hpp"
 #include "./program.hpp"
 #include "./renderer/rasterize.hpp"
 #include "./renderer/test_bounds.hpp"
-#include "./utils.hpp"
 
 namespace asciirast {
 

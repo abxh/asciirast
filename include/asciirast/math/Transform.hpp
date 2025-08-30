@@ -1,5 +1,5 @@
 /**
- * @file Transform.h
+ * @file Transform.hpp
  * @brief Class for composing primitive transformation matricies and
  * their inverses
  */
