@@ -154,13 +154,13 @@ public:
      * @return The token to co_yield back to the renderer
      */
     template<typename T>
-    [[nodiscard]] ProgramToken init(const T& value)
+    [[nodiscard]] FragmentToken init(const T& value)
         requires(std::is_same_v<T, ValueTypes> || ...)
     {
         m_quad[m_id] = value;
         m_is_initialized = true;
 
-        return ProgramToken::Syncronize;
+        return FragmentToken::Syncronize;
     }
 
     /**

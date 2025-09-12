@@ -51,7 +51,7 @@ public:
         out.attrs = { u.transform.apply(vert.uv) };
     }
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> asciirast::ProgramTokenGenerator
+        -> asciirast::FragmentTokenGenerator
     {
         const auto color = TEXTURE(context, u.sampler, u.texture, pfrag.attrs.uv);
         out = color.rgba;
@@ -143,10 +143,10 @@ handle_events(bool& running,
     if (change_transform) {
         static const math::Transform2D screen_transform = asciirast::SCREEN_BOUNDS.to_transform();
         final_transform = math::Transform2D()
-                                  .stack(screen_transform)
-                                  .scale(zoom, zoom)
-                                  .stack(screen_transform.inversed())
-                                  .translate(shift);
+                              .stack(screen_transform)
+                              .scale(zoom, zoom)
+                              .stack(screen_transform.inversed())
+                              .translate(shift);
     }
 }
 
@@ -155,15 +155,11 @@ find_texture()
 {
     const auto default_path = ".";
     const auto patterns = std::to_array<char const*>(
-            { "*.jpg", "*.jpeg", "*.png", "*.tga", "*.bmp", "*.psd", "*.gif", "*.hdr", "*.pic", "*.pnm" });
+        { "*.jpg", "*.jpeg", "*.png", "*.tga", "*.bmp", "*.psd", "*.gif", "*.hdr", "*.pic", "*.pnm" });
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
-    const char* ptr = tinyfd_openFileDialog("Specify Texture File",
-                                            default_path,
-                                            patterns.size(),
-                                            patterns.data(),
-                                            patterns_desc,
-                                            multi_select_enabled);
+    const char* ptr = tinyfd_openFileDialog(
+        "Specify Texture File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -176,7 +172,7 @@ find_ttf()
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
     const char* ptr = tinyfd_openFileDialog(
-            "Specify .ttf File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+        "Specify .ttf File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -191,21 +187,30 @@ main(int argc, char* argv[])
         const char* arg1_str = "path-to-texture";
         const char* arg2_str = "path-to-ttf";
 
-        std::cout << "usage:" << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+        std::cout << "usage:"
+                  << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+        std::cout << "specified " << arg1_str << ": " << std::flush;
 
         if (const auto opt_texture_path = find_texture(); !opt_texture_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_img = opt_texture_path.value();
-            std::cout << "specified " << arg1_str << ": " << path_to_img << "\n";
+            std::cout << path_to_img << "\n";
         }
+
+        std::cout << "specified " << arg2_str << ": " << std::flush;
+
         if (const auto opt_ttf_path = find_ttf(); !opt_ttf_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_ttf = opt_ttf_path.value();
-            std::cout << "specified " << arg2_str << ": " << path_to_ttf << "\n";
+            std::cout << path_to_ttf << "\n";
         }
     } else {
         path_to_img = argv[1];

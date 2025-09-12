@@ -31,7 +31,7 @@ public:
     using Targets = std::tuple<char, RGBFloat>;
 
     TerminalBuffer(const math::Float aspect_ratio_scaling)
-            : m_rgbc_buf{}
+        : m_rgbc_buf{}
     {
         terminal_utils::just_fix_windows_console(true);
         std::cout << CSI::ESC << CSI::HIDE_CURSOR;
@@ -54,6 +54,8 @@ public:
     bool out_of_bounds_error_occurred() const { return m_oob_error; }
 
     math::Vec2Int size() const { return { m_width, m_height }; }
+    size_t width() const { return m_width; }
+    size_t height() const { return m_height; }
 
     const char& at(const math::Vec2Int& pos) const
     {
@@ -127,11 +129,11 @@ public:
         m_height = (std::size_t)new_height;
 
         m_screen_to_window = asciirast::SCREEN_BOUNDS //
-                                     .to_transform()
-                                     .inversed()
-                                     .reflectY()
-                                     .translate(0, 1.f)
-                                     .scale(m_width - 1, m_height - 1);
+                                 .to_transform()
+                                 .inversed()
+                                 .reflectY()
+                                 .translate(0, 1.f)
+                                 .scale(m_width - 1, m_height - 1);
 
         m_rgbc_buf.resize(m_width * m_height);
 

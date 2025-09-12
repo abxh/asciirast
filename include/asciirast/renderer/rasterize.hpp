@@ -15,7 +15,7 @@ namespace asciirast::renderer {
 
 template<RendererOptions Options, VaryingInterface Varying, typename Plot>
 static constexpr bool rasterize_line_plot_func_conds =
-    std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&, const std::array<bool, 2>&> ||
+    std::is_invocable_v<Plot, const std::array<ProjectedFragment<Varying>, 2>&> ||
     std::is_invocable_v<Plot, const ProjectedFragment<Varying>&>;
 
 template<RendererOptions Options, VaryingInterface Varying, typename Plot>
@@ -98,7 +98,7 @@ rasterize_line(const ProjectedFragment<Varying>& proj0, const ProjectedFragment<
 
             rfrag[(i + 1) % 2] = func(acc_t, acc_v, acc_depth, acc_Z_inv);
 
-            plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] }, { true, false });
+            plot({ rfrag[(i + 0) % 2], rfrag[(i + 1) % 2] });
         }
     }
 }

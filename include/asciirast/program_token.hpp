@@ -12,9 +12,9 @@
 namespace asciirast {
 
 /**
- * @brief Program tokens to be emitted to do special procedures
+ * @brief Fragment (program) tokens to be emitted to do special procedures
  */
-enum class ProgramToken
+enum class FragmentToken
 {
     Discard,
     Keep,
@@ -22,10 +22,27 @@ enum class ProgramToken
 };
 
 /**
- * @brief Program token generator to be used
+ * @brief Geometry (program) tokens to be emitted to do special procedures
  */
-using ProgramTokenGenerator = detail::StaticPoolGenerator<ProgramToken, 512, 4>;
+enum class GeometryToken
+{
+    Discard,
+    Emit,
+    EndPrimitive,
+};
 
-static_assert(std::ranges::input_range<ProgramTokenGenerator>);
+/**
+ * @brief Fragment (program) token generator to be used
+ */
+using FragmentTokenGenerator = detail::StaticPoolGenerator<FragmentToken, 512, 4>;
+
+static_assert(std::ranges::input_range<FragmentTokenGenerator>);
+
+/**
+ * @brief Geometry (program) token generator to be used
+ */
+using GeometryTokenGenerator = detail::StaticPoolGenerator<GeometryToken, 1024, 1>;
+
+static_assert(std::ranges::input_range<GeometryTokenGenerator>);
 
 } // namespace asciirast

@@ -37,6 +37,10 @@ concept FrameBuffer_PlotSupport = requires(T t) {
 template<class T>
 concept FrameBuffer_DepthSupport = requires(T t) {
     {
+        t.test_depth(std::declval<const math::Vec2Int&>(), //
+                     std::declval<const math::Float>())    //
+    } -> std::same_as<bool>;
+    {
         t.test_and_set_depth(std::declval<const math::Vec2Int&>(), //
                              std::declval<const math::Float>())    //
     } -> std::same_as<bool>;

@@ -10,7 +10,7 @@ struct MyUniform
 
 struct MyVertex
 {
-    math::Vec3 pos;
+    math::Vec2 pos;
     RGB color;
 };
 
@@ -34,8 +34,8 @@ public:
 
     void on_vertex([[maybe_unused]] const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos.xy = { vert.pos.x, vert.pos.y };
-        out.attrs = { vert.color };
+        out.pos.xy = vert.pos;
+        out.attrs.color = vert.color;
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
@@ -60,9 +60,9 @@ handle_events(bool& running)
 int
 main(int, char**)
 {
-    const MyVertex v0 = { .pos = { -0.5f, -0.5f, 1.f }, .color = { 1.f, 0.f, 0.f } };
-    const MyVertex v1 = { .pos = { +0.0f, +0.5f, 1.f }, .color = { 0.f, 1.f, 0.f } };
-    const MyVertex v2 = { .pos = { +0.5f, -0.5f, 1.f }, .color = { 0.f, 0.f, 1.f } };
+    const MyVertex v0 = { .pos = { -0.5f, -0.5f }, .color = { 1.f, 0.f, 0.f } };
+    const MyVertex v1 = { .pos = { +0.0f, +0.5f }, .color = { 0.f, 1.f, 0.f } };
+    const MyVertex v2 = { .pos = { +0.5f, -0.5f }, .color = { 0.f, 0.f, 1.f } };
 
     asciirast::VertexBuffer<MyVertex> vertex_buf;
     vertex_buf.shape_type = asciirast::ShapeType::Triangles;

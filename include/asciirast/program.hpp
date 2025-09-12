@@ -22,7 +22,7 @@ concept ProgramInterface_MinimalSupport = requires(const T t) {
     typename T::Varying;
     typename T::Targets;
     requires std::semiregular<typename T::Targets>;
-    requires std::is_default_constructible_v<typename T::Uniform>;
+    requires std::is_default_constructible_v<typename T::Uniform>; // fudgy way to disallow references
     {
         t.on_vertex(std::declval<const typename T::Uniform&>(),     //
                     std::declval<const typename T::Vertex&>(),      //
@@ -57,7 +57,7 @@ concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
                       std::declval<const typename T::Uniform&>(), //
                       std::declval<const ProjectedFragment<typename T::Varying>&>(),
                       std::declval<typename T::Targets&>()) //
-    } -> std::same_as<ProgramTokenGenerator>;
+    } -> std::same_as<FragmentTokenGenerator>;
 };
 
 /**

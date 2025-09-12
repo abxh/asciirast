@@ -80,7 +80,7 @@ find_obj()
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
     const char* ptr = tinyfd_openFileDialog(
-            "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+        "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -93,14 +93,19 @@ main(int argc, char* argv[])
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
         const char* arg1_str = "path-to-obj";
 
-        std::cout << "usage:" << " " << program_name << " " << "<" << arg1_str << ">\n";
+        std::cout << "usage:"
+                  << " " << program_name << " "
+                  << "<" << arg1_str << ">\n";
+        std::cout << "specified " << arg1_str << ": " << std::flush;
 
         if (const auto opt_path = find_obj(); !opt_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_obj = opt_path.value();
-            std::cerr << "specified " << arg1_str << ": " << path_to_obj << "\n";
+            std::cout << "specified " << arg1_str << ": " << path_to_obj << "\n";
         }
     } else {
         path_to_obj = argv[1];
@@ -152,14 +157,14 @@ main(int argc, char* argv[])
     SDLClock clock;
     MyUniform uniforms;
     uniforms.z_dist = std::abs(
-            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
-                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
-                                   math::Float{},
-                                   [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); }) -
-            std::ranges::fold_left(vertex_buf.verticies | std::ranges::views::transform(
-                                                                  [](const MyVertex& vert) { return vert.pos.z; }),
-                                   math::Float{},
-                                   [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); }));
+        std::ranges::fold_left(vertex_buf.verticies |
+                                   std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+                               math::Float{},
+                               [](math::Float lhs, math::Float rhs) { return std::max(lhs, rhs); }) -
+        std::ranges::fold_left(vertex_buf.verticies |
+                                   std::ranges::views::transform([](const MyVertex& vert) { return vert.pos.z; }),
+                               math::Float{},
+                               [](math::Float lhs, math::Float rhs) { return std::min(lhs, rhs); }));
 
     SDLBuffer screen(512, 512);
     MyProgram program;

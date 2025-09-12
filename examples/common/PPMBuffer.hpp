@@ -32,21 +32,24 @@ public:
     static constexpr math::Float DEFAULT_DEPTH = -1; // or -infty
 
     PPMBuffer(const std::size_t width, const std::size_t height)
-            : m_width{ width }
-            , m_height{ height }
+        : m_width{ width }
+        , m_height{ height }
     {
         m_screen_to_window = asciirast::SCREEN_BOUNDS //
-                                     .to_transform()
-                                     .inversed()
-                                     .reflectY()
-                                     .translate(0, 1.f)
-                                     .scale(m_width - 1, m_height - 1);
+                                 .to_transform()
+                                 .inversed()
+                                 .reflectY()
+                                 .translate(0, 1.f)
+                                 .scale(m_width - 1, m_height - 1);
 
         m_rgb_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
 
         this->clear();
     }
+
+    size_t width() const { return m_width; }
+    size_t height() const { return m_height; }
 
     void save_to(const std::string& fp, const ImageType type = ImageType::RGB)
     {
@@ -99,7 +102,7 @@ public:
         out.close();
     }
 
-    bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    bool test_depth(const math::Vec2Int& pos, const math::Float depth)
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
@@ -110,7 +113,13 @@ public:
         // 0: far
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        if (depth > m_depth_buf[idx]) {
+        return depth > m_depth_buf[idx];
+    }
+
+    bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    {
+        if (test_depth(pos, depth)) {
+            const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
             m_depth_buf[idx] = depth;
             return true;
         }

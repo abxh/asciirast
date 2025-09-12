@@ -24,10 +24,10 @@ using RGBA = math::Vec4;
 struct RGBA_uint8
 {
     // this order should match SDL pixel format
-    std::uint8_t b;
-    std::uint8_t g;
-    std::uint8_t r;
-    std::uint8_t a;
+    std::uint8_t b = 0;
+    std::uint8_t g = 0;
+    std::uint8_t r = 0;
+    std::uint8_t a = 0;
 };
 
 class SDLBuffer
@@ -36,24 +36,27 @@ public:
     using Targets = RGBA;
     static constexpr math::Float DEFAULT_DEPTH = -1; // or -infty
 
+    bool custom_brush_enabled = false;
+    int brush_extent = 1;
+
     SDLBuffer(const unsigned width, const unsigned height)
     {
         m_width = width;
         m_height = height;
 
         m_screen_to_window = asciirast::SCREEN_BOUNDS //
-                                     .to_transform()
-                                     .inversed()
-                                     .reflectY()
-                                     .translate(0, 1.f)
-                                     .scale(m_width - 1, m_height - 1);
+                                 .to_transform()
+                                 .inversed()
+                                 .reflectY()
+                                 .translate(0, 1.f)
+                                 .scale(m_width - 1, m_height - 1);
 
         m_rgba_buf.resize(m_width * m_height);
         m_depth_buf.resize(m_width * m_height);
 
         SDL_Init(SDL_INIT_EVERYTHING);
         m_window = SDL_CreateWindow(
-                "SDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (int)width, (int)height, SDL_WINDOW_SHOWN);
+            "SDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, (int)width, (int)height, SDL_WINDOW_SHOWN);
         m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
@@ -73,14 +76,23 @@ public:
     SDLBuffer(const SDLBuffer& that) = default;
     SDLBuffer& operator=(const SDLBuffer& that) = default;
 
-    bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    size_t width() const { return m_width; }
+    size_t height() const { return m_height; }
+
+    bool test_depth(const math::Vec2Int& pos, const math::Float depth)
     {
         assert(0 <= pos.x && (std::size_t)(pos.x) < m_width);
         assert(0 <= pos.y && (std::size_t)(pos.y) < m_height);
         assert(0 <= depth && depth <= 1);
 
         const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
-        if (depth > m_depth_buf[idx]) {
+        return depth > m_depth_buf[idx];
+    }
+
+    bool test_and_set_depth(const math::Vec2Int& pos, const math::Float depth)
+    {
+        if (test_depth(pos, depth)) {
+            const auto idx = index((std::size_t)pos.y, (std::size_t)pos.x);
             m_depth_buf[idx] = depth;
             return true;
         }
@@ -123,7 +135,7 @@ public:
         SDL_RenderClear(m_renderer);
 
         for (std::size_t i = 0; i < m_height * m_width; i++) {
-            m_rgba_buf[i] = { .b = 0, .g = 0, .r = 0, .a = 0 };
+            m_rgba_buf[i] = {};
             m_depth_buf[i] = DEFAULT_DEPTH;
         }
     }
@@ -179,7 +191,7 @@ class SDLStaticText
 {
 public:
     SDLStaticText(SDLBuffer& screen, const SDLFont& font, const char* text, const SDL_Color color = { 255, 0, 0, 255 })
-            : m_screen{ screen }
+        : m_screen{ screen }
     {
         m_surface = TTF_RenderText_Solid_Wrapped(font.m_font, text, color, (std::uint32_t)m_screen.m_width);
         if (!m_surface) {

@@ -10,6 +10,7 @@
 
 #include <asciirast.hpp>
 
+#include <ostream>
 #include <tiny_obj_loader.hpp>
 #include <tinyfiledialogs.hpp>
 
@@ -19,6 +20,8 @@
 
 struct MyUniform
 {
+    bool lhs_side = true;
+    int split_x = 0;
     math::Rot3D rot;
 };
 
@@ -52,15 +55,26 @@ public:
     }
     void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
     {
+#ifndef NDEBUG
         out = { pfrag.attrs.color.rgb, 1 };
+#else
+        if ((u.lhs_side && pfrag.pos.x <= u.split_x) || !u.lhs_side) {
+            out = { pfrag.attrs.color.rgb, 1 };
+        } else {
+            out = math::Vec4::from_value(0);
+        }
+#endif
     }
 };
 
 static_assert(asciirast::ProgramInterface<MyProgram>);
 
 void
-handle_events(bool& running)
+handle_events(bool& running, int& split_x)
 {
+    int split_y;
+    [[maybe_unused]] uint32_t mouse_state = SDL_GetMouseState(&split_x, &split_y);
+
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
         if ((SDL_QUIT == ev.type) || (SDL_KEYDOWN == ev.type && SDL_SCANCODE_ESCAPE == ev.key.keysym.scancode)) {
@@ -78,7 +92,7 @@ find_obj()
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
     const char* ptr = tinyfd_openFileDialog(
-            "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+        "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -91,14 +105,19 @@ main(int argc, char* argv[])
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
         const char* arg1_str = "path-to-obj";
 
-        std::cout << "usage:" << " " << program_name << " " << "<" << arg1_str << ">\n";
+        std::cout << "usage:"
+                  << " " << program_name << " "
+                  << "<" << arg1_str << ">\n";
+        std::cout << "specified " << arg1_str << ": " << std::flush;
 
         if (const auto opt_path = find_obj(); !opt_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_obj = opt_path.value();
-            std::cout << "specified " << arg1_str << ": " << path_to_obj << "\n";
+            std::cout << path_to_obj << "\n";
         }
     } else {
         path_to_obj = argv[1];
@@ -120,13 +139,13 @@ main(int argc, char* argv[])
     asciirast::IndexedVertexBuffer<MyVertex> vertex_buf{};
     vertex_buf.shape_type = asciirast::ShapeType::Lines;
     vertex_buf.verticies =
-            attrib.vertices                                                                    //
-            | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
-            | std::ranges::views::chunk(3U)                                                    //
-            | std::ranges::views::transform([](auto&& range) {                                 //
-                  return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
-              }) //
-            | std::ranges::to<decltype(vertex_buf.verticies)>();
+        attrib.vertices                                                                    //
+        | std::ranges::views::take(attrib.vertices.size() - (attrib.vertices.size() % 3U)) //
+        | std::ranges::views::chunk(3U)                                                    //
+        | std::ranges::views::transform([](auto&& range) {                                 //
+              return MyVertex{ math::Vec3{ *range.cbegin(), *(range.cbegin() + 1), *(range.cbegin() + 2) } };
+          }) //
+        | std::ranges::to<decltype(vertex_buf.verticies)>();
     for (std::size_t s = 0; s < shapes.size(); s++) {
         std::size_t index_offset = 0;
         for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
@@ -153,7 +172,7 @@ main(int argc, char* argv[])
 
     bool running = true;
     while (running) {
-        handle_events(running);
+        handle_events(running, uniforms.split_x);
 
         clock.update([&]([[maybe_unused]] float dt_sec) {
 #ifdef NDEBUG
@@ -162,7 +181,21 @@ main(int argc, char* argv[])
         });
 
         screen.clear();
+
+#ifndef NDEBUG
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+#else
+        screen.custom_brush_enabled = true;
+        vertex_buf.shape_type = asciirast::ShapeType::Points;
+        uniforms.lhs_side = false;
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+
+        screen.custom_brush_enabled = false;
+        vertex_buf.shape_type = asciirast::ShapeType::Lines;
+        uniforms.lhs_side = true;
+        renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
+#endif
+
         screen.render();
 
         clock.tick();

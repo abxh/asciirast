@@ -54,16 +54,16 @@ public:
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         const auto transform = math::Transform3D()
-                                       .rotate(u.rot)
-                                       .translate({ 0, 0, 2 })
-                                       .stack(asciirast::make_perspective(u.z_near, u.z_far));
+                                   .rotate(u.rot)
+                                   .translate({ 0, 0, 2 })
+                                   .stack(asciirast::make_perspective(u.z_near, u.z_far));
 
         out.pos = transform.apply({ vert.pos, 1 });
         out.attrs = { vert.uv };
     }
 
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
-            -> asciirast::ProgramTokenGenerator
+        -> asciirast::FragmentTokenGenerator
     {
         const auto color = TEXTURE(context, u.sampler, u.texture, pfrag.attrs.uv);
         out = color.rgba;
@@ -92,7 +92,7 @@ find_tga()
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
     const char* ptr = tinyfd_openFileDialog(
-            "Specify .tga File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+        "Specify .tga File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -105,7 +105,7 @@ find_obj()
     const char* patterns_desc = nullptr;
     const bool multi_select_enabled = false;
     const char* ptr = tinyfd_openFileDialog(
-            "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
+        "Specify .obj File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
 
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
@@ -120,21 +120,30 @@ main(int argc, char* argv[])
         const char* arg1_str = "path-to-obj";
         const char* arg2_str = "path-to-tga";
 
-        std::cout << "usage:" << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+        std::cout << "usage:"
+                  << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+        std::cout << "specified " << arg1_str << ": " << std::flush;
 
         if (const auto opt_obj_path = find_obj(); !opt_obj_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_obj = opt_obj_path.value();
-            std::cout << "specified " << arg1_str << ": " << path_to_obj << "\n";
+            std::cout << path_to_obj << "\n";
         }
+
+        std::cout << "specified " << arg2_str << ": " << std::flush;
+
         if (const auto opt_tga_path = find_tga(); !opt_tga_path.has_value()) {
-            std::cerr << "tinyfiledialogs failed. exiting." << "\n";
+            std::cout << "\n";
+            std::cerr << "tinyfiledialogs failed. exiting."
+                      << "\n";
             return EXIT_FAILURE;
         } else {
             path_to_tga = opt_tga_path.value();
-            std::cout << "specified " << arg2_str << ": " << path_to_tga << "\n";
+            std::cout << path_to_tga << "\n";
         }
     } else {
         path_to_obj = argv[1];
@@ -178,6 +187,7 @@ main(int argc, char* argv[])
 
         for (std::size_t s = 0; s < shapes.size(); s++) {
             std::size_t index_offset = 0;
+
             for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
                 const std::size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
 

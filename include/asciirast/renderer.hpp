@@ -14,6 +14,7 @@
 #include "./program.hpp"
 #include "./renderer/rasterize.hpp"
 #include "./renderer/test_bounds.hpp"
+#include "./shapes/mesh.hpp"
 
 namespace asciirast {
 
@@ -67,7 +68,7 @@ struct RendererData
     using Vec4TripletDeque = std::deque<std::array<math::Vec4, 3>, Vec4TripletAllocator>;
     using AttrsTripletDeque = std::deque<std::array<Varying, 3>, AttrsTripletAllocator>;
 
-    Vec4TripletDeque vec_queue = {};        ///< Deque for clipping NDC triangles attributes
+    Vec4TripletDeque vec_queue = {};        ///< Deque for clipping NDC triangles
     Vec4TripletDeque vec_queue_screen = {}; ///< Deque for clipping screen triangles
 
     AttrsTripletDeque attrs_queue = {};        ///< Deque for clipping NDC triangle attributes
@@ -111,13 +112,14 @@ public:
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * verticies and reusable data buffers
+     * vertex buffers and internal data buffers
      *
      * @throws std::logic_error If fragments do not syncronize in the same
      * order
      *
      * @param program The shader program
      * @param uniform The uniform(s)
+     * @param shape_type The shape type
      * @param verts The vertex buffer
      * @param framebuffer The frame buffer
      * @param data Renderer data
@@ -138,12 +140,12 @@ public:
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        draw(program, uniform, verts.shape_type, std::views::all(verts.verticies), framebuffer, data);
+        draw(program, uniform, verts.shape_type, verts.verticies, framebuffer, data);
     }
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
-     * indexed verticies and reusable data buffers
+     * indexed vertex buers and internal data buffers
      *
      * @throws std::runtime_error If the vertex indicies are out of bounds
      * @throws std::logic_error If fragments do not syncronize in the same
@@ -172,16 +174,153 @@ public:
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        const auto func = [&verts](const std::size_t i) -> Vertex {
-            if (i >= verts.verticies.size()) {
+        draw(program, uniform, verts.shape_type, verts.verticies, verts.indicies, framebuffer, data);
+    }
+
+    /**
+     * @brief Draw on a framebuffer using a program given uniform(s),
+     * vertex buffer and internal data buffers
+     *
+     * @throws std::logic_error If fragments do not syncronize in the same
+     * order
+     *
+     * @param program The shader program
+     * @param uniform The uniform(s)
+     * @param shape_type The shape type
+     * @param verts The vertex buffer
+     * @param framebuffer The frame buffer
+     * @param data Renderer data
+     */
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             FrameBufferInterface FrameBuffer,
+             class VertexAllocator,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
+        requires(std::is_same_v<typename Program::Uniform, Uniform> &&
+                 std::is_same_v<typename Program::Vertex, Vertex> &&
+                 std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
+    void draw(const Program& program,
+              const Uniform& uniform,
+              const ShapeType shape_type,
+              const std::vector<Vertex, VertexAllocator>& verticies,
+              FrameBuffer& framebuffer,
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
+    {
+        draw_internal(program, uniform, shape_type, std::views::all(verticies), framebuffer, data);
+    }
+
+    /**
+     * @brief Draw on a framebuffer using a program given uniform(s),
+     * index, vertex and internal data buffers
+     *
+     * @throws std::runtime_error If the vertex indicies are out of bounds
+     * @throws std::logic_error If fragments do not syncronize in the same
+     * order
+     *
+     * @param program The shader program
+     * @param uniform The uniform(s)
+     * @param verticies The vertex buffer
+     * @param indicies The index buffer
+     * @param framebuffer The frame buffer
+     * @param data Renderer data
+     */
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             FrameBufferInterface FrameBuffer,
+             class VertexAllocator,
+             class IndexAllocator,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
+        requires(std::is_same_v<typename Program::Uniform, Uniform> &&
+                 std::is_same_v<typename Program::Vertex, Vertex> &&
+                 std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
+    void draw(const Program& program,
+              const Uniform& uniform,
+              const ShapeType shape_type,
+              const std::vector<Vertex, VertexAllocator>& verticies,
+              const std::vector<std::size_t, IndexAllocator>& indicies,
+              FrameBuffer& framebuffer,
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
+    {
+        const auto func = [&verticies](const std::size_t i) -> Vertex {
+            if (i >= verticies.size()) [[unlikely]] {
                 throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
                                          "bounds");
             }
-            return verts.verticies[i];
+            return verticies[i];
         };
-        const auto view = std::ranges::views::transform(std::views::all(verts.indicies), func);
+        const auto view = std::ranges::views::transform(std::views::all(indicies), func);
 
-        draw(program, uniform, verts.shape_type, view, framebuffer, data);
+        draw_internal(program, uniform, shape_type, view, framebuffer, data);
+    }
+
+    /**
+     * @brief Draw on a framebuffer using a program given uniform(s),
+     * mesh and internal data buffers
+     *
+     * @throws std::runtime_error If the vertex indicies are out of bounds
+     * @throws std::logic_error If fragments do not syncronize in the same
+     * order
+     *
+     * @param program The shader program
+     * @param uniform The uniform(s)
+     * @param mesh The mesh data
+     * @param framebuffer The frame buffer
+     * @param data Renderer data
+     */
+    template<ProgramInterface Program,
+             class Uniform,
+             FrameBufferInterface FrameBuffer,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
+        requires(std::is_same_v<typename Program::Uniform, Uniform> &&
+                 shapes::detail::is_mesh_vertex<typename Program::Vertex>::value &&
+                 std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
+    void draw(const Program& program,
+              const Uniform& uniform,
+              const shapes::MeshKind auto& mesh,
+              FrameBuffer& framebuffer,
+              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
+    {
+        ASCIIRAST_ASSERT(mesh.positions.size() == mesh.texcoords.size() && mesh.texcoords.size() == mesh.normals.size(),
+                         mesh.positions.size(),
+                         mesh.texcoords.size(),
+                         mesh.normals.size(),
+                         "mesh buffers have same size");
+        if constexpr (mesh.has_attributes) {
+            ASCIIRAST_ASSERT(mesh.normals.size() == mesh.attributes.size(),
+                             mesh.normals.size(),
+                             mesh.attributes.size(),
+                             "mesh buffers have same size");
+        }
+
+        using VertexAttr = typename std::remove_cvref_t<decltype(mesh)>::VertexAttr;
+
+        const auto mesh_attributes = [&mesh](const std::size_t i) -> VertexAttr {
+            if constexpr (mesh.has_attributes) {
+                return mesh.attributes[i];
+            } else {
+                return VertexAttr();
+            }
+        };
+        const auto func = [&mesh, &mesh_attributes](const std::size_t i) -> shapes::MeshVertex<VertexAttr> {
+            if (i >= mesh.positions.size()) [[unlikely]] {
+                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
+                                         "bounds");
+            }
+            return shapes::MeshVertex<VertexAttr>{
+                .pos = mesh.positions[i],
+                .texcoord = mesh.texcoords[i],
+                .normal = mesh.normals[i],
+                .attrs = mesh_attributes(i),
+            };
+        };
+        const auto view = std::ranges::views::transform(std::views::all(mesh.indicies), func);
+
+        draw_internal(program, uniform, ShapeType::Triangles, view, framebuffer, data);
     }
 
     /**
@@ -241,12 +380,12 @@ private:
              FrameBufferInterface FrameBuffer,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
-    void draw(const Program& program,
-              const Uniform& uniform,
-              const ShapeType shape_type,
-              std::ranges::input_range auto&& verticies_inp,
-              FrameBuffer& framebuffer,
-              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
+    void draw_internal(const Program& program,
+                       const Uniform& uniform,
+                       const ShapeType shape_type,
+                       std::ranges::input_range auto&& verticies_inp,
+                       FrameBuffer& framebuffer,
+                       RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
         using Vertex = typename Program::Vertex;
 
@@ -322,7 +461,7 @@ private:
             const auto vertex_center = verticies_inp | std::ranges::views::take(1U);
             const auto verticies_tup = verticies_inp | std::ranges::views::drop(1U) | std::ranges::views::adjacent<2U>;
 
-            if (!std::ranges::empty(vertex_center)) {
+            if (!std::ranges::empty(vertex_center)) [[likely]] {
                 const auto v0 = vertex_center[0];
                 for (const auto& [v1, v2] : verticies_tup) {
                     draw_triangle_func(v0, v1, v2);
@@ -379,14 +518,19 @@ private:
             std::array<typename FragmentContext::ValueVariant, 4> quad;
             auto context = FragmentContext{ 0, quad, FragmentContext::Type::POINT };
             auto targets = Targets{};
-
-            // apply fragment shader and unpack results:
-            for (const ProgramToken result : program.on_fragment(context, uniform, wfrag, targets)) {
-                if (result == ProgramToken::Discard) return;
-            }
-            // plot if point is not discarded:
             const auto pos_int = math::Vec2Int{ wfrag.pos };
 
+            // early z testing:
+            if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                if (!framebuffer.test_depth(pos_int, wfrag.depth)) {
+                    return;
+                }
+            }
+
+            // apply fragment shader and unpack results:
+            for (const FragmentToken result : program.on_fragment(context, uniform, wfrag, targets)) {
+                if (result == FragmentToken::Discard) return;
+            }
             if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
                 if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
                     framebuffer.plot(pos_int, targets);
@@ -491,14 +635,22 @@ private:
 
         if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
             const auto plot_func =
-                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag,
-                                                   const std::array<bool, 2>& in_line) -> void {
+                [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag) -> void {
                 const auto [rfrag0, rfrag1] = rfrag;
+
+                const auto pos_int = math::Vec2Int{ rfrag0.pos };
+
+                // early z testing:
+                if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                    if (!framebuffer.test_depth(pos_int, rfrag0.depth)) {
+                        return;
+                    }
+                }
 
                 using FragmentContext = typename Program::FragmentContext;
                 std::array<typename FragmentContext::ValueVariant, 4> quad;
-                FragmentContext c0{ 0, quad, FragmentContext::Type::LINE, !in_line[0] };
-                FragmentContext c1{ 1, quad, FragmentContext::Type::LINE, !in_line[1] };
+                FragmentContext c0{ 0, quad, FragmentContext::Type::LINE, true };
+                FragmentContext c1{ 1, quad, FragmentContext::Type::LINE, false };
 
                 Targets targets0 = {};
                 Targets targets1 = {};
@@ -510,40 +662,27 @@ private:
                 for (const auto [r0, r1] :
                      std::ranges::views::zip(program.on_fragment(c0, uniform, rfrag0, targets0),
                                              program.on_fragment(c1, uniform, rfrag1, targets1))) {
-                    if (r0 == ProgramToken::Syncronize || r1 == ProgramToken::Syncronize) {
-                        if (r0 != ProgramToken::Syncronize || r1 != ProgramToken::Syncronize) {
+                    if (r0 == FragmentToken::Syncronize || r1 == FragmentToken::Syncronize) [[likely]] {
+                        if (r0 != FragmentToken::Syncronize || r1 != FragmentToken::Syncronize) [[unlikely]] {
                             throw std::logic_error("asciirast::Renderer::draw() : Fragment shader must "
-                                                   "should"
                                                    "syncronize in the same order in all instances");
                         }
                     }
-                    discarded0 |= r0 == ProgramToken::Discard;
-                    discarded1 |= r1 == ProgramToken::Discard;
+                    discarded0 |= r0 == FragmentToken::Discard;
+                    discarded1 |= r1 == FragmentToken::Discard;
 
                     if (discarded0 || discarded1) {
                         break;
                     }
                 }
 
-                const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
-                const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
-
-                if (in_line[0] && !discarded0) {
+                if (!discarded0) {
                     if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
-                        if (framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth)) {
-                            framebuffer.plot(rfrag0_pos_int, targets0);
+                        if (framebuffer.test_and_set_depth(pos_int, rfrag0.depth)) {
+                            framebuffer.plot(pos_int, targets0);
                         }
                     } else {
-                        framebuffer.plot(rfrag0_pos_int, targets0);
-                    }
-                }
-                if (in_line[1] && !discarded1) {
-                    if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
-                        if (framebuffer.test_and_set_depth(rfrag1_pos_int, rfrag1.depth)) {
-                            framebuffer.plot(rfrag1_pos_int, targets1);
-                        }
-                    } else {
-                        framebuffer.plot(rfrag1_pos_int, targets1);
+                        framebuffer.plot(pos_int, targets0);
                     }
                 }
             };
@@ -627,6 +766,21 @@ private:
                                                        const std::array<bool, 4>& in_triangle) -> void {
                     const auto [rfrag0, rfrag1, rfrag2, rfrag3] = rfrag;
 
+                    const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
+                    const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
+                    const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
+                    const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
+
+                    // early z testing:
+                    if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                        if (!framebuffer.test_depth(rfrag0_pos_int, rfrag0.depth) &&
+                            !framebuffer.test_depth(rfrag1_pos_int, rfrag1.depth) &&
+                            !framebuffer.test_depth(rfrag2_pos_int, rfrag2.depth) &&
+                            !framebuffer.test_depth(rfrag3_pos_int, rfrag3.depth)) {
+                            return;
+                        }
+                    }
+
                     using FragmentContext = typename Program::FragmentContext;
                     std::array<typename FragmentContext::ValueVariant, 4> quad;
                     FragmentContext c0{ 0, quad, FragmentContext::Type::FILLED, !in_triangle[0] };
@@ -650,29 +804,24 @@ private:
                                                  program.on_fragment(c1, uniform, rfrag1, targets1),
                                                  program.on_fragment(c2, uniform, rfrag2, targets2),
                                                  program.on_fragment(c3, uniform, rfrag3, targets3))) {
-                        if (r0 == ProgramToken::Syncronize || r1 == ProgramToken::Syncronize ||
-                            r2 == ProgramToken::Syncronize || r3 == ProgramToken::Syncronize) {
-                            if (r0 != ProgramToken::Syncronize || r1 != ProgramToken::Syncronize ||
-                                r2 != ProgramToken::Syncronize || r3 != ProgramToken::Syncronize) {
+                        if (r0 == FragmentToken::Syncronize || r1 == FragmentToken::Syncronize ||
+                            r2 == FragmentToken::Syncronize || r3 == FragmentToken::Syncronize) [[likely]] {
+                            if (r0 != FragmentToken::Syncronize || r1 != FragmentToken::Syncronize ||
+                                r2 != FragmentToken::Syncronize || r3 != FragmentToken::Syncronize) [[unlikely]] {
                                 throw std::logic_error("asciirast::Renderer::draw() : Fragment shader "
                                                        "must should"
                                                        "syncronize in the same order in all instances");
                             }
                         }
-                        discarded0 |= r0 == ProgramToken::Discard;
-                        discarded1 |= r1 == ProgramToken::Discard;
-                        discarded2 |= r2 == ProgramToken::Discard;
-                        discarded3 |= r3 == ProgramToken::Discard;
+                        discarded0 |= r0 == FragmentToken::Discard;
+                        discarded1 |= r1 == FragmentToken::Discard;
+                        discarded2 |= r2 == FragmentToken::Discard;
+                        discarded3 |= r3 == FragmentToken::Discard;
 
                         if (discarded0 || discarded1 || discarded2 || discarded3) {
                             break;
                         }
                     }
-                    const auto rfrag0_pos_int = math::Vec2Int{ rfrag0.pos };
-                    const auto rfrag1_pos_int = math::Vec2Int{ rfrag1.pos };
-                    const auto rfrag2_pos_int = math::Vec2Int{ rfrag2.pos };
-                    const auto rfrag3_pos_int = math::Vec2Int{ rfrag3.pos };
-
                     if (in_triangle[0] && !discarded0) {
                         if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
                             if (framebuffer.test_and_set_depth(rfrag0_pos_int, rfrag0.depth)) {
@@ -849,5 +998,4 @@ private:
         }
     }
 };
-
 }; // namespace asciirast

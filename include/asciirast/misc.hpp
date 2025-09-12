@@ -1,6 +1,6 @@
 /**
  * @file misc.hpp
- * @brief Miscellaneous functions
+ * @brief Miscellaneous functions and constants
  *
  * reverse depth:
  * - https://developer.nvidia.com/blog/visualizing-depth-precision/
@@ -13,6 +13,10 @@
 #include "./math/types.hpp"
 
 namespace asciirast {
+
+static constexpr math::Vec3 RIGHT = { 1, 0, 0 };   ///< "right" axis
+static constexpr math::Vec3 UP = { 0, 1, 0 };      ///< "up" axis
+static constexpr math::Vec3 FORWARD = { 0, 0, 1 }; ///< "forward" axis
 
 /**
  * @brief Normalized Device Coordinates boundary

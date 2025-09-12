@@ -166,8 +166,8 @@ public:
         Component<2> z, b;
 
         Components<0, 0> xx, rr;
-        Components<0, 1> xy, rb;
-        Components<0, 2> xz, rg;
+        Components<0, 1> xy, rg;
+        Components<0, 2> xz, rb;
         Components<1, 0> yx, gr;
         Components<1, 1> yy, gg;
         Components<1, 2> yz, gb;
