@@ -14,16 +14,20 @@
 namespace asciirast {
 
 /**
- * @brief Minimal Program requirements
+ * @brief uniform requirements, to use them as they are usually used
  */
 template<class T>
-concept ProgramInterface_MinimalSupport = requires(const T t) {
+concept ProgramInterface_UniformWithNoReferences = std::is_copy_assignable_v<T> && std::is_move_assignable_v<T>;
+
+/**
+ * @brief on_vertex() function requirements
+ */
+template<class T>
+concept ProgramInterface_VertexSupport = requires(const T t) {
     typename T::Uniform;
     typename T::Vertex;
     typename T::Varying;
-    typename T::Targets;
     requires std::semiregular<typename T::Targets>;
-    requires std::is_default_constructible_v<typename T::Uniform>; // fudgy way to disallow references
     {
         t.on_vertex(std::declval<const typename T::Uniform&>(),     //
                     std::declval<const typename T::Vertex&>(),      //
@@ -36,7 +40,9 @@ concept ProgramInterface_MinimalSupport = requires(const T t) {
  */
 template<class T>
 concept ProgramInterface_FragRegularSupport = requires(const T t) {
-    requires ProgramInterface_MinimalSupport<T>;
+    typename T::Uniform;
+    typename T::Varying;
+    typename T::Targets;
     {
         t.on_fragment(std::declval<const typename T::Uniform&>(), //
                       std::declval<const ProjectedFragment<typename T::Varying>&>(),
@@ -49,8 +55,10 @@ concept ProgramInterface_FragRegularSupport = requires(const T t) {
  */
 template<class T>
 concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
-    requires ProgramInterface_MinimalSupport<T>;
     typename T::FragmentContext;
+    typename T::Uniform;
+    typename T::Varying;
+    typename T::Targets;
     []<typename... ValueTypes>(const FragmentContextGeneric<ValueTypes...>&) {
     }(std::declval<typename T::FragmentContext>());
     {
@@ -66,10 +74,12 @@ concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
  */
 template<class T>
 concept ProgramInterface = requires(const T t) {
-    requires ProgramInterface_MinimalSupport<T>;
+    requires ProgramInterface_UniformWithNoReferences<T>;
+    requires ProgramInterface_VertexSupport<T>;
     requires ProgramInterface_FragRegularSupport<T>;
 } || requires(const T t) {
-    requires ProgramInterface_MinimalSupport<T>;
+    requires ProgramInterface_UniformWithNoReferences<T>;
+    requires ProgramInterface_VertexSupport<T>;
     requires ProgramInterface_FragCoroutineSupport<T>;
 };
 
