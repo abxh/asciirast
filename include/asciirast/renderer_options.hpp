@@ -8,6 +8,20 @@
 namespace asciirast {
 
 /**
+ * @brief Shape primitives
+ */
+enum class ShapeType
+{
+    Points,
+    Lines,
+    LineStrip,
+    LineLoop,
+    Triangles,
+    TriangleStrip,
+    TriangleFan,
+};
+
+/**
  * @brief Triangle winding order
  */
 enum class WindingOrder

@@ -27,24 +27,24 @@ namespace asciirast::math {
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot2DType
+class Rot2DGeneric
 {
 public:
     using Vec2 = Vec<2, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
-    using Rot2D = Rot2DType<T, is_col_major>;
+    using Rot2D = Rot2DGeneric<T, is_col_major>;
 
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    constexpr Rot2DType() = default;
+    constexpr Rot2DGeneric() = default;
 
     /**
      * @brief (Implicitly) construct rotation object from angle
      *
      * @param radians The angle at hand in radians
      */
-    constexpr Rot2DType(const T radians)
+    constexpr Rot2DGeneric(const T radians)
         : m_complex{ complex_from(radians) } {};
 
     /**
@@ -55,7 +55,7 @@ public:
      * @param to_dir The destination direction vector
      * @param normalize Whether to_dir is not normalized
      */
-    constexpr Rot2DType(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
+    constexpr Rot2DGeneric(const Vec2& from_dir, const Vec2& to_dir, bool normalize = true)
         : m_complex{ complex_div(to_dir, from_dir, normalize) } {};
 
     /**
@@ -63,7 +63,7 @@ public:
      *
      * @param complex The complex number at hand
      */
-    explicit constexpr Rot2DType(const Vec2& complex)
+    explicit constexpr Rot2DGeneric(const Vec2& complex)
         : m_complex{ complex } {};
 
     /**
@@ -177,18 +177,18 @@ private:
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Rot3DType
+class Rot3DGeneric
 {
 public:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
-    using Rot3D = Rot3DType<T, is_col_major>;
+    using Rot3D = Rot3DGeneric<T, is_col_major>;
 
     /**
      * @brief Construct identity rotation object that does "nothing"
      */
-    constexpr Rot3DType() = default;
+    constexpr Rot3DGeneric() = default;
 
     /**
      * @brief Construct rotation object from axis and angle in radians
@@ -199,7 +199,7 @@ public:
      * @param normalize Whether to normalize this in case the axis vector
      * was not pre-normalized
      */
-    constexpr Rot3DType(const Vec3& axis, const T radians, bool normalize = true)
+    constexpr Rot3DGeneric(const Vec3& axis, const T radians, bool normalize = true)
         : m_quat{ quat_from(normalize ? axis.normalized() : axis, radians) } {};
 
     /**

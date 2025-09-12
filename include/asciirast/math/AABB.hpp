@@ -24,8 +24,8 @@ template<std::size_t N, typename T, bool is_col_major>
 class AABB
 {
 public:
-    using Transform2D = Transform2DType<T, is_col_major>;
-    using Transform3D = Transform3DType<T, is_col_major>;
+    using Transform2D = Transform2DGeneric<T, is_col_major>;
+    using Transform3D = Transform3DGeneric<T, is_col_major>;
 
     /**
      * @brief Construct AABB from a minimum and maximum point

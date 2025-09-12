@@ -117,7 +117,7 @@ concept has_minus_operator = requires(T t) {
  */
 template<typename... ValueTypes>
     requires((detail::has_minus_operator<ValueTypes> && ...) && (std::semiregular<ValueTypes> && ...))
-class FragmentContextType
+class FragmentContextGeneric
 {
 public:
     using ValueVariant = std::variant<std::monostate,
@@ -136,11 +136,11 @@ public:
     /**
      * @brief Construct a new fragment context
      */
-    FragmentContextType(const std::size_t id,
-                        std::array<ValueVariant, 4>& quad,
-                        const Type type,
-                        const bool is_helper_invocation = false,
-                        const bool is_initialized = false)
+    FragmentContextGeneric(const std::size_t id,
+                           std::array<ValueVariant, 4>& quad,
+                           const Type type,
+                           const bool is_helper_invocation = false,
+                           const bool is_initialized = false)
         : m_id{ id }
         , m_quad{ quad }
         , m_type{ type }
@@ -174,7 +174,7 @@ public:
     /**
      * @brief Check fragment context (runtime) type
      *
-     * @return A FragmentContextType enum value
+     * @return A Type enum value
      */
     [[nodiscard]] Type type() const { return m_type; }
 

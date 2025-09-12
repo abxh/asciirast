@@ -7,6 +7,7 @@
 
 #include <ranges>
 
+#include "./detail/GeneratorInterface.hpp"
 #include "./detail/StaticPoolGenerator.hpp"
 
 namespace asciirast {
@@ -37,12 +38,6 @@ enum class GeometryToken
 using FragmentTokenGenerator = detail::StaticPoolGenerator<FragmentToken, 512, 4>;
 
 static_assert(std::ranges::input_range<FragmentTokenGenerator>);
-
-/**
- * @brief Geometry (program) token generator to be used
- */
-using GeometryTokenGenerator = detail::StaticPoolGenerator<GeometryToken, 1024, 1>;
-
-static_assert(std::ranges::input_range<GeometryTokenGenerator>);
+static_assert(detail::GeneratorInterface<FragmentTokenGenerator, FragmentToken>);
 
 } // namespace asciirast

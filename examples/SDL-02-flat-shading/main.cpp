@@ -5,6 +5,7 @@
 // <random>:
 // https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
 
+
 #include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>

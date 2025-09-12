@@ -43,7 +43,7 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<math::Vec2>;
+    using FragmentContext = asciirast::FragmentContextGeneric<math::Vec2>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {

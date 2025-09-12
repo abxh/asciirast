@@ -183,9 +183,9 @@ public:
         requires((detail::vec_info<Args>::value && detail::vec_info<Args>::size == N_x) && ...)
     {
         if constexpr (is_col_major) {
-            using MatType = Mat<N_x, M_y, T, is_col_major>;
+            using MatAlias = Mat<N_x, M_y, T, is_col_major>;
 
-            return MatType{ std::forward<Args>(args)... }.transposed();
+            return MatAlias{ std::forward<Args>(args)... }.transposed();
         } else {
             using MatType = Mat<M_y, N_x, T, is_col_major>;
 

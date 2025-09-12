@@ -21,21 +21,21 @@ namespace asciirast::math {
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform2DType
+class Transform2DGeneric
 {
 public:
     using Vec2 = Vec<2, T>;
     using Vec3 = Vec<3, T>;
     using Mat2 = Mat<2, 2, T, is_col_major>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
-    using Rot2D = Rot2DType<T, is_col_major>;
-    using Transform2D = Transform2DType<T, is_col_major>;
+    using Rot2D = Rot2DGeneric<T, is_col_major>;
+    using Transform2D = Transform2DGeneric<T, is_col_major>;
 
     /**
      * @brief Construct a identity transform object that performs
      * "nothing"
      */
-    constexpr Transform2DType()
+    constexpr Transform2DGeneric()
         : m_mat{ Mat3::identity() }
         , m_mat_inv{ Mat3::identity() } {};
 
@@ -254,7 +254,7 @@ private:
     Mat3 m_mat;     ///< underlying matrix
     Mat3 m_mat_inv; ///< underlying inverse matrix
 
-    constexpr Transform2DType(const Mat3& mat, const Mat3& mat_inv)
+    constexpr Transform2DGeneric(const Mat3& mat, const Mat3& mat_inv)
         : m_mat{ mat }
         , m_mat_inv{ mat_inv } {};
 
@@ -275,21 +275,21 @@ private:
  */
 template<typename T, bool is_col_major>
     requires(std::is_floating_point_v<T>)
-class Transform3DType
+class Transform3DGeneric
 {
 public:
     using Vec3 = Vec<3, T>;
     using Vec4 = Vec<4, T>;
     using Mat3 = Mat<3, 3, T, is_col_major>;
     using Mat4 = Mat<4, 4, T, is_col_major>;
-    using Rot3D = Rot3DType<T, is_col_major>;
-    using Transform3D = Transform3DType<T, is_col_major>;
+    using Rot3D = Rot3DGeneric<T, is_col_major>;
+    using Transform3D = Transform3DGeneric<T, is_col_major>;
 
     /**
      * @brief Construct a identity transform object that performs
      * "nothing"
      */
-    constexpr Transform3DType()
+    constexpr Transform3DGeneric()
         : m_mat{ Mat4::identity() }
         , m_mat_inv{ Mat4::identity() } {};
 
@@ -554,7 +554,7 @@ private:
     Mat4 m_mat;     ///< underlying matrix
     Mat4 m_mat_inv; ///< underlying inverse matrix
 
-    constexpr Transform3DType(const Mat4& mat, const Mat4& mat_inv)
+    constexpr Transform3DGeneric(const Mat4& mat, const Mat4& mat_inv)
         : m_mat{ mat }
         , m_mat_inv{ mat_inv } {};
 

@@ -64,7 +64,7 @@ public:
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
     friend math::Vec4 textureLOD(const Sampler&,
-                                 const TextureType<RGBA_8bit_Allocator, MipmapAllocator>&,
+                                 const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>&,
                                  const math::Vec2&,
                                  const math::Float);
 
@@ -74,9 +74,9 @@ public:
      * the renderer
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
-    friend auto texture_init(const FragmentContextType<ValueTypes...>&,
+    friend auto texture_init(const FragmentContextGeneric<ValueTypes...>&,
                              const Sampler&,
-                             const TextureType<RGBA_8bit_Allocator, MipmapAllocator>&,
+                             const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>&,
                              const math::Vec2&);
 
     /**
@@ -84,9 +84,9 @@ public:
      * @return Return sampled color at the uv coordinate
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
-    friend auto texture(const FragmentContextType<ValueTypes...>&,
+    friend auto texture(const FragmentContextGeneric<ValueTypes...>&,
                         const Sampler&,
-                        const TextureType<RGBA_8bit_Allocator, MipmapAllocator>&,
+                        const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>&,
                         const math::Vec2&);
 
 protected:
@@ -98,7 +98,7 @@ protected:
      * @return The RGBA pixel color as Vec
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
-    [[nodiscard]] math::Vec4 sample(const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& t,
+    [[nodiscard]] math::Vec4 sample(const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>& t,
                                     const math::Vec2& uv,
                                     const std::size_t i) const
     {
@@ -146,7 +146,7 @@ protected:
      */
     template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
     math::Vec4 color_at(math::Vec2Int pos,
-                        const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& t,
+                        const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>& t,
                         const std::size_t i) const
     {
         ASCIIRAST_ASSERT(i < t.mipmaps().size(), "debug is inside bounds");
@@ -201,7 +201,7 @@ protected:
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
 [[maybe_unused]] math::Vec4
 textureLOD(const Sampler& sampler,
-           const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+           const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>& texture,
            const math::Vec2& uv,
            const math::Float lod)
 {
@@ -239,8 +239,8 @@ textureLOD(const Sampler& sampler,
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]] FragmentToken
-texture_init(FragmentContextType<ValueTypes...>& context,
-             const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+texture_init(FragmentContextGeneric<ValueTypes...>& context,
+             const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>& texture,
              const math::Vec2& uv)
 {
     ASCIIRAST_ASSERT(texture.mipmaps_generated(), "mipmaps generated before texture_init is called");
@@ -264,12 +264,12 @@ texture_init(FragmentContextType<ValueTypes...>& context,
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator, typename... ValueTypes>
     requires((std::is_same_v<ValueTypes, math::Vec2> || ...))
 [[maybe_unused]] math::Vec4
-texture(FragmentContextType<ValueTypes...>& context,
+texture(FragmentContextGeneric<ValueTypes...>& context,
         const Sampler& sampler,
-        const TextureType<RGBA_8bit_Allocator, MipmapAllocator>& texture,
+        const TextureGeneric<RGBA_8bit_Allocator, MipmapAllocator>& texture,
         const math::Vec2& uv)
 {
-    using Type = FragmentContextType<ValueTypes...>::Type;
+    using Type = FragmentContextGeneric<ValueTypes...>::Type;
 
     switch (context.type()) {
     case Type::POINT: {

@@ -34,13 +34,13 @@ using Mat2 = Mat<2, 2, Float, uses_col_major>; ///< 2x2 matrix
 using Mat3 = Mat<3, 3, Float, uses_col_major>; ///< 3x3 matrix
 using Mat4 = Mat<4, 4, Float, uses_col_major>; ///< 4x4 matrix
 
-using Rot2D = Rot2DType<Float, uses_col_major>; ///< 2D rotation abstraction
-using Rot3D = Rot3DType<Float, uses_col_major>; ///< 3D rotation abstraction
+using Rot2D = Rot2DGeneric<Float, uses_col_major>; ///< 2D rotation abstraction
+using Rot3D = Rot3DGeneric<Float, uses_col_major>; ///< 3D rotation abstraction
 
-using Transform2D = Transform2DType<Float,
-                                    uses_col_major>; ///< 2D Transformation abstraction
-using Transform3D = Transform3DType<Float,
-                                    uses_col_major>; ///< 3D Transformation abstraction
+using Transform2D = Transform2DGeneric<Float,
+                                       uses_col_major>; ///< 2D Transformation abstraction
+using Transform3D = Transform3DGeneric<Float,
+                                       uses_col_major>; ///< 3D Transformation abstraction
 
 using AABB2D = AABB<2, Float, uses_col_major>; ///< 2D Axis-Aligned Bounding Box
 using AABB3D = AABB<3, Float, uses_col_major>; ///< 3D Axis-Aligned Bounding Box

@@ -50,7 +50,7 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = TerminalBuffer::Targets;
-    using FragmentContext = asciirast::FragmentContextType<math::Vec2Int>;
+    using FragmentContext = asciirast::FragmentContextGeneric<math::Vec2Int>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {

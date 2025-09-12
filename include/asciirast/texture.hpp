@@ -137,7 +137,7 @@ public:
  * @brief Texture class
  */
 template<typename RGBA_8bit_Allocator, typename MipmapAllocator>
-class TextureType
+class TextureGeneric
 {
 protected:
     using RGBA_8bit_TextureStorage = TextureStorage<math::RGBA_8bit,
@@ -153,7 +153,7 @@ public:
     /**
      * @brief Construct a unintialized texture
      */
-    TextureType() = default;
+    TextureGeneric() = default;
 
     /**
      * @brief Construct a texture and it's mipmaps from a texture file
@@ -163,7 +163,7 @@ public:
      *
      * @param file_path Path to the texture file
      */
-    explicit TextureType(const std::filesystem::path& file_path)
+    explicit TextureGeneric(const std::filesystem::path& file_path)
     {
         this->load(file_path);
         this->generate_mipmaps();
@@ -413,9 +413,9 @@ public:
 };
 
 /**
- * @brief Handy alias to TextureType, using std::allocator
+ * @brief Handy alias to TextureGeneric, using std::allocator
  */
-using Texture = TextureType<std::allocator<math::RGBA_8bit>,
-                            std::allocator<TextureStorage<math::RGBA_8bit, std::allocator<math::RGBA_8bit>>>>;
+using Texture = TextureGeneric<std::allocator<math::RGBA_8bit>,
+                               std::allocator<TextureStorage<math::RGBA_8bit, std::allocator<math::RGBA_8bit>>>>;
 
 } // namespace asciirast

@@ -19,20 +19,6 @@
 namespace asciirast {
 
 /**
- * @brief Shape primitives
- */
-enum class ShapeType
-{
-    Points,
-    Lines,
-    LineStrip,
-    LineLoop,
-    Triangles,
-    TriangleStrip,
-    TriangleFan,
-};
-
-/**
  * @brief Vertex buffer
  *
  * @tparam Vertex The vertex type

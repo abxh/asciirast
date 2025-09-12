@@ -7,6 +7,7 @@
 
 #include <concepts>
 
+#include "./detail/GeneratorInterface.hpp"
 #include "./fragment.hpp"
 #include "./program_token.hpp"
 
@@ -50,14 +51,14 @@ template<class T>
 concept ProgramInterface_FragCoroutineSupport = requires(const T t) {
     requires ProgramInterface_MinimalSupport<T>;
     typename T::FragmentContext;
-    []<typename... ValueTypes>(const FragmentContextType<ValueTypes...>&) {
+    []<typename... ValueTypes>(const FragmentContextGeneric<ValueTypes...>&) {
     }(std::declval<typename T::FragmentContext>());
     {
         t.on_fragment(std::declval<typename T::FragmentContext&>(),
                       std::declval<const typename T::Uniform&>(), //
                       std::declval<const ProjectedFragment<typename T::Varying>&>(),
                       std::declval<typename T::Targets&>()) //
-    } -> std::same_as<FragmentTokenGenerator>;
+    } -> detail::GeneratorInterface<FragmentToken>;
 };
 
 /**
