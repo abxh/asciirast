@@ -14,10 +14,12 @@
 namespace asciirast {
 
 /**
- * @brief uniform requirements, to use them as they are usually used
+ * @brief uniform requirements, to discourage using references and use them as they are usually used
  */
 template<class T>
-concept ProgramInterface_UniformWithNoReferences = std::is_copy_assignable_v<T> && std::is_move_assignable_v<T>;
+concept ProgramInterface_UniformWithNoReferences = requires {
+    typename T::Uniform;
+} && std::is_copy_assignable_v<typename T::Uniform> && std::is_move_assignable_v<typename T::Uniform>;
 
 /**
  * @brief on_vertex() function requirements
