@@ -25,12 +25,12 @@ enum class FragmentToken
 /**
  * @brief Geometry (program) tokens to be emitted to do special procedures
  */
-enum class GeometryToken
-{
-    Discard,
-    Emit,
-    EndPrimitive,
-};
+// enum class GeometryToken
+// {
+//     Discard,
+//     Emit,
+//     EndPrimitive,
+// };
 
 /**
  * @brief Fragment (program) token generator to be used

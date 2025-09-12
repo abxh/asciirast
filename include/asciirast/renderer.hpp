@@ -257,57 +257,57 @@ public:
      * @param framebuffer The frame buffer
      * @param data Renderer data
      */
-    template<ProgramInterface Program,
-             class Uniform,
-             FrameBufferInterface FrameBuffer,
-             class Vec4TripletAllocator,
-             class AttrsTripletAllocator>
-        requires(std::is_same_v<typename Program::Uniform, Uniform> &&
-                 shapes::detail::is_mesh_vertex<typename Program::Vertex>::value &&
-                 std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
-    void draw(const Program& program,
-              const Uniform& uniform,
-              const shapes::MeshKind auto& mesh,
-              FrameBuffer& framebuffer,
-              RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
-    {
-        ASCIIRAST_ASSERT(mesh.positions.size() == mesh.texcoords.size() && mesh.texcoords.size() == mesh.normals.size(),
-                         mesh.positions.size(),
-                         mesh.texcoords.size(),
-                         mesh.normals.size(),
-                         "mesh buffers have same size");
-        if constexpr (mesh.has_attributes) {
-            ASCIIRAST_ASSERT(mesh.normals.size() == mesh.attributes.size(),
-                             mesh.normals.size(),
-                             mesh.attributes.size(),
-                             "mesh buffers have same size");
-        }
-
-        using VertexAttr = typename std::remove_cvref_t<decltype(mesh)>::VertexAttr;
-
-        const auto mesh_attributes = [&mesh](const std::size_t i) -> VertexAttr {
-            if constexpr (mesh.has_attributes) {
-                return mesh.attributes[i];
-            } else {
-                return VertexAttr();
-            }
-        };
-        const auto func = [&mesh, &mesh_attributes](const std::size_t i) -> shapes::MeshVertex<VertexAttr> {
-            if (i >= mesh.positions.size()) [[unlikely]] {
-                throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
-                                         "bounds");
-            }
-            return shapes::MeshVertex<VertexAttr>{
-                .pos = mesh.positions[i],
-                .texcoord = mesh.texcoords[i],
-                .normal = mesh.normals[i],
-                .attrs = mesh_attributes(i),
-            };
-        };
-        const auto view = std::ranges::views::transform(std::views::all(mesh.indicies), func);
-
-        draw_internal(program, uniform, ShapeType::Triangles, view, framebuffer, data);
-    }
+    // template<ProgramInterface Program,
+    //          class Uniform,
+    //          FrameBufferInterface FrameBuffer,
+    //          class Vec4TripletAllocator,
+    //          class AttrsTripletAllocator>
+    //     requires(std::is_same_v<typename Program::Uniform, Uniform> &&
+    //              shapes::detail::is_mesh_vertex<typename Program::Vertex>::value &&
+    //              std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
+    // void draw(const Program& program,
+    //           const Uniform& uniform,
+    //           const shapes::MeshKind auto& mesh,
+    //           FrameBuffer& framebuffer,
+    //           RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
+    // {
+    //     ASCIIRAST_ASSERT(mesh.positions.size() == mesh.texcoords.size() && mesh.texcoords.size() == mesh.normals.size(),
+    //                      mesh.positions.size(),
+    //                      mesh.texcoords.size(),
+    //                      mesh.normals.size(),
+    //                      "mesh buffers have same size");
+    //     if constexpr (mesh.has_attributes) {
+    //         ASCIIRAST_ASSERT(mesh.normals.size() == mesh.attributes.size(),
+    //                          mesh.normals.size(),
+    //                          mesh.attributes.size(),
+    //                          "mesh buffers have same size");
+    //     }
+    //
+    //     using VertexAttr = typename std::remove_cvref_t<decltype(mesh)>::VertexAttr;
+    //
+    //     const auto mesh_attributes = [&mesh](const std::size_t i) -> VertexAttr {
+    //         if constexpr (mesh.has_attributes) {
+    //             return mesh.attributes[i];
+    //         } else {
+    //             return VertexAttr();
+    //         }
+    //     };
+    //     const auto func = [&mesh, &mesh_attributes](const std::size_t i) -> shapes::MeshVertex<VertexAttr> {
+    //         if (i >= mesh.positions.size()) [[unlikely]] {
+    //             throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
+    //                                      "bounds");
+    //         }
+    //         return shapes::MeshVertex<VertexAttr>{
+    //             .pos = mesh.positions[i],
+    //             .texcoord = mesh.texcoords[i],
+    //             .normal = mesh.normals[i],
+    //             .attrs = mesh_attributes(i),
+    //         };
+    //     };
+    //     const auto view = std::ranges::views::transform(std::views::all(mesh.indicies), func);
+    //
+    //     draw_internal(program, uniform, ShapeType::Triangles, view, framebuffer, data);
+    // }
 
     /**
      * @brief Calculate the transform to convert screen_bounds points to
