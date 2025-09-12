@@ -1,7 +1,7 @@
 # asciirast
 
 A software rasterizer based on the classical OpenGL graphics pipeline made for educational purposes.
-It is meant to both render ascii art and real images. It currently simulates vertex and fragment shaders.
+It is meant to both render ascii art and 3D images. 
 
 The `.obj` files are expected to follow a right-handed (`-Z` forward) `Y` up coordinate system. See
 [this](https://github.com/jakelazaroff/til/blob/main/math/convert-between-3d-coordinate-systems.md)
