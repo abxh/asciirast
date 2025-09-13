@@ -94,7 +94,7 @@ public:
      *
      * @return Const reference to the scale to viewport transform
      */
-    const math::Transform2D& scale_to_viewport() const { return m_scale_to_viewport; }
+    const math::Transform2D& scale_to_viewport_transform() const { return m_scale_to_viewport; }
 
     /**
      * @brief Draw on a framebuffer using a program given uniform(s),
@@ -102,13 +102,6 @@ public:
      *
      * @throws std::logic_error If fragments do not syncronize in the same
      * order
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param shape_type The shape type
-     * @param verts The vertex buffer
-     * @param framebuffer The frame buffer
-     * @param data Renderer data
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -126,7 +119,7 @@ public:
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        draw(program, uniform, verts.shape_type, verts.verticies, framebuffer, data);
+        draw(program, uniform, verts.shape_type, verts.verticies.size(), verts.verticies.data(), framebuffer, data);
     }
 
     /**
@@ -136,12 +129,6 @@ public:
      * @throws std::runtime_error If the vertex indicies are out of bounds
      * @throws std::logic_error If fragments do not syncronize in the same
      * order
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param verts The vertex buffer with indicies
-     * @param framebuffer The frame buffer
-     * @param data Renderer data
      */
     template<ProgramInterface Program,
              class Uniform,
@@ -160,7 +147,15 @@ public:
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        draw(program, uniform, verts.shape_type, verts.verticies, verts.indicies, framebuffer, data);
+        draw(program,
+             uniform,
+             verts.shape_type,
+             verts.verticies.size(),
+             verts.verticies.data(),
+             verts.indicies.size(),
+             verts.indicies.data(),
+             framebuffer,
+             data);
     }
 
     /**
@@ -169,19 +164,11 @@ public:
      *
      * @throws std::logic_error If fragments do not syncronize in the same
      * order
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param shape_type The shape type
-     * @param verts The vertex buffer
-     * @param framebuffer The frame buffer
-     * @param data Renderer data
      */
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
              FrameBufferInterface FrameBuffer,
-             class VertexAllocator,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
         requires(std::is_same_v<typename Program::Uniform, Uniform> &&
@@ -190,11 +177,12 @@ public:
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
-              const std::vector<Vertex, VertexAllocator>& verticies,
+              const std::size_t nverts,
+              const Vertex* verts,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        draw_internal(program, uniform, shape_type, std::views::all(verticies), framebuffer, data);
+        draw_internal(program, uniform, shape_type, std::ranges::subrange(verts, verts + nverts), framebuffer, data);
     }
 
     /**
@@ -204,20 +192,11 @@ public:
      * @throws std::runtime_error If the vertex indicies are out of bounds
      * @throws std::logic_error If fragments do not syncronize in the same
      * order
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param verticies The vertex buffer
-     * @param indicies The index buffer
-     * @param framebuffer The frame buffer
-     * @param data Renderer data
      */
     template<ProgramInterface Program,
              class Uniform,
              class Vertex,
              FrameBufferInterface FrameBuffer,
-             class VertexAllocator,
-             class IndexAllocator,
              class Vec4TripletAllocator,
              class AttrsTripletAllocator>
         requires(std::is_same_v<typename Program::Uniform, Uniform> &&
@@ -226,88 +205,24 @@ public:
     void draw(const Program& program,
               const Uniform& uniform,
               const ShapeType shape_type,
-              const std::vector<Vertex, VertexAllocator>& verticies,
-              const std::vector<std::size_t, IndexAllocator>& indicies,
+              const std::size_t nverts,
+              const Vertex* verts,
+              const std::size_t nindicies,
+              const std::size_t* indicies,
               FrameBuffer& framebuffer,
               RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
     {
-        const auto func = [&verticies](const std::size_t i) -> Vertex {
-            if (i >= verticies.size()) [[unlikely]] {
+        const auto func = [nverts, &verts](const std::size_t i) -> Vertex {
+            if (i >= nverts) [[unlikely]] {
                 throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
                                          "bounds");
             }
-            return verticies[i];
+            return verts[i];
         };
-        const auto view = std::ranges::views::transform(std::views::all(indicies), func);
+        const auto view = std::ranges::views::transform(std::ranges::subrange(indicies, indicies + nindicies), func);
 
         draw_internal(program, uniform, shape_type, view, framebuffer, data);
     }
-
-    /**
-     * @brief Draw on a framebuffer using a program given uniform(s),
-     * mesh and internal data buffers
-     *
-     * @throws std::runtime_error If the vertex indicies are out of bounds
-     * @throws std::logic_error If fragments do not syncronize in the same
-     * order
-     *
-     * @param program The shader program
-     * @param uniform The uniform(s)
-     * @param mesh The mesh data
-     * @param framebuffer The frame buffer
-     * @param data Renderer data
-     */
-    // template<ProgramInterface Program,
-    //          class Uniform,
-    //          FrameBufferInterface FrameBuffer,
-    //          class Vec4TripletAllocator,
-    //          class AttrsTripletAllocator>
-    //     requires(std::is_same_v<typename Program::Uniform, Uniform> &&
-    //              shapes::detail::is_mesh_vertex<typename Program::Vertex>::value &&
-    //              std::is_same_v<typename Program::Targets, typename FrameBuffer::Targets>)
-    // void draw(const Program& program,
-    //           const Uniform& uniform,
-    //           const shapes::MeshKind auto& mesh,
-    //           FrameBuffer& framebuffer,
-    //           RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data) const
-    // {
-    //     ASCIIRAST_ASSERT(mesh.positions.size() == mesh.texcoords.size() && mesh.texcoords.size() == mesh.normals.size(),
-    //                      mesh.positions.size(),
-    //                      mesh.texcoords.size(),
-    //                      mesh.normals.size(),
-    //                      "mesh buffers have same size");
-    //     if constexpr (mesh.has_attributes) {
-    //         ASCIIRAST_ASSERT(mesh.normals.size() == mesh.attributes.size(),
-    //                          mesh.normals.size(),
-    //                          mesh.attributes.size(),
-    //                          "mesh buffers have same size");
-    //     }
-    //
-    //     using VertexAttr = typename std::remove_cvref_t<decltype(mesh)>::VertexAttr;
-    //
-    //     const auto mesh_attributes = [&mesh](const std::size_t i) -> VertexAttr {
-    //         if constexpr (mesh.has_attributes) {
-    //             return mesh.attributes[i];
-    //         } else {
-    //             return VertexAttr();
-    //         }
-    //     };
-    //     const auto func = [&mesh, &mesh_attributes](const std::size_t i) -> shapes::MeshVertex<VertexAttr> {
-    //         if (i >= mesh.positions.size()) [[unlikely]] {
-    //             throw std::runtime_error("asciirast::Renderer::draw() : vertex index is out of "
-    //                                      "bounds");
-    //         }
-    //         return shapes::MeshVertex<VertexAttr>{
-    //             .pos = mesh.positions[i],
-    //             .texcoord = mesh.texcoords[i],
-    //             .normal = mesh.normals[i],
-    //             .attrs = mesh_attributes(i),
-    //         };
-    //     };
-    //     const auto view = std::ranges::views::transform(std::views::all(mesh.indicies), func);
-    //
-    //     draw_internal(program, uniform, ShapeType::Triangles, view, framebuffer, data);
-    // }
 
     /**
      * @brief Calculate the transform to convert screen_bounds points to
@@ -338,8 +253,8 @@ public:
      * @return The projected fragment transformed
      */
     template<VaryingInterface Varying>
-    static auto apply_scale_to_viewport(const math::Transform2D& scale_to_viewport, ProjectedFragment<Varying> frag)
-        -> ProjectedFragment<Varying>
+    static auto apply_scale_to_viewport_transform(const math::Transform2D& scale_to_viewport,
+                                                  ProjectedFragment<Varying> frag) -> ProjectedFragment<Varying>
     {
         frag.pos = scale_to_viewport.apply(frag.pos);
         return frag;
@@ -385,6 +300,11 @@ private:
             draw_triangle(
                 program, uniform, m_requires_screen_clipping, m_scale_to_viewport, data, framebuffer, v0, v1, v2);
         };
+        const auto draw_quad_func =
+            [&](const Vertex& v0, const Vertex& v1, const Vertex& v2, const Vertex& v3) -> void {
+            draw_quad(
+                program, uniform, m_requires_screen_clipping, m_scale_to_viewport, data, framebuffer, v0, v1, v2, v3);
+        };
 
         switch (shape_type) {
         case ShapeType::Points: {
@@ -393,15 +313,12 @@ private:
             }
         } break;
         case ShapeType::Lines: {
-            const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex> {
-                return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U));
-            };
             const auto rem = std::ranges::distance(verticies_inp) % 2U;
             const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
-            const auto verticies_tup = subrange | std::ranges::views::chunk(2U) | std::ranges::views::transform(func);
+            const auto verticies_arr = subrange | std::ranges::views::chunk(2U);
 
-            for (const auto& [v0, v1] : verticies_tup) {
-                draw_line_func(v0, v1);
+            for (const auto& v : verticies_arr) {
+                draw_line_func(v[0], v[1]);
             }
         } break;
         case ShapeType::LineStrip: {
@@ -425,15 +342,12 @@ private:
             };
         } break;
         case ShapeType::Triangles: {
-            const auto func = [](auto&& range) -> std::tuple<Vertex, Vertex, Vertex> {
-                return std::make_tuple(*range.cbegin(), *(range.cbegin() + 1U), *(range.cbegin() + 2U));
-            };
             const auto rem = std::ranges::distance(verticies_inp) % 3U;
             const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
-            const auto verticies = subrange | std::ranges::views::chunk(3U) | std::ranges::views::transform(func);
+            const auto verticies_arr = subrange | std::ranges::views::chunk(3U);
 
-            for (const auto& [v0, v1, v2] : verticies) {
-                draw_triangle_func(v0, v1, v2);
+            for (const auto& v : verticies_arr) {
+                draw_triangle_func(v[0], v[1], v[2]);
             }
         } break;
         case ShapeType::TriangleStrip: {
@@ -452,6 +366,24 @@ private:
                 for (const auto& [v1, v2] : verticies_tup) {
                     draw_triangle_func(v0, v1, v2);
                 }
+            }
+        } break;
+        case ShapeType::Quads: {
+            const auto rem = std::ranges::distance(verticies_inp) % 4U;
+            const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
+            const auto verticies_arr = subrange | std::ranges::views::chunk(4U);
+
+            for (const auto& v : verticies_arr) {
+                draw_quad_func(v[0], v[1], v[2], v[3]);
+            }
+        } break;
+        case ShapeType::QuadStrip: {
+            const auto rem = std::ranges::distance(verticies_inp) % 4U;
+            const auto subrange = verticies_inp | std::ranges::views::take(std::ranges::distance(verticies_inp) - rem);
+            const auto verticies_tab = subrange | std::ranges::views::chunk(2U) | std::ranges::views::chunk(2U);
+
+            for (const auto& t : verticies_tab) {
+                draw_quad_func(t[0][0], t[1][0], t[1][1], t[0][1]);
             }
         } break;
         }
@@ -487,7 +419,7 @@ private:
         const PFrag pfrag = project_fragment(frag);
 
         // scale up to viewport:
-        const PFrag vfrag = apply_scale_to_viewport(scale_to_viewport, pfrag);
+        const PFrag vfrag = apply_scale_to_viewport_transform(scale_to_viewport, pfrag);
 
         // cull points outside of screen:
         if (requires_screen_clipping && !renderer::point_in_screen(vfrag.pos, SCREEN_BOUNDS)) {
@@ -554,10 +486,7 @@ private:
                           const Vertex& v1)
     {
         using Varying = typename Program::Varying;
-        using Targets = typename Program::Targets;
-
         using Frag = Fragment<Varying>;
-        using PFrag = ProjectedFragment<Varying>;
 
         // apply vertex shader
         // model space -> world space -> view space -> clip space:
@@ -566,6 +495,30 @@ private:
 
         program.on_vertex(uniform, v0, frag0);
         program.on_vertex(uniform, v1, frag1);
+
+        draw_line_fragments(program, //
+                            uniform,
+                            requires_screen_clipping,
+                            scale_to_viewport,
+                            framebuffer,
+                            frag0,
+                            frag1);
+    }
+
+    template<ProgramInterface Program, class Uniform, FrameBufferInterface FrameBuffer>
+    static void draw_line_fragments(const Program& program,
+                                    const Uniform& uniform,
+                                    const bool requires_screen_clipping,
+                                    const math::Transform2D& scale_to_viewport,
+                                    FrameBuffer& framebuffer,
+                                    const Fragment<typename Program::Varying>& frag0,
+                                    const Fragment<typename Program::Varying>& frag1)
+    {
+        using Varying = typename Program::Varying;
+        using Targets = typename Program::Targets;
+
+        using Frag = Fragment<Varying>;
+        using PFrag = ProjectedFragment<Varying>;
 
         // clip line so it's inside the viewing volume:
         const auto tup = renderer::line_in_frustum(frag0.pos, frag1.pos);
@@ -582,8 +535,8 @@ private:
         const PFrag pfrag1 = project_fragment(tfrag1);
 
         // scale up to viewport:
-        const PFrag vfrag0 = apply_scale_to_viewport(scale_to_viewport, pfrag0);
-        const PFrag vfrag1 = apply_scale_to_viewport(scale_to_viewport, pfrag1);
+        const PFrag vfrag0 = apply_scale_to_viewport_transform(scale_to_viewport, pfrag0);
+        const PFrag vfrag1 = apply_scale_to_viewport_transform(scale_to_viewport, pfrag1);
 
         PFrag inner_tfrag0 = vfrag0;
         PFrag inner_tfrag1 = vfrag1;
@@ -722,6 +675,89 @@ private:
         const Vertex& v0,
         const Vertex& v1,
         const Vertex& v2)
+    {
+        using Varying = typename Program::Varying;
+        using Frag = Fragment<Varying>;
+
+        // apply vertex shader
+        // model space -> world space -> view space -> clip space:
+        Frag frag0{};
+        Frag frag1{};
+        Frag frag2{};
+
+        program.on_vertex(uniform, v0, frag0);
+        program.on_vertex(uniform, v1, frag1);
+        program.on_vertex(uniform, v2, frag2);
+
+        draw_triangle_fragments(program, //
+                                uniform,
+                                requires_screen_clipping,
+                                scale_to_viewport,
+                                data,
+                                framebuffer,
+                                frag0,
+                                frag1,
+                                frag2);
+    }
+
+    template<ProgramInterface Program,
+             class Uniform,
+             class Vertex,
+             FrameBufferInterface FrameBuffer,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
+        requires(std::is_same_v<Vertex, typename Program::Vertex>)
+    static void draw_quad(
+        const Program& program,
+        const Uniform& uniform,
+        [[maybe_unused]] const bool requires_screen_clipping,
+        [[maybe_unused]] const math::Transform2D& scale_to_viewport,
+        [[maybe_unused]] RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+        [[maybe_unused]] FrameBuffer& framebuffer,
+        const Vertex& v0,
+        const Vertex& v1,
+        const Vertex& v2,
+        const Vertex& v3)
+    {
+        using Varying = typename Program::Varying;
+        using Frag = Fragment<Varying>;
+
+        // apply vertex shader
+        // model space -> world space -> view space -> clip space:
+        std::array<Frag, 4> fragments{};
+
+        program.on_vertex(uniform, v0, fragments[0]);
+        program.on_vertex(uniform, v1, fragments[1]);
+        program.on_vertex(uniform, v2, fragments[2]);
+        program.on_vertex(uniform, v3, fragments[3]);
+
+        const auto indicies = triangulate_fragment_quad<Options.winding_order, typename Program::Varying>(fragments);
+
+        const auto draw_triangle =
+            [&](const Fragment<Varying>& f0, const Fragment<Varying>& f1, const Fragment<Varying>& f2) {
+                draw_triangle_fragments(
+                    program, uniform, requires_screen_clipping, scale_to_viewport, data, framebuffer, f0, f1, f2);
+            };
+
+        draw_triangle(fragments[indicies[0]], fragments[indicies[2]], fragments[indicies[1]]);
+        draw_triangle(fragments[indicies[3]], fragments[indicies[4]], fragments[indicies[5]]);
+    }
+
+    template<ProgramInterface Program,
+             class Uniform,
+             FrameBufferInterface FrameBuffer,
+             class Vec4TripletAllocator,
+             class AttrsTripletAllocator>
+    static void draw_triangle_fragments(
+        const Program& program,
+        const Uniform& uniform,
+        const bool requires_screen_clipping,
+        const math::Transform2D& scale_to_viewport,
+        RendererData<typename Program::Varying, Vec4TripletAllocator, AttrsTripletAllocator>& data,
+        FrameBuffer& framebuffer,
+        const Fragment<typename Program::Varying>& frag0,
+        const Fragment<typename Program::Varying>& frag1,
+        const Fragment<typename Program::Varying>& frag2)
     {
         using Varying = typename Program::Varying;
         using Targets = typename Program::Targets;
@@ -883,16 +919,6 @@ private:
             }
         };
 
-        // apply vertex shader
-        // model space -> world space -> view space -> clip space:
-        Frag frag0{};
-        Frag frag1{};
-        Frag frag2{};
-
-        program.on_vertex(uniform, v0, frag0);
-        program.on_vertex(uniform, v1, frag1);
-        program.on_vertex(uniform, v2, frag2);
-
         data.vec_queue.clear();
         data.attrs_queue.clear();
         data.vec_queue.insert(data.vec_queue.end(),
@@ -927,9 +953,9 @@ private:
             const PFrag pfrag2 = project_fragment(tfrag2);
 
             // scale to viewport:
-            const PFrag vfrag0 = apply_scale_to_viewport(scale_to_viewport, pfrag0);
-            const PFrag vfrag1 = apply_scale_to_viewport(scale_to_viewport, pfrag1);
-            const PFrag vfrag2 = apply_scale_to_viewport(scale_to_viewport, pfrag2);
+            const PFrag vfrag0 = apply_scale_to_viewport_transform(scale_to_viewport, pfrag0);
+            const PFrag vfrag1 = apply_scale_to_viewport_transform(scale_to_viewport, pfrag1);
+            const PFrag vfrag2 = apply_scale_to_viewport_transform(scale_to_viewport, pfrag2);
 
             if (!requires_screen_clipping) {
                 // screen space -> window space:
@@ -956,7 +982,7 @@ private:
             data.vec_queue_screen.insert(data.vec_queue_screen.end(), lp);
             data.attrs_queue_screen.insert(data.attrs_queue_screen.end(), la);
 
-            // clip line so it's inside the screen:
+            // clip triangle so it's inside the screen:
             if (!renderer::triangle_in_screen<Options.attr_interpolation>(
                     data.vec_queue_screen, data.attrs_queue_screen, SCREEN_BOUNDS)) {
                 continue;
@@ -971,12 +997,12 @@ private:
                 const PFrag inner_tfrag2 = { inner_vec2.xy, inner_vec2.z, inner_vec2.w, inner_attrs2 };
 
                 // screen space -> window space:
-                const PFrag wfrag0 =
-                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag0);
-                const PFrag wfrag1 =
-                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag1);
-                const PFrag wfrag2 =
-                    apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), inner_tfrag2);
+                const PFrag wfrag0 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), //
+                                                                      inner_tfrag0);
+                const PFrag wfrag1 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), //
+                                                                      inner_tfrag1);
+                const PFrag wfrag2 = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), //
+                                                                      inner_tfrag2);
 
                 // iterate over triangle fragments:
                 rasterize_triangle(wfrag0, wfrag1, wfrag2);

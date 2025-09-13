@@ -4,7 +4,7 @@ add_executable(sdl-example-3 ${SDL_EXAMPLE_3_FILES})
 
 target_link_libraries(sdl-example-3 PRIVATE asciirast)
 target_link_libraries(sdl-example-3 PRIVATE examples_common)
-target_link_libraries(sdl-example-3 PRIVATE tiny_obj_loader)
+target_link_libraries(sdl-example-3 PRIVATE tinyobjloader_impl)
 target_link_libraries(sdl-example-3 PRIVATE tinyfd)
 
 target_include_directories(sdl-example-3 PUBLIC ${PROJECT_SOURCE_DIR})

@@ -4,6 +4,7 @@
 // Test inspired by:
 // https://www.youtube.com/watch?v=4s30cnqxJ-0 (javidx9)
 
+#include "../common/EasyFont.hpp"
 #include "../common/SDLBuffer.hpp"
 
 #include <asciirast.hpp>
@@ -47,7 +48,7 @@ public:
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
-        out.pos.xy = { vert.pos };
+        out.pos.xyz = { vert.pos, 0.1 };
         out.attrs = { u.transform.apply(vert.uv) };
     }
     auto on_fragment(FragmentContext& context, const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
@@ -59,6 +60,45 @@ public:
 };
 
 static_assert(asciirast::ProgramInterface<MyProgram>);
+
+struct MyFontUniform : EasyFontUniform
+{
+    math::Vec2 pos;
+    RGB color;
+    math::Float font_rel_width;
+};
+
+struct MyFontVarying
+{
+    RGB color;
+};
+
+DERIVE_VARYING_OPS(MyFontVarying);
+
+class MyFontProgram
+{
+    using Fragment = asciirast::Fragment<MyFontVarying>;
+    using ProjectedFragment = asciirast::ProjectedFragment<MyFontVarying>;
+
+public:
+    using Uniform = MyFontUniform;
+    using Vertex = EasyFontVertex;
+    using Varying = MyFontVarying;
+    using Targets = SDLBuffer::Targets;
+
+    void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
+    {
+        const math::Float aspect_ratio_inv = 2 * u.font_height / math::Float(u.font_width);
+
+        out.pos.xy = u.pos + u.transform.apply(vert.pos.xy) *
+                                 math::Vec2{ u.font_rel_width, aspect_ratio_inv * u.font_rel_width };
+        out.attrs.color = u.color;
+    }
+    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+    {
+        out = { pfrag.attrs.color.rgb, 1 };
+    }
+};
 
 void
 handle_events(bool& running,
@@ -164,31 +204,17 @@ find_texture()
     return ptr ? std::make_optional(ptr) : std::nullopt;
 }
 
-std::optional<std::string>
-find_ttf()
-{
-    const auto default_path = ".";
-    const auto patterns = std::to_array<char const*>({ "*.ttf" });
-    const char* patterns_desc = nullptr;
-    const bool multi_select_enabled = false;
-    const char* ptr = tinyfd_openFileDialog(
-        "Specify .ttf File", default_path, patterns.size(), patterns.data(), patterns_desc, multi_select_enabled);
-
-    return ptr ? std::make_optional(ptr) : std::nullopt;
-}
-
 int
 main(int argc, char* argv[])
 {
     std::string path_to_img;
     std::string path_to_ttf;
-    if (argc < 3) {
+    if (argc < 2) {
         const char* program_name = (argc == 1) ? argv[0] : "<program>";
         const char* arg1_str = "path-to-texture";
-        const char* arg2_str = "path-to-ttf";
 
         std::cout << "usage:"
-                  << " " << program_name << " <" << arg1_str << "> <" << arg2_str << ">\n";
+                  << " " << program_name << " <" << arg1_str << ">\n";
         std::cout << "specified " << arg1_str << ": " << std::flush;
 
         if (const auto opt_texture_path = find_texture(); !opt_texture_path.has_value()) {
@@ -200,26 +226,12 @@ main(int argc, char* argv[])
             path_to_img = opt_texture_path.value();
             std::cout << path_to_img << "\n";
         }
-
-        std::cout << "specified " << arg2_str << ": " << std::flush;
-
-        if (const auto opt_ttf_path = find_ttf(); !opt_ttf_path.has_value()) {
-            std::cout << "\n";
-            std::cerr << "tinyfiledialogs failed. exiting."
-                      << "\n";
-            return EXIT_FAILURE;
-        } else {
-            path_to_ttf = opt_ttf_path.value();
-            std::cout << path_to_ttf << "\n";
-        }
     } else {
         path_to_img = argv[1];
-        path_to_ttf = argv[2];
     }
 
     MyUniform uniforms;
     const unsigned screen_size = 1024;
-    const SDLFont font{ path_to_ttf.c_str() };
     uniforms.texture = asciirast::Texture{ path_to_img };
     const math::Float aspect_ratio = uniforms.texture.width() / (math::Float)uniforms.texture.height();
     math::Vec2 shift = { 0, 0 };
@@ -238,17 +250,24 @@ main(int argc, char* argv[])
 
     SDLBuffer screen(screen_size, screen_size);
     MyProgram program;
+    MyFontProgram font_program;
     asciirast::Renderer renderer;
     asciirast::RendererData<MyVarying> renderer_data;
+    asciirast::RendererData<MyFontVarying> font_renderer_data;
 
-    const SDLStaticText text(screen,
-                             font,
-                             "Sample Method:\n"
-                             "    1: Point, 2: Nearest, 3: Linear\n"
-                             "Wrap Method:\n"
-                             "    4: Blank, 5: Clamp, 6: Periodic, 7: Wrap\n"
-                             "Mipmap Sample Method:\n"
-                             "    8: Point, 9: Nearest, 0: Linear\n");
+    MyFontUniform font_uniform;
+    font_uniform.pos = { -1 + 0.02, 1 - 0.02 };
+    font_uniform.color = { 1, 0, 0 };
+    font_uniform.font_rel_width = 0.75f;
+    EasyFontVertexBuffer<> font_vertex_buf;
+    static std::string text = "Sample Method:\n"
+                              "    1: Point, 2: Nearest, 3: Linear\n"
+                              "Wrap Method:\n"
+                              "    4: Blank, 5: Clamp, 6: Periodic, 7: Wrap\n"
+                              "Mipmap Sample Method:\n"
+                              "    8: Point, 9: Nearest, 0: Linear\n";
+
+    init_string(text, font_uniform, font_vertex_buf);
 
     bool running = true;
     while (running) {
@@ -258,8 +277,9 @@ main(int argc, char* argv[])
 
         renderer.draw(program, uniforms, vertex_buf, screen, renderer_data);
         screen.update();
+        draw_string(font_program, font_uniform, font_vertex_buf, renderer, screen, font_renderer_data);
+        screen.update();
 
-        text.render();
         screen.show();
     }
 

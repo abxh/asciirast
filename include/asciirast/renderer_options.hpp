@@ -1,6 +1,16 @@
 /**
  * @file renderer_options.hpp
  * @brief Renderer options
+ *
+ * Quads vertex order (top-left, top-right, bottom-left, bottom-right):
+ *  0 --- 1
+ *  |     |
+ *  3 --- 2
+ *
+ * QuadStrip vertex order:
+ *  0 --- 2 --- 4
+ *  |     |     | ...
+ *  1 --- 3 --- 5
  */
 
 #pragma once
@@ -19,6 +29,8 @@ enum class ShapeType
     Triangles,
     TriangleStrip,
     TriangleFan,
+    Quads,
+    QuadStrip,
 };
 
 /**

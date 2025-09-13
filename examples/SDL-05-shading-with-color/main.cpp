@@ -185,6 +185,10 @@ main(int argc, char* argv[])
                                  }) |
                                std::ranges::to<std::vector<math::Vec2>>();
 
+        if (texcoords.size() == 0) {
+            throw std::runtime_error("model has no provided texture coordinates");
+        }
+
         for (std::size_t s = 0; s < shapes.size(); s++) {
             std::size_t index_offset = 0;
 

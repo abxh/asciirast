@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "./fragment.hpp"
 #include "./math/types.hpp"
 
 namespace asciirast {
@@ -181,6 +182,55 @@ make_perspective(const math::Float near,
                                                math::Vec4{ 0, 0, 1 / B, -A / B }); // w = 1/B * z' - A/B * w'
 
     return math::Transform3D().stack(mat, mat_inv);
+}
+
+/**
+ * @brief Triangulate fragment quad and get indicies of triangles
+ */
+template<WindingOrder winding_order, VaryingInterface Varying>
+[[maybe_unused]] static std::array<std::size_t, 6>
+triangulate_fragment_quad(const std::array<Fragment<Varying>, 4>& fragments)
+{
+    const auto& [f0, f1, f2, f3] = fragments;
+    const auto v0 = f0.pos.xyz.to_vec();
+    const auto v1 = f1.pos.xyz.to_vec();
+    const auto v2 = f2.pos.xyz.to_vec();
+    const auto v3 = f3.pos.xyz.to_vec();
+
+    ASCIIRAST_ASSERT(math::almost_equal(dot(cross(v0.vector_to(v1), v0.vector_to(v2)), v0.vector_to(v3)), 0.f),
+                     "all given points lie on the same plane",
+                     v0,
+                     v1,
+                     v2,
+                     v3);
+
+    // pick the smaller of the two diagonals:
+    const auto v02 = v0.vector_to(v2);
+    const auto v13 = v1.vector_to(v3);
+
+    if (dot(v02, v02) < dot(v13, v13)) {
+        /*
+            0 --- 1
+            |  \  |
+            3 --- 2
+        */
+        if constexpr (winding_order == WindingOrder::Clockwise) {
+            return { 0, 1, 2, 2, 3, 0 };
+        } else {
+            return { 1, 0, 2, 2, 0, 3 };
+        }
+    } else {
+        /*
+            0 --- 1
+            |  /  |
+            3 --- 2
+        */
+        if constexpr (winding_order == WindingOrder::Clockwise) {
+            return { 0, 1, 3, 3, 1, 2 };
+        } else {
+            return { 0, 3, 1, 1, 3, 2 };
+        }
+    }
 }
 
 } // namespace asciirast

@@ -74,12 +74,19 @@ endif()
 # Dependencies:
 # ---------------------------------------------------------------------------------
 
-include(cmake/CPM.cmake)
+message(STATUS "Bootstrapping CPM.cmake")
+file(
+  DOWNLOAD
+  https://github.com/cpm-cmake/CPM.cmake/releases/latest/download/get_cpm.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake
+)
+include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
+set(CPM_USE_LOCAL_PACKAGES TRUE)
 
 CPMAddPackage("gh:boostorg/pfr#master")
 if (TARGET boost_pfr)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(boost_pfr INTERFACE -Wno-shadow) # disable -Wshadow
+    target_compile_options(boost_pfr INTERFACE -Wno-shadow)
   endif()
 endif()
 
@@ -87,10 +94,10 @@ CPMAddPackage(
   NAME gcem
   GIT_REPOSITORY https://github.com/kthohr/gcem.git
   GIT_TAG master
-  PATCH_COMMAND ${CMAKE_COMMAND} -E echo "Patching GCEM..."
-                && ${CMAKE_COMMAND} -E copy_if_different
-                     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GCEM-CMakeLists.txt"
-                     "<SOURCE_DIR>/CMakeLists.txt")
+  DOWNLOAD_ONLY TRUE
+)
+add_library(gcem INTERFACE)
+target_include_directories(gcem INTERFACE ${gcem_SOURCE_DIR}/include)
 
 CPMAddPackage(
   NAME stb
@@ -98,8 +105,7 @@ CPMAddPackage(
   GIT_TAG master
   DOWNLOAD_ONLY TRUE
 )
-add_subdirectory(external/stb_image)
-
+add_subdirectory(external/stb_image_impl)
 
 add_subdirectory(include)
 
@@ -111,16 +117,18 @@ if (PROJECT_IS_TOP_LEVEL)
 	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/asciirast)
 
-	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-	find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
-	find_package(SDL2_ttf REQUIRED CONFIG COMPONENTS SDL2_ttf)
+	CPMAddPackage(
+	  NAME SDL2
+	  GITHUB_REPOSITORY libsdl-org/SDL
+	  GIT_TAG SDL2
+	)
 
 	CPMAddPackage(
 	  NAME tinyobjloader
 	  GITHUB_REPOSITORY tinyobjloader/tinyobjloader
 	  GIT_TAG release
 	)
-	add_subdirectory(external/tiny_obj_loader)
+	add_subdirectory(external/tinyobjloader_impl)
 
 	CPMAddPackage(
 	  NAME tinyfiledialogs

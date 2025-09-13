@@ -46,21 +46,27 @@ public:
     using Vertex = MyVertex;
     using Varying = MyVarying;
     using Targets = SDLBuffer::Targets;
+    using FragmentContext = asciirast::FragmentContextGeneric<>;
 
     void on_vertex(const Uniform& u, const Vertex& vert, Fragment& out) const
     {
         out.pos.xy = { (u.rot.to_mat() * vert.pos).xy };
         out.attrs = { math::Vec3{ 1, 1, 1 } };
     }
-    void on_fragment([[maybe_unused]] const Uniform& u, const ProjectedFragment& pfrag, Targets& out) const
+    auto on_fragment([[maybe_unused]] FragmentContext& c,
+                     [[maybe_unused]] const Uniform& u,
+                     const ProjectedFragment& pfrag,
+                     Targets& out) const -> asciirast::FragmentTokenGenerator
     {
 #ifndef NDEBUG
         out = { pfrag.attrs.color.rgb, 1 };
+        co_return;
 #else
-        if ((u.lhs_side && pfrag.pos.x <= u.split_x) || !u.lhs_side) {
+        if ((u.lhs_side && pfrag.pos.x <= u.split_x) || (!u.lhs_side && pfrag.pos.x > u.split_x)) {
             out = { pfrag.attrs.color.rgb, 1 };
+            co_yield asciirast::FragmentToken::Keep;
         } else {
-            out = math::Vec4::from_value(0);
+            co_yield asciirast::FragmentToken::Discard;
         }
 #endif
     }
@@ -164,6 +170,7 @@ main(int argc, char* argv[])
 
     SDLClock clock;
     SDLBuffer screen(512, 512);
+    screen.brush_extent = 2;
     MyProgram program;
     asciirast::Renderer<{ .attr_interpolation = asciirast::AttrInterpolation::Flat }> renderer;
     asciirast::RendererData<MyVarying> renderer_data;

@@ -6,7 +6,6 @@
 #include <SDL.h>
 #include <SDL_pixels.h>
 #include <SDL_render.h>
-#include <SDL_ttf.h>
 
 #include <cassert>
 #include <cstddef>
@@ -21,7 +20,7 @@ namespace math = asciirast::math;
 using RGB = math::Vec3;
 using RGBA = math::Vec4;
 
-struct RGBA_uint8
+struct SDL_RGBA
 {
     // this order should match SDL pixel format
     std::uint8_t b = 0;
@@ -103,6 +102,22 @@ public:
 
     void plot(const math::Vec2Int& pos, const Targets& targets)
     {
+        if (!custom_brush_enabled) {
+            plot_regular(pos, targets);
+        } else {
+            for (int dy = -brush_extent; dy < brush_extent; dy++) {
+                for (int dx = -brush_extent; dx < brush_extent; dx++) {
+                    const auto new_pos = clamp(pos - math::Vec2Int{ dx, dy },
+                                               math::Vec2Int{ 0, 0 },
+                                               math::Vec2Int{ width() - 1, height() - 1 });
+                    plot_regular(new_pos, targets);
+                }
+            }
+        }
+    }
+
+    void plot_regular(const math::Vec2Int& pos, const Targets& targets)
+    {
         assert(0 <= pos.x && (std::size_t)pos.x < m_width);
         assert(0 <= pos.y && (std::size_t)pos.y < m_height);
 
@@ -140,9 +155,6 @@ public:
         }
     }
 
-    friend class SDLFont;
-    friend class SDLStaticText;
-
 private:
     std::size_t index(const std::size_t y, const std::size_t x) const { return m_width * y + x; }
 
@@ -150,7 +162,7 @@ private:
     std::size_t m_height;
     math::Transform2D m_screen_to_window;
 
-    std::vector<RGBA_uint8> m_rgba_buf;
+    std::vector<SDL_RGBA> m_rgba_buf;
     std::vector<math::Float> m_depth_buf;
 
     SDL_Texture* m_texture = nullptr;
@@ -160,66 +172,6 @@ private:
 
 static_assert(asciirast::FrameBufferInterface<SDLBuffer>);
 static_assert(asciirast::FrameBuffer_DepthSupport<SDLBuffer>);
-
-class SDLFont
-{
-public:
-    SDLFont(const char* path, const int font_size = 36)
-    {
-        int ret = TTF_Init();
-        if (ret == -1) {
-            throw std::runtime_error(std::string("TTF_Init failed: ") + TTF_GetError());
-        }
-        m_font = TTF_OpenFont(path, font_size);
-        if (!m_font) {
-            throw std::runtime_error(std::string("TTF_OpenFont failed: ") + TTF_GetError());
-        }
-    }
-    ~SDLFont()
-    {
-        TTF_CloseFont(m_font);
-        TTF_Quit();
-    }
-
-    friend class SDLStaticText;
-
-private:
-    TTF_Font* m_font = nullptr;
-};
-
-class SDLStaticText
-{
-public:
-    SDLStaticText(SDLBuffer& screen, const SDLFont& font, const char* text, const SDL_Color color = { 255, 0, 0, 255 })
-        : m_screen{ screen }
-    {
-        m_surface = TTF_RenderText_Solid_Wrapped(font.m_font, text, color, (std::uint32_t)m_screen.m_width);
-        if (!m_surface) {
-            throw std::runtime_error(std::string("TTF_RenderText_Solid_Wrapped failed: ") + TTF_GetError());
-        }
-        m_texture = SDL_CreateTextureFromSurface(m_screen.m_renderer, m_surface);
-        if (!m_texture) {
-            throw std::runtime_error(std::string("SDL_CreateTextureFromSurface failed: ") + TTF_GetError());
-        }
-    }
-
-    ~SDLStaticText()
-    {
-        SDL_DestroyTexture(m_texture);
-        SDL_FreeSurface(m_surface);
-    }
-
-    void render(const math::Vec2Int pos = { 10, 10 }) const
-    {
-        const SDL_Rect rect = { .x = pos.x, .y = pos.y, .w = m_surface->w, .h = m_surface->h };
-        SDL_RenderCopy(m_screen.m_renderer, m_texture, nullptr, &rect);
-    }
-
-private:
-    SDLBuffer& m_screen;
-    SDL_Surface* m_surface = nullptr;
-    SDL_Texture* m_texture = nullptr;
-};
 
 class SDLClock
 {
