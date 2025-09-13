@@ -159,7 +159,7 @@ make_perspective(const math::Float near,
      */
 
     ASCIIRAST_ASSERT(tan(fovy_rad / 2.0f) != 0.f, "tangent to half fov angle is not 0", fovy_rad);
-    ASCIIRAST_ASSERT(aspect_ratio != 0.f);
+    ASCIIRAST_ASSERT(aspect_ratio != 0.f, "aspect_ratio not 0");
 
     const auto tan_half_fov = tan(fovy_rad / 2.0f);
     const auto sx = tan_half_fov * aspect_ratio;

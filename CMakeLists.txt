@@ -74,13 +74,32 @@ endif()
 # Dependencies:
 # ---------------------------------------------------------------------------------
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_subdirectory(external/libassert) 
+include(cmake/CPM.cmake)
+
+CPMAddPackage("gh:boostorg/pfr#master")
+if (TARGET boost_pfr)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(boost_pfr INTERFACE -Wno-shadow) # disable -Wshadow
+  endif()
 endif()
 
-add_subdirectory(external/boost_pfr) 
-add_subdirectory(external/gcem) 
-add_subdirectory(external/stb_image) 
+CPMAddPackage(
+  NAME gcem
+  GIT_REPOSITORY https://github.com/kthohr/gcem.git
+  GIT_TAG master
+  PATCH_COMMAND ${CMAKE_COMMAND} -E echo "Patching GCEM..."
+                && ${CMAKE_COMMAND} -E copy_if_different
+                     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GCEM-CMakeLists.txt"
+                     "<SOURCE_DIR>/CMakeLists.txt")
+
+CPMAddPackage(
+  NAME stb
+  GITHUB_REPOSITORY nothings/stb
+  GIT_TAG master
+  DOWNLOAD_ONLY TRUE
+)
+add_subdirectory(external/stb_image)
+
 
 add_subdirectory(include)
 
@@ -96,12 +115,26 @@ if (PROJECT_IS_TOP_LEVEL)
 	find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
 	find_package(SDL2_ttf REQUIRED CONFIG COMPONENTS SDL2_ttf)
 
-	add_subdirectory(external/imgui)
+	CPMAddPackage(
+	  NAME tinyobjloader
+	  GITHUB_REPOSITORY tinyobjloader/tinyobjloader
+	  GIT_TAG release
+	)
 	add_subdirectory(external/tiny_obj_loader)
-	add_subdirectory(external/tinyfiledialogs)
+
+	CPMAddPackage(
+	  NAME tinyfiledialogs
+	  GIT_REPOSITORY http://git.code.sf.net/p/tinyfiledialogs/code
+	  GIT_TAG master
+	  DOWNLOAD_ONLY TRUE
+	)
+	add_library(tinyfd STATIC
+	  ${tinyfiledialogs_SOURCE_DIR}/tinyfiledialogs.c
+	)
+	target_include_directories(tinyfd PUBLIC ${tinyfiledialogs_SOURCE_DIR})
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic )
+		add_compile_options(-Wall -Wextra -Wshadow -Wfloat-conversion -Wsign-conversion -Warith-conversion -pedantic)
 		add_compile_options(-fconcepts-diagnostics-depth=10)
 	elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		add_compile_options(/W3)

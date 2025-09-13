@@ -1,6 +1,6 @@
 #include <asciirast.hpp>
 
-#include <tinyfiledialogs.hpp>
+#include <tinyfiledialogs.h>
 
 #include <filesystem>
 #include <iostream>

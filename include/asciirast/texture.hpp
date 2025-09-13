@@ -26,8 +26,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <stb_image.hpp>
-#include <stb_image_write.hpp>
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 #include "./math/types.hpp"
 

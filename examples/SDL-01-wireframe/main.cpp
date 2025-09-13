@@ -10,9 +10,8 @@
 
 #include <asciirast.hpp>
 
-#include <ostream>
-#include <tiny_obj_loader.hpp>
-#include <tinyfiledialogs.hpp>
+#include <tiny_obj_loader.h>
+#include <tinyfiledialogs.h>
 
 #include <iostream>
 #include <ranges>

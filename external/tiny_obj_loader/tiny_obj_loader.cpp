@@ -1,2 +1,2 @@
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.hpp"
+#include <tiny_obj_loader.h>
