@@ -23,6 +23,9 @@
 #include "./math/types.hpp"
 #include "./texture.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 namespace asciirast {
 
 /**
@@ -302,9 +305,21 @@ texture(FragmentContextGeneric<ValueTypes...>& context,
  */
 #define TEXTURE(context, sampler, texture_, uv)                                                                        \
     __extension__({                                                                                                    \
-        co_yield asciirast::texture_init(context, texture_, uv);                                                       \
-        asciirast::texture(context, sampler, texture_, uv);                                                            \
+        co_yield asciirast::texture_init((context), (texture_), (uv));                                                 \
+        asciirast::texture((context), (sampler), (texture_), (uv));                                                    \
     })
+
+#else
+
+#define TEXTURE(context, sampler, texture_, uv)                                                                        \
+    (std::cerr << "unsupported use of TEXTURE()\n",                                                                    \
+     std::abort(),                                                                                                     \
+     (void)(context),                                                                                                  \
+     (void)(sampler),                                                                                                  \
+     (void)(texture_),                                                                                                 \
+     (void)(uv),                                                                                                       \
+     asciirast::math::Vec4())
+
 #endif
 
 }; // namespace asciirast
