@@ -14,7 +14,7 @@
 #include "./program.hpp"
 #include "./renderer/rasterize.hpp"
 #include "./renderer/test_bounds.hpp"
-#include "./shapes/mesh.hpp"
+// #include "./shapes/mesh.hpp"
 
 namespace asciirast {
 

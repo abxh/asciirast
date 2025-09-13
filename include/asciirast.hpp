@@ -9,4 +9,4 @@
 #include "./asciirast/sampler.hpp"
 
 #include "./asciirast/math/types.hpp"
-#include "./asciirast/shapes/types.hpp"
+// #include "./asciirast/shapes/types.hpp"
