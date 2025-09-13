@@ -429,7 +429,23 @@ private:
         // screen space -> window space:
         const PFrag wfrag = apply_screen_to_window_transform(framebuffer.screen_to_window_transform(), vfrag);
 
-        if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
+        if constexpr (ProgramInterface_FragRegularSupport<Program>) {
+            const auto pos_int = math::Vec2Int{ wfrag.pos };
+            auto targets = Targets{};
+
+            // early z testing
+            if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
+                    program.on_fragment(uniform, wfrag, targets);
+                    framebuffer.plot(pos_int, targets);
+                }
+            } else {
+                program.on_fragment(uniform, wfrag, targets);
+                framebuffer.plot(pos_int, targets);
+            }
+        } else {
+            static_assert(ProgramInterface_FragCoroutineSupport<Program>);
+
             using FragmentContext = typename Program::FragmentContext;
 
             // prepare values:
@@ -454,22 +470,6 @@ private:
                     framebuffer.plot(pos_int, targets);
                 }
             } else {
-                framebuffer.plot(pos_int, targets);
-            }
-        } else {
-            static_assert(ProgramInterface_FragRegularSupport<Program>);
-
-            const auto pos_int = math::Vec2Int{ wfrag.pos };
-            auto targets = Targets{};
-
-            // early z testing
-            if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
-                if (framebuffer.test_and_set_depth(pos_int, wfrag.depth)) {
-                    program.on_fragment(uniform, wfrag, targets);
-                    framebuffer.plot(pos_int, targets);
-                }
-            } else {
-                program.on_fragment(uniform, wfrag, targets);
                 framebuffer.plot(pos_int, targets);
             }
         }
@@ -572,7 +572,31 @@ private:
             break;
         }
 
-        if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
+        if constexpr (ProgramInterface_FragRegularSupport<Program>) {
+            const auto plot_func = [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
+                const auto pos_int = math::Vec2Int{ rfrag.pos };
+                Targets targets = {};
+
+                // early z testing
+                if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                    if (framebuffer.test_and_set_depth(pos_int, rfrag.depth)) {
+                        program.on_fragment(uniform, rfrag, targets);
+                        framebuffer.plot(pos_int, targets);
+                    }
+                } else {
+                    program.on_fragment(uniform, rfrag, targets);
+                    framebuffer.plot(pos_int, targets);
+                }
+            };
+
+            if (keep_vertex_order) {
+                renderer::rasterize_line<Options>(wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func));
+            } else {
+                renderer::rasterize_line<Options>(wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func));
+            }
+        } else {
+            static_assert(ProgramInterface_FragCoroutineSupport<Program>);
+
             const auto plot_func =
                 [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 2>& rfrag) -> void {
                 const auto [rfrag0, rfrag1] = rfrag;
@@ -623,30 +647,6 @@ private:
                     } else {
                         framebuffer.plot(pos_int, targets0);
                     }
-                }
-            };
-
-            if (keep_vertex_order) {
-                renderer::rasterize_line<Options>(wfrag0, wfrag1, std::forward<decltype(plot_func)>(plot_func));
-            } else {
-                renderer::rasterize_line<Options>(wfrag1, wfrag0, std::forward<decltype(plot_func)>(plot_func));
-            }
-        } else {
-            static_assert(ProgramInterface_FragRegularSupport<Program>);
-
-            const auto plot_func = [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
-                const auto pos_int = math::Vec2Int{ rfrag.pos };
-                Targets targets = {};
-
-                // early z testing
-                if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
-                    if (framebuffer.test_and_set_depth(pos_int, rfrag.depth)) {
-                        program.on_fragment(uniform, rfrag, targets);
-                        framebuffer.plot(pos_int, targets);
-                    }
-                } else {
-                    program.on_fragment(uniform, rfrag, targets);
-                    framebuffer.plot(pos_int, targets);
                 }
             };
 
@@ -782,7 +782,34 @@ private:
                 return;
             }
 
-            if constexpr (ProgramInterface_FragCoroutineSupport<Program>) {
+            if constexpr (ProgramInterface_FragRegularSupport<Program>) {
+                const auto plot_func =
+                    [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
+                    const auto pos_int = math::Vec2Int{ rfrag.pos };
+                    Targets targets = {};
+
+                    // early z testing
+                    if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
+                        if (framebuffer.test_and_set_depth(pos_int, rfrag.depth)) {
+                            program.on_fragment(uniform, rfrag, targets);
+                            framebuffer.plot(pos_int, targets);
+                        }
+                    } else {
+                        program.on_fragment(uniform, rfrag, targets);
+                        framebuffer.plot(pos_int, targets);
+                    }
+                };
+
+                if (signed_area_2 > 0) {
+                    renderer::rasterize_triangle<Options>(
+                        wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
+                } else {
+                    renderer::rasterize_triangle<Options>(
+                        wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
+                }
+            } else {
+                static_assert(ProgramInterface_FragCoroutineSupport<Program>);
+
                 const auto plot_func =
                     [&program, &framebuffer, &uniform](const std::array<ProjectedFragment<Varying>, 4>& rfrag,
                                                        const std::array<bool, 4>& in_triangle) -> void {
@@ -830,8 +857,7 @@ private:
                             r2 == FragmentToken::Syncronize || r3 == FragmentToken::Syncronize) [[likely]] {
                             if (r0 != FragmentToken::Syncronize || r1 != FragmentToken::Syncronize ||
                                 r2 != FragmentToken::Syncronize || r3 != FragmentToken::Syncronize) [[unlikely]] {
-                                throw std::logic_error("asciirast::Renderer::draw() : Fragment shader "
-                                                       "must should"
+                                throw std::logic_error("asciirast::Renderer::draw() : Fragment shader should"
                                                        "syncronize in the same order in all instances");
                             }
                         }
@@ -879,33 +905,6 @@ private:
                         } else {
                             framebuffer.plot(rfrag3_pos_int, targets3);
                         }
-                    }
-                };
-
-                if (signed_area_2 > 0) {
-                    renderer::rasterize_triangle<Options>(
-                        wfrag0, wfrag1, wfrag2, std::forward<decltype(plot_func)>(plot_func));
-                } else {
-                    renderer::rasterize_triangle<Options>(
-                        wfrag0, wfrag2, wfrag1, std::forward<decltype(plot_func)>(plot_func));
-                }
-            } else {
-                static_assert(ProgramInterface_FragRegularSupport<Program>);
-
-                const auto plot_func =
-                    [&program, &framebuffer, &uniform](const ProjectedFragment<Varying>& rfrag) -> void {
-                    const auto pos_int = math::Vec2Int{ rfrag.pos };
-                    Targets targets = {};
-
-                    // early z testing
-                    if constexpr (FrameBuffer_DepthSupport<FrameBuffer>) {
-                        if (framebuffer.test_and_set_depth(pos_int, rfrag.depth)) {
-                            program.on_fragment(uniform, rfrag, targets);
-                            framebuffer.plot(pos_int, targets);
-                        }
-                    } else {
-                        program.on_fragment(uniform, rfrag, targets);
-                        framebuffer.plot(pos_int, targets);
                     }
                 };
 
