@@ -27,7 +27,7 @@ cmake --build build_release -j $(nproc)
 ```
 Then the executables will be visible in `build_release/bin` directory. Use `-j %NUMBER_OF_PROCESSORS%` on windows.
 
-Alternatively, build in debug mode and export compile commands for LSP support:
+Alternatively, build in debug mode with asserts and debug symbols on:
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug -B build
 cmake --build build -j $(nproc) 
