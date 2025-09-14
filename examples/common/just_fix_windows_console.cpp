@@ -1,5 +1,5 @@
 /**
- * @file colorama.cpp
+ * @file just_fix_windows_console.cpp
  *
  * Based on:
  * https://github.com/niansa/colohalopp/blob/master/colorama.cpp
