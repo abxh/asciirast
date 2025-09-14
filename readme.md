@@ -9,11 +9,9 @@ for details on converting between coordinate systems.
 
 ## Dependencies
 
-For the examples, the following is required:
-- `libsdl2-dev`
-- `libsdl2-ttf-dev`
-
 ## Build steps
+
+Optionally install `libsdl2-dev` to pre-build the required SDL dependency.
 
 Clone this repository:
 ```bash
